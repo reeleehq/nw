@@ -1427,3 +1427,35 @@ def test_error_kind_is_none_on_success_and_cancelled_on_cancel(project):
     release.set()
     final = _poll_until(project, job.job_id, lambda j: j.status == jobs.CANCELLED)
     assert final.error is None and final.error_kind == "cancelled"
+
+
+def test_a_refused_job_keeps_its_refusal_as_data(project):
+    """A host reads a refusal's figures from ``error_detail``, never by parsing the
+    sentence in ``error`` (reelee#570)."""
+    detail = {"error": "spend_limit_reached", "spent_usd": 10.5, "limit_usd": 10.0}
+
+    def refuse(project, params, **kw):
+        raise nw.GenreOpRefused("Today's spending limit is reached.", detail=detail)
+
+    job = jobs.enqueue(
+        project, "op", {"model": "m", "operation": "image"}, dispatch={"op": refuse}
+    )
+    done = _poll_until(project, job.job_id, lambda j: j.status in jobs.TERMINAL_STATUSES)
+    assert done.error_kind == "refused" and done.error_detail == detail
+    assert jobs.to_dict(done)["error_detail"] == detail
+    jobs._reset_runtimes()
+    assert jobs.get_job(project, job.job_id).error_detail == detail
+    row = next(j for j in jobs.summarize(project.root) if j.job_id == job.job_id)
+    assert row.error_detail == detail
+
+
+def test_only_a_refusal_carries_a_detail(project):
+    def crash(project, params, **kw):
+        raise RuntimeError("kaboom")
+
+    job = jobs.enqueue(
+        project, "op", {"model": "m", "operation": "image"}, dispatch={"op": crash}
+    )
+    done = _poll_until(project, job.job_id, lambda j: j.status in jobs.TERMINAL_STATUSES)
+    assert done.error_kind == "crashed" and done.error_detail is None
+    assert jobs.to_dict(done)["error_detail"] is None

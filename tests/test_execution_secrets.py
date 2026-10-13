@@ -625,3 +625,25 @@ def test_shot_renderers_bind_the_fal_secret_at_the_falaw_boundary(monkeypatch, p
             t.execute(project, Plan(calls=()), (skel,), secrets={FAL_SECRET: SENTINEL})
     assert observed == [SENTINEL] * len(names)
     assert current_fal_key() is None
+
+
+def test_a_refused_job_never_persists_a_key_quoted_in_its_detail(project, tmp_path):
+    """A refusal's ``detail`` is persisted as the job's ``error_detail``; a key
+    echoed into it is redacted like the ``error`` text (reeleehq/nw#107 review)."""
+    from nw.genres import GenreOpRefused
+
+    def refuse(proj, params, *, secrets=None):
+        key = secrets["elevenlabs"]
+        raise GenreOpRefused(f"no: {key}", detail={"echo": f"key={key}", "n": [key]})
+
+    job = jobs.enqueue(
+        project, "op", {"a": 1}, dispatch={"op": refuse}, secrets={"elevenlabs": SENTINEL}
+    )
+    job = _wait_terminal(project, job.job_id)
+    assert job.error_kind == "refused"
+    assert job.error_detail == {
+        "echo": "key=<redacted:elevenlabs>",
+        "n": ["<redacted:elevenlabs>"],
+    }
+    assert SENTINEL not in json.dumps(jobs.to_dict(job), default=str)
+    assert _grep_tree(tmp_path) == []

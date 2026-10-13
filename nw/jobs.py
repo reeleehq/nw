@@ -270,6 +270,10 @@ class Job:
     :class:`nw.GenreOpCancelled`), ``"crashed"`` (anything else — a bug, or a worker
     that stopped beating). ``None`` while running and on success. ``error`` keeps the
     text either way."""
+    error_detail: dict | None = None
+    """A refusal as data: the ``detail`` of the :class:`nw.GenreOpRefused` the job
+    raised (:func:`error_detail_of`), so a client acts on it without parsing
+    ``error``. ``None`` otherwise."""
     run_id: str | None = None
     last_event_id: str | None = None
 
@@ -415,6 +419,7 @@ def enqueue(
             "result": None,
             "error": None,
             "error_kind": None,
+            "error_detail": None,
             "last_event_id": None,
         }
         _index_set_locked(rt, job_id, record)
@@ -763,6 +768,7 @@ def to_dict(job: Job) -> dict:
         "result": job.result,
         "error": job.error,
         "error_kind": job.error_kind,
+        "error_detail": job.error_detail,
         "last_event_id": job.last_event_id,
     }
 
@@ -1160,7 +1166,12 @@ def _bind_worker(
                     # Classified HERE, on the live exception: what au persists is
                     # its text, which cannot say a refusal from a crash.
                     with rt.lock:
-                        _index_update_locked(rt, job_id, error_kind=error_kind_of(e))
+                        _index_update_locked(
+                            rt,
+                            job_id,
+                            error_kind=error_kind_of(e),
+                            error_detail=error_detail_of(e, secrets=secrets),
+                        )
                     # au persists the RENDERED exception text as the job's
                     # error; a provider echoing the key back would put it in
                     # the store. `redact_exception` returns a rebuilt
@@ -1480,6 +1491,7 @@ def _project_job(rt, record, au_result, config) -> Job:
     result_payload = None
     error = None
     error_kind = None
+    error_detail = None
     artifact_ref = record.get("artifact_ref")
     if status == SUCCEEDED:
         if isinstance(au_result.value, Mapping):
@@ -1495,6 +1507,10 @@ def _project_job(rt, record, au_result, config) -> Job:
             if isinstance(au_result.error, BaseException)
             else ERROR_KIND_CRASHED
         )
+        if error_kind == ERROR_KIND_REFUSED:
+            # Only what the worker recorded, redacted, on the live exception:
+            # the exception au hands back may be the unredacted original.
+            error_detail = record.get("error_detail")
     elif status == CANCELLED:
         error = None
         error_kind = ERROR_KIND_CANCELLED
@@ -1528,6 +1544,7 @@ def _project_job(rt, record, au_result, config) -> Job:
         result=result_payload,
         error=error,
         error_kind=error_kind,
+        error_detail=error_detail,
         run_id=record["job_id"],
         last_event_id=record.get("last_event_id"),
     )
@@ -1537,6 +1554,50 @@ def _project_job(rt, record, au_result, config) -> Job:
 ERROR_KIND_REFUSED = "refused"
 ERROR_KIND_CANCELLED = "cancelled"
 ERROR_KIND_CRASHED = "crashed"
+
+
+def error_detail_of(
+    error: BaseException, *, secrets: "Mapping[str, str | None] | None" = None
+) -> dict | None:
+    """The refusal ``error`` carries as data, or ``None``.
+
+    Only a :class:`nw.GenreOpRefused`'s ``detail``, and only when it survives a
+    strict JSON round trip (the job store persists it, and a NaN or infinity
+    would make every response carrying the job unserialisable): a detail that
+    does not is dropped rather than failing the job's bookkeeping. Every string
+    in it is redacted of ``secrets``, as the job's ``error`` text is.
+
+    >>> from nw.genres import GenreOpRefused
+    >>> error_detail_of(GenreOpRefused("cap", detail={"limit_usd": 10.0}))
+    {'limit_usd': 10.0}
+    >>> error_detail_of(GenreOpRefused("cap", detail={"limit_usd": float("inf")})) is None
+    True
+    >>> error_detail_of(GenreOpRefused("x", detail={"echo": ["key=sk-1"]}), secrets={"fal": "sk-1"})
+    {'echo': ['key=<redacted:fal>']}
+    >>> error_detail_of(ValueError("bug")) is None
+    True
+    """
+    from nw.genres import GenreOpRefused
+    from nw.secrets import redact
+
+    detail = getattr(error, "detail", None) if isinstance(error, GenreOpRefused) else None
+    if not isinstance(detail, Mapping):
+        return None
+    try:
+        data = json.loads(json.dumps(dict(detail), allow_nan=False))
+    except (TypeError, ValueError):
+        return None
+
+    def scrub(value):
+        if isinstance(value, str):
+            return redact(value, secrets)
+        if isinstance(value, list):
+            return [scrub(v) for v in value]
+        if isinstance(value, dict):
+            return {redact(k, secrets): scrub(v) for k, v in value.items()}
+        return value
+
+    return scrub(data) if secrets else data
 
 
 def error_kind_of(error: BaseException) -> str:
