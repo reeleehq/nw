@@ -2,38 +2,38 @@
 
 # About this build
 
-This documentation was built on **2026-10-03 08:15 UTC** from commit <a href="https://github.com/thorwhalen/nw/commit/c0e69488cead78cd889e25fc6596e0c76420a3a4"><code>c0e6948</code></a> on branch <code>main</code>, for **nw 0.0.68** (from <code>pyproject.toml</code>).
+This documentation was built on **2026-10-13 16:10 UTC** from commit <a href="https://github.com/reeleehq/nw/commit/293b99f4af68f15e1ee0e07f1371b839bf3f4c1c"><code>293b99f</code></a> on branch <code>main</code>, for **nw 0.0.69** (from <code>pyproject.toml</code>).
 
 #### NOTE
 Nothing suggests a mismatch: the tree was clean at the commit above, and the documented version is the one on PyPI.
 
 ## Source
 
-|                     |                                                                                                                                                      |
-|---------------------|------------------------------------------------------------------------------------------------------------------------------------------------------|
-| Commit              | <a href="https://github.com/thorwhalen/nw/commit/c0e69488cead78cd889e25fc6596e0c76420a3a4"><code>c0e69488cead78cd889e25fc6596e0c76420a3a4</code></a> |
-| Branch              | <code>main</code>                                                                                                                                    |
-| Tags at this commit | <code>0.0.68</code>                                                                                                                                  |
-| Working tree        | clean                                                                                                                                                |
-| Remote              | <code>https://github.com/thorwhalen/nw</code>                                                                                                        |
+|                     |                                                                                                                                                    |
+|---------------------|----------------------------------------------------------------------------------------------------------------------------------------------------|
+| Commit              | <a href="https://github.com/reeleehq/nw/commit/293b99f4af68f15e1ee0e07f1371b839bf3f4c1c"><code>293b99f4af68f15e1ee0e07f1371b839bf3f4c1c</code></a> |
+| Branch              | <code>main</code>                                                                                                                                  |
+| Tags at this commit | <code>0.0.69</code>                                                                                                                                |
+| Working tree        | clean                                                                                                                                              |
+| Remote              | <code>https://github.com/reeleehq/nw</code>                                                                                                        |
 
 ## Continuous integration
 
 |              |                                                                                            |
 |--------------|--------------------------------------------------------------------------------------------|
-| Repository   | <code>thorwhalen/nw</code>                                                                 |
-| Run          | <a href="https://github.com/thorwhalen/nw/actions/runs/37108918521">37108918521</a>        |
+| Repository   | <code>reeleehq/nw</code>                                                                   |
+| Run          | <a href="https://github.com/reeleehq/nw/actions/runs/38427776399">38427776399</a>          |
 | Ref          | <code>refs/heads/main</code>                                                               |
-| Event commit | <code>405967b32eeaf1ffb88f9f04a1785d68422319b2</code> (in the history of the built commit) |
+| Event commit | <code>0fb927a6773e8b2a06886c3ec1a60cc8e9b2cd88</code> (in the history of the built commit) |
 
 ## Tools
 
 |          |         |
 |----------|---------|
-| epythet  | 0.2.12  |
+| epythet  | 0.2.17  |
 | Sphinx   | 9.1.0   |
 | docutils | 0.22.4  |
-| Python   | 3.12.14 |
+| Python   | 3.12.15 |
 
 ## Configuration as resolved
 
@@ -49,14 +49,14 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 
 ## Package on PyPI
 
-Latest release: <a href="https://pypi.org/project/nw/0.0.68/">0.0.68</a>, the same as the documented version.
+Latest release: <a href="https://pypi.org/project/nw/0.0.69/">0.0.69</a>, the same as the documented version.
 
 ## Reproduce
 
 ```bash
-git clone https://github.com/thorwhalen/nw && cd nw
-git checkout c0e69488cead78cd889e25fc6596e0c76420a3a4
-pip install "epythet==0.2.12"
+git clone https://github.com/reeleehq/nw && cd nw
+git checkout 293b99f4af68f15e1ee0e07f1371b839bf3f4c1c
+pip install "epythet==0.2.17"
 epythet quickstart . --ignore tests/ scrap/ examples/
 ```
 

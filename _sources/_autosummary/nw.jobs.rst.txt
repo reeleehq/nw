@@ -17,6 +17,7 @@ nw.jobs
    
       cancel_job
       enqueue
+      error_detail_of
       error_kind_of
       estimate
       get_job

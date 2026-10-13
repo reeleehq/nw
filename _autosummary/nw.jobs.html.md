@@ -74,6 +74,7 @@ the top of this module — no magic numbers below.
 | [`cancel_job`](#nw.jobs.cancel_job)(project, job_id, \*[, config])         | Request cancellation.                                                                                       |
 |----------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------|
 | [`enqueue`](#nw.jobs.enqueue)(project, kind, params, \*[, ...])         | Enqueue a billable render as a background job.                                                              |
+| [`error_detail_of`](#nw.jobs.error_detail_of)(error, \*[, secrets])             | The refusal `error` carries as data, or `None`.                                                             |
 | [`error_kind_of`](#nw.jobs.error_kind_of)(error)                              | `"refused"` | `"cancelled"` | `"crashed"` for an exception a job raised.                                    |
 | [`estimate`](#nw.jobs.estimate)(project, kind, params, \*[, config])     | Dry-run cost gate **without enqueueing**.                                                                   |
 | [`get_job`](#nw.jobs.get_job)(project, job_id, \*[, config])            | One job (projecting the au status + mirrored index metadata).                                               |
@@ -150,11 +151,20 @@ Called when computation fails.
 
 `Job.error_kind` values — see [`Job.error_kind`](#nw.jobs.Job.error_kind).
 
-### *class* nw.jobs.Job(job_id, kind, label, status, idempotency_key, params=<factory>, created_at=None, started_at=None, finished_at=None, queue_wait_s=None, elapsed_s=None, progress=<factory>, predicted_total_s=None, remaining_s=None, eta_ts=None, eta_s=None, pct=None, confidence=None, label_hint=None, eta_key=None, cost=<factory>, cached=False, worker_silent_s=None, worker_responsive=None, artifact_ref=None, result=None, error=None, error_kind=None, run_id=None, last_event_id=None)
+### *class* nw.jobs.Job(job_id, kind, label, status, idempotency_key, params=<factory>, created_at=None, started_at=None, finished_at=None, queue_wait_s=None, elapsed_s=None, progress=<factory>, predicted_total_s=None, remaining_s=None, eta_ts=None, eta_s=None, pct=None, confidence=None, label_hint=None, eta_key=None, cost=<factory>, cached=False, worker_silent_s=None, worker_responsive=None, artifact_ref=None, result=None, error=None, error_kind=None, error_detail=None, run_id=None, last_event_id=None)
 
 Bases: [`object`](https://docs.python.org/3/builtins/functions.html#object)
 
 Projected, JSON-serializable view of one job (see [`to_dict()`](#nw.jobs.to_dict)).
+
+#### error_detail *: [dict](https://docs.python.org/3/builtins/stdtypes.html#dict) | [None](https://docs.python.org/3/builtins/constants.html#None)* *= None*
+
+the `detail` of the [`nw.GenreOpRefused`](nw.html.md#nw.GenreOpRefused) the job
+raised ([`error_detail_of()`](#nw.jobs.error_detail_of)), so a client acts on it without parsing
+`error`. `None` otherwise.
+
+* **Type:**
+  A refusal as data
 
 #### error_kind *: [str](https://docs.python.org/3/builtins/stdtypes.html#str) | [None](https://docs.python.org/3/builtins/constants.html#None)* *= None*
 
@@ -388,6 +398,31 @@ already exists, that job is returned instead of launching a duplicate.
   * [**ValueError**](https://docs.python.org/3/builtins/exceptions.html#ValueError) – if `params["units"]` is present but not a positive `int`.
 * **Return type:**
   [`Job`](#nw.jobs.Job)
+
+### nw.jobs.error_detail_of(error, , secrets=None)
+
+The refusal `error` carries as data, or `None`.
+
+Only a [`nw.GenreOpRefused`](nw.html.md#nw.GenreOpRefused)’s `detail`, and only when it survives a
+strict JSON round trip (the job store persists it, and a NaN or infinity
+would make every response carrying the job unserialisable): a detail that
+does not is dropped rather than failing the job’s bookkeeping. Every string
+in it is redacted of `secrets`, as the job’s `error` text is.
+
+* **Return type:**
+  [`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict) | [`None`](https://docs.python.org/3/builtins/constants.html#None)
+
+```pycon
+>>> from nw.genres import GenreOpRefused
+>>> error_detail_of(GenreOpRefused("cap", detail={"limit_usd": 10.0}))
+{'limit_usd': 10.0}
+>>> error_detail_of(GenreOpRefused("cap", detail={"limit_usd": float("inf")})) is None
+True
+>>> error_detail_of(GenreOpRefused("x", detail={"echo": ["key=sk-1"]}), secrets={"fal": "sk-1"})
+{'echo': ['key=<redacted:fal>']}
+>>> error_detail_of(ValueError("bug")) is None
+True
+```
 
 ### nw.jobs.error_kind_of(error)
 

@@ -171,12 +171,12 @@ are recorded as linked artifacts), see
 
 ### Exceptions
 
-| [`CacheModeConflict`](#nw.CacheModeConflict)       | `use_cache=False` and `force=True` were passed together.                                       |
-|--------------------------------------------------------------------------|------------------------------------------------------------------------------------------------|
-| [`UnknownGenreOpError`](#nw.UnknownGenreOpError)     | `genre_op` was asked for a name the genre does not register.                                   |
-| [`GenreOpRefused`](#nw.GenreOpRefused)          | An op DELIBERATELY declined — no song yet, an unknown clip, an edit that does not hold.        |
-| [`GenreOpCancelled`](#nw.GenreOpCancelled)        | An op stopped because the host asked it to (its `should_cancel` returned True).                |
-| [`ValidationError`](#nw.ValidationError)(report) | Raised by [`ValidationReport.raise_if_failed()`](#nw.ValidationReport.raise_if_failed). |
+| [`CacheModeConflict`](#nw.CacheModeConflict)                | `use_cache=False` and `force=True` were passed together.                                       |
+|-----------------------------------------------------------------------------------|------------------------------------------------------------------------------------------------|
+| [`UnknownGenreOpError`](#nw.UnknownGenreOpError)              | `genre_op` was asked for a name the genre does not register.                                   |
+| [`GenreOpRefused`](#nw.GenreOpRefused)(\*args[, detail]) | An op DELIBERATELY declined — no song yet, an unknown clip, an edit that does not hold.        |
+| [`GenreOpCancelled`](#nw.GenreOpCancelled)                 | An op stopped because the host asked it to (its `should_cancel` returned True).                |
+| [`ValidationError`](#nw.ValidationError)(report)          | Raised by [`ValidationReport.raise_if_failed()`](#nw.ValidationReport.raise_if_failed). |
 
 ### *class* nw.BaseTransform
 
@@ -853,7 +853,7 @@ Not a refusal and not a failure: a host that cancelled a job records it as
 cancelled. Raised by the op, between steps, when it was given a
 `CANCEL_PARAM` host parameter that says stop.
 
-### *exception* nw.GenreOpRefused
+### *exception* nw.GenreOpRefused(\*args, detail=None)
 
 Bases: [`ValueError`](https://docs.python.org/3/builtins/exceptions.html#ValueError)
 
@@ -864,6 +864,18 @@ A host maps exactly this to a client-facing refusal (reelee: `422`); any other
 exception out of an op — a plain `ValueError` included — is a bug, reported as
 one (`500` with the traceback logged). A `ValueError` so code already catching
 that keeps working.
+
+`detail` is the refusal as data, for a client to act on without parsing the
+message (a spending limit’s figures, say). A job that raises it keeps it as
+[`nw.jobs.Job.error_detail`](nw.jobs.html.md#nw.jobs.Job.error_detail). JSON-able values only; `None` when there is
+nothing beyond the message.
+
+```pycon
+>>> GenreOpRefused("over the cap", detail={"limit_usd": 10.0}).detail
+{'limit_usd': 10.0}
+>>> GenreOpRefused("no song").detail is None
+True
+```
 
 ### *class* nw.MappingStorage(\*, root, graph, docs, scopes=(), store_factory=<function \_dflt_store_factory>, init_folders=(), asset_id=None)
 
