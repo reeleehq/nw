@@ -1580,7 +1580,9 @@ def error_detail_of(
     from nw.genres import GenreOpRefused
     from nw.secrets import redact
 
-    detail = getattr(error, "detail", None) if isinstance(error, GenreOpRefused) else None
+    detail = (
+        getattr(error, "detail", None) if isinstance(error, GenreOpRefused) else None
+    )
     if not isinstance(detail, Mapping):
         return None
     try:
