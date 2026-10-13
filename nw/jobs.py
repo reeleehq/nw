@@ -1170,7 +1170,7 @@ def _bind_worker(
                             rt,
                             job_id,
                             error_kind=error_kind_of(e),
-                            error_detail=error_detail_of(e),
+                            error_detail=error_detail_of(e, secrets=secrets),
                         )
                     # au persists the RENDERED exception text as the job's
                     # error; a provider echoing the key back would put it in
@@ -1508,11 +1508,9 @@ def _project_job(rt, record, au_result, config) -> Job:
             else ERROR_KIND_CRASHED
         )
         if error_kind == ERROR_KIND_REFUSED:
-            error_detail = record.get("error_detail") or (
-                error_detail_of(au_result.error)
-                if isinstance(au_result.error, BaseException)
-                else None
-            )
+            # Only what the worker recorded, redacted, on the live exception:
+            # the exception au hands back may be the unredacted original.
+            error_detail = record.get("error_detail")
     elif status == CANCELLED:
         error = None
         error_kind = ERROR_KIND_CANCELLED
@@ -1558,28 +1556,48 @@ ERROR_KIND_CANCELLED = "cancelled"
 ERROR_KIND_CRASHED = "crashed"
 
 
-def error_detail_of(error: BaseException) -> dict | None:
+def error_detail_of(
+    error: BaseException, *, secrets: "Mapping[str, str | None] | None" = None
+) -> dict | None:
     """The refusal ``error`` carries as data, or ``None``.
 
     Only a :class:`nw.GenreOpRefused`'s ``detail``, and only when it survives a
-    JSON round trip (the job store persists it): a detail that does not is
-    dropped rather than failing the job's bookkeeping.
+    strict JSON round trip (the job store persists it, and a NaN or infinity
+    would make every response carrying the job unserialisable): a detail that
+    does not is dropped rather than failing the job's bookkeeping. Every string
+    in it is redacted of ``secrets``, as the job's ``error`` text is.
 
     >>> from nw.genres import GenreOpRefused
     >>> error_detail_of(GenreOpRefused("cap", detail={"limit_usd": 10.0}))
     {'limit_usd': 10.0}
+    >>> error_detail_of(GenreOpRefused("cap", detail={"limit_usd": float("inf")})) is None
+    True
+    >>> error_detail_of(GenreOpRefused("x", detail={"echo": ["key=sk-1"]}), secrets={"fal": "sk-1"})
+    {'echo': ['key=<redacted:fal>']}
     >>> error_detail_of(ValueError("bug")) is None
     True
     """
     from nw.genres import GenreOpRefused
+    from nw.secrets import redact
 
     detail = getattr(error, "detail", None) if isinstance(error, GenreOpRefused) else None
     if not isinstance(detail, Mapping):
         return None
     try:
-        return json.loads(json.dumps(dict(detail)))
+        data = json.loads(json.dumps(dict(detail), allow_nan=False))
     except (TypeError, ValueError):
         return None
+
+    def scrub(value):
+        if isinstance(value, str):
+            return redact(value, secrets)
+        if isinstance(value, list):
+            return [scrub(v) for v in value]
+        if isinstance(value, dict):
+            return {redact(k, secrets): scrub(v) for k, v in value.items()}
+        return value
+
+    return scrub(data) if secrets else data
 
 
 def error_kind_of(error: BaseException) -> str:

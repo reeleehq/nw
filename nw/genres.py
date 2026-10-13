@@ -1001,7 +1001,9 @@ class GenreOpRefused(ValueError):
 
     def __init__(self, *args, detail: "Mapping[str, Any] | None" = None) -> None:
         super().__init__(*args)
-        self.detail = dict(detail) if detail else None
+        # Anything but a mapping is ignored: a refusal must not turn into a crash
+        # in its own constructor.
+        self.detail = dict(detail) if isinstance(detail, Mapping) and detail else None
 
 
 class GenreOpCancelled(Exception):
