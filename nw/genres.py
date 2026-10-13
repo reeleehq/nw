@@ -987,7 +987,21 @@ class GenreOpRefused(ValueError):
     exception out of an op — a plain ``ValueError`` included — is a bug, reported as
     one (``500`` with the traceback logged). A ``ValueError`` so code already catching
     that keeps working.
+
+    ``detail`` is the refusal as data, for a client to act on without parsing the
+    message (a spending limit's figures, say). A job that raises it keeps it as
+    :attr:`nw.jobs.Job.error_detail`. JSON-able values only; ``None`` when there is
+    nothing beyond the message.
+
+    >>> GenreOpRefused("over the cap", detail={"limit_usd": 10.0}).detail
+    {'limit_usd': 10.0}
+    >>> GenreOpRefused("no song").detail is None
+    True
     """
+
+    def __init__(self, *args, detail: "Mapping[str, Any] | None" = None) -> None:
+        super().__init__(*args)
+        self.detail = dict(detail) if detail else None
 
 
 class GenreOpCancelled(Exception):
