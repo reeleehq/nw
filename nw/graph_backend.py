@@ -52,10 +52,10 @@ from __future__ import annotations
 
 import logging
 import os
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
 from contextlib import contextmanager
 from pathlib import Path
-from typing import Iterator, Optional
+from typing import Iterator, Optional, Union
 
 from lacing import SqliteStore
 from lacing.store import IntervalAnnotationStore
@@ -77,6 +77,12 @@ ENV_DB_URL = "NW_GRAPH_DB_URL"
 ENV_OWNER_ID = "NW_GRAPH_OWNER_ID"
 
 GraphBackend = str  # "sqlite" | "postgres" at the boundary; str for forgiveness
+
+#: A tenant anchor, or a zero-argument callable that produces one. Only the
+#: Postgres backend needs it, and deriving it can be costly (it may hash the
+#: project's song file), so callers on a hot path pass the callable and SQLite
+#: never calls it.
+AssetIdLike = Union[str, Callable[[], str]]
 _SQLITE = "sqlite"
 _POSTGRES = "postgres"
 
@@ -131,7 +137,7 @@ def _postgres_project_id(asset_id: str, scope: str) -> str:
 def open_graph_store(
     db_path: Path | str,
     *,
-    asset_id: str,
+    asset_id: AssetIdLike,
     scope: Optional[str] = None,
     rate: Optional[int] = None,
     env: Mapping[str, str] | None = None,
@@ -147,7 +153,9 @@ def open_graph_store(
         db_path: The per-scope SQLite path (used directly in SQLite mode; in
             Postgres mode only its filename is used to derive the scope).
         asset_id: The project's stable ``project_asset_id`` — the Postgres
-            tenant anchor. Ignored in SQLite mode.
+            tenant anchor — or a zero-argument callable returning it. Ignored
+            in SQLite mode, where a callable is never called (so a hot path
+            can pass ``lambda: storage.asset_id`` without paying to derive it).
         scope: The logical scope name (``"graph"`` / ``"storyboard"`` /
             ``"alignment"`` / …). Defaults to deriving it from ``db_path``.
         rate: Project-wide rate for the Postgres store. Defaults to lacing's
@@ -182,7 +190,7 @@ def open_graph_store(
 
 def _open_postgres(
     *,
-    asset_id: str,
+    asset_id: AssetIdLike,
     scope: str,
     rate: Optional[int],
     env: Mapping[str, str],
@@ -206,7 +214,9 @@ def _open_postgres(
         db_url,
         rate=rate if rate is not None else DEFAULT_RATE,
         owner_id=owner_id,
-        project_id=_postgres_project_id(asset_id, scope),
+        project_id=_postgres_project_id(
+            asset_id() if callable(asset_id) else asset_id, scope
+        ),
     )
 
 
@@ -214,7 +224,7 @@ def _open_postgres(
 def iter_scope_stores(
     scope_paths: Mapping[str, Path],
     *,
-    asset_id: str,
+    asset_id: AssetIdLike,
     env: Mapping[str, str] | None = None,
 ) -> Iterator[Iterator[IntervalAnnotationStore]]:
     """Yield an iterator of open stores, one per scope, backend chosen by env.
@@ -230,7 +240,9 @@ def iter_scope_stores(
             *exist* on disk are visited in SQLite mode; in Postgres mode every
             listed scope is visited (existence is a DB question, not a file
             one).
-        asset_id: The project's ``project_asset_id`` (Postgres tenant anchor).
+        asset_id: The project's ``project_asset_id`` (Postgres tenant anchor),
+            or a zero-argument callable returning it (never called in SQLite
+            mode).
         env: Environment mapping. Defaults to ``os.environ``.
 
     Yields:

@@ -30,6 +30,7 @@ from __future__ import annotations
 import logging
 from contextlib import contextmanager
 from dataclasses import dataclass
+from functools import cached_property
 from pathlib import Path
 from typing import Iterable, Iterator, Optional
 from uuid import UUID, uuid4
@@ -137,7 +138,12 @@ class ProjectGraph:
     def __init__(self, project: ProjectLike) -> None:
         self.storage = as_project_storage(project)
         self.project_root = self.storage.root
-        self.asset_id = self.storage.asset_id
+
+    @cached_property
+    def asset_id(self) -> str:
+        # Lazy: deriving it hashes the song file, and only writes (and the
+        # Postgres tenant key) need it. Computed once per graph, as before.
+        return self.storage.asset_id
 
     # -- lifecycle -----------------------------------------------------------
 

@@ -224,7 +224,11 @@ class FolderStorage:
 
     @contextmanager
     def open_stores(self) -> Iterator[Iterator[IntervalAnnotationStore]]:
-        with iter_scope_stores(self.scope_paths(), asset_id=self.asset_id) as stores:
+        # Lazy: only the Postgres backend keys a tenant on the asset id, and
+        # deriving it hashes the song file.
+        with iter_scope_stores(
+            self.scope_paths(), asset_id=lambda: self.asset_id
+        ) as stores:
             yield stores
 
 
