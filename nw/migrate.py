@@ -101,7 +101,7 @@ def open_project_graph(project_root: Path) -> IntervalAnnotationStore:
     """
     db = project_graph_db_path(project_root)
     store = open_graph_store(
-        db, asset_id=project_asset_id(project_root), scope=SCOPE_GRAPH
+        db, asset_id=lambda: project_asset_id(project_root), scope=SCOPE_GRAPH
     )
     _ensure_tiers(store)
     return store
@@ -157,7 +157,7 @@ def open_project_graph_readonly(project_root: Path) -> IntervalAnnotationStore:
     db = project_graph_db_path(project_root)
     if selected_backend(os.environ) == "postgres":
         return open_graph_store(
-            db, asset_id=project_asset_id(project_root), scope=SCOPE_GRAPH
+            db, asset_id=lambda: project_asset_id(project_root), scope=SCOPE_GRAPH
         )
     if not Path(db).exists():
         raise FileNotFoundError(f"no graph database for project: {project_root}")
