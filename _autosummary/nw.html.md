@@ -67,6 +67,7 @@ are recorded as linked artifacts), see
 | [`genre_ops`](#nw.genre_ops)(genre_slug)                             | The ops registered for `genre_slug`, in registration order (`()` if none).                                                           |
 | [`genre_op`](#nw.genre_op)(genre_slug, name)                        | The op `name` of `genre_slug`; [`UnknownGenreOpError`](#nw.UnknownGenreOpError) naming the known.                |
 | [`genre_ops_catalogue`](#nw.genre_ops_catalogue)(genre_slug)                   | The pure-JSON catalogue of `genre_slug`'s ops (`[]` for a genre with none).                                                          |
+| [`adopt_tenant_id`](#nw.adopt_tenant_id)(project, \*[, dry_run])           | Pin a legacy project's historical tenant into `project.json` (nw#112).                                                               |
 | [`as_project_storage`](#nw.as_project_storage)(project)                       | The [`ProjectStorage`](#nw.ProjectStorage) for a path, a storage, or an `nw.Project`.                       |
 | [`register_project_storage`](#nw.register_project_storage)(name, resolver)          | Register a resolver that recognises a genre's project folders.                                                                       |
 | [`annotations_at_tier`](#nw.annotations_at_tier)(project_root, tier)           | Return every annotation at the given tier across all of the project's stores.                                                        |
@@ -1977,6 +1978,39 @@ could mean something transform-free.
 #### model_config *: [ClassVar](https://docs.python.org/3/library/typing.html#typing.ClassVar)[ConfigDict]* *= {'frozen': True}*
 
 Configuration for the model, should be a dictionary conforming to [`ConfigDict`][pydantic.config.ConfigDict].
+
+### nw.adopt_tenant_id(project, , dry_run=False)
+
+Pin a legacy project’s historical tenant into `project.json` (nw#112).
+
+A project without a minted `tenant_id` is keyed on root + title (or the
+song’s hash), so a folder removed and recreated by hand at the same path
+and title would inherit the old Postgres graph. This writes the key the
+project *currently resolves to* as its `tenant_id`: the tenant, and so
+the data it already has, is unchanged, but the key stops depending on
+root + title.
+
+One-shot and idempotent, run by the host or a migration command (nw never
+calls it): a project that already has a `tenant_id` is left alone.
+Run it while the project is intact, since the song-hash form reads the
+audio file. It only adds a key to `project.json`; it moves and deletes
+no graph data.
+
+Returns the adopted id, the already-minted one, or `None` when `project`
+has no `project.json` or keeps its own keying (no `tenant_id`). Raises
+`FileNotFoundError` when the song audio its tenant hashes is missing.
+With `dry_run` nothing is written.
+
+* **Return type:**
+  [`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]
+
+```pycon
+>>> import tempfile, json, pathlib
+>>> root = pathlib.Path(tempfile.mkdtemp())
+>>> _ = (root / "project.json").write_text(json.dumps({"title": "t"}))
+>>> adopt_tenant_id(root) == adopt_tenant_id(root)
+True
+```
 
 ### nw.all_stale(project_root)
 

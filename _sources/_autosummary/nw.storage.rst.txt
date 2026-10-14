@@ -16,6 +16,7 @@ nw.storage
 
    .. autosummary::
    
+      adopt_tenant_id
       as_project_storage
       asset_id_of
       tenant_id_of

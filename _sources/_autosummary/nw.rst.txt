@@ -26,6 +26,7 @@
       genre_ops
       genre_op
       genre_ops_catalogue
+      adopt_tenant_id
       as_project_storage
       register_project_storage
       annotations_at_tier

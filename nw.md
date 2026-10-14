@@ -1,4 +1,4 @@
-> built 2026-10-14 04:34 UTC from 5fd728c (main) · nw 0.0.72. Details: build_info.json
+> built 2026-10-14 12:51 UTC from c5444bf (main) · nw 0.0.73. Details: build_info.json
 
 # index.html.md
 
@@ -2999,6 +2999,7 @@ are recorded as linked artifacts), see
 | [`genre_ops`](_autosummary/nw.html.md#nw.genre_ops)(genre_slug)                             | The ops registered for `genre_slug`, in registration order (`()` if none).                                                           |
 | [`genre_op`](_autosummary/nw.html.md#nw.genre_op)(genre_slug, name)                        | The op `name` of `genre_slug`; [`UnknownGenreOpError`](_autosummary/nw.html.md#nw.UnknownGenreOpError) naming the known.                |
 | [`genre_ops_catalogue`](_autosummary/nw.html.md#nw.genre_ops_catalogue)(genre_slug)                   | The pure-JSON catalogue of `genre_slug`'s ops (`[]` for a genre with none).                                                          |
+| [`adopt_tenant_id`](_autosummary/nw.html.md#nw.adopt_tenant_id)(project, \*[, dry_run])           | Pin a legacy project's historical tenant into `project.json` (nw#112).                                                               |
 | [`as_project_storage`](_autosummary/nw.html.md#nw.as_project_storage)(project)                       | The [`ProjectStorage`](_autosummary/nw.html.md#nw.ProjectStorage) for a path, a storage, or an `nw.Project`.                       |
 | [`register_project_storage`](_autosummary/nw.html.md#nw.register_project_storage)(name, resolver)          | Register a resolver that recognises a genre's project folders.                                                                       |
 | [`annotations_at_tier`](_autosummary/nw.html.md#nw.annotations_at_tier)(project_root, tier)           | Return every annotation at the given tier across all of the project's stores.                                                        |
@@ -4909,6 +4910,39 @@ could mean something transform-free.
 #### model_config *: [ClassVar](https://docs.python.org/3/library/typing.html#typing.ClassVar)[ConfigDict]* *= {'frozen': True}*
 
 Configuration for the model, should be a dictionary conforming to [`ConfigDict`][pydantic.config.ConfigDict].
+
+### nw.adopt_tenant_id(project, , dry_run=False)
+
+Pin a legacy project’s historical tenant into `project.json` (nw#112).
+
+A project without a minted `tenant_id` is keyed on root + title (or the
+song’s hash), so a folder removed and recreated by hand at the same path
+and title would inherit the old Postgres graph. This writes the key the
+project *currently resolves to* as its `tenant_id`: the tenant, and so
+the data it already has, is unchanged, but the key stops depending on
+root + title.
+
+One-shot and idempotent, run by the host or a migration command (nw never
+calls it): a project that already has a `tenant_id` is left alone.
+Run it while the project is intact, since the song-hash form reads the
+audio file. It only adds a key to `project.json`; it moves and deletes
+no graph data.
+
+Returns the adopted id, the already-minted one, or `None` when `project`
+has no `project.json` or keeps its own keying (no `tenant_id`). Raises
+`FileNotFoundError` when the song audio its tenant hashes is missing.
+With `dry_run` nothing is written.
+
+* **Return type:**
+  [`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]
+
+```pycon
+>>> import tempfile, json, pathlib
+>>> root = pathlib.Path(tempfile.mkdtemp())
+>>> _ = (root / "project.json").write_text(json.dumps({"title": "t"}))
+>>> adopt_tenant_id(root) == adopt_tenant_id(root)
+True
+```
 
 ### nw.all_stale(project_root)
 
@@ -8820,12 +8854,13 @@ True
 
 ### Functions
 
-| [`as_project_storage`](_autosummary/nw.storage.html.md#nw.storage.as_project_storage)(project)              | The [`ProjectStorage`](_autosummary/nw.storage.html.md#nw.storage.ProjectStorage) for a path, a storage, or an `nw.Project`.   |
-|-------------------------------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------|
-| [`asset_id_of`](_autosummary/nw.storage.html.md#nw.storage.asset_id_of)(root, spec)                  | The asset id anchoring a project's annotations.                                                                  |
-| [`tenant_id_of`](_autosummary/nw.storage.html.md#nw.storage.tenant_id_of)(root, spec)                 | The id a shared (Postgres) backend keys this project's graph on.                                                 |
-| [`json_docs`](_autosummary/nw.storage.html.md#nw.storage.json_docs)(root)                          | The folder-backed store for a project's JSON documents.                                                          |
-| [`register_project_storage`](_autosummary/nw.storage.html.md#nw.storage.register_project_storage)(name, resolver) | Register a resolver that recognises a genre's project folders.                                                   |
+| [`adopt_tenant_id`](_autosummary/nw.storage.html.md#nw.storage.adopt_tenant_id)(project, \*[, dry_run])   | Pin a legacy project's historical tenant into `project.json` (nw#112).                                         |
+|--------------------------------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------|
+| [`as_project_storage`](_autosummary/nw.storage.html.md#nw.storage.as_project_storage)(project)               | The [`ProjectStorage`](_autosummary/nw.storage.html.md#nw.storage.ProjectStorage) for a path, a storage, or an `nw.Project`. |
+| [`asset_id_of`](_autosummary/nw.storage.html.md#nw.storage.asset_id_of)(root, spec)                   | The asset id anchoring a project's annotations.                                                                |
+| [`tenant_id_of`](_autosummary/nw.storage.html.md#nw.storage.tenant_id_of)(root, spec)                  | The id a shared (Postgres) backend keys this project's graph on.                                               |
+| [`json_docs`](_autosummary/nw.storage.html.md#nw.storage.json_docs)(root)                           | The folder-backed store for a project's JSON documents.                                                        |
+| [`register_project_storage`](_autosummary/nw.storage.html.md#nw.storage.register_project_storage)(name, resolver)  | Register a resolver that recognises a genre's project folders.                                                 |
 
 ### Classes
 
@@ -8900,6 +8935,39 @@ the project has (graph included), each store closed before the next opens.
 ### nw.storage.TENANT_KEY *= 'tenant_id'*
 
 The key in `project.json` holding the id minted at `Project.init`.
+
+### nw.storage.adopt_tenant_id(project, , dry_run=False)
+
+Pin a legacy project’s historical tenant into `project.json` (nw#112).
+
+A project without a minted `tenant_id` is keyed on root + title (or the
+song’s hash), so a folder removed and recreated by hand at the same path
+and title would inherit the old Postgres graph. This writes the key the
+project *currently resolves to* as its `tenant_id`: the tenant, and so
+the data it already has, is unchanged, but the key stops depending on
+root + title.
+
+One-shot and idempotent, run by the host or a migration command (nw never
+calls it): a project that already has a `tenant_id` is left alone.
+Run it while the project is intact, since the song-hash form reads the
+audio file. It only adds a key to `project.json`; it moves and deletes
+no graph data.
+
+Returns the adopted id, the already-minted one, or `None` when `project`
+has no `project.json` or keeps its own keying (no `tenant_id`). Raises
+`FileNotFoundError` when the song audio its tenant hashes is missing.
+With `dry_run` nothing is written.
+
+* **Return type:**
+  [`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]
+
+```pycon
+>>> import tempfile, json, pathlib
+>>> root = pathlib.Path(tempfile.mkdtemp())
+>>> _ = (root / "project.json").write_text(json.dumps({"title": "t"}))
+>>> adopt_tenant_id(root) == adopt_tenant_id(root)
+True
+```
 
 ### nw.storage.as_project_storage(project)
 
@@ -9554,7 +9622,7 @@ produce different URLs. The local file paths are byte-stable.
 
 # About this build
 
-This documentation was built on **2026-10-14 04:34 UTC** from commit <a href="https://github.com/reeleehq/nw/commit/5fd728cd720ade1f2495c6fe7c48e047a9657ab5"><code>5fd728c</code></a> on branch <code>main</code>, for **nw 0.0.72** (from <code>pyproject.toml</code>).
+This documentation was built on **2026-10-14 12:51 UTC** from commit <a href="https://github.com/reeleehq/nw/commit/c5444bf02ea1a853efdda939912db0872937663c"><code>c5444bf</code></a> on branch <code>main</code>, for **nw 0.0.73** (from <code>pyproject.toml</code>).
 
 #### NOTE
 Nothing suggests a mismatch: the tree was clean at the commit above, and the documented version is the one on PyPI.
@@ -9563,9 +9631,9 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 
 |                     |                                                                                                                                                    |
 |---------------------|----------------------------------------------------------------------------------------------------------------------------------------------------|
-| Commit              | <a href="https://github.com/reeleehq/nw/commit/5fd728cd720ade1f2495c6fe7c48e047a9657ab5"><code>5fd728cd720ade1f2495c6fe7c48e047a9657ab5</code></a> |
+| Commit              | <a href="https://github.com/reeleehq/nw/commit/c5444bf02ea1a853efdda939912db0872937663c"><code>c5444bf02ea1a853efdda939912db0872937663c</code></a> |
 | Branch              | <code>main</code>                                                                                                                                  |
-| Tags at this commit | <code>0.0.72</code>                                                                                                                                |
+| Tags at this commit | <code>0.0.73</code>                                                                                                                                |
 | Working tree        | clean                                                                                                                                              |
 | Remote              | <code>https://github.com/reeleehq/nw</code>                                                                                                        |
 
@@ -9574,9 +9642,9 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 |              |                                                                                            |
 |--------------|--------------------------------------------------------------------------------------------|
 | Repository   | <code>reeleehq/nw</code>                                                                   |
-| Run          | <a href="https://github.com/reeleehq/nw/actions/runs/38511856805">38511856805</a>          |
+| Run          | <a href="https://github.com/reeleehq/nw/actions/runs/38566670590">38566670590</a>          |
 | Ref          | <code>refs/heads/main</code>                                                               |
-| Event commit | <code>ed3acb098e4e25be9b10d9f955c4e96884af2d40</code> (in the history of the built commit) |
+| Event commit | <code>3a31339a9e59dff3d0ef508ffedbe136fe7914e0</code> (in the history of the built commit) |
 
 ## Tools
 
@@ -9601,13 +9669,13 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 
 ## Package on PyPI
 
-Latest release: <a href="https://pypi.org/project/nw/0.0.72/">0.0.72</a>, the same as the documented version.
+Latest release: <a href="https://pypi.org/project/nw/0.0.73/">0.0.73</a>, the same as the documented version.
 
 ## Reproduce
 
 ```bash
 git clone https://github.com/reeleehq/nw && cd nw
-git checkout 5fd728cd720ade1f2495c6fe7c48e047a9657ab5
+git checkout c5444bf02ea1a853efdda939912db0872937663c
 pip install "epythet==0.2.17"
 epythet quickstart . --ignore tests/ scrap/ examples/
 ```

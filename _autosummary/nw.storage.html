@@ -131,6 +131,7 @@ data-aria-dark="Switch to auto color mode">
 <li><a class="reference internal" href="#nw.storage.MappingStorage"><code class="docutils literal notranslate"><span class="pre">MappingStorage</span></code></a></li>
 <li><a class="reference internal" href="#nw.storage.ProjectStorage"><code class="docutils literal notranslate"><span class="pre">ProjectStorage</span></code></a></li>
 <li><a class="reference internal" href="#nw.storage.TENANT_KEY"><code class="docutils literal notranslate"><span class="pre">TENANT_KEY</span></code></a></li>
+<li><a class="reference internal" href="#nw.storage.adopt_tenant_id"><code class="docutils literal notranslate"><span class="pre">adopt_tenant_id()</span></code></a></li>
 <li><a class="reference internal" href="#nw.storage.as_project_storage"><code class="docutils literal notranslate"><span class="pre">as_project_storage()</span></code></a></li>
 <li><a class="reference internal" href="#nw.storage.asset_id_of"><code class="docutils literal notranslate"><span class="pre">asset_id_of()</span></code></a></li>
 <li><a class="reference internal" href="#nw.storage.json_docs"><code class="docutils literal notranslate"><span class="pre">json_docs()</span></code></a></li>
@@ -232,19 +233,22 @@ reach a genre’s graph wherever the genre keeps it.</p>
 <div class="table-wrapper autosummary longtable docutils container">
 <table class="autosummary longtable docutils align-default">
 <tbody>
-<tr class="row-odd"><td><p><a class="reference internal" href="#nw.storage.as_project_storage" title="nw.storage.as_project_storage"><code class="xref py py-obj docutils literal notranslate"><span class="pre">as_project_storage</span></code></a>(project)</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#nw.storage.adopt_tenant_id" title="nw.storage.adopt_tenant_id"><code class="xref py py-obj docutils literal notranslate"><span class="pre">adopt_tenant_id</span></code></a>(project, *[, dry_run])</p></td>
+<td><p>Pin a legacy project's historical tenant into <code class="docutils literal notranslate"><span class="pre">project.json</span></code> (nw#112).</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#nw.storage.as_project_storage" title="nw.storage.as_project_storage"><code class="xref py py-obj docutils literal notranslate"><span class="pre">as_project_storage</span></code></a>(project)</p></td>
 <td><p>The <a class="reference internal" href="#nw.storage.ProjectStorage" title="nw.storage.ProjectStorage"><code class="xref py py-class docutils literal notranslate"><span class="pre">ProjectStorage</span></code></a> for a path, a storage, or an <code class="docutils literal notranslate"><span class="pre">nw.Project</span></code>.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#nw.storage.asset_id_of" title="nw.storage.asset_id_of"><code class="xref py py-obj docutils literal notranslate"><span class="pre">asset_id_of</span></code></a>(root, spec)</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#nw.storage.asset_id_of" title="nw.storage.asset_id_of"><code class="xref py py-obj docutils literal notranslate"><span class="pre">asset_id_of</span></code></a>(root, spec)</p></td>
 <td><p>The asset id anchoring a project's annotations.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#nw.storage.tenant_id_of" title="nw.storage.tenant_id_of"><code class="xref py py-obj docutils literal notranslate"><span class="pre">tenant_id_of</span></code></a>(root, spec)</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#nw.storage.tenant_id_of" title="nw.storage.tenant_id_of"><code class="xref py py-obj docutils literal notranslate"><span class="pre">tenant_id_of</span></code></a>(root, spec)</p></td>
 <td><p>The id a shared (Postgres) backend keys this project's graph on.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#nw.storage.json_docs" title="nw.storage.json_docs"><code class="xref py py-obj docutils literal notranslate"><span class="pre">json_docs</span></code></a>(root)</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#nw.storage.json_docs" title="nw.storage.json_docs"><code class="xref py py-obj docutils literal notranslate"><span class="pre">json_docs</span></code></a>(root)</p></td>
 <td><p>The folder-backed store for a project's JSON documents.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#nw.storage.register_project_storage" title="nw.storage.register_project_storage"><code class="xref py py-obj docutils literal notranslate"><span class="pre">register_project_storage</span></code></a>(name, resolver)</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#nw.storage.register_project_storage" title="nw.storage.register_project_storage"><code class="xref py py-obj docutils literal notranslate"><span class="pre">register_project_storage</span></code></a>(name, resolver)</p></td>
 <td><p>Register a resolver that recognises a genre's project folders.</p></td>
 </tr>
 </tbody>
@@ -348,6 +352,39 @@ the project has (graph included), each store closed before the next opens.</p>
 <dt class="sig sig-object py" id="nw.storage.TENANT_KEY">
 <span class="sig-prename descclassname"><span class="pre">nw.storage.</span></span><span class="sig-name descname"><span class="pre">TENANT_KEY</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'tenant_id'</span></span><a class="headerlink" href="#nw.storage.TENANT_KEY" title="Link to this definition">#</a></dt>
 <dd><p>The key in <code class="docutils literal notranslate"><span class="pre">project.json</span></code> holding the id minted at <code class="docutils literal notranslate"><span class="pre">Project.init</span></code>.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="nw.storage.adopt_tenant_id">
+<span class="sig-prename descclassname"><span class="pre">nw.storage.</span></span><span class="sig-name descname"><span class="pre">adopt_tenant_id</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">project</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">dry_run</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/nw/storage.html#adopt_tenant_id"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nw.storage.adopt_tenant_id" title="Link to this definition">#</a></dt>
+<dd><p>Pin a legacy project’s historical tenant into <code class="docutils literal notranslate"><span class="pre">project.json</span></code> (nw#112).</p>
+<p>A project without a minted <code class="docutils literal notranslate"><span class="pre">tenant_id</span></code> is keyed on root + title (or the
+song’s hash), so a folder removed and recreated by hand at the same path
+and title would inherit the old Postgres graph. This writes the key the
+project <em>currently resolves to</em> as its <code class="docutils literal notranslate"><span class="pre">tenant_id</span></code>: the tenant, and so
+the data it already has, is unchanged, but the key stops depending on
+root + title.</p>
+<p>One-shot and idempotent, run by the host or a migration command (nw never
+calls it): a project that already has a <code class="docutils literal notranslate"><span class="pre">tenant_id</span></code> is left alone.
+Run it while the project is intact, since the song-hash form reads the
+audio file. It only adds a key to <code class="docutils literal notranslate"><span class="pre">project.json</span></code>; it moves and deletes
+no graph data.</p>
+<p>Returns the adopted id, the already-minted one, or <code class="docutils literal notranslate"><span class="pre">None</span></code> when <code class="docutils literal notranslate"><span class="pre">project</span></code>
+has no <code class="docutils literal notranslate"><span class="pre">project.json</span></code> or keeps its own keying (no <code class="docutils literal notranslate"><span class="pre">tenant_id</span></code>). Raises
+<code class="docutils literal notranslate"><span class="pre">FileNotFoundError</span></code> when the song audio its tenant hashes is missing.
+With <code class="docutils literal notranslate"><span class="pre">dry_run</span></code> nothing is written.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.15)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code></a>[<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>]</span></p>
+</dd>
+</dl>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span data-line="1"><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span><span class="w"> </span><span class="nn">tempfile</span><span class="o">,</span><span class="w"> </span><span class="nn">json</span><span class="o">,</span><span class="w"> </span><span class="nn">pathlib</span>
+</span><span data-line="2"><span class="gp">&gt;&gt;&gt; </span><span class="n">root</span> <span class="o">=</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">(</span><span class="n">tempfile</span><span class="o">.</span><span class="n">mkdtemp</span><span class="p">())</span>
+</span><span data-line="3"><span class="gp">&gt;&gt;&gt; </span><span class="n">_</span> <span class="o">=</span> <span class="p">(</span><span class="n">root</span> <span class="o">/</span> <span class="s2">"project.json"</span><span class="p">)</span><span class="o">.</span><span class="n">write_text</span><span class="p">(</span><span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">({</span><span class="s2">"title"</span><span class="p">:</span> <span class="s2">"t"</span><span class="p">}))</span>
+</span><span data-line="4"><span class="gp">&gt;&gt;&gt; </span><span class="n">adopt_tenant_id</span><span class="p">(</span><span class="n">root</span><span class="p">)</span> <span class="o">==</span> <span class="n">adopt_tenant_id</span><span class="p">(</span><span class="n">root</span><span class="p">)</span>
+</span><span data-line="5"><span class="go">True</span>
+</span></pre></div>
+</div>
 </dd></dl>
 
 <dl class="py function">
@@ -474,7 +511,7 @@ graph it already has stays readable.</p>
     </div>
   </div>
 </footer>
-      <script src="../_static/documentation_options.js?v=ba6d0b80"></script>
+      <script src="../_static/documentation_options.js?v=1e158f99"></script>
       <script src="../_static/doctools.js?v=fd6eb6e6"></script>
       <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
