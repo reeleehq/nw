@@ -35,10 +35,12 @@ def _frontmatter(text: str) -> dict:
 
 
 def test_skill_is_the_only_real_skill_and_lives_inside_the_package():
+    # Hidden dirs (.git, .venv, the .claude bridge) are not skill sources: the
+    # rule is about the non-hidden locations `gh skill` discovers.
     found = [
         p
         for p in _REPO.rglob("SKILL.md")
-        if ".git" not in p.parts and not any(q.is_symlink() for q in p.parents)
+        if not any(part.startswith(".") for part in p.relative_to(_REPO).parts)
     ]
     assert found == [_SKILL]
 
