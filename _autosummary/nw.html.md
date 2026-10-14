@@ -605,6 +605,10 @@ their legacy files. Legacy (pre-graph) projects are migrated on open by
 * **Return type:**
   [`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str), [`Path`](https://docs.python.org/3/library/pathlib.html#pathlib.Path)]
 
+#### *property* tenant_id *: [str](https://docs.python.org/3/builtins/stdtypes.html#str)*
+
+The shared-backend tenant key (`tenant_id_of()`).
+
 ### *class* nw.FreshnessVerdict(annotation, is_stale, reason, upstream_id=None)
 
 Bases: [`object`](https://docs.python.org/3/builtins/functions.html#object)

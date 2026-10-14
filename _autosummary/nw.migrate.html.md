@@ -32,6 +32,7 @@ decisions move into the graph.
 | [`open_project_graph_readonly`](#nw.migrate.open_project_graph_readonly)(project_root)         | Open the project's graph store to **read**, without taking a write lock. |
 | [`project_asset_id`](#nw.migrate.project_asset_id)(project_root)                    | The asset_id used as the project's graph anchor.                         |
 | `project_graph_db_path`(project_root)                                                              |                                                                          |
+| [`project_tenant_id`](#nw.migrate.project_tenant_id)(project_root)                   | The id a shared backend keys the project's graph on.                     |
 
 ### nw.migrate.is_migrated(project_root)
 
@@ -136,6 +137,17 @@ of the song bytes. Otherwise a stable fallback derived from the title.
 Mirrors `nw.storyboard.project_asset_id()` so the project graph and
 the storyboard share an asset_id. The rule itself is
 [`nw.storage.asset_id_of()`](nw.storage.html.md#nw.storage.asset_id_of), shared with non-folder storages.
+
+* **Return type:**
+  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
+
+### nw.migrate.project_tenant_id(project_root)
+
+The id a shared backend keys the project’s graph on.
+
+The id minted at `Project.init` (`project.json`’s `tenant_id`); for a
+project that predates it, its historical [`project_asset_id()`](#nw.migrate.project_asset_id). The rule
+is [`nw.storage.tenant_id_of()`](nw.storage.html.md#nw.storage.tenant_id_of).
 
 * **Return type:**
   [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)

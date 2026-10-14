@@ -9,6 +9,7 @@ nw.storage
    .. autosummary::
    
       DFLT_INIT_FOLDERS
+      TENANT_KEY
       project_storages
    
    .. rubric:: Functions
@@ -17,6 +18,7 @@ nw.storage
    
       as_project_storage
       asset_id_of
+      tenant_id_of
       json_docs
       register_project_storage
    

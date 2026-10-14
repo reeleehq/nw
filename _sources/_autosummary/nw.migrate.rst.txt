@@ -14,4 +14,5 @@ nw.migrate
       open_project_graph_readonly
       project_asset_id
       project_graph_db_path
+      project_tenant_id
    

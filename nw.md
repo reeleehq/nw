@@ -1,4 +1,4 @@
-> built 2026-10-14 02:31 UTC from 3db7eeb (main) · nw 0.0.70. Details: build_info.json
+> built 2026-10-14 02:35 UTC from ee53ea1 (main) · nw 0.0.71. Details: build_info.json
 
 # index.html.md
 
@@ -2838,7 +2838,7 @@ each annotation once under either backend.
 
 alias of [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
 
-### nw.graph_backend.iter_scope_stores(scope_paths, , asset_id, env=None)
+### nw.graph_backend.iter_scope_stores(scope_paths, , asset_id, tenant=None, env=None)
 
 Yield an iterator of open stores, one per scope, backend chosen by env.
 
@@ -2856,6 +2856,8 @@ annotation is yielded once either way.
   * **asset_id** (`Union`[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str), [`Callable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable)[[], [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]]) – The project’s `project_asset_id` (Postgres tenant anchor),
     or a zero-argument callable returning it (never called in SQLite
     mode).
+  * **tenant** (`Union`[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str), [`Callable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable)[[], [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)], [`None`](https://docs.python.org/3/builtins/constants.html#None)]) – What keys each Postgres tenant instead of `asset_id`; see
+    [`open_graph_store()`](_autosummary/nw.graph_backend.html.md#nw.graph_backend.open_graph_store).
   * **env** ([`Mapping`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Mapping)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str), [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)] | [`None`](https://docs.python.org/3/builtins/constants.html#None)) – Environment mapping. Defaults to `os.environ`.
 * **Yields:**
   A single iterator that produces each scope’s open store in turn. Each
@@ -2864,7 +2866,7 @@ annotation is yielded once either way.
 * **Return type:**
   [*Iterator*](https://docs.python.org/3/library/typing.html#typing.Iterator)[[*Iterator*](https://docs.python.org/3/library/typing.html#typing.Iterator)[*IntervalAnnotationStore*]]
 
-### nw.graph_backend.open_graph_store(db_path, , asset_id, scope=None, rate=None, env=None)
+### nw.graph_backend.open_graph_store(db_path, , asset_id, tenant=None, scope=None, rate=None, env=None)
 
 Open the annotation store for one scope, backend chosen by env.
 
@@ -2880,6 +2882,10 @@ Postgres mode).
     tenant anchor — or a zero-argument callable returning it. Ignored
     in SQLite mode, where a callable is never called (so a hot path
     can pass `lambda: storage.asset_id` without paying to derive it).
+  * **tenant** (`Union`[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str), [`Callable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable)[[], [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)], [`None`](https://docs.python.org/3/builtins/constants.html#None)]) – What keys the Postgres tenant (same string-or-callable form),
+    when it is not the asset id. A project’s graph is keyed on the id
+    minted when it was created, so a recreated project does not
+    inherit the old one’s graph. Defaults to `asset_id`.
   * **scope** ([`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]) – The logical scope name (`"graph"` / `"storyboard"` /
     `"alignment"` / …). Defaults to deriving it from `db_path`.
   * **rate** ([`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[[`int`](https://docs.python.org/3/builtins/functions.html#int)]) – Project-wide rate for the Postgres store. Defaults to lacing’s
@@ -3526,6 +3532,10 @@ their legacy files. Legacy (pre-graph) projects are migrated on open by
 
 * **Return type:**
   [`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str), [`Path`](https://docs.python.org/3/library/pathlib.html#pathlib.Path)]
+
+#### *property* tenant_id *: [str](https://docs.python.org/3/builtins/stdtypes.html#str)*
+
+The shared-backend tenant key (`tenant_id_of()`).
 
 ### *class* nw.FreshnessVerdict(annotation, is_stale, reason, upstream_id=None)
 
@@ -7306,6 +7316,7 @@ decisions move into the graph.
 | [`open_project_graph_readonly`](_autosummary/nw.migrate.html.md#nw.migrate.open_project_graph_readonly)(project_root)         | Open the project's graph store to **read**, without taking a write lock. |
 | [`project_asset_id`](_autosummary/nw.migrate.html.md#nw.migrate.project_asset_id)(project_root)                    | The asset_id used as the project's graph anchor.                         |
 | `project_graph_db_path`(project_root)                                                              |                                                                          |
+| [`project_tenant_id`](_autosummary/nw.migrate.html.md#nw.migrate.project_tenant_id)(project_root)                   | The id a shared backend keys the project's graph on.                     |
 
 ### nw.migrate.is_migrated(project_root)
 
@@ -7410,6 +7421,17 @@ of the song bytes. Otherwise a stable fallback derived from the title.
 Mirrors `nw.storyboard.project_asset_id()` so the project graph and
 the storyboard share an asset_id. The rule itself is
 [`nw.storage.asset_id_of()`](_autosummary/nw.storage.html.md#nw.storage.asset_id_of), shared with non-folder storages.
+
+* **Return type:**
+  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
+
+### nw.migrate.project_tenant_id(project_root)
+
+The id a shared backend keys the project’s graph on.
+
+The id minted at `Project.init` (`project.json`’s `tenant_id`); for a
+project that predates it, its historical [`project_asset_id()`](_autosummary/nw.migrate.html.md#nw.migrate.project_asset_id). The rule
+is [`nw.storage.tenant_id_of()`](_autosummary/nw.storage.html.md#nw.storage.tenant_id_of).
 
 * **Return type:**
   [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
@@ -8789,6 +8811,7 @@ True
 
 | [`DFLT_INIT_FOLDERS`](_autosummary/nw.storage.html.md#nw.storage.DFLT_INIT_FOLDERS)   | The subfolders [`nw.Project.init()`](_autosummary/nw.html.md#nw.Project.init) creates in a [`FolderStorage`](_autosummary/nw.storage.html.md#nw.storage.FolderStorage) project: the music-video layout nw started with.   |
 |----------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| [`TENANT_KEY`](_autosummary/nw.storage.html.md#nw.storage.TENANT_KEY)          | The key in `project.json` holding the id minted at `Project.init`.                                                                                                                                                               |
 | [`project_storages`](_autosummary/nw.storage.html.md#nw.storage.project_storages)    | Storage resolvers, `name -> (root: Path) -> ProjectStorage | None`.                                                                                                                                                              |
 
 ### Functions
@@ -8796,6 +8819,7 @@ True
 | [`as_project_storage`](_autosummary/nw.storage.html.md#nw.storage.as_project_storage)(project)              | The [`ProjectStorage`](_autosummary/nw.storage.html.md#nw.storage.ProjectStorage) for a path, a storage, or an `nw.Project`.   |
 |-------------------------------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------|
 | [`asset_id_of`](_autosummary/nw.storage.html.md#nw.storage.asset_id_of)(root, spec)                  | The asset id anchoring a project's annotations.                                                                  |
+| [`tenant_id_of`](_autosummary/nw.storage.html.md#nw.storage.tenant_id_of)(root, spec)                 | The id a shared (Postgres) backend keys this project's graph on.                                                 |
 | [`json_docs`](_autosummary/nw.storage.html.md#nw.storage.json_docs)(root)                          | The folder-backed store for a project's JSON documents.                                                          |
 | [`register_project_storage`](_autosummary/nw.storage.html.md#nw.storage.register_project_storage)(name, resolver) | Register a resolver that recognises a genre's project folders.                                                   |
 
@@ -8831,6 +8855,10 @@ their legacy files. Legacy (pre-graph) projects are migrated on open by
 * **Return type:**
   [`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str), [`Path`](https://docs.python.org/3/library/pathlib.html#pathlib.Path)]
 
+#### *property* tenant_id *: [str](https://docs.python.org/3/builtins/stdtypes.html#str)*
+
+The shared-backend tenant key ([`tenant_id_of()`](_autosummary/nw.storage.html.md#nw.storage.tenant_id_of)).
+
 ### *class* nw.storage.MappingStorage(\*, root, graph, docs, scopes=(), store_factory=<function \_dflt_store_factory>, init_folders=(), asset_id=None)
 
 Bases: [`object`](https://docs.python.org/3/builtins/functions.html#object)
@@ -8864,6 +8892,10 @@ Where one project’s documents and annotation stores live.
 `open_graph_readonly` must not write, and raises `FileNotFoundError`
 when there is no graph yet. `open_stores` yields every annotation scope
 the project has (graph included), each store closed before the next opens.
+
+### nw.storage.TENANT_KEY *= 'tenant_id'*
+
+The key in `project.json` holding the id minted at `Project.init`.
 
 ### nw.storage.as_project_storage(project)
 
@@ -8916,6 +8948,19 @@ project they list.
 
 * **Return type:**
   [`Callable`](https://docs.python.org/3/library/typing.html#typing.Callable)[[[`Path`](https://docs.python.org/3/library/pathlib.html#pathlib.Path)], [`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[[`ProjectStorage`](_autosummary/nw.storage.html.md#nw.storage.ProjectStorage)]]
+
+### nw.storage.tenant_id_of(root, spec)
+
+The id a shared (Postgres) backend keys this project’s graph on.
+
+The id minted at `Project.init` and stored in `project.json`, so a
+project folder removed and created again at the same path with the same
+title is a *new* tenant with an empty graph. A project that predates the
+mint has none; it keeps its historical tenant ([`asset_id_of()`](_autosummary/nw.storage.html.md#nw.storage.asset_id_of)), so the
+graph it already has stays readable.
+
+* **Return type:**
+  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
 
 
 # _autosummary/nw.transforms.html.md
@@ -9505,20 +9550,20 @@ produce different URLs. The local file paths are byte-stable.
 
 # About this build
 
-This documentation was built on **2026-10-14 02:31 UTC** from commit <a href="https://github.com/reeleehq/nw/commit/3db7eebf1ef8cb0d6db8f4c9fb380b8fabe0d606"><code>3db7eeb</code></a> on branch <code>main</code>, for **nw 0.0.70** (from <code>pyproject.toml</code>).
+This documentation was built on **2026-10-14 02:35 UTC** from commit <a href="https://github.com/reeleehq/nw/commit/ee53ea12d40502e8ba2858c5537e903eed781bd4"><code>ee53ea1</code></a> on branch <code>main</code>, for **nw 0.0.71** (from <code>pyproject.toml</code>).
 
 #### WARNING
 The documentation and the package may be misaligned:
 
-- The documented version (0.0.70) is ahead of the latest release on PyPI (0.0.69): these docs describe unreleased code.
+- The documented version (0.0.71) is ahead of the latest release on PyPI (0.0.70): these docs describe unreleased code.
 
 ## Source
 
 |                     |                                                                                                                                                    |
 |---------------------|----------------------------------------------------------------------------------------------------------------------------------------------------|
-| Commit              | <a href="https://github.com/reeleehq/nw/commit/3db7eebf1ef8cb0d6db8f4c9fb380b8fabe0d606"><code>3db7eebf1ef8cb0d6db8f4c9fb380b8fabe0d606</code></a> |
+| Commit              | <a href="https://github.com/reeleehq/nw/commit/ee53ea12d40502e8ba2858c5537e903eed781bd4"><code>ee53ea12d40502e8ba2858c5537e903eed781bd4</code></a> |
 | Branch              | <code>main</code>                                                                                                                                  |
-| Tags at this commit | <code>0.0.70</code>                                                                                                                                |
+| Tags at this commit | <code>0.0.71</code>                                                                                                                                |
 | Working tree        | clean                                                                                                                                              |
 | Remote              | <code>https://github.com/reeleehq/nw</code>                                                                                                        |
 
@@ -9527,9 +9572,9 @@ The documentation and the package may be misaligned:
 |              |                                                                                            |
 |--------------|--------------------------------------------------------------------------------------------|
 | Repository   | <code>reeleehq/nw</code>                                                                   |
-| Run          | <a href="https://github.com/reeleehq/nw/actions/runs/38501165977">38501165977</a>          |
+| Run          | <a href="https://github.com/reeleehq/nw/actions/runs/38501524447">38501524447</a>          |
 | Ref          | <code>refs/heads/main</code>                                                               |
-| Event commit | <code>badb3a9f58139d92e8a2bbc50d4cf88232d58e1d</code> (in the history of the built commit) |
+| Event commit | <code>d5c484665b2f3e285ec50536fcc9bab84c653b58</code> (in the history of the built commit) |
 
 ## Tools
 
@@ -9554,13 +9599,13 @@ The documentation and the package may be misaligned:
 
 ## Package on PyPI
 
-Latest release: <a href="https://pypi.org/project/nw/0.0.69/">0.0.69</a>, older than the documented version (0.0.70).
+Latest release: <a href="https://pypi.org/project/nw/0.0.70/">0.0.70</a>, older than the documented version (0.0.71).
 
 ## Reproduce
 
 ```bash
 git clone https://github.com/reeleehq/nw && cd nw
-git checkout 3db7eebf1ef8cb0d6db8f4c9fb380b8fabe0d606
+git checkout ee53ea12d40502e8ba2858c5537e903eed781bd4
 pip install "epythet==0.2.17"
 epythet quickstart . --ignore tests/ scrap/ examples/
 ```

@@ -127,6 +127,7 @@ data-aria-dark="Switch to auto color mode">
 <li><a class="reference internal" href="#nw.migrate.open_project_graph"><code class="docutils literal notranslate"><span class="pre">open_project_graph()</span></code></a></li>
 <li><a class="reference internal" href="#nw.migrate.open_project_graph_readonly"><code class="docutils literal notranslate"><span class="pre">open_project_graph_readonly()</span></code></a></li>
 <li><a class="reference internal" href="#nw.migrate.project_asset_id"><code class="docutils literal notranslate"><span class="pre">project_asset_id()</span></code></a></li>
+<li><a class="reference internal" href="#nw.migrate.project_tenant_id"><code class="docutils literal notranslate"><span class="pre">project_tenant_id()</span></code></a></li>
 </ul>
 </div><div id="ethical-ad-placement" data-ea-publisher="readthedocs"></div></div>
   </aside>
@@ -208,6 +209,9 @@ decisions move into the graph.</p>
 </tr>
 <tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">project_graph_db_path</span></code>(project_root)</p></td>
 <td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#nw.migrate.project_tenant_id" title="nw.migrate.project_tenant_id"><code class="xref py py-obj docutils literal notranslate"><span class="pre">project_tenant_id</span></code></a>(project_root)</p></td>
+<td><p>The id a shared backend keys the project's graph on.</p></td>
 </tr>
 </tbody>
 </table>
@@ -343,6 +347,20 @@ the storyboard share an asset_id. The rule itself is
 </dl>
 </dd></dl>
 
+<dl class="py function">
+<dt class="sig sig-object py" id="nw.migrate.project_tenant_id">
+<span class="sig-prename descclassname"><span class="pre">nw.migrate.</span></span><span class="sig-name descname"><span class="pre">project_tenant_id</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">project_root</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/nw/migrate.html#project_tenant_id"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nw.migrate.project_tenant_id" title="Link to this definition">#</a></dt>
+<dd><p>The id a shared backend keys the project’s graph on.</p>
+<p>The id minted at <code class="docutils literal notranslate"><span class="pre">Project.init</span></code> (<code class="docutils literal notranslate"><span class="pre">project.json</span></code>’s <code class="docutils literal notranslate"><span class="pre">tenant_id</span></code>); for a
+project that predates it, its historical <a class="reference internal" href="#nw.migrate.project_asset_id" title="nw.migrate.project_asset_id"><code class="xref py py-func docutils literal notranslate"><span class="pre">project_asset_id()</span></code></a>. The rule
+is <a class="reference internal" href="nw.storage.html#nw.storage.tenant_id_of" title="nw.storage.tenant_id_of"><code class="xref py py-func docutils literal notranslate"><span class="pre">nw.storage.tenant_id_of()</span></code></a>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a></span></p>
+</dd>
+</dl>
+</dd></dl>
+
 </section>
 
         </article><button class="back-to-top" type="button">
@@ -385,7 +403,7 @@ the storyboard share an asset_id. The rule itself is
     </div>
   </div>
 </footer>
-      <script src="../_static/documentation_options.js?v=29ed05f3"></script>
+      <script src="../_static/documentation_options.js?v=8d9581ea"></script>
       <script src="../_static/doctools.js?v=fd6eb6e6"></script>
       <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script src="../_static/clipboard.min.js?v=a7894cd8"></script>

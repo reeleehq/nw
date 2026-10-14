@@ -58,7 +58,7 @@ each annotation once under either backend.
 
 alias of [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
 
-### nw.graph_backend.iter_scope_stores(scope_paths, , asset_id, env=None)
+### nw.graph_backend.iter_scope_stores(scope_paths, , asset_id, tenant=None, env=None)
 
 Yield an iterator of open stores, one per scope, backend chosen by env.
 
@@ -76,6 +76,8 @@ annotation is yielded once either way.
   * **asset_id** (`Union`[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str), [`Callable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable)[[], [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]]) – The project’s `project_asset_id` (Postgres tenant anchor),
     or a zero-argument callable returning it (never called in SQLite
     mode).
+  * **tenant** (`Union`[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str), [`Callable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable)[[], [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)], [`None`](https://docs.python.org/3/builtins/constants.html#None)]) – What keys each Postgres tenant instead of `asset_id`; see
+    [`open_graph_store()`](#nw.graph_backend.open_graph_store).
   * **env** ([`Mapping`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Mapping)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str), [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)] | [`None`](https://docs.python.org/3/builtins/constants.html#None)) – Environment mapping. Defaults to `os.environ`.
 * **Yields:**
   A single iterator that produces each scope’s open store in turn. Each
@@ -84,7 +86,7 @@ annotation is yielded once either way.
 * **Return type:**
   [*Iterator*](https://docs.python.org/3/library/typing.html#typing.Iterator)[[*Iterator*](https://docs.python.org/3/library/typing.html#typing.Iterator)[*IntervalAnnotationStore*]]
 
-### nw.graph_backend.open_graph_store(db_path, , asset_id, scope=None, rate=None, env=None)
+### nw.graph_backend.open_graph_store(db_path, , asset_id, tenant=None, scope=None, rate=None, env=None)
 
 Open the annotation store for one scope, backend chosen by env.
 
@@ -100,6 +102,10 @@ Postgres mode).
     tenant anchor — or a zero-argument callable returning it. Ignored
     in SQLite mode, where a callable is never called (so a hot path
     can pass `lambda: storage.asset_id` without paying to derive it).
+  * **tenant** (`Union`[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str), [`Callable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable)[[], [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)], [`None`](https://docs.python.org/3/builtins/constants.html#None)]) – What keys the Postgres tenant (same string-or-callable form),
+    when it is not the asset id. A project’s graph is keyed on the id
+    minted when it was created, so a recreated project does not
+    inherit the old one’s graph. Defaults to `asset_id`.
   * **scope** ([`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]) – The logical scope name (`"graph"` / `"storyboard"` /
     `"alignment"` / …). Defaults to deriving it from `db_path`.
   * **rate** ([`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[[`int`](https://docs.python.org/3/builtins/functions.html#int)]) – Project-wide rate for the Postgres store. Defaults to lacing’s

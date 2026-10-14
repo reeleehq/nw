@@ -43,6 +43,7 @@ True
 
 | [`DFLT_INIT_FOLDERS`](#nw.storage.DFLT_INIT_FOLDERS)   | The subfolders [`nw.Project.init()`](nw.html.md#nw.Project.init) creates in a [`FolderStorage`](#nw.storage.FolderStorage) project: the music-video layout nw started with.   |
 |----------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| [`TENANT_KEY`](#nw.storage.TENANT_KEY)          | The key in `project.json` holding the id minted at `Project.init`.                                                                                                                                                               |
 | [`project_storages`](#nw.storage.project_storages)    | Storage resolvers, `name -> (root: Path) -> ProjectStorage | None`.                                                                                                                                                              |
 
 ### Functions
@@ -50,6 +51,7 @@ True
 | [`as_project_storage`](#nw.storage.as_project_storage)(project)              | The [`ProjectStorage`](#nw.storage.ProjectStorage) for a path, a storage, or an `nw.Project`.   |
 |-------------------------------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------|
 | [`asset_id_of`](#nw.storage.asset_id_of)(root, spec)                  | The asset id anchoring a project's annotations.                                                                  |
+| [`tenant_id_of`](#nw.storage.tenant_id_of)(root, spec)                 | The id a shared (Postgres) backend keys this project's graph on.                                                 |
 | [`json_docs`](#nw.storage.json_docs)(root)                          | The folder-backed store for a project's JSON documents.                                                          |
 | [`register_project_storage`](#nw.storage.register_project_storage)(name, resolver) | Register a resolver that recognises a genre's project folders.                                                   |
 
@@ -85,6 +87,10 @@ their legacy files. Legacy (pre-graph) projects are migrated on open by
 * **Return type:**
   [`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str), [`Path`](https://docs.python.org/3/library/pathlib.html#pathlib.Path)]
 
+#### *property* tenant_id *: [str](https://docs.python.org/3/builtins/stdtypes.html#str)*
+
+The shared-backend tenant key ([`tenant_id_of()`](#nw.storage.tenant_id_of)).
+
 ### *class* nw.storage.MappingStorage(\*, root, graph, docs, scopes=(), store_factory=<function \_dflt_store_factory>, init_folders=(), asset_id=None)
 
 Bases: [`object`](https://docs.python.org/3/builtins/functions.html#object)
@@ -118,6 +124,10 @@ Where one project’s documents and annotation stores live.
 `open_graph_readonly` must not write, and raises `FileNotFoundError`
 when there is no graph yet. `open_stores` yields every annotation scope
 the project has (graph included), each store closed before the next opens.
+
+### nw.storage.TENANT_KEY *= 'tenant_id'*
+
+The key in `project.json` holding the id minted at `Project.init`.
 
 ### nw.storage.as_project_storage(project)
 
@@ -170,3 +180,16 @@ project they list.
 
 * **Return type:**
   [`Callable`](https://docs.python.org/3/library/typing.html#typing.Callable)[[[`Path`](https://docs.python.org/3/library/pathlib.html#pathlib.Path)], [`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[[`ProjectStorage`](#nw.storage.ProjectStorage)]]
+
+### nw.storage.tenant_id_of(root, spec)
+
+The id a shared (Postgres) backend keys this project’s graph on.
+
+The id minted at `Project.init` and stored in `project.json`, so a
+project folder removed and created again at the same path with the same
+title is a *new* tenant with an empty graph. A project that predates the
+mint has none; it keeps its historical tenant ([`asset_id_of()`](#nw.storage.asset_id_of)), so the
+graph it already has stays readable.
+
+* **Return type:**
+  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
