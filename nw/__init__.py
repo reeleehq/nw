@@ -89,6 +89,7 @@ from .storage import (
     FolderStorage,
     MappingStorage,
     ProjectStorage,
+    adopt_tenant_id,
     as_project_storage,
     register_project_storage,
 )
@@ -276,6 +277,7 @@ __all__ = [
     "ProjectStorage",
     "FolderStorage",
     "MappingStorage",
+    "adopt_tenant_id",
     "as_project_storage",
     "register_project_storage",
     "StoredUnproducedOutput",

@@ -170,6 +170,57 @@ def tenant_id_of(root: str | Path, spec: Optional[Mapping[str, Any]]) -> str:
     return asset_id_of(root, spec)
 
 
+def adopt_tenant_id(project: Any, *, dry_run: bool = False) -> Optional[str]:
+    """Pin a legacy project's historical tenant into ``project.json`` (nw#112).
+
+    A project without a minted ``tenant_id`` is keyed on root + title (or the
+    song's hash), so a folder removed and recreated by hand at the same path
+    and title would inherit the old Postgres graph. This writes the key the
+    project *currently resolves to* as its ``tenant_id``: the tenant, and so
+    the data it already has, is unchanged, but the key stops depending on
+    root + title.
+
+    One-shot and idempotent, run by the host or a migration command (nw never
+    calls it): a project that already has a ``tenant_id`` is left alone.
+    Run it while the project is intact, since the song-hash form reads the
+    audio file. It only adds a key to ``project.json``; it moves and deletes
+    no graph data.
+
+    Returns the adopted id, the already-minted one, or ``None`` when ``project``
+    has no ``project.json`` or keeps its own keying (no ``tenant_id``). Raises
+    ``FileNotFoundError`` when the song audio its tenant hashes is missing.
+    With ``dry_run`` nothing is written.
+
+    >>> import tempfile, json, pathlib
+    >>> root = pathlib.Path(tempfile.mkdtemp())
+    >>> _ = (root / "project.json").write_text(json.dumps({"title": "t"}))
+    >>> adopt_tenant_id(root) == adopt_tenant_id(root)
+    True
+    """
+    storage = as_project_storage(project)
+    doc = _project_doc(storage.docs)
+    if doc is None:
+        return None
+    if isinstance(doc.get(TENANT_KEY), str) and doc[TENANT_KEY]:
+        return doc[TENANT_KEY]
+    if not hasattr(storage, "tenant_id"):
+        return None  # a storage that owns its own keying (e.g. MappingStorage)
+    song = doc.get("song")
+    if isinstance(song, dict) and song.get("audio_path"):
+        sp = Path(song["audio_path"])
+        if not (sp if sp.is_absolute() else Path(storage.root) / sp).exists():
+            raise FileNotFoundError(
+                f"cannot adopt a tenant id: the project's song audio "
+                f"({song['audio_path']!r}) is missing, so its historical tenant "
+                "(the song hash) cannot be computed; adopting now would pin the "
+                "wrong one. Restore the file and run again."
+            )
+    adopted = storage.tenant_id
+    if not dry_run:
+        storage.docs[PROJECT_FILE_NAME] = {**doc, TENANT_KEY: adopted}
+    return adopted
+
+
 def _project_doc(docs: Mapping[str, Any]) -> Optional[Mapping[str, Any]]:
     try:
         return docs[PROJECT_FILE_NAME]
@@ -417,6 +468,7 @@ __all__ = [
     "PROJECT_FILE_NAME",
     "ProjectLike",
     "ProjectStorage",
+    "adopt_tenant_id",
     "as_project_storage",
     "asset_id_of",
     "tenant_id_of",
