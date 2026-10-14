@@ -138,6 +138,7 @@ def open_graph_store(
     db_path: Path | str,
     *,
     asset_id: AssetIdLike,
+    tenant: Optional[AssetIdLike] = None,
     scope: Optional[str] = None,
     rate: Optional[int] = None,
     env: Mapping[str, str] | None = None,
@@ -156,6 +157,10 @@ def open_graph_store(
             tenant anchor — or a zero-argument callable returning it. Ignored
             in SQLite mode, where a callable is never called (so a hot path
             can pass ``lambda: storage.asset_id`` without paying to derive it).
+        tenant: What keys the Postgres tenant (same string-or-callable form),
+            when it is not the asset id. A project's graph is keyed on the id
+            minted when it was created, so a recreated project does not
+            inherit the old one's graph. Defaults to ``asset_id``.
         scope: The logical scope name (``"graph"`` / ``"storyboard"`` /
             ``"alignment"`` / …). Defaults to deriving it from ``db_path``.
         rate: Project-wide rate for the Postgres store. Defaults to lacing's
@@ -174,7 +179,12 @@ def open_graph_store(
         scope = scope_name_for_db(db_path)
 
     if selected_backend(env) == _POSTGRES:
-        store = _open_postgres(asset_id=asset_id, scope=scope, rate=rate, env=env)
+        store = _open_postgres(
+            asset_id=tenant if tenant is not None else asset_id,
+            scope=scope,
+            rate=rate,
+            env=env,
+        )
         if store is not None:
             return store
         # _open_postgres logged a warning and we fall through to SQLite.
@@ -225,6 +235,7 @@ def iter_scope_stores(
     scope_paths: Mapping[str, Path],
     *,
     asset_id: AssetIdLike,
+    tenant: Optional[AssetIdLike] = None,
     env: Mapping[str, str] | None = None,
 ) -> Iterator[Iterator[IntervalAnnotationStore]]:
     """Yield an iterator of open stores, one per scope, backend chosen by env.
@@ -243,6 +254,8 @@ def iter_scope_stores(
         asset_id: The project's ``project_asset_id`` (Postgres tenant anchor),
             or a zero-argument callable returning it (never called in SQLite
             mode).
+        tenant: What keys each Postgres tenant instead of ``asset_id``; see
+            :func:`open_graph_store`.
         env: Environment mapping. Defaults to ``os.environ``.
 
     Yields:
@@ -258,7 +271,9 @@ def iter_scope_stores(
         for scope, db_path in scope_paths.items():
             if backend == _SQLITE and not Path(db_path).exists():
                 continue
-            store = open_graph_store(db_path, asset_id=asset_id, scope=scope, env=env)
+            store = open_graph_store(
+                db_path, asset_id=asset_id, tenant=tenant, scope=scope, env=env
+            )
             try:
                 yield store
             finally:

@@ -25,6 +25,7 @@ import json
 import shutil
 from datetime import datetime, timezone
 from pathlib import Path
+from uuid import uuid4
 from typing import Any, Iterable, Optional
 
 
@@ -72,7 +73,7 @@ from .graph import (
     remove_annotations_with_traces,
 )
 from .bodies import GENRE_ENVELOPE_TIER, UNPRODUCED_OUTPUT_TIER, VERIFYING_TRACE_TIER
-from .storage import FolderStorage, ProjectStorage, as_project_storage
+from .storage import TENANT_KEY, FolderStorage, ProjectStorage, as_project_storage
 from .migrate import (
     _TIER_CHARACTER_REF,
     _TIER_DECISION,
@@ -261,7 +262,14 @@ class Project:
             schema_version=SCHEMA_VERSION,
             title=title or root.name,
         )
-        docs[_PROJECT_FILE_NAME] = json.loads(spec.model_dump_json())
+        # ``tenant_id`` is minted here, once, and is what a shared (Postgres)
+        # backend keys the graph on: root + title is not an identity, because
+        # a removed folder recreated at the same path would inherit the old
+        # graph (nw#109).
+        docs[_PROJECT_FILE_NAME] = {
+            **json.loads(spec.model_dump_json()),
+            TENANT_KEY: uuid4().hex,
+        }
 
         # New projects are graph-native from the start; mark migrated so the
         # auto-migrator skips them. The graph store is created lazily on first
@@ -380,6 +388,10 @@ class Project:
             "notes": spec.notes,
             "_graph_db": "project.annot.sqlite",
         }
+        # The minted tenant id outlives every rewrite of project.json.
+        tenant = self._docs[_PROJECT_FILE_NAME].get(TENANT_KEY)
+        if tenant:
+            meta[TENANT_KEY] = tenant
         self._docs[_PROJECT_FILE_NAME] = meta
 
         # Graph entities — sync each tier to the spec by removing entries

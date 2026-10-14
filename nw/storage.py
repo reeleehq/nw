@@ -151,6 +151,25 @@ def asset_id_of(root: str | Path, spec: Optional[Mapping[str, Any]]) -> str:
     return hashlib.sha256(seed).hexdigest()
 
 
+#: The key in ``project.json`` holding the id minted at ``Project.init``.
+TENANT_KEY = "tenant_id"
+
+
+def tenant_id_of(root: str | Path, spec: Optional[Mapping[str, Any]]) -> str:
+    """The id a shared (Postgres) backend keys this project's graph on.
+
+    The id minted at ``Project.init`` and stored in ``project.json``, so a
+    project folder removed and created again at the same path with the same
+    title is a *new* tenant with an empty graph. A project that predates the
+    mint has none; it keeps its historical tenant (:func:`asset_id_of`), so the
+    graph it already has stays readable.
+    """
+    minted = (spec or {}).get(TENANT_KEY)
+    if isinstance(minted, str) and minted:
+        return minted
+    return asset_id_of(root, spec)
+
+
 def _project_doc(docs: Mapping[str, Any]) -> Optional[Mapping[str, Any]]:
     try:
         return docs[PROJECT_FILE_NAME]
@@ -202,6 +221,11 @@ class FolderStorage:
 
         return project_asset_id(self.root)
 
+    @property
+    def tenant_id(self) -> str:
+        """The shared-backend tenant key (:func:`tenant_id_of`)."""
+        return tenant_id_of(self.root, _project_doc(self.docs))
+
     def scope_paths(self) -> dict[str, Path]:
         """``{scope_name: legacy_sqlite_path}`` for this project's stores."""
         from .migrate import project_graph_db_path
@@ -224,10 +248,12 @@ class FolderStorage:
 
     @contextmanager
     def open_stores(self) -> Iterator[Iterator[IntervalAnnotationStore]]:
-        # Lazy: only the Postgres backend keys a tenant on the asset id, and
-        # deriving it hashes the song file.
+        # Lazy: only the Postgres backend keys a tenant, and deriving the
+        # asset id hashes the song file.
         with iter_scope_stores(
-            self.scope_paths(), asset_id=lambda: self.asset_id
+            self.scope_paths(),
+            asset_id=lambda: self.asset_id,
+            tenant=lambda: self.tenant_id,
         ) as stores:
             yield stores
 
@@ -393,6 +419,8 @@ __all__ = [
     "ProjectStorage",
     "as_project_storage",
     "asset_id_of",
+    "tenant_id_of",
+    "TENANT_KEY",
     "json_docs",
     "project_storages",
     "register_project_storage",
