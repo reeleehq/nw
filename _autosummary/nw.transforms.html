@@ -174,11 +174,23 @@ data-aria-dark="Switch to auto color mode">
 <li><p><strong>on_conflict</strong> – <code class="docutils literal notranslate"><span class="pre">'error'</span></code> (default) raises <code class="xref py py-class docutils literal notranslate"><span class="pre">RegistryConflict</span></code> when registering
 a key that already exists. <code class="docutils literal notranslate"><span class="pre">'replace'</span></code> silently overwrites.
 <code class="docutils literal notranslate"><span class="pre">'keep'</span></code> silently keeps the original.</p></li>
-<li><p><strong>(</strong><strong>dict</strong><strong>(</strong><strong>...</strong><strong>)</strong> (<em>Implements MutableMapping so anything that takes a mapping</em>)</p></li>
+<li><p><strong>strict_setitem</strong> – Opt-in (default <code class="docutils literal notranslate"><span class="pre">False</span></code>). By default <code class="docutils literal notranslate"><span class="pre">reg[k]</span> <span class="pre">=</span> <span class="pre">v</span></code> is an explicit
+assignment that replaces whatever is there, bypassing <code class="docutils literal notranslate"><span class="pre">on_conflict</span></code>.
+With <code class="docutils literal notranslate"><span class="pre">strict_setitem=True</span></code> it follows the <code class="docutils literal notranslate"><span class="pre">on_conflict</span></code> policy exactly
+like <code class="xref py py-meth docutils literal notranslate"><span class="pre">register()</span></code> (so <code class="docutils literal notranslate"><span class="pre">MutableMapping.update</span></code> and <code class="docutils literal notranslate"><span class="pre">setdefault</span></code>
+do too; note <code class="docutils literal notranslate"><span class="pre">update</span></code> is not atomic: entries before the first conflict stay).</p></li>
+<li><p><strong>(</strong><strong>reading</strong> (<em>Keys that are aliases resolve to their canonical key everywhere</em>)</p></li>
 </ul>
 </dd>
 </dl>
 <p>:param :
+:param <code class="docutils literal notranslate"><span class="pre">reg[k]</span> <span class="pre">=</span> <span class="pre">v</span></code>:
+:param <code class="xref py py-meth docutils literal notranslate"><span class="pre">register()</span></code>:
+:param <code class="xref py py-meth docutils literal notranslate"><span class="pre">register_lazy()</span></code>):
+:param so the <code class="docutils literal notranslate"><span class="pre">on_conflict</span></code>:
+:param policy always applies to the canonical entry.:
+:param Implements <code class="docutils literal notranslate"><span class="pre">MutableMapping</span></code> so anything that takes a mapping (<code class="docutils literal notranslate"><span class="pre">dict(...)</span></code>:
+:param :
 :param iteration:
 :param length checks:
 :param <code class="docutils literal notranslate"><span class="pre">in</span></code> lookups:
@@ -227,7 +239,7 @@ a key that already exists. <code class="docutils literal notranslate"><span clas
     </div>
   </div>
 </footer>
-      <script src="../_static/documentation_options.js?v=cac962a1"></script>
+      <script src="../_static/documentation_options.js?v=29ed05f3"></script>
       <script src="../_static/doctools.js?v=fd6eb6e6"></script>
       <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script src="../_static/clipboard.min.js?v=a7894cd8"></script>

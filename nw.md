@@ -1,4 +1,4 @@
-> built 2026-10-13 16:10 UTC from 293b99f (main) · nw 0.0.69. Details: build_info.json
+> built 2026-10-14 02:31 UTC from 3db7eeb (main) · nw 0.0.70. Details: build_info.json
 
 # index.html.md
 
@@ -2280,8 +2280,20 @@ A typed dict-backed plugin registry.
   * **on_conflict** – `'error'` (default) raises `RegistryConflict` when registering
     a key that already exists. `'replace'` silently overwrites.
     `'keep'` silently keeps the original.
-  * **(****dict****(****...****)** (*Implements MutableMapping so anything that takes a mapping*)
+  * **strict_setitem** – Opt-in (default `False`). By default `reg[k] = v` is an explicit
+    assignment that replaces whatever is there, bypassing `on_conflict`.
+    With `strict_setitem=True` it follows the `on_conflict` policy exactly
+    like `register()` (so `MutableMapping.update` and `setdefault`
+    do too; note `update` is not atomic: entries before the first conflict stay).
+  * **(****reading** (*Keys that are aliases resolve to their canonical key everywhere*)
 
+:param :
+:param `reg[k] = v`:
+:param `register()`:
+:param `register_lazy()`):
+:param so the `on_conflict`:
+:param policy always applies to the canonical entry.:
+:param Implements `MutableMapping` so anything that takes a mapping (`dict(...)`:
 :param :
 :param iteration:
 :param length checks:
@@ -2841,7 +2853,9 @@ annotation is yielded once either way.
     *exist* on disk are visited in SQLite mode; in Postgres mode every
     listed scope is visited (existence is a DB question, not a file
     one).
-  * **asset_id** ([`str`](https://docs.python.org/3/builtins/stdtypes.html#str)) – The project’s `project_asset_id` (Postgres tenant anchor).
+  * **asset_id** (`Union`[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str), [`Callable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable)[[], [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]]) – The project’s `project_asset_id` (Postgres tenant anchor),
+    or a zero-argument callable returning it (never called in SQLite
+    mode).
   * **env** ([`Mapping`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Mapping)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str), [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)] | [`None`](https://docs.python.org/3/builtins/constants.html#None)) – Environment mapping. Defaults to `os.environ`.
 * **Yields:**
   A single iterator that produces each scope’s open store in turn. Each
@@ -2862,8 +2876,10 @@ Postgres mode).
 * **Parameters:**
   * **db_path** ([`Path`](https://docs.python.org/3/library/pathlib.html#pathlib.Path) | [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)) – The per-scope SQLite path (used directly in SQLite mode; in
     Postgres mode only its filename is used to derive the scope).
-  * **asset_id** ([`str`](https://docs.python.org/3/builtins/stdtypes.html#str)) – The project’s stable `project_asset_id` — the Postgres
-    tenant anchor. Ignored in SQLite mode.
+  * **asset_id** (`Union`[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str), [`Callable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable)[[], [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]]) – The project’s stable `project_asset_id` — the Postgres
+    tenant anchor — or a zero-argument callable returning it. Ignored
+    in SQLite mode, where a callable is never called (so a hot path
+    can pass `lambda: storage.asset_id` without paying to derive it).
   * **scope** ([`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]) – The logical scope name (`"graph"` / `"storyboard"` /
     `"alignment"` / …). Defaults to deriving it from `db_path`.
   * **rate** ([`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[[`int`](https://docs.python.org/3/builtins/functions.html#int)]) – Project-wide rate for the Postgres store. Defaults to lacing’s
@@ -8915,8 +8931,20 @@ A typed dict-backed plugin registry.
   * **on_conflict** – `'error'` (default) raises `RegistryConflict` when registering
     a key that already exists. `'replace'` silently overwrites.
     `'keep'` silently keeps the original.
-  * **(****dict****(****...****)** (*Implements MutableMapping so anything that takes a mapping*)
+  * **strict_setitem** – Opt-in (default `False`). By default `reg[k] = v` is an explicit
+    assignment that replaces whatever is there, bypassing `on_conflict`.
+    With `strict_setitem=True` it follows the `on_conflict` policy exactly
+    like `register()` (so `MutableMapping.update` and `setdefault`
+    do too; note `update` is not atomic: entries before the first conflict stay).
+  * **(****reading** (*Keys that are aliases resolve to their canonical key everywhere*)
 
+:param :
+:param `reg[k] = v`:
+:param `register()`:
+:param `register_lazy()`):
+:param so the `on_conflict`:
+:param policy always applies to the canonical entry.:
+:param Implements `MutableMapping` so anything that takes a mapping (`dict(...)`:
 :param :
 :param iteration:
 :param length checks:
@@ -9477,18 +9505,20 @@ produce different URLs. The local file paths are byte-stable.
 
 # About this build
 
-This documentation was built on **2026-10-13 16:10 UTC** from commit <a href="https://github.com/reeleehq/nw/commit/293b99f4af68f15e1ee0e07f1371b839bf3f4c1c"><code>293b99f</code></a> on branch <code>main</code>, for **nw 0.0.69** (from <code>pyproject.toml</code>).
+This documentation was built on **2026-10-14 02:31 UTC** from commit <a href="https://github.com/reeleehq/nw/commit/3db7eebf1ef8cb0d6db8f4c9fb380b8fabe0d606"><code>3db7eeb</code></a> on branch <code>main</code>, for **nw 0.0.70** (from <code>pyproject.toml</code>).
 
-#### NOTE
-Nothing suggests a mismatch: the tree was clean at the commit above, and the documented version is the one on PyPI.
+#### WARNING
+The documentation and the package may be misaligned:
+
+- The documented version (0.0.70) is ahead of the latest release on PyPI (0.0.69): these docs describe unreleased code.
 
 ## Source
 
 |                     |                                                                                                                                                    |
 |---------------------|----------------------------------------------------------------------------------------------------------------------------------------------------|
-| Commit              | <a href="https://github.com/reeleehq/nw/commit/293b99f4af68f15e1ee0e07f1371b839bf3f4c1c"><code>293b99f4af68f15e1ee0e07f1371b839bf3f4c1c</code></a> |
+| Commit              | <a href="https://github.com/reeleehq/nw/commit/3db7eebf1ef8cb0d6db8f4c9fb380b8fabe0d606"><code>3db7eebf1ef8cb0d6db8f4c9fb380b8fabe0d606</code></a> |
 | Branch              | <code>main</code>                                                                                                                                  |
-| Tags at this commit | <code>0.0.69</code>                                                                                                                                |
+| Tags at this commit | <code>0.0.70</code>                                                                                                                                |
 | Working tree        | clean                                                                                                                                              |
 | Remote              | <code>https://github.com/reeleehq/nw</code>                                                                                                        |
 
@@ -9497,9 +9527,9 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 |              |                                                                                            |
 |--------------|--------------------------------------------------------------------------------------------|
 | Repository   | <code>reeleehq/nw</code>                                                                   |
-| Run          | <a href="https://github.com/reeleehq/nw/actions/runs/38427776399">38427776399</a>          |
+| Run          | <a href="https://github.com/reeleehq/nw/actions/runs/38501165977">38501165977</a>          |
 | Ref          | <code>refs/heads/main</code>                                                               |
-| Event commit | <code>0fb927a6773e8b2a06886c3ec1a60cc8e9b2cd88</code> (in the history of the built commit) |
+| Event commit | <code>badb3a9f58139d92e8a2bbc50d4cf88232d58e1d</code> (in the history of the built commit) |
 
 ## Tools
 
@@ -9524,13 +9554,13 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 
 ## Package on PyPI
 
-Latest release: <a href="https://pypi.org/project/nw/0.0.69/">0.0.69</a>, the same as the documented version.
+Latest release: <a href="https://pypi.org/project/nw/0.0.69/">0.0.69</a>, older than the documented version (0.0.70).
 
 ## Reproduce
 
 ```bash
 git clone https://github.com/reeleehq/nw && cd nw
-git checkout 293b99f4af68f15e1ee0e07f1371b839bf3f4c1c
+git checkout 3db7eebf1ef8cb0d6db8f4c9fb380b8fabe0d606
 pip install "epythet==0.2.17"
 epythet quickstart . --ignore tests/ scrap/ examples/
 ```

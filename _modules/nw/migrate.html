@@ -260,7 +260,7 @@ data-aria-dark="Switch to auto color mode">
 </span><span data-line="101"><span class="sd">    """</span>
 </span><span data-line="102">    <span class="n">db</span> <span class="o">=</span> <span class="n">project_graph_db_path</span><span class="p">(</span><span class="n">project_root</span><span class="p">)</span>
 </span><span data-line="103">    <span class="n">store</span> <span class="o">=</span> <span class="n">open_graph_store</span><span class="p">(</span>
-</span><span data-line="104">        <span class="n">db</span><span class="p">,</span> <span class="n">asset_id</span><span class="o">=</span><span class="n">project_asset_id</span><span class="p">(</span><span class="n">project_root</span><span class="p">),</span> <span class="n">scope</span><span class="o">=</span><span class="n">SCOPE_GRAPH</span>
+</span><span data-line="104">        <span class="n">db</span><span class="p">,</span> <span class="n">asset_id</span><span class="o">=</span><span class="k">lambda</span><span class="p">:</span> <span class="n">project_asset_id</span><span class="p">(</span><span class="n">project_root</span><span class="p">),</span> <span class="n">scope</span><span class="o">=</span><span class="n">SCOPE_GRAPH</span>
 </span><span data-line="105">    <span class="p">)</span>
 </span><span data-line="106">    <span class="n">_ensure_tiers</span><span class="p">(</span><span class="n">store</span><span class="p">)</span>
 </span><span data-line="107">    <span class="k">return</span> <span class="n">store</span></div>
@@ -319,7 +319,7 @@ data-aria-dark="Switch to auto color mode">
 </span><span data-line="157">    <span class="n">db</span> <span class="o">=</span> <span class="n">project_graph_db_path</span><span class="p">(</span><span class="n">project_root</span><span class="p">)</span>
 </span><span data-line="158">    <span class="k">if</span> <span class="n">selected_backend</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">)</span> <span class="o">==</span> <span class="s2">"postgres"</span><span class="p">:</span>
 </span><span data-line="159">        <span class="k">return</span> <span class="n">open_graph_store</span><span class="p">(</span>
-</span><span data-line="160">            <span class="n">db</span><span class="p">,</span> <span class="n">asset_id</span><span class="o">=</span><span class="n">project_asset_id</span><span class="p">(</span><span class="n">project_root</span><span class="p">),</span> <span class="n">scope</span><span class="o">=</span><span class="n">SCOPE_GRAPH</span>
+</span><span data-line="160">            <span class="n">db</span><span class="p">,</span> <span class="n">asset_id</span><span class="o">=</span><span class="k">lambda</span><span class="p">:</span> <span class="n">project_asset_id</span><span class="p">(</span><span class="n">project_root</span><span class="p">),</span> <span class="n">scope</span><span class="o">=</span><span class="n">SCOPE_GRAPH</span>
 </span><span data-line="161">        <span class="p">)</span>
 </span><span data-line="162">    <span class="k">if</span> <span class="ow">not</span> <span class="n">Path</span><span class="p">(</span><span class="n">db</span><span class="p">)</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
 </span><span data-line="163">        <span class="k">raise</span> <span class="ne">FileNotFoundError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"no graph database for project: </span><span class="si">{</span><span class="n">project_root</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
@@ -618,7 +618,7 @@ data-aria-dark="Switch to auto color mode">
     </div>
   </div>
 </footer>
-      <script src="../../_static/documentation_options.js?v=cac962a1"></script>
+      <script src="../../_static/documentation_options.js?v=29ed05f3"></script>
       <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
       <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>

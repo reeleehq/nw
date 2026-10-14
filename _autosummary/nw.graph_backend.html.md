@@ -73,7 +73,9 @@ annotation is yielded once either way.
     *exist* on disk are visited in SQLite mode; in Postgres mode every
     listed scope is visited (existence is a DB question, not a file
     one).
-  * **asset_id** ([`str`](https://docs.python.org/3/builtins/stdtypes.html#str)) – The project’s `project_asset_id` (Postgres tenant anchor).
+  * **asset_id** (`Union`[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str), [`Callable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable)[[], [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]]) – The project’s `project_asset_id` (Postgres tenant anchor),
+    or a zero-argument callable returning it (never called in SQLite
+    mode).
   * **env** ([`Mapping`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Mapping)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str), [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)] | [`None`](https://docs.python.org/3/builtins/constants.html#None)) – Environment mapping. Defaults to `os.environ`.
 * **Yields:**
   A single iterator that produces each scope’s open store in turn. Each
@@ -94,8 +96,10 @@ Postgres mode).
 * **Parameters:**
   * **db_path** ([`Path`](https://docs.python.org/3/library/pathlib.html#pathlib.Path) | [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)) – The per-scope SQLite path (used directly in SQLite mode; in
     Postgres mode only its filename is used to derive the scope).
-  * **asset_id** ([`str`](https://docs.python.org/3/builtins/stdtypes.html#str)) – The project’s stable `project_asset_id` — the Postgres
-    tenant anchor. Ignored in SQLite mode.
+  * **asset_id** (`Union`[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str), [`Callable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable)[[], [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]]) – The project’s stable `project_asset_id` — the Postgres
+    tenant anchor — or a zero-argument callable returning it. Ignored
+    in SQLite mode, where a callable is never called (so a hot path
+    can pass `lambda: storage.asset_id` without paying to derive it).
   * **scope** ([`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]) – The logical scope name (`"graph"` / `"storyboard"` /
     `"alignment"` / …). Defaults to deriving it from `db_path`.
   * **rate** ([`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[[`int`](https://docs.python.org/3/builtins/functions.html#int)]) – Project-wide rate for the Postgres store. Defaults to lacing’s

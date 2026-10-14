@@ -206,10 +206,10 @@ data-aria-dark="Switch to auto color mode">
 </span><span data-line="52">
 </span><span data-line="53"><span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
 </span><span data-line="54"><span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
-</span><span data-line="55"><span class="kn">from</span><span class="w"> </span><span class="nn">collections.abc</span><span class="w"> </span><span class="kn">import</span> <span class="n">Mapping</span>
+</span><span data-line="55"><span class="kn">from</span><span class="w"> </span><span class="nn">collections.abc</span><span class="w"> </span><span class="kn">import</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Mapping</span>
 </span><span data-line="56"><span class="kn">from</span><span class="w"> </span><span class="nn">contextlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">contextmanager</span>
 </span><span data-line="57"><span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
-</span><span data-line="58"><span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Iterator</span><span class="p">,</span> <span class="n">Optional</span>
+</span><span data-line="58"><span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Iterator</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Union</span>
 </span><span data-line="59">
 </span><span data-line="60"><span class="kn">from</span><span class="w"> </span><span class="nn">lacing</span><span class="w"> </span><span class="kn">import</span> <span class="n">SqliteStore</span>
 </span><span data-line="61"><span class="kn">from</span><span class="w"> </span><span class="nn">lacing.store</span><span class="w"> </span><span class="kn">import</span> <span class="n">IntervalAnnotationStore</span>
@@ -231,203 +231,215 @@ data-aria-dark="Switch to auto color mode">
 </span><span data-line="77"><span class="n">ENV_OWNER_ID</span> <span class="o">=</span> <span class="s2">"NW_GRAPH_OWNER_ID"</span>
 </span><span data-line="78">
 </span><span data-line="79"><span class="n">GraphBackend</span> <span class="o">=</span> <span class="nb">str</span>  <span class="c1"># "sqlite" | "postgres" at the boundary; str for forgiveness</span>
-</span><span data-line="80"><span class="n">_SQLITE</span> <span class="o">=</span> <span class="s2">"sqlite"</span>
-</span><span data-line="81"><span class="n">_POSTGRES</span> <span class="o">=</span> <span class="s2">"postgres"</span>
-</span><span data-line="82">
-</span><span data-line="83"><span class="c1"># The scope names. These are the logical stores a project owns; they map 1:1 to</span>
-</span><span data-line="84"><span class="c1"># the per-scope SQLite filenames in the legacy layout (see scope_name_for_db).</span>
-</span><span data-line="85"><span class="n">SCOPE_GRAPH</span> <span class="o">=</span> <span class="s2">"graph"</span>
-</span><span data-line="86"><span class="n">SCOPE_STORYBOARD</span> <span class="o">=</span> <span class="s2">"storyboard"</span>
-</span><span data-line="87"><span class="n">SCOPE_ALIGNMENT</span> <span class="o">=</span> <span class="s2">"alignment"</span>
+</span><span data-line="80">
+</span><span data-line="81"><span class="c1">#: A tenant anchor, or a zero-argument callable that produces one. Only the</span>
+</span><span data-line="82"><span class="c1">#: Postgres backend needs it, and deriving it can be costly (it may hash the</span>
+</span><span data-line="83"><span class="c1">#: project's song file), so callers on a hot path pass the callable and SQLite</span>
+</span><span data-line="84"><span class="c1">#: never calls it.</span>
+</span><span data-line="85"><span class="n">AssetIdLike</span> <span class="o">=</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Callable</span><span class="p">[[],</span> <span class="nb">str</span><span class="p">]]</span>
+</span><span data-line="86"><span class="n">_SQLITE</span> <span class="o">=</span> <span class="s2">"sqlite"</span>
+</span><span data-line="87"><span class="n">_POSTGRES</span> <span class="o">=</span> <span class="s2">"postgres"</span>
 </span><span data-line="88">
-</span><span data-line="89">
+</span><span data-line="89"><span class="c1"># The scope names. These are the logical stores a project owns; they map 1:1 to</span>
+</span><span data-line="90"><span class="c1"># the per-scope SQLite filenames in the legacy layout (see scope_name_for_db).</span>
+</span><span data-line="91"><span class="n">SCOPE_GRAPH</span> <span class="o">=</span> <span class="s2">"graph"</span>
+</span><span data-line="92"><span class="n">SCOPE_STORYBOARD</span> <span class="o">=</span> <span class="s2">"storyboard"</span>
+</span><span data-line="93"><span class="n">SCOPE_ALIGNMENT</span> <span class="o">=</span> <span class="s2">"alignment"</span>
+</span><span data-line="94">
+</span><span data-line="95">
 <div class="viewcode-block" id="selected_backend">
 <a class="viewcode-back" href="../../_autosummary/nw.graph_backend.html#nw.graph_backend.selected_backend">[docs]</a>
-</span><span data-line="90"><span class="k">def</span><span class="w"> </span><span class="nf">selected_backend</span><span class="p">(</span><span class="n">env</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">GraphBackend</span><span class="p">:</span>
-</span><span data-line="91"><span class="w">    </span><span class="sd">"""Resolve the configured graph backend from the environment.</span>
-</span><span data-line="92">
-</span><span data-line="93"><span class="sd">    Pure and side-effect-free. Any unrecognized / empty value resolves to</span>
-</span><span data-line="94"><span class="sd">    ``"sqlite"`` — the safe default that never changes a local run.</span>
-</span><span data-line="95">
-</span><span data-line="96"><span class="sd">    Args:</span>
-</span><span data-line="97"><span class="sd">        env: Environment mapping to read. Defaults to ``os.environ``.</span>
+</span><span data-line="96"><span class="k">def</span><span class="w"> </span><span class="nf">selected_backend</span><span class="p">(</span><span class="n">env</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">GraphBackend</span><span class="p">:</span>
+</span><span data-line="97"><span class="w">    </span><span class="sd">"""Resolve the configured graph backend from the environment.</span>
 </span><span data-line="98">
-</span><span data-line="99"><span class="sd">    Returns:</span>
-</span><span data-line="100"><span class="sd">        ``"sqlite"`` or ``"postgres"``.</span>
-</span><span data-line="101"><span class="sd">    """</span>
-</span><span data-line="102">    <span class="k">if</span> <span class="n">env</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-</span><span data-line="103">        <span class="n">env</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span>
-</span><span data-line="104">    <span class="n">raw</span> <span class="o">=</span> <span class="p">(</span><span class="n">env</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">ENV_BACKEND</span><span class="p">)</span> <span class="ow">or</span> <span class="s2">""</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
-</span><span data-line="105">    <span class="k">return</span> <span class="n">_POSTGRES</span> <span class="k">if</span> <span class="n">raw</span> <span class="o">==</span> <span class="n">_POSTGRES</span> <span class="k">else</span> <span class="n">_SQLITE</span></div>
+</span><span data-line="99"><span class="sd">    Pure and side-effect-free. Any unrecognized / empty value resolves to</span>
+</span><span data-line="100"><span class="sd">    ``"sqlite"`` — the safe default that never changes a local run.</span>
+</span><span data-line="101">
+</span><span data-line="102"><span class="sd">    Args:</span>
+</span><span data-line="103"><span class="sd">        env: Environment mapping to read. Defaults to ``os.environ``.</span>
+</span><span data-line="104">
+</span><span data-line="105"><span class="sd">    Returns:</span>
+</span><span data-line="106"><span class="sd">        ``"sqlite"`` or ``"postgres"``.</span>
+</span><span data-line="107"><span class="sd">    """</span>
+</span><span data-line="108">    <span class="k">if</span> <span class="n">env</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+</span><span data-line="109">        <span class="n">env</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span>
+</span><span data-line="110">    <span class="n">raw</span> <span class="o">=</span> <span class="p">(</span><span class="n">env</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">ENV_BACKEND</span><span class="p">)</span> <span class="ow">or</span> <span class="s2">""</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+</span><span data-line="111">    <span class="k">return</span> <span class="n">_POSTGRES</span> <span class="k">if</span> <span class="n">raw</span> <span class="o">==</span> <span class="n">_POSTGRES</span> <span class="k">else</span> <span class="n">_SQLITE</span></div>
 
-</span><span data-line="106">
-</span><span data-line="107">
+</span><span data-line="112">
+</span><span data-line="113">
 <div class="viewcode-block" id="scope_name_for_db">
 <a class="viewcode-back" href="../../_autosummary/nw.graph_backend.html#nw.graph_backend.scope_name_for_db">[docs]</a>
-</span><span data-line="108"><span class="k">def</span><span class="w"> </span><span class="nf">scope_name_for_db</span><span class="p">(</span><span class="n">db_path</span><span class="p">:</span> <span class="n">Path</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
-</span><span data-line="109"><span class="w">    </span><span class="sd">"""Map a legacy per-scope SQLite filename to its scope name.</span>
-</span><span data-line="110">
-</span><span data-line="111"><span class="sd">    ``project.annot.sqlite`` → ``"graph"``; ``storyboard.annot.sqlite`` →</span>
-</span><span data-line="112"><span class="sd">    ``"storyboard"``; ``alignment.annot`` → ``"alignment"``. Anything else maps</span>
-</span><span data-line="113"><span class="sd">    to the file's stem so a new store kind gets a stable scope automatically.</span>
-</span><span data-line="114"><span class="sd">    """</span>
-</span><span data-line="115">    <span class="n">name</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">db_path</span><span class="p">)</span><span class="o">.</span><span class="n">name</span>
-</span><span data-line="116">    <span class="k">if</span> <span class="n">name</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">"project.annot"</span><span class="p">):</span>
-</span><span data-line="117">        <span class="k">return</span> <span class="n">SCOPE_GRAPH</span>
-</span><span data-line="118">    <span class="k">if</span> <span class="n">name</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">"storyboard.annot"</span><span class="p">):</span>
-</span><span data-line="119">        <span class="k">return</span> <span class="n">SCOPE_STORYBOARD</span>
-</span><span data-line="120">    <span class="k">if</span> <span class="n">name</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">"alignment"</span><span class="p">):</span>
-</span><span data-line="121">        <span class="k">return</span> <span class="n">SCOPE_ALIGNMENT</span>
-</span><span data-line="122">    <span class="k">return</span> <span class="n">Path</span><span class="p">(</span><span class="n">db_path</span><span class="p">)</span><span class="o">.</span><span class="n">stem</span></div>
+</span><span data-line="114"><span class="k">def</span><span class="w"> </span><span class="nf">scope_name_for_db</span><span class="p">(</span><span class="n">db_path</span><span class="p">:</span> <span class="n">Path</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+</span><span data-line="115"><span class="w">    </span><span class="sd">"""Map a legacy per-scope SQLite filename to its scope name.</span>
+</span><span data-line="116">
+</span><span data-line="117"><span class="sd">    ``project.annot.sqlite`` → ``"graph"``; ``storyboard.annot.sqlite`` →</span>
+</span><span data-line="118"><span class="sd">    ``"storyboard"``; ``alignment.annot`` → ``"alignment"``. Anything else maps</span>
+</span><span data-line="119"><span class="sd">    to the file's stem so a new store kind gets a stable scope automatically.</span>
+</span><span data-line="120"><span class="sd">    """</span>
+</span><span data-line="121">    <span class="n">name</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">db_path</span><span class="p">)</span><span class="o">.</span><span class="n">name</span>
+</span><span data-line="122">    <span class="k">if</span> <span class="n">name</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">"project.annot"</span><span class="p">):</span>
+</span><span data-line="123">        <span class="k">return</span> <span class="n">SCOPE_GRAPH</span>
+</span><span data-line="124">    <span class="k">if</span> <span class="n">name</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">"storyboard.annot"</span><span class="p">):</span>
+</span><span data-line="125">        <span class="k">return</span> <span class="n">SCOPE_STORYBOARD</span>
+</span><span data-line="126">    <span class="k">if</span> <span class="n">name</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">"alignment"</span><span class="p">):</span>
+</span><span data-line="127">        <span class="k">return</span> <span class="n">SCOPE_ALIGNMENT</span>
+</span><span data-line="128">    <span class="k">return</span> <span class="n">Path</span><span class="p">(</span><span class="n">db_path</span><span class="p">)</span><span class="o">.</span><span class="n">stem</span></div>
 
-</span><span data-line="123">
-</span><span data-line="124">
-</span><span data-line="125"><span class="k">def</span><span class="w"> </span><span class="nf">_postgres_project_id</span><span class="p">(</span><span class="n">asset_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">scope</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
-</span><span data-line="126"><span class="w">    </span><span class="sd">"""The Postgres ``project_id`` for one (project, scope): keeps scopes apart</span>
-</span><span data-line="127"><span class="sd">    in the shared tables yet groups them under one project asset."""</span>
-</span><span data-line="128">    <span class="k">return</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">asset_id</span><span class="si">}</span><span class="s2">:</span><span class="si">{</span><span class="n">scope</span><span class="si">}</span><span class="s2">"</span>
 </span><span data-line="129">
 </span><span data-line="130">
+</span><span data-line="131"><span class="k">def</span><span class="w"> </span><span class="nf">_postgres_project_id</span><span class="p">(</span><span class="n">asset_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">scope</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+</span><span data-line="132"><span class="w">    </span><span class="sd">"""The Postgres ``project_id`` for one (project, scope): keeps scopes apart</span>
+</span><span data-line="133"><span class="sd">    in the shared tables yet groups them under one project asset."""</span>
+</span><span data-line="134">    <span class="k">return</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">asset_id</span><span class="si">}</span><span class="s2">:</span><span class="si">{</span><span class="n">scope</span><span class="si">}</span><span class="s2">"</span>
+</span><span data-line="135">
+</span><span data-line="136">
 <div class="viewcode-block" id="open_graph_store">
 <a class="viewcode-back" href="../../_autosummary/nw.graph_backend.html#nw.graph_backend.open_graph_store">[docs]</a>
-</span><span data-line="131"><span class="k">def</span><span class="w"> </span><span class="nf">open_graph_store</span><span class="p">(</span>
-</span><span data-line="132">    <span class="n">db_path</span><span class="p">:</span> <span class="n">Path</span> <span class="o">|</span> <span class="nb">str</span><span class="p">,</span>
-</span><span data-line="133">    <span class="o">*</span><span class="p">,</span>
-</span><span data-line="134">    <span class="n">asset_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
-</span><span data-line="135">    <span class="n">scope</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-</span><span data-line="136">    <span class="n">rate</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-</span><span data-line="137">    <span class="n">env</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-</span><span data-line="138"><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">IntervalAnnotationStore</span><span class="p">:</span>
-</span><span data-line="139"><span class="w">    </span><span class="sd">"""Open the annotation store for one scope, backend chosen by env.</span>
-</span><span data-line="140">
-</span><span data-line="141"><span class="sd">    The single place that decides SQLite-vs-Postgres for a graph store. Callers</span>
-</span><span data-line="142"><span class="sd">    pass the legacy SQLite path (still the source of truth for *where* the file</span>
-</span><span data-line="143"><span class="sd">    lives in SQLite mode) plus the project's ``asset_id`` (the tenant anchor in</span>
-</span><span data-line="144"><span class="sd">    Postgres mode).</span>
-</span><span data-line="145">
-</span><span data-line="146"><span class="sd">    Args:</span>
-</span><span data-line="147"><span class="sd">        db_path: The per-scope SQLite path (used directly in SQLite mode; in</span>
-</span><span data-line="148"><span class="sd">            Postgres mode only its filename is used to derive the scope).</span>
-</span><span data-line="149"><span class="sd">        asset_id: The project's stable ``project_asset_id`` — the Postgres</span>
-</span><span data-line="150"><span class="sd">            tenant anchor. Ignored in SQLite mode.</span>
-</span><span data-line="151"><span class="sd">        scope: The logical scope name (``"graph"`` / ``"storyboard"`` /</span>
-</span><span data-line="152"><span class="sd">            ``"alignment"`` / …). Defaults to deriving it from ``db_path``.</span>
-</span><span data-line="153"><span class="sd">        rate: Project-wide rate for the Postgres store. Defaults to lacing's</span>
-</span><span data-line="154"><span class="sd">            ``DEFAULT_RATE``. Ignored in SQLite mode.</span>
-</span><span data-line="155"><span class="sd">        env: Environment mapping. Defaults to ``os.environ``.</span>
-</span><span data-line="156">
-</span><span data-line="157"><span class="sd">    Returns:</span>
-</span><span data-line="158"><span class="sd">        A live :class:`~lacing.store.IntervalAnnotationStore` — ``SqliteStore``</span>
-</span><span data-line="159"><span class="sd">        (default) or a tenant-scoped ``PostgresStore``. Caller closes it (or</span>
-</span><span data-line="160"><span class="sd">        uses it as a context manager).</span>
-</span><span data-line="161"><span class="sd">    """</span>
-</span><span data-line="162">    <span class="k">if</span> <span class="n">env</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-</span><span data-line="163">        <span class="n">env</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span>
-</span><span data-line="164">    <span class="n">db_path</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">db_path</span><span class="p">)</span>
-</span><span data-line="165">    <span class="k">if</span> <span class="n">scope</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-</span><span data-line="166">        <span class="n">scope</span> <span class="o">=</span> <span class="n">scope_name_for_db</span><span class="p">(</span><span class="n">db_path</span><span class="p">)</span>
-</span><span data-line="167">
-</span><span data-line="168">    <span class="k">if</span> <span class="n">selected_backend</span><span class="p">(</span><span class="n">env</span><span class="p">)</span> <span class="o">==</span> <span class="n">_POSTGRES</span><span class="p">:</span>
-</span><span data-line="169">        <span class="n">store</span> <span class="o">=</span> <span class="n">_open_postgres</span><span class="p">(</span><span class="n">asset_id</span><span class="o">=</span><span class="n">asset_id</span><span class="p">,</span> <span class="n">scope</span><span class="o">=</span><span class="n">scope</span><span class="p">,</span> <span class="n">rate</span><span class="o">=</span><span class="n">rate</span><span class="p">,</span> <span class="n">env</span><span class="o">=</span><span class="n">env</span><span class="p">)</span>
-</span><span data-line="170">        <span class="k">if</span> <span class="n">store</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-</span><span data-line="171">            <span class="k">return</span> <span class="n">store</span>
-</span><span data-line="172">        <span class="c1"># _open_postgres logged a warning and we fall through to SQLite.</span>
-</span><span data-line="173">
-</span><span data-line="174">    <span class="n">db_path</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">parents</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-</span><span data-line="175">    <span class="c1"># migrate=True: nw owns its project stores (application-level policy),</span>
-</span><span data-line="176">    <span class="c1"># so a file written under an older lacing store schema upgrades on open</span>
-</span><span data-line="177">    <span class="c1"># via the ladder — stamp-only for v1→v2 (lacing#14), idempotent, and</span>
-</span><span data-line="178">    <span class="c1"># concurrent-open-safe (the version is re-checked under the write lock).</span>
-</span><span data-line="179">    <span class="c1"># Without this, every pre-D5 project refuses to open under lacing&gt;=0.0.31.</span>
-</span><span data-line="180">    <span class="k">return</span> <span class="n">SqliteStore</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">db_path</span><span class="p">),</span> <span class="n">migrate</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span></div>
-
+</span><span data-line="137"><span class="k">def</span><span class="w"> </span><span class="nf">open_graph_store</span><span class="p">(</span>
+</span><span data-line="138">    <span class="n">db_path</span><span class="p">:</span> <span class="n">Path</span> <span class="o">|</span> <span class="nb">str</span><span class="p">,</span>
+</span><span data-line="139">    <span class="o">*</span><span class="p">,</span>
+</span><span data-line="140">    <span class="n">asset_id</span><span class="p">:</span> <span class="n">AssetIdLike</span><span class="p">,</span>
+</span><span data-line="141">    <span class="n">scope</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span data-line="142">    <span class="n">rate</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span data-line="143">    <span class="n">env</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span data-line="144"><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">IntervalAnnotationStore</span><span class="p">:</span>
+</span><span data-line="145"><span class="w">    </span><span class="sd">"""Open the annotation store for one scope, backend chosen by env.</span>
+</span><span data-line="146">
+</span><span data-line="147"><span class="sd">    The single place that decides SQLite-vs-Postgres for a graph store. Callers</span>
+</span><span data-line="148"><span class="sd">    pass the legacy SQLite path (still the source of truth for *where* the file</span>
+</span><span data-line="149"><span class="sd">    lives in SQLite mode) plus the project's ``asset_id`` (the tenant anchor in</span>
+</span><span data-line="150"><span class="sd">    Postgres mode).</span>
+</span><span data-line="151">
+</span><span data-line="152"><span class="sd">    Args:</span>
+</span><span data-line="153"><span class="sd">        db_path: The per-scope SQLite path (used directly in SQLite mode; in</span>
+</span><span data-line="154"><span class="sd">            Postgres mode only its filename is used to derive the scope).</span>
+</span><span data-line="155"><span class="sd">        asset_id: The project's stable ``project_asset_id`` — the Postgres</span>
+</span><span data-line="156"><span class="sd">            tenant anchor — or a zero-argument callable returning it. Ignored</span>
+</span><span data-line="157"><span class="sd">            in SQLite mode, where a callable is never called (so a hot path</span>
+</span><span data-line="158"><span class="sd">            can pass ``lambda: storage.asset_id`` without paying to derive it).</span>
+</span><span data-line="159"><span class="sd">        scope: The logical scope name (``"graph"`` / ``"storyboard"`` /</span>
+</span><span data-line="160"><span class="sd">            ``"alignment"`` / …). Defaults to deriving it from ``db_path``.</span>
+</span><span data-line="161"><span class="sd">        rate: Project-wide rate for the Postgres store. Defaults to lacing's</span>
+</span><span data-line="162"><span class="sd">            ``DEFAULT_RATE``. Ignored in SQLite mode.</span>
+</span><span data-line="163"><span class="sd">        env: Environment mapping. Defaults to ``os.environ``.</span>
+</span><span data-line="164">
+</span><span data-line="165"><span class="sd">    Returns:</span>
+</span><span data-line="166"><span class="sd">        A live :class:`~lacing.store.IntervalAnnotationStore` — ``SqliteStore``</span>
+</span><span data-line="167"><span class="sd">        (default) or a tenant-scoped ``PostgresStore``. Caller closes it (or</span>
+</span><span data-line="168"><span class="sd">        uses it as a context manager).</span>
+</span><span data-line="169"><span class="sd">    """</span>
+</span><span data-line="170">    <span class="k">if</span> <span class="n">env</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+</span><span data-line="171">        <span class="n">env</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span>
+</span><span data-line="172">    <span class="n">db_path</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">db_path</span><span class="p">)</span>
+</span><span data-line="173">    <span class="k">if</span> <span class="n">scope</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+</span><span data-line="174">        <span class="n">scope</span> <span class="o">=</span> <span class="n">scope_name_for_db</span><span class="p">(</span><span class="n">db_path</span><span class="p">)</span>
+</span><span data-line="175">
+</span><span data-line="176">    <span class="k">if</span> <span class="n">selected_backend</span><span class="p">(</span><span class="n">env</span><span class="p">)</span> <span class="o">==</span> <span class="n">_POSTGRES</span><span class="p">:</span>
+</span><span data-line="177">        <span class="n">store</span> <span class="o">=</span> <span class="n">_open_postgres</span><span class="p">(</span><span class="n">asset_id</span><span class="o">=</span><span class="n">asset_id</span><span class="p">,</span> <span class="n">scope</span><span class="o">=</span><span class="n">scope</span><span class="p">,</span> <span class="n">rate</span><span class="o">=</span><span class="n">rate</span><span class="p">,</span> <span class="n">env</span><span class="o">=</span><span class="n">env</span><span class="p">)</span>
+</span><span data-line="178">        <span class="k">if</span> <span class="n">store</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+</span><span data-line="179">            <span class="k">return</span> <span class="n">store</span>
+</span><span data-line="180">        <span class="c1"># _open_postgres logged a warning and we fall through to SQLite.</span>
 </span><span data-line="181">
-</span><span data-line="182">
-</span><span data-line="183"><span class="k">def</span><span class="w"> </span><span class="nf">_open_postgres</span><span class="p">(</span>
-</span><span data-line="184">    <span class="o">*</span><span class="p">,</span>
-</span><span data-line="185">    <span class="n">asset_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
-</span><span data-line="186">    <span class="n">scope</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
-</span><span data-line="187">    <span class="n">rate</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span>
-</span><span data-line="188">    <span class="n">env</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">],</span>
-</span><span data-line="189"><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="n">IntervalAnnotationStore</span><span class="p">]:</span>
-</span><span data-line="190"><span class="w">    </span><span class="sd">"""Build a tenant-scoped ``PostgresStore`` from env, or None to fall back."""</span>
-</span><span data-line="191">    <span class="n">db_url</span> <span class="o">=</span> <span class="p">(</span><span class="n">env</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">ENV_DB_URL</span><span class="p">)</span> <span class="ow">or</span> <span class="s2">""</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span> <span class="ow">or</span> <span class="kc">None</span>
-</span><span data-line="192">    <span class="k">if</span> <span class="n">db_url</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-</span><span data-line="193">        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
-</span><span data-line="194">            <span class="s2">"</span><span class="si">%s</span><span class="s2">=postgres but </span><span class="si">%s</span><span class="s2"> is unset; falling back to the per-project "</span>
-</span><span data-line="195">            <span class="s2">"SQLite store. Set the Postgres conninfo to use the shared DB."</span><span class="p">,</span>
-</span><span data-line="196">            <span class="n">ENV_BACKEND</span><span class="p">,</span>
-</span><span data-line="197">            <span class="n">ENV_DB_URL</span><span class="p">,</span>
-</span><span data-line="198">        <span class="p">)</span>
-</span><span data-line="199">        <span class="k">return</span> <span class="kc">None</span>
-</span><span data-line="200">
-</span><span data-line="201">    <span class="kn">from</span><span class="w"> </span><span class="nn">lacing</span><span class="w"> </span><span class="kn">import</span> <span class="n">DEFAULT_RATE</span>
-</span><span data-line="202">    <span class="kn">from</span><span class="w"> </span><span class="nn">lacing.store</span><span class="w"> </span><span class="kn">import</span> <span class="n">DEFAULT_OWNER_ID</span><span class="p">,</span> <span class="n">PostgresStore</span>
-</span><span data-line="203">
-</span><span data-line="204">    <span class="n">owner_id</span> <span class="o">=</span> <span class="p">(</span><span class="n">env</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">ENV_OWNER_ID</span><span class="p">)</span> <span class="ow">or</span> <span class="s2">""</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span> <span class="ow">or</span> <span class="n">DEFAULT_OWNER_ID</span>
-</span><span data-line="205">    <span class="k">return</span> <span class="n">PostgresStore</span><span class="p">(</span>
-</span><span data-line="206">        <span class="n">db_url</span><span class="p">,</span>
-</span><span data-line="207">        <span class="n">rate</span><span class="o">=</span><span class="n">rate</span> <span class="k">if</span> <span class="n">rate</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">DEFAULT_RATE</span><span class="p">,</span>
-</span><span data-line="208">        <span class="n">owner_id</span><span class="o">=</span><span class="n">owner_id</span><span class="p">,</span>
-</span><span data-line="209">        <span class="n">project_id</span><span class="o">=</span><span class="n">_postgres_project_id</span><span class="p">(</span><span class="n">asset_id</span><span class="p">,</span> <span class="n">scope</span><span class="p">),</span>
-</span><span data-line="210">    <span class="p">)</span>
+</span><span data-line="182">    <span class="n">db_path</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">parents</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</span><span data-line="183">    <span class="c1"># migrate=True: nw owns its project stores (application-level policy),</span>
+</span><span data-line="184">    <span class="c1"># so a file written under an older lacing store schema upgrades on open</span>
+</span><span data-line="185">    <span class="c1"># via the ladder — stamp-only for v1→v2 (lacing#14), idempotent, and</span>
+</span><span data-line="186">    <span class="c1"># concurrent-open-safe (the version is re-checked under the write lock).</span>
+</span><span data-line="187">    <span class="c1"># Without this, every pre-D5 project refuses to open under lacing&gt;=0.0.31.</span>
+</span><span data-line="188">    <span class="k">return</span> <span class="n">SqliteStore</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">db_path</span><span class="p">),</span> <span class="n">migrate</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span></div>
+
+</span><span data-line="189">
+</span><span data-line="190">
+</span><span data-line="191"><span class="k">def</span><span class="w"> </span><span class="nf">_open_postgres</span><span class="p">(</span>
+</span><span data-line="192">    <span class="o">*</span><span class="p">,</span>
+</span><span data-line="193">    <span class="n">asset_id</span><span class="p">:</span> <span class="n">AssetIdLike</span><span class="p">,</span>
+</span><span data-line="194">    <span class="n">scope</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+</span><span data-line="195">    <span class="n">rate</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span>
+</span><span data-line="196">    <span class="n">env</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">],</span>
+</span><span data-line="197"><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="n">IntervalAnnotationStore</span><span class="p">]:</span>
+</span><span data-line="198"><span class="w">    </span><span class="sd">"""Build a tenant-scoped ``PostgresStore`` from env, or None to fall back."""</span>
+</span><span data-line="199">    <span class="n">db_url</span> <span class="o">=</span> <span class="p">(</span><span class="n">env</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">ENV_DB_URL</span><span class="p">)</span> <span class="ow">or</span> <span class="s2">""</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span> <span class="ow">or</span> <span class="kc">None</span>
+</span><span data-line="200">    <span class="k">if</span> <span class="n">db_url</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+</span><span data-line="201">        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+</span><span data-line="202">            <span class="s2">"</span><span class="si">%s</span><span class="s2">=postgres but </span><span class="si">%s</span><span class="s2"> is unset; falling back to the per-project "</span>
+</span><span data-line="203">            <span class="s2">"SQLite store. Set the Postgres conninfo to use the shared DB."</span><span class="p">,</span>
+</span><span data-line="204">            <span class="n">ENV_BACKEND</span><span class="p">,</span>
+</span><span data-line="205">            <span class="n">ENV_DB_URL</span><span class="p">,</span>
+</span><span data-line="206">        <span class="p">)</span>
+</span><span data-line="207">        <span class="k">return</span> <span class="kc">None</span>
+</span><span data-line="208">
+</span><span data-line="209">    <span class="kn">from</span><span class="w"> </span><span class="nn">lacing</span><span class="w"> </span><span class="kn">import</span> <span class="n">DEFAULT_RATE</span>
+</span><span data-line="210">    <span class="kn">from</span><span class="w"> </span><span class="nn">lacing.store</span><span class="w"> </span><span class="kn">import</span> <span class="n">DEFAULT_OWNER_ID</span><span class="p">,</span> <span class="n">PostgresStore</span>
 </span><span data-line="211">
-</span><span data-line="212">
+</span><span data-line="212">    <span class="n">owner_id</span> <span class="o">=</span> <span class="p">(</span><span class="n">env</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">ENV_OWNER_ID</span><span class="p">)</span> <span class="ow">or</span> <span class="s2">""</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span> <span class="ow">or</span> <span class="n">DEFAULT_OWNER_ID</span>
+</span><span data-line="213">    <span class="k">return</span> <span class="n">PostgresStore</span><span class="p">(</span>
+</span><span data-line="214">        <span class="n">db_url</span><span class="p">,</span>
+</span><span data-line="215">        <span class="n">rate</span><span class="o">=</span><span class="n">rate</span> <span class="k">if</span> <span class="n">rate</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">DEFAULT_RATE</span><span class="p">,</span>
+</span><span data-line="216">        <span class="n">owner_id</span><span class="o">=</span><span class="n">owner_id</span><span class="p">,</span>
+</span><span data-line="217">        <span class="n">project_id</span><span class="o">=</span><span class="n">_postgres_project_id</span><span class="p">(</span>
+</span><span data-line="218">            <span class="n">asset_id</span><span class="p">()</span> <span class="k">if</span> <span class="nb">callable</span><span class="p">(</span><span class="n">asset_id</span><span class="p">)</span> <span class="k">else</span> <span class="n">asset_id</span><span class="p">,</span> <span class="n">scope</span>
+</span><span data-line="219">        <span class="p">),</span>
+</span><span data-line="220">    <span class="p">)</span>
+</span><span data-line="221">
+</span><span data-line="222">
 <div class="viewcode-block" id="iter_scope_stores">
 <a class="viewcode-back" href="../../_autosummary/nw.graph_backend.html#nw.graph_backend.iter_scope_stores">[docs]</a>
-</span><span data-line="213"><span class="nd">@contextmanager</span>
-</span><span data-line="214"><span class="k">def</span><span class="w"> </span><span class="nf">iter_scope_stores</span><span class="p">(</span>
-</span><span data-line="215">    <span class="n">scope_paths</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Path</span><span class="p">],</span>
-</span><span data-line="216">    <span class="o">*</span><span class="p">,</span>
-</span><span data-line="217">    <span class="n">asset_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
-</span><span data-line="218">    <span class="n">env</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-</span><span data-line="219"><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Iterator</span><span class="p">[</span><span class="n">Iterator</span><span class="p">[</span><span class="n">IntervalAnnotationStore</span><span class="p">]]:</span>
-</span><span data-line="220"><span class="w">    </span><span class="sd">"""Yield an iterator of open stores, one per scope, backend chosen by env.</span>
-</span><span data-line="221">
-</span><span data-line="222"><span class="sd">    The provenance walk in :func:`nw.graph.iter_all_annotations` needs *every*</span>
-</span><span data-line="223"><span class="sd">    store under a project. In SQLite mode that's "every existing per-scope</span>
-</span><span data-line="224"><span class="sd">    file"; in Postgres mode it's "every scope's tenant" — and this generator</span>
-</span><span data-line="225"><span class="sd">    enumerates exactly the same scope set under both backends, so each</span>
-</span><span data-line="226"><span class="sd">    annotation is yielded once either way.</span>
-</span><span data-line="227">
-</span><span data-line="228"><span class="sd">    Args:</span>
-</span><span data-line="229"><span class="sd">        scope_paths: ``{scope_name: legacy_sqlite_path}`` — only paths that</span>
-</span><span data-line="230"><span class="sd">            *exist* on disk are visited in SQLite mode; in Postgres mode every</span>
-</span><span data-line="231"><span class="sd">            listed scope is visited (existence is a DB question, not a file</span>
-</span><span data-line="232"><span class="sd">            one).</span>
-</span><span data-line="233"><span class="sd">        asset_id: The project's ``project_asset_id`` (Postgres tenant anchor).</span>
-</span><span data-line="234"><span class="sd">        env: Environment mapping. Defaults to ``os.environ``.</span>
-</span><span data-line="235">
-</span><span data-line="236"><span class="sd">    Yields:</span>
-</span><span data-line="237"><span class="sd">        A single iterator that produces each scope's open store in turn. Each</span>
-</span><span data-line="238"><span class="sd">        store is closed before the next is opened, so callers must consume</span>
-</span><span data-line="239"><span class="sd">        annotations eagerly per store (which the walk does).</span>
-</span><span data-line="240"><span class="sd">    """</span>
-</span><span data-line="241">    <span class="k">if</span> <span class="n">env</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-</span><span data-line="242">        <span class="n">env</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span>
-</span><span data-line="243">    <span class="n">backend</span> <span class="o">=</span> <span class="n">selected_backend</span><span class="p">(</span><span class="n">env</span><span class="p">)</span>
-</span><span data-line="244">
-</span><span data-line="245">    <span class="k">def</span><span class="w"> </span><span class="nf">_gen</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">Iterator</span><span class="p">[</span><span class="n">IntervalAnnotationStore</span><span class="p">]:</span>
-</span><span data-line="246">        <span class="k">for</span> <span class="n">scope</span><span class="p">,</span> <span class="n">db_path</span> <span class="ow">in</span> <span class="n">scope_paths</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-</span><span data-line="247">            <span class="k">if</span> <span class="n">backend</span> <span class="o">==</span> <span class="n">_SQLITE</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">Path</span><span class="p">(</span><span class="n">db_path</span><span class="p">)</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
-</span><span data-line="248">                <span class="k">continue</span>
-</span><span data-line="249">            <span class="n">store</span> <span class="o">=</span> <span class="n">open_graph_store</span><span class="p">(</span><span class="n">db_path</span><span class="p">,</span> <span class="n">asset_id</span><span class="o">=</span><span class="n">asset_id</span><span class="p">,</span> <span class="n">scope</span><span class="o">=</span><span class="n">scope</span><span class="p">,</span> <span class="n">env</span><span class="o">=</span><span class="n">env</span><span class="p">)</span>
-</span><span data-line="250">            <span class="k">try</span><span class="p">:</span>
-</span><span data-line="251">                <span class="k">yield</span> <span class="n">store</span>
-</span><span data-line="252">            <span class="k">finally</span><span class="p">:</span>
-</span><span data-line="253">                <span class="n">_close_if_possible</span><span class="p">(</span><span class="n">store</span><span class="p">)</span>
-</span><span data-line="254">
-</span><span data-line="255">    <span class="k">yield</span> <span class="n">_gen</span><span class="p">()</span></div>
-
+</span><span data-line="223"><span class="nd">@contextmanager</span>
+</span><span data-line="224"><span class="k">def</span><span class="w"> </span><span class="nf">iter_scope_stores</span><span class="p">(</span>
+</span><span data-line="225">    <span class="n">scope_paths</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Path</span><span class="p">],</span>
+</span><span data-line="226">    <span class="o">*</span><span class="p">,</span>
+</span><span data-line="227">    <span class="n">asset_id</span><span class="p">:</span> <span class="n">AssetIdLike</span><span class="p">,</span>
+</span><span data-line="228">    <span class="n">env</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span data-line="229"><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Iterator</span><span class="p">[</span><span class="n">Iterator</span><span class="p">[</span><span class="n">IntervalAnnotationStore</span><span class="p">]]:</span>
+</span><span data-line="230"><span class="w">    </span><span class="sd">"""Yield an iterator of open stores, one per scope, backend chosen by env.</span>
+</span><span data-line="231">
+</span><span data-line="232"><span class="sd">    The provenance walk in :func:`nw.graph.iter_all_annotations` needs *every*</span>
+</span><span data-line="233"><span class="sd">    store under a project. In SQLite mode that's "every existing per-scope</span>
+</span><span data-line="234"><span class="sd">    file"; in Postgres mode it's "every scope's tenant" — and this generator</span>
+</span><span data-line="235"><span class="sd">    enumerates exactly the same scope set under both backends, so each</span>
+</span><span data-line="236"><span class="sd">    annotation is yielded once either way.</span>
+</span><span data-line="237">
+</span><span data-line="238"><span class="sd">    Args:</span>
+</span><span data-line="239"><span class="sd">        scope_paths: ``{scope_name: legacy_sqlite_path}`` — only paths that</span>
+</span><span data-line="240"><span class="sd">            *exist* on disk are visited in SQLite mode; in Postgres mode every</span>
+</span><span data-line="241"><span class="sd">            listed scope is visited (existence is a DB question, not a file</span>
+</span><span data-line="242"><span class="sd">            one).</span>
+</span><span data-line="243"><span class="sd">        asset_id: The project's ``project_asset_id`` (Postgres tenant anchor),</span>
+</span><span data-line="244"><span class="sd">            or a zero-argument callable returning it (never called in SQLite</span>
+</span><span data-line="245"><span class="sd">            mode).</span>
+</span><span data-line="246"><span class="sd">        env: Environment mapping. Defaults to ``os.environ``.</span>
+</span><span data-line="247">
+</span><span data-line="248"><span class="sd">    Yields:</span>
+</span><span data-line="249"><span class="sd">        A single iterator that produces each scope's open store in turn. Each</span>
+</span><span data-line="250"><span class="sd">        store is closed before the next is opened, so callers must consume</span>
+</span><span data-line="251"><span class="sd">        annotations eagerly per store (which the walk does).</span>
+</span><span data-line="252"><span class="sd">    """</span>
+</span><span data-line="253">    <span class="k">if</span> <span class="n">env</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+</span><span data-line="254">        <span class="n">env</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span>
+</span><span data-line="255">    <span class="n">backend</span> <span class="o">=</span> <span class="n">selected_backend</span><span class="p">(</span><span class="n">env</span><span class="p">)</span>
 </span><span data-line="256">
-</span><span data-line="257">
-</span><span data-line="258"><span class="k">def</span><span class="w"> </span><span class="nf">_close_if_possible</span><span class="p">(</span><span class="n">store</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-</span><span data-line="259">    <span class="n">close</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">store</span><span class="p">,</span> <span class="s2">"close"</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
-</span><span data-line="260">    <span class="k">if</span> <span class="nb">callable</span><span class="p">(</span><span class="n">close</span><span class="p">):</span>
-</span><span data-line="261">        <span class="k">try</span><span class="p">:</span>
-</span><span data-line="262">            <span class="n">close</span><span class="p">()</span>
-</span><span data-line="263">        <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
-</span><span data-line="264">            <span class="k">pass</span>
+</span><span data-line="257">    <span class="k">def</span><span class="w"> </span><span class="nf">_gen</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">Iterator</span><span class="p">[</span><span class="n">IntervalAnnotationStore</span><span class="p">]:</span>
+</span><span data-line="258">        <span class="k">for</span> <span class="n">scope</span><span class="p">,</span> <span class="n">db_path</span> <span class="ow">in</span> <span class="n">scope_paths</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+</span><span data-line="259">            <span class="k">if</span> <span class="n">backend</span> <span class="o">==</span> <span class="n">_SQLITE</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">Path</span><span class="p">(</span><span class="n">db_path</span><span class="p">)</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+</span><span data-line="260">                <span class="k">continue</span>
+</span><span data-line="261">            <span class="n">store</span> <span class="o">=</span> <span class="n">open_graph_store</span><span class="p">(</span><span class="n">db_path</span><span class="p">,</span> <span class="n">asset_id</span><span class="o">=</span><span class="n">asset_id</span><span class="p">,</span> <span class="n">scope</span><span class="o">=</span><span class="n">scope</span><span class="p">,</span> <span class="n">env</span><span class="o">=</span><span class="n">env</span><span class="p">)</span>
+</span><span data-line="262">            <span class="k">try</span><span class="p">:</span>
+</span><span data-line="263">                <span class="k">yield</span> <span class="n">store</span>
+</span><span data-line="264">            <span class="k">finally</span><span class="p">:</span>
+</span><span data-line="265">                <span class="n">_close_if_possible</span><span class="p">(</span><span class="n">store</span><span class="p">)</span>
+</span><span data-line="266">
+</span><span data-line="267">    <span class="k">yield</span> <span class="n">_gen</span><span class="p">()</span></div>
+
+</span><span data-line="268">
+</span><span data-line="269">
+</span><span data-line="270"><span class="k">def</span><span class="w"> </span><span class="nf">_close_if_possible</span><span class="p">(</span><span class="n">store</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+</span><span data-line="271">    <span class="n">close</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">store</span><span class="p">,</span> <span class="s2">"close"</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+</span><span data-line="272">    <span class="k">if</span> <span class="nb">callable</span><span class="p">(</span><span class="n">close</span><span class="p">):</span>
+</span><span data-line="273">        <span class="k">try</span><span class="p">:</span>
+</span><span data-line="274">            <span class="n">close</span><span class="p">()</span>
+</span><span data-line="275">        <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+</span><span data-line="276">            <span class="k">pass</span>
 </span></pre></div>
         </article><button class="back-to-top" type="button">
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
@@ -455,7 +467,7 @@ data-aria-dark="Switch to auto color mode">
     </div>
   </div>
 </footer>
-      <script src="../../_static/documentation_options.js?v=cac962a1"></script>
+      <script src="../../_static/documentation_options.js?v=29ed05f3"></script>
       <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
       <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
