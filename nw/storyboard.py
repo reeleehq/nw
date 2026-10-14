@@ -61,6 +61,7 @@ from lacing import (
 
 from .graph import remove_annotations_with_traces
 from .graph_backend import SCOPE_STORYBOARD, open_graph_store, selected_backend
+from .migrate import project_tenant_id
 from .project import Project
 from .transforms import OnFailure
 
@@ -107,7 +108,12 @@ def open_storyboard(project: Project) -> Storyboard:
     # panels.
     if selected_backend() == "sqlite" and not db.exists():
         return Storyboard(asset_id=asset_id)
-    store = open_graph_store(db, asset_id=asset_id, scope=SCOPE_STORYBOARD)
+    store = open_graph_store(
+        db,
+        asset_id=asset_id,
+        tenant=lambda: project_tenant_id(project.root),
+        scope=SCOPE_STORYBOARD,
+    )
     try:
         return load_storyboard(store, asset_id=asset_id)
     finally:
@@ -130,7 +136,12 @@ def save_storyboard(
     """
     db = storyboard_db_path(project)
     asset_id = project_asset_id(project)
-    store = open_graph_store(db, asset_id=asset_id, scope=SCOPE_STORYBOARD)
+    store = open_graph_store(
+        db,
+        asset_id=asset_id,
+        tenant=lambda: project_tenant_id(project.root),
+        scope=SCOPE_STORYBOARD,
+    )
     try:
         # The store enforces a foreign key on tier; register it first so the
         # save is not rejected. Idempotent — re-registering is a no-op in lacing.

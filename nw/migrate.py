@@ -101,7 +101,10 @@ def open_project_graph(project_root: Path) -> IntervalAnnotationStore:
     """
     db = project_graph_db_path(project_root)
     store = open_graph_store(
-        db, asset_id=lambda: project_asset_id(project_root), scope=SCOPE_GRAPH
+        db,
+        asset_id=lambda: project_asset_id(project_root),
+        tenant=lambda: project_tenant_id(project_root),
+        scope=SCOPE_GRAPH,
     )
     _ensure_tiers(store)
     return store
@@ -157,7 +160,10 @@ def open_project_graph_readonly(project_root: Path) -> IntervalAnnotationStore:
     db = project_graph_db_path(project_root)
     if selected_backend(os.environ) == "postgres":
         return open_graph_store(
-            db, asset_id=lambda: project_asset_id(project_root), scope=SCOPE_GRAPH
+            db,
+            asset_id=lambda: project_asset_id(project_root),
+            tenant=lambda: project_tenant_id(project_root),
+            scope=SCOPE_GRAPH,
         )
     if not Path(db).exists():
         raise FileNotFoundError(f"no graph database for project: {project_root}")
@@ -186,6 +192,20 @@ def project_asset_id(project_root: Path) -> str:
     project_json = Path(project_root) / "project.json"
     spec = json.loads(project_json.read_text()) if project_json.exists() else None
     return asset_id_of(project_root, spec)
+
+
+def project_tenant_id(project_root: Path) -> str:
+    """The id a shared backend keys the project's graph on.
+
+    The id minted at ``Project.init`` (``project.json``'s ``tenant_id``); for a
+    project that predates it, its historical :func:`project_asset_id`. The rule
+    is :func:`nw.storage.tenant_id_of`.
+    """
+    from .storage import tenant_id_of
+
+    project_json = Path(project_root) / "project.json"
+    spec = json.loads(project_json.read_text()) if project_json.exists() else None
+    return tenant_id_of(project_root, spec)
 
 
 # ---------------------------------------------------------------------------
@@ -370,6 +390,7 @@ def migrate_to_graph(
         "song": spec.get("song"),
         "global_style": spec.get("global_style", ""),
         "notes": spec.get("notes", ""),
+        **({"tenant_id": spec["tenant_id"]} if spec.get("tenant_id") else {}),
         # Tombstone marker so a human reading project.json knows where the
         # graph data went.
         "_graph_db": _PROJECT_GRAPH_DB_NAME,
