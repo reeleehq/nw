@@ -187,7 +187,9 @@ def adopt_tenant_id(project: Any, *, dry_run: bool = False) -> Optional[str]:
     no graph data.
 
     Returns the adopted id, the already-minted one, or ``None`` when ``project``
-    has no ``project.json``. With ``dry_run`` nothing is written.
+    has no ``project.json`` or keeps its own keying (no ``tenant_id``). Raises
+    ``FileNotFoundError`` when the song audio its tenant hashes is missing.
+    With ``dry_run`` nothing is written.
 
     >>> import tempfile, json, pathlib
     >>> root = pathlib.Path(tempfile.mkdtemp())
@@ -201,6 +203,18 @@ def adopt_tenant_id(project: Any, *, dry_run: bool = False) -> Optional[str]:
         return None
     if isinstance(doc.get(TENANT_KEY), str) and doc[TENANT_KEY]:
         return doc[TENANT_KEY]
+    if not hasattr(storage, "tenant_id"):
+        return None  # a storage that owns its own keying (e.g. MappingStorage)
+    song = doc.get("song")
+    if isinstance(song, dict) and song.get("audio_path"):
+        sp = Path(song["audio_path"])
+        if not (sp if sp.is_absolute() else Path(storage.root) / sp).exists():
+            raise FileNotFoundError(
+                f"cannot adopt a tenant id: the project's song audio "
+                f"({song['audio_path']!r}) is missing, so its historical tenant "
+                "(the song hash) cannot be computed; adopting now would pin the "
+                "wrong one. Restore the file and run again."
+            )
     adopted = storage.tenant_id
     if not dry_run:
         storage.docs[PROJECT_FILE_NAME] = {**doc, TENANT_KEY: adopted}

@@ -157,3 +157,27 @@ def test_adopt_makes_the_key_independent_of_root_and_title(tmp_path, pg):
 def test_adopt_returns_none_for_a_folder_that_is_not_a_project(tmp_path):
     (tmp_path / "empty").mkdir()
     assert nw.adopt_tenant_id(tmp_path / "empty") is None
+
+
+def test_adopt_refuses_when_the_song_audio_is_missing(tmp_path):
+    root = tmp_path / "song"
+    (root / "song").mkdir(parents=True)
+    audio = root / "song" / "a.wav"
+    audio.write_bytes(b"RIFFdata")
+    (root / "project.json").write_text(
+        json.dumps({"title": "t", "song": {"audio_path": "song/a.wav"}})
+    )
+    hashed = project_tenant_id(root)
+    audio.rename(root / "song" / "gone.wav")
+    with pytest.raises(FileNotFoundError):
+        nw.adopt_tenant_id(root)
+    assert TENANT_KEY not in json.loads((root / "project.json").read_text())
+    (root / "song" / "gone.wav").rename(audio)
+    assert nw.adopt_tenant_id(root) == hashed
+
+
+def test_adopt_skips_a_storage_that_keys_itself(tmp_path):
+    docs = {"project.json": {"title": "t"}}
+    storage = nw.MappingStorage(root=tmp_path, graph={}, docs=docs)
+    assert nw.adopt_tenant_id(storage) is None
+    assert docs == {"project.json": {"title": "t"}}
