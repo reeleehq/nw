@@ -38,6 +38,10 @@ nw.resolve_genre(
 pip install nw
 ```
 
+## Agent skill
+
+nw ships one agent skill, `nw/data/skills/nw/SKILL.md` (installed with the wheel, and discoverable by `gh skill install reeleehq/nw nw`). It names nw to a coding session that has not read this repo: the project, genre, Transform, plan and freshness model in one page.
+
 ## Genre and Template — the central abstraction
 
 A `Genre` is a **reusable definition of a production kind**. It is a frozen
