@@ -1,4 +1,4 @@
-> built 2026-10-14 02:35 UTC from ee53ea1 (main) · nw 0.0.71. Details: build_info.json
+> built 2026-10-14 04:34 UTC from 5fd728c (main) · nw 0.0.72. Details: build_info.json
 
 # index.html.md
 
@@ -43,6 +43,10 @@ nw.resolve_genre(
 ```bash
 pip install nw
 ```
+
+## Agent skill
+
+nw ships one agent skill, `nw/data/skills/nw/SKILL.md` (installed with the wheel, and discoverable by `gh skill install reeleehq/nw nw`). It names nw to a coding session that has not read this repo: the project, genre, Transform, plan and freshness model in one page.
 
 ## Genre and Template — the central abstraction
 
@@ -9550,20 +9554,18 @@ produce different URLs. The local file paths are byte-stable.
 
 # About this build
 
-This documentation was built on **2026-10-14 02:35 UTC** from commit <a href="https://github.com/reeleehq/nw/commit/ee53ea12d40502e8ba2858c5537e903eed781bd4"><code>ee53ea1</code></a> on branch <code>main</code>, for **nw 0.0.71** (from <code>pyproject.toml</code>).
+This documentation was built on **2026-10-14 04:34 UTC** from commit <a href="https://github.com/reeleehq/nw/commit/5fd728cd720ade1f2495c6fe7c48e047a9657ab5"><code>5fd728c</code></a> on branch <code>main</code>, for **nw 0.0.72** (from <code>pyproject.toml</code>).
 
-#### WARNING
-The documentation and the package may be misaligned:
-
-- The documented version (0.0.71) is ahead of the latest release on PyPI (0.0.70): these docs describe unreleased code.
+#### NOTE
+Nothing suggests a mismatch: the tree was clean at the commit above, and the documented version is the one on PyPI.
 
 ## Source
 
 |                     |                                                                                                                                                    |
 |---------------------|----------------------------------------------------------------------------------------------------------------------------------------------------|
-| Commit              | <a href="https://github.com/reeleehq/nw/commit/ee53ea12d40502e8ba2858c5537e903eed781bd4"><code>ee53ea12d40502e8ba2858c5537e903eed781bd4</code></a> |
+| Commit              | <a href="https://github.com/reeleehq/nw/commit/5fd728cd720ade1f2495c6fe7c48e047a9657ab5"><code>5fd728cd720ade1f2495c6fe7c48e047a9657ab5</code></a> |
 | Branch              | <code>main</code>                                                                                                                                  |
-| Tags at this commit | <code>0.0.71</code>                                                                                                                                |
+| Tags at this commit | <code>0.0.72</code>                                                                                                                                |
 | Working tree        | clean                                                                                                                                              |
 | Remote              | <code>https://github.com/reeleehq/nw</code>                                                                                                        |
 
@@ -9572,9 +9574,9 @@ The documentation and the package may be misaligned:
 |              |                                                                                            |
 |--------------|--------------------------------------------------------------------------------------------|
 | Repository   | <code>reeleehq/nw</code>                                                                   |
-| Run          | <a href="https://github.com/reeleehq/nw/actions/runs/38501524447">38501524447</a>          |
+| Run          | <a href="https://github.com/reeleehq/nw/actions/runs/38511856805">38511856805</a>          |
 | Ref          | <code>refs/heads/main</code>                                                               |
-| Event commit | <code>d5c484665b2f3e285ec50536fcc9bab84c653b58</code> (in the history of the built commit) |
+| Event commit | <code>ed3acb098e4e25be9b10d9f955c4e96884af2d40</code> (in the history of the built commit) |
 
 ## Tools
 
@@ -9599,13 +9601,13 @@ The documentation and the package may be misaligned:
 
 ## Package on PyPI
 
-Latest release: <a href="https://pypi.org/project/nw/0.0.70/">0.0.70</a>, older than the documented version (0.0.71).
+Latest release: <a href="https://pypi.org/project/nw/0.0.72/">0.0.72</a>, the same as the documented version.
 
 ## Reproduce
 
 ```bash
 git clone https://github.com/reeleehq/nw && cd nw
-git checkout ee53ea12d40502e8ba2858c5537e903eed781bd4
+git checkout 5fd728cd720ade1f2495c6fe7c48e047a9657ab5
 pip install "epythet==0.2.17"
 epythet quickstart . --ignore tests/ scrap/ examples/
 ```
@@ -9622,6 +9624,22 @@ The same data, for machines: <a href="build_info.json"><code>build_info.json</co
 `nw` ships artifacts for coding agents alongside its code. This page lists
 them, says where each lives in the repository, and points at the
 machine-readable copies of this documentation.
+
+## Skills
+
+Skills are folders holding a `SKILL.md` (the [Agent Skills](https://agentskills.io) format): a description that tells an agent when to use it and a body with the procedure. Install one into your agent with `gh skill` (any host: `--agent claude-code`, `copilot`, `cursor`, `codex`, `gemini`), or use the copy bundled in the wheel.
+
+### `nw`
+
+Use nw (Narrative Workflow), the orchestration substrate of the audiovisual (av) production stack: a project is a folder, a genre specializes it, and work runs prepare → plan → execute behind a cost gate, with a provenance graph that says what is stale. Use when operating on an AV project folder, a “narrative workflow”, a genre or template (music video, commentary weave, slideshow), a Transform, a falaw Plan or its cost quote, “which shots need re-rendering”, “what is stale”, “render this project”, freshness, project storage, or validating finished AV work. Python: `import nw`.
+
+```bash
+gh skill install thorwhalen/nw nw --agent claude-code
+```
+
+Source: [`nw/data/skills/nw`](https://github.com/thorwhalen/nw/tree/HEAD/nw/data/skills/nw) (bundled with the pip package).
+
+The bundled skills are also on disk after `pip install nw`, under the package’s `data/skills/` directory; link them into an agent without network access with `skill link-skills <that directory>`.
 
 ## Instruction files
 

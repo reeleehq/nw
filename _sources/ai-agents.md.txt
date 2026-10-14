@@ -7,6 +7,23 @@ them, says where each lives in the repository, and points at the
 machine-readable copies of this documentation.
 
 
+## Skills
+
+Skills are folders holding a `SKILL.md` (the [Agent Skills](https://agentskills.io) format): a description that tells an agent when to use it and a body with the procedure. Install one into your agent with `gh skill` (any host: `--agent claude-code`, `copilot`, `cursor`, `codex`, `gemini`), or use the copy bundled in the wheel.
+
+### `nw`
+
+Use nw (Narrative Workflow), the orchestration substrate of the audiovisual (av) production stack: a project is a folder, a genre specializes it, and work runs prepare → plan → execute behind a cost gate, with a provenance graph that says what is stale. Use when operating on an AV project folder, a "narrative workflow", a genre or template (music video, commentary weave, slideshow), a Transform, a falaw Plan or its cost quote, "which shots need re-rendering", "what is stale", "render this project", freshness, project storage, or validating finished AV work. Python: `import nw`.
+
+```bash
+gh skill install thorwhalen/nw nw --agent claude-code
+```
+
+Source: [`nw/data/skills/nw`](https://github.com/thorwhalen/nw/tree/HEAD/nw/data/skills/nw) (bundled with the pip package).
+
+The bundled skills are also on disk after `pip install nw`, under the package's `data/skills/` directory; link them into an agent without network access with `skill link-skills <that directory>`.
+
+
 ## Instruction files
 
 Files agents read before working in this repository.
