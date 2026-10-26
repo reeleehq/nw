@@ -320,9 +320,7 @@ def get_genre(slug: str) -> Genre:
     """
     if slug not in genres:
         known = sorted(genres.keys())
-        raise KeyError(
-            f"No genre {slug!r}; the genres are: {known}."
-        )
+        raise KeyError(f"No genre {slug!r}; the genres are: {known}.")
     return genres[slug]
 
 
