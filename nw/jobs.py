@@ -350,6 +350,12 @@ def enqueue(
             importing them — e.g. reelee's BYO vision (aix) + ElevenLabs keys,
             which otherwise fall back to owner/env in a background job because
             ``ThreadBackend`` does not copy ``ContextVars`` into the worker.
+            The hook runs **under the runtime's non-reentrant lock**
+            (``rt.lock``), so it must be quick and must not call back into
+            ``nw.jobs`` (``enqueue``, ``get_job``, ``cancel``…): that would
+            deadlock. If ``backend.launch`` then fails, the returned context
+            manager is entered and exited once, so anything it acquired in the
+            call itself is released; it is otherwise entered only by the worker.
         secrets: the caller's per-call credentials (:class:`nw.Secrets`; any
             mapping is coerced), for a render that spends a bring-your-own
             key. Held **in memory only**: never written to the job index
@@ -437,6 +443,13 @@ def enqueue(
             capture_context=capture_context,
             secrets=as_secrets(secrets),
         )
+        if existing is not None:
+            # A re-run of a terminal key: the previous run's au result would
+            # otherwise be what this call (and any poll) reads until the new
+            # worker writes RUNNING — a fresh job reporting last run's
+            # terminal status (nw#120).
+            with suppress(KeyError):
+                del rt.au_store[job_id]
         _index_set_locked(rt, job_id, record)
 
         the_backend = backend if backend is not None else rt.backend
@@ -447,6 +460,9 @@ def enqueue(
             # to the next enqueue of this key (au's store answers PENDING for
             # a missing entry) and is never reaped (nw#117).
             rt.index.pop(job_id, None)
+            # The hook's context was never entered by a worker: release
+            # whatever it acquired in the call itself (nw#120).
+            bound.release_context()
             raise
 
     return _project_job(rt, record, rt.au_store[job_id], config)
@@ -1101,10 +1117,18 @@ def _bind_worker(
     it snapshots request-scoped state now; the context manager it returns is
     entered around the render on the worker thread (``ThreadBackend`` does not
     copy ``ContextVars`` into the worker, so anything the caller owns must be
-    re-bound explicitly — see :func:`enqueue`)."""
+    re-bound explicitly — see :func:`enqueue`). The returned body carries
+    ``release_context()`` for the case that no worker ever starts."""
     captured_fal_key = _capture_fal_credentials()
     # Snapshot the caller's context NOW (request thread); enter it in the worker.
     extra_ctx = capture_context() if capture_context is not None else None
+
+    def release_context() -> None:
+        """Enter-and-exit the hook's context when no worker will (launch failed)."""
+        if extra_ctx is not None:
+            with suppress(Exception):
+                with extra_ctx:
+                    pass
 
     def should_cancel() -> bool:
         with rt.lock:
@@ -1203,6 +1227,7 @@ def _bind_worker(
         _reconcile_terminal(rt, job_id, result)
         return result
 
+    run.release_context = release_context
     return run
 
 

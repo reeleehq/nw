@@ -800,6 +800,56 @@ def test_failing_launch_leaves_no_orphan_record(project):
     assert done.status == jobs.SUCCEEDED
 
 
+def test_failing_launch_releases_the_captured_context(project):
+    """A hook that acquires something in the call itself must not leak it when
+    ``launch`` then fails (nw#120)."""
+    events = []
+
+    @contextlib.contextmanager
+    def ctx():
+        events.append("enter")
+        try:
+            yield
+        finally:
+            events.append("exit")
+
+    class Refusing:
+        def launch(self, *a, **k):
+            raise RuntimeError("cannot start thread")
+
+    with pytest.raises(RuntimeError, match="cannot start thread"):
+        jobs.enqueue(
+            project,
+            "journey.full_auto",
+            VIDEO_PARAMS,
+            backend=Refusing(),
+            capture_context=ctx,
+            dispatch={"journey.full_auto": lambda *a, **k: None},
+        )
+    assert events == ["enter", "exit"]
+
+
+def test_reenqueue_of_a_terminal_job_reads_queued_not_the_last_run(project):
+    """The returned job is the new run, not the previous run's terminal status
+    (nw#120)."""
+    dispatch = {"op": lambda *a, **k: {"journey_status": "completed"}}
+    first = jobs.enqueue(project, "op", VIDEO_PARAMS, dispatch=dispatch)
+    _poll_until(project, first.job_id, lambda j: j.status in jobs.TERMINAL_STATUSES)
+
+    class Holding:
+        """Accepts the launch and never starts a worker."""
+
+        def launch(self, *a, **k):
+            pass
+
+    again = jobs.enqueue(
+        project, "op", VIDEO_PARAMS, dispatch=dispatch, backend=Holding()
+    )
+    assert again.job_id == first.job_id
+    assert again.status == jobs.QUEUED
+    assert jobs.get_job(project, first.job_id).status == jobs.QUEUED
+
+
 # ---------------------------------------------------------------------------
 # unknown cost — a $0 must stay readable (reelee-studio survey, working rule 7)
 # ---------------------------------------------------------------------------
