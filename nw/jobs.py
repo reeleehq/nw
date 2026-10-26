@@ -438,6 +438,7 @@ def enqueue(
                 "expected_cache_hit": bool(params.get("expected_cache_hit", False)),
                 "cached": False,
                 "provider_phase": None,
+                "provider_call_id": None,
                 "provider_queue_position": None,
                 "provider_started_at": None,
                 "cancel_requested": False,
@@ -1215,6 +1216,7 @@ def _bind_worker(
             scrubbed: BaseException | None = None
             with (
                 fal_ctx,
+                _provider_events(sink),
                 extra_ctx if extra_ctx is not None else nullcontext(),
                 using_secrets(secrets),
             ):
@@ -1301,19 +1303,49 @@ def _call_dispatch(
 
 
 PROVIDER_PHASES = ("in_queue", "in_progress")
+#: Statuses in which the worker is still running, so the provider's phase is live.
+_LIVE = (RUNNING, CANCELLING)
+#: Events that end a provider call: the phase it reported no longer holds.
+_PROVIDER_CALL_ENDS = ("done", "error", "cache_hit")
 
 
-def _mirror_provider_phase(record: Mapping, fields: Mapping, updates: dict) -> None:
+def _provider_events(sink) -> AbstractContextManager[Any]:
+    """Deliver the provider's own call events (falaw's ``ProgressEvent``) to ``sink``.
+
+    Bound on the worker thread, so every fal call the job's render makes reports its
+    queue position and phase without each layer between taking an ``on_event``. A falaw
+    that predates ``falaw.events.listening`` just reports nothing.
+    """
+    try:
+        from falaw.events import listening
+    except ImportError:
+        return nullcontext()
+    return listening(sink)
+
+
+def _mirror_provider_phase(record: Mapping, kind, fields: Mapping, updates: dict) -> None:
     """Fold a ``provider_phase`` (and ``queue_position``) an event reports into ``updates``.
 
     An event that names no phase leaves the record alone: silence is not a phase.
     ``provider_started_at`` is stamped on the way INTO ``in_progress`` (not on every
-    in-progress event), and the queue position is only kept while in the queue.
+    in-progress event), and the queue position is only kept while in the queue. With
+    several calls in flight the phase is the LATEST report's.
     """
     phase = fields.get("provider_phase")
     if phase not in PROVIDER_PHASES:
+        # A call ending (a result, a failure, a cache hit) ends its phase: the job is
+        # doing local work, or waiting on its next call, not "filming".
+        call_id = fields.get("call_id")
+        if (
+            record.get("provider_phase")
+            and kind in _PROVIDER_CALL_ENDS
+            and (call_id is None or call_id == record.get("provider_call_id"))
+        ):
+            updates["provider_phase"] = None
+            updates["provider_queue_position"] = None
         return
     updates["provider_phase"] = phase
+    updates["provider_call_id"] = fields.get("call_id")
     if phase == "in_queue":
         position = fields.get("queue_position")
         updates["provider_queue_position"] = position if isinstance(position, int) else None
@@ -1377,7 +1409,7 @@ def _mirror_event_into_index(rt, job_id, ev) -> None:
         updates["cost"] = cost
         if kind == "cache_hit" or fields.get("cache_hit") or fields.get("cached"):
             updates["cached"] = True
-        _mirror_provider_phase(record, fields, updates)
+        _mirror_provider_phase(record, kind, fields, updates)
         for src in ("last_event_id", "event_id", "id"):
             if fields.get(src) is not None:
                 updates["last_event_id"] = fields[src]
@@ -1636,9 +1668,9 @@ def _project_job(rt, record, au_result, config) -> Job:
         cached=bool(record.get("cached")),
         # Only a running job has a live provider phase; a finished one reports the
         # moment it started, not a phase that ended with it.
-        provider_phase=record.get("provider_phase") if status == RUNNING else None,
+        provider_phase=record.get("provider_phase") if status in _LIVE else None,
         provider_queue_position=(
-            record.get("provider_queue_position") if status == RUNNING else None
+            record.get("provider_queue_position") if status in _LIVE else None
         ),
         provider_started_at=record.get("provider_started_at"),
         worker_silent_s=worker_silent_s,

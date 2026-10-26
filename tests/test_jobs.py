@@ -1686,3 +1686,66 @@ def test_a_job_whose_events_name_no_phase_reports_none(project):
     assert (done.provider_phase, done.provider_queue_position, done.provider_started_at) == (
         None, None, None,
     )
+
+
+def test_a_call_that_ends_ends_its_phase_and_the_workers_falaw_events_arrive_unwrapped(project):
+    """The worker binds falaw's scoped listener, so a real ``call_fal`` made inside a job
+    reports its phase with no `on_event` threaded through; ``done`` clears it."""
+    import sys
+    import types
+
+    try:
+        from falaw.events import listening  # noqa: F401
+    except ImportError:
+        pytest.skip("this falaw predates events.listening")
+
+    gate = threading.Event()
+    hold = threading.Event()
+
+    class _Queued:
+        def __init__(self, position):
+            self.position = position
+
+    class _InProgress:
+        logs = ()
+
+    def fake_subscribe(application, *, arguments, with_logs, on_queue_update):
+        on_queue_update(_Queued(1))
+        gate.set()
+        hold.wait(5)
+        on_queue_update(_InProgress())
+        return {"ok": True}
+
+    fake = types.SimpleNamespace(Queued=_Queued, InProgress=_InProgress, subscribe=fake_subscribe)
+    saved = sys.modules.get("fal_client")
+    sys.modules["fal_client"] = fake
+
+    def stub(project, params, *, job_id, on_event, should_cancel):
+        from falaw import call_fal
+
+        call_fal("fal-ai/x", {})
+        return {"ok": True}
+
+    try:
+        job = jobs.enqueue(project, "journey.full_auto", VIDEO_PARAMS, dispatch={"journey.full_auto": stub})
+        assert gate.wait(5)
+        waiting = _poll_until(project, job.job_id, lambda j: j.provider_phase == "in_queue")
+        assert (waiting.provider_phase, waiting.provider_queue_position) == ("in_queue", 1)
+        hold.set()
+        done = _poll_until(project, job.job_id, lambda j: j.status in jobs.TERMINAL_STATUSES)
+        assert done.status == jobs.SUCCEEDED
+        assert done.provider_phase is None and done.provider_started_at is not None
+    finally:
+        hold.set()
+        if saved is None:
+            sys.modules.pop("fal_client", None)
+        else:
+            sys.modules["fal_client"] = saved
+
+
+def test_a_call_ending_clears_only_its_own_phase():
+    record = {"provider_phase": "in_progress", "provider_call_id": "a"}
+    other, mine = {}, {}
+    jobs._mirror_provider_phase(record, "done", {"call_id": "b"}, other)
+    jobs._mirror_provider_phase(record, "done", {"call_id": "a"}, mine)
+    assert other == {} and mine == {"provider_phase": None, "provider_queue_position": None}
