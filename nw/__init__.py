@@ -201,6 +201,9 @@ from .genres import (
     genre_ops,
     genre_op,
     genre_ops_catalogue,
+    genre_limits_registry,
+    register_genre_limits,
+    genre_limits,
 )
 from .schema import (
     SCHEMA_VERSION,
@@ -272,6 +275,9 @@ __all__ = [
     "genre_ops",
     "genre_op",
     "genre_ops_catalogue",
+    "genre_limits_registry",
+    "register_genre_limits",
+    "genre_limits",
     "Project",
     "ProjectGraph",
     "ProjectStorage",

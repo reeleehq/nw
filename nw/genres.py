@@ -43,6 +43,8 @@ schemas + Transforms" stance is in
 from __future__ import annotations
 
 import inspect
+import math
+import numbers
 import re
 from collections.abc import Mapping
 from dataclasses import dataclass, field
@@ -1334,6 +1336,52 @@ def genre_ops(genre_slug: str) -> tuple:
     return genre_ops_registry[genre_slug] if genre_slug in genre_ops_registry else ()
 
 
+#: Registry of per-genre numeric limits, keyed by genre slug (the owning app registers).
+genre_limits_registry: Registry = Registry(name="nw.genre_limits", on_conflict="error")
+
+
+def register_genre_limits(genre_slug: str, limits: Mapping[str, float]) -> dict:
+    """Register the numeric limits a genre's operations enforce; returns them as a dict.
+
+    Called once by the genre's **owning app**, beside :func:`register_genre_ops`. A
+    frontend that validates the same bounds as the backend (a slider's range, a snap
+    distance) reads them from here instead of mirroring them by hand. Values are plain
+    numbers; names are the app's (``snake_case`` by convention, with the unit as a
+    suffix: ``edge_s``). Bounds of an operation's own parameter belong in that op's
+    ``params_schema`` (``minimum``/``maximum``); this is for limits with no parameter
+    to attach to.
+
+    >>> register_genre_limits("_limits_demo", {"edge_s": 0.25})
+    {'edge_s': 0.25}
+    >>> genre_limits("_limits_demo")
+    {'edge_s': 0.25}
+    >>> genre_limits("_nobody")
+    {}
+    >>> del genre_limits_registry["_limits_demo"]
+    """
+    _validate_slug(genre_slug, what="genre limits")
+    if not limits:
+        raise ValueError(f"genre {genre_slug!r}: no limits to register")
+    clean: dict = {}
+    for name, value in dict(limits).items():
+        if not isinstance(name, str) or not name:
+            raise ValueError(f"genre {genre_slug!r}: limit names must be non-empty strings")
+        if isinstance(value, bool) or not isinstance(value, numbers.Real):
+            raise TypeError(
+                f"genre {genre_slug!r}: limit {name!r} must be a number, got {value!r}"
+            )
+        if not math.isfinite(value):  # NaN / Infinity are not JSON
+            raise ValueError(f"genre {genre_slug!r}: limit {name!r} must be finite")
+        clean[name] = int(value) if isinstance(value, numbers.Integral) else float(value)
+    genre_limits_registry.register(genre_slug, MappingProxyType(clean))
+    return dict(clean)
+
+
+def genre_limits(genre_slug: str) -> dict:
+    """The limits registered for ``genre_slug`` (``{}`` if none); a copy."""
+    return dict(genre_limits_registry[genre_slug]) if genre_slug in genre_limits_registry else {}
+
+
 def genre_op(genre_slug: str, name: str) -> GenreOp:
     """The op ``name`` of ``genre_slug``; :class:`UnknownGenreOpError` naming the known."""
     for op in genre_ops(genre_slug):
@@ -1395,4 +1443,7 @@ __all__ = [
     "genre_ops",
     "genre_op",
     "genre_ops_catalogue",
+    "genre_limits_registry",
+    "register_genre_limits",
+    "genre_limits",
 ]

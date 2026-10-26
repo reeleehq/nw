@@ -242,3 +242,42 @@ def test_spends_is_declared_and_exported():
     assert free.to_dict()["spends"] is False and paid.to_dict()["spends"] is True
     with pytest.raises(TypeError, match="spends"):
         nw.GenreOp("status", _status, title="Show", spends="yes")
+
+
+def test_genre_limits_register_once_and_read_as_a_copy():
+    import pytest
+
+    import nw
+
+    returned = nw.register_genre_limits("_limits_t", {"edge_s": 0.25, "n": 3})
+    try:
+        assert nw.genre_limits("_limits_t") == {"edge_s": 0.25, "n": 3}
+        returned["edge_s"] = 9  # copies both ways: the registry is unchanged
+        got = nw.genre_limits("_limits_t")
+        got["edge_s"] = 9
+        assert nw.genre_limits("_limits_t")["edge_s"] == 0.25
+        with pytest.raises(Exception) as info:
+            nw.register_genre_limits("_limits_t", {"edge_s": 1.0})
+        assert "already" in str(info.value).lower() or "conflict" in type(info.value).__name__.lower()
+    finally:
+        del nw.genre_limits_registry["_limits_t"]
+    assert nw.genre_limits("_limits_t") == {}
+
+
+@pytest.mark.parametrize(
+    "limits, error",
+    [
+        ({"edge_s": "0.25"}, TypeError),
+        ({"flag": True}, TypeError),
+        ({"x": float("nan")}, ValueError),
+        ({"x": float("inf")}, ValueError),
+        ({"": 1}, ValueError),
+        ({}, ValueError),
+    ],
+)
+def test_genre_limits_must_be_finite_numbers_and_nonempty(limits, error):
+    import nw
+
+    with pytest.raises(error):
+        nw.register_genre_limits("_limits_bad", limits)
+    assert nw.genre_limits("_limits_bad") == {}  # nothing blocks a later real registration
