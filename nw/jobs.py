@@ -422,9 +422,9 @@ def enqueue(
             "error_detail": None,
             "last_event_id": None,
         }
-        _index_set_locked(rt, job_id, record)
-
-        the_backend = backend if backend is not None else rt.backend
+        # Bind BEFORE the record exists: ``_bind_worker`` runs the caller's
+        # ``capture_context`` hook, and a hook that raises must not leave a
+        # "queued" record behind that no worker will ever pick up (nw#117).
         bound = _bind_worker(
             project,
             kind,
@@ -437,6 +437,9 @@ def enqueue(
             capture_context=capture_context,
             secrets=as_secrets(secrets),
         )
+        _index_set_locked(rt, job_id, record)
+
+        the_backend = backend if backend is not None else rt.backend
         the_backend.launch(bound, (), {}, job_id, rt.au_store)
 
     return _project_job(rt, record, rt.au_store[job_id], config)
