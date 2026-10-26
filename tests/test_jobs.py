@@ -1762,18 +1762,27 @@ def test_reenqueue_over_a_cancelled_job_whose_thread_still_runs_is_deduped(proje
     worker over it, nor let the old one's result leak into a new record."""
     release = threading.Event()
     calls: list[str] = []
-    dispatch = {"op": _blocking_stub(release, calls=calls)}
+    cancel_seen: list[bool] = []
+    inner = _blocking_stub(release, calls=calls)
+
+    def stub(project, params, *, job_id, on_event, should_cancel):
+        out = inner(project, params, job_id=job_id, on_event=on_event, should_cancel=should_cancel)
+        cancel_seen.append(should_cancel())
+        return out
+
+    dispatch = {"op": stub}
     job = jobs.enqueue(project, "op", VIDEO_PARAMS, dispatch=dispatch)
     _poll_until(project, job.job_id, lambda j: j.status == jobs.RUNNING)
     jobs.cancel_job(project, job.job_id)
 
     again = jobs.enqueue(project, "op", VIDEO_PARAMS, dispatch=dispatch)
     assert again.job_id == job.job_id
-    assert len(calls) == 1  # no second worker
 
     release.set()
     final = _poll_until(project, job.job_id, lambda j: j.status == jobs.CANCELLED)
     assert final.status == jobs.CANCELLED  # the old run's result did not revive it
+    assert len(calls) == 1  # no second worker was launched over it
+    assert cancel_seen == [True]  # the old render still sees its own cancel
 
     # Once the thread has exited the key is free again.
     deadline = time.time() + 5
@@ -1806,3 +1815,22 @@ def test_failed_relaunch_of_a_terminal_key_keeps_the_previous_run(project):
     assert kept is not None
     assert kept.status == jobs.SUCCEEDED
     assert kept.artifact_ref == first.artifact_ref
+
+
+def test_unserializable_rerun_params_keep_the_previous_run_and_the_key(project):
+    """The swap fails at the index write, before launch: still rolled back."""
+    release = threading.Event()
+    release.set()
+    dispatch = {"op": _blocking_stub(release)}
+    job = jobs.enqueue(project, "op", VIDEO_PARAMS, dispatch=dispatch, idempotency_key="k")
+    _poll_until(project, job.job_id, lambda j: j.status == jobs.SUCCEEDED)
+
+    with pytest.raises(TypeError):
+        jobs.enqueue(
+            project, "op", {**VIDEO_PARAMS, "bad": object()}, dispatch=dispatch, idempotency_key="k"
+        )
+    kept = jobs.get_job(project, "k")
+    assert kept is not None and kept.status == jobs.SUCCEEDED
+
+    rerun = jobs.enqueue(project, "op", VIDEO_PARAMS, dispatch=dispatch, idempotency_key="k")
+    assert _poll_until(project, "k", lambda j: j.status == jobs.SUCCEEDED).status == jobs.SUCCEEDED
