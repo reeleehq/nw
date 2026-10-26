@@ -118,7 +118,7 @@ DECLARATION, not a hole: the host answers “this genre does not support
 that” (and may report it), never errors on it, and NEVER falls back to a
 store of its own.
 
-### *class* nw.delivery.Deliverable(path, content_type, filename, artifact_id='', project_id='', genre='', ref=None, title=None, duration_s=None, size_bytes=None, created_at=None, meta=<factory>)
+### *class* nw.delivery.Deliverable(path, content_type, filename, artifact_id='', project_id='', genre='', ref=None, title=None, duration_s=None, size_bytes=None, created_at=None, meta=dict())
 
 Bases: [`object`](https://docs.python.org/3/builtins/functions.html#object)
 
@@ -267,7 +267,7 @@ must not define it to mean anything else.
 
 alias of `Callable`[[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)], `list[ProjectSummary]`]
 
-### *class* nw.delivery.ProjectSummary(project_id, title='', genre='', created_at=None, modified_at=None, deliverable_count=None, meta=<factory>)
+### *class* nw.delivery.ProjectSummary(project_id, title='', genre='', created_at=None, modified_at=None, deliverable_count=None, meta=dict())
 
 Bases: [`object`](https://docs.python.org/3/builtins/functions.html#object)
 
@@ -338,13 +338,13 @@ Hosts SHOULD route every seam call through it. It is offered, not
 retroactively demanded: existing callers normalise where they already do,
 and converge here as they touch those sites.
 
-* **Return type:**
-  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
-
 ```pycon
 >>> caller_key("  Noel@Example.COM ")
 'noel@example.com'
 ```
+
+* **Return type:**
+  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
 
 ### nw.delivery.check_delivery_source(genre, entry)
 
@@ -368,9 +368,6 @@ Release-ordering corollary: a new key ships HERE before any genre
 registers it, or an older nw on the box refuses a newer genre’s honest
 registration.
 
-* **Return type:**
-  [`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)
-
 ```pycon
 >>> entry = {"resolve": lambda e, p, a: None}
 >>> check_delivery_source("g", entry) is entry
@@ -384,6 +381,9 @@ Traceback (most recent call last):
 ...
 ValueError: delivery source for genre 'g' has no 'resolve' — a genre that cannot resolve a claim cannot be served
 ```
+
+* **Return type:**
+  [`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)
 
 ### nw.delivery.check_title(title)
 
@@ -431,13 +431,13 @@ ValueError: a title cannot contain path separators or control characters
 
 The one spelling we print. Input is permissive; output never varies.
 
-* **Return type:**
-  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
-
 ```pycon
 >>> format_ref(1), format_ref(42)
 ('cut 1', 'cut 42')
 ```
+
+* **Return type:**
+  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
 
 ### nw.delivery.parse_ref(text)
 
@@ -446,9 +446,6 @@ The ordinal in a spoken reference, or `None` if it isn’t one.
 `None` is the signal to fall through to treating the input as a raw
 artifact id — which is why this never raises: “not an ordinal” is an
 ordinary, expected answer, not an error.
-
-* **Return type:**
-  [`int`](https://docs.python.org/3/builtins/functions.html#int) | [`None`](https://docs.python.org/3/builtins/constants.html#None)
 
 ```pycon
 >>> parse_ref("cut 4"), parse_ref("CUT4"), parse_ref(" cut - 4 ")
@@ -467,6 +464,9 @@ accepting `cut 0` would resolve to a neighbour under a naive index:
 True
 ```
 
+* **Return type:**
+  [`int`](https://docs.python.org/3/builtins/functions.html#int) | [`None`](https://docs.python.org/3/builtins/constants.html#None)
+
 ### nw.delivery.safe_message(exc)
 
 An exception’s message, reduced to what is safe to show a caller.
@@ -479,12 +479,12 @@ function). Anything else — an `OSError` proudly carrying a server path
 — is reduced to its type name: a per-genre problems entry renders in a
 tool response a non-developer reads.
 
-* **Return type:**
-  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
-
 ```pycon
 >>> safe_message(KeyError("no render named 'x'"))
 'KeyError: "no render named \'x\'"'
 >>> safe_message(OSError("[Errno 13] /somewhere/private/thing.mp3"))
 'OSError'
 ```
+
+* **Return type:**
+  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)

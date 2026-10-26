@@ -115,7 +115,7 @@ Bases: [`RuntimeError`](https://docs.python.org/3/builtins/exceptions.html#Runti
 
 The host reads its artifacts from somewhere other than the project’s blobs.
 
-### *class* nw.media_catalog.CatalogReport(rows_written=0, rows_unchanged=0, blobs_linked=0, blobs_present=0, blobs_copied=0, bytes_copied=0, cross_device=False, unregistered=<factory>)
+### *class* nw.media_catalog.CatalogReport(rows_written=0, rows_unchanged=0, blobs_linked=0, blobs_present=0, blobs_copied=0, bytes_copied=0, cross_device=False, unregistered=list())
 
 Bases: [`object`](https://docs.python.org/3/builtins/functions.html#object)
 
@@ -166,9 +166,6 @@ host this writes for is reliably newer than that date.
 
 One record, ready to serialize.
 
-* **Return type:**
-  [`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)
-
 ```pycon
 >>> row = CatalogRow.build("ab" * 32, kind="image",
 ...     generated_at="2026-09-20T00:00:00Z", width=800, height=600)
@@ -179,6 +176,9 @@ True
 >>> sorted(row) == sorted(CatalogRow.FIELDS)
 True
 ```
+
+* **Return type:**
+  [`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)
 
 ### *exception* nw.media_catalog.CorruptBlob
 
@@ -282,9 +282,6 @@ of an object store would instead report complete success and leave every id
 explicitly; it does not get it by accident. `remedy` lets a caller name its
 own way of doing that in the message (an importer’s opt-out flag, say).
 
-* **Return type:**
-  [`None`](https://docs.python.org/3/builtins/constants.html#None)
-
 ```pycon
 >>> assert_local_backend({})
 >>> assert_local_backend({"REELEE_ARTIFACT_BACKEND": "fs"})
@@ -294,6 +291,9 @@ Traceback (most recent call last):
     ...
 nw.media_catalog.CatalogBackendMismatch: ...
 ```
+
+* **Return type:**
+  [`None`](https://docs.python.org/3/builtins/constants.html#None)
 
 ### nw.media_catalog.catalog_row(artifact_id, , kind, generated_at, width=None, height=None, duration_s=None, note='')
 
@@ -309,9 +309,6 @@ SHA-256 of a file’s bytes, read in chunks — the catalog id of that file.
 The same digest lacing computes for an `asset_id` (pinned by a test), kept
 here so the writer can be reasoned about without the graph layer.
 
-* **Return type:**
-  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
-
 ```pycon
 >>> import tempfile, pathlib
 >>> with tempfile.TemporaryDirectory() as d:
@@ -319,3 +316,6 @@ here so the writer can be reasoned about without the graph layer.
 ...     hash_file(p)
 'ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad'
 ```
+
+* **Return type:**
+  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)

@@ -115,9 +115,6 @@ directly gets whatever the caller passed: an override that logs or
 formats its `secrets` should `as_secrets` first (or the caller should
 hand it a [`Secrets`](#nw.secrets.Secrets)), because a plain `dict` prints its values.
 
-* **Return type:**
-  [`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[[`Secrets`](#nw.secrets.Secrets)]
-
 ```pycon
 >>> as_secrets(None) is None
 True
@@ -127,6 +124,9 @@ True
 Secrets(<1 redacted: fal>)
 ```
 
+* **Return type:**
+  [`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[[`Secrets`](#nw.secrets.Secrets)]
+
 ### nw.secrets.redact(text, secrets)
 
 `text` with every secret value replaced by `<redacted:name>`.
@@ -135,15 +135,15 @@ For the places nw persists free text it did not author — an exception
 message, a failure reason — while holding the values that must not land
 there. Cheap, exact-substring, and a no-op with no secrets.
 
-* **Return type:**
-  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
-
 ```pycon
 >>> redact("boom: key sk-1 rejected", {"fal": "sk-1"})
 'boom: key <redacted:fal> rejected'
 >>> redact("nothing here", None)
 'nothing here'
 ```
+
+* **Return type:**
+  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
 
 ### nw.secrets.redact_exception(error, secrets)
 

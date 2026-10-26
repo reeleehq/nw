@@ -7,6 +7,7 @@
     setColorMode(localStorage._theme||"auto");
   </script><link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=d88b86f9" />
     <link rel="stylesheet" type="text/css" href="../_static/shibuya.css?v=2ceb65ce" />
+    <link rel="stylesheet" type="text/css" href="../_static/sphinx_autodoc_typehints.css?v=057ac668" />
     <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
     <link media="print" rel="stylesheet" type="text/css" href="../_static/print.css?v=20ff2c19" />
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -184,7 +185,7 @@ trail for “why did this come out this way?”.</p>
 <div class="table-wrapper autosummary longtable docutils container">
 <table class="autosummary longtable docutils align-default">
 <tbody>
-<tr class="row-odd"><td><p><a class="reference internal" href="#nw.bodies.decision.DecisionBodyV1" title="nw.bodies.decision.DecisionBodyV1"><code class="xref py py-obj docutils literal notranslate"><span class="pre">DecisionBodyV1</span></code></a>(**data)</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#nw.bodies.decision.DecisionBodyV1" title="nw.bodies.decision.DecisionBodyV1"><code class="xref py py-obj docutils literal notranslate"><span class="pre">DecisionBodyV1</span></code></a>(*, kind[, payload])</p></td>
 <td><p>Body of a decision annotation.</p></td>
 </tr>
 </tbody>
@@ -192,7 +193,7 @@ trail for “why did this come out this way?”.</p>
 </div>
 <dl class="py class">
 <dt class="sig sig-object py" id="nw.bodies.decision.DecisionBodyV1">
-<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">nw.bodies.decision.</span></span><span class="sig-name descname"><span class="pre">DecisionBodyV1</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">data</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/nw/bodies/decision.html#DecisionBodyV1"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nw.bodies.decision.DecisionBodyV1" title="Link to this definition">#</a></dt>
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">nw.bodies.decision.</span></span><span class="sig-name descname"><span class="pre">DecisionBodyV1</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">kind</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">payload</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">&lt;factory&gt;</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/nw/bodies/decision.html#DecisionBodyV1"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nw.bodies.decision.DecisionBodyV1" title="Link to this definition">#</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">BaseModel</span></code></p>
 <p>Body of a decision annotation.</p>
 <p><code class="docutils literal notranslate"><span class="pre">kind</span></code> names the operation (e.g. <code class="docutils literal notranslate"><span class="pre">&quot;render_shot&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;set_character_anchor&quot;</span></code>,
@@ -251,7 +252,7 @@ later, it can graduate into its own body URI without disturbing this one.</p>
     </div>
   </div>
 </footer>
-      <script src="../_static/documentation_options.js?v=1e158f99"></script>
+      <script src="../_static/documentation_options.js?v=d59c1f54"></script>
       <script src="../_static/doctools.js?v=fd6eb6e6"></script>
       <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script src="../_static/clipboard.min.js?v=a7894cd8"></script>

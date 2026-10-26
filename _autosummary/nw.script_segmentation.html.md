@@ -34,8 +34,8 @@ module is pure — no project I/O). See
 
 ### Classes
 
-| [`PanelProposal`](#nw.script_segmentation.PanelProposal)(\*\*data)   | One storyboard panel proposed by the segmenter.   |
-|----------------------------------------------------------------------------|---------------------------------------------------|
+| [`PanelProposal`](#nw.script_segmentation.PanelProposal)(\*, description, duration_s[, ...])   | One storyboard panel proposed by the segmenter.   |
+|------------------------------------------------------------------------------------------------------|---------------------------------------------------|
 
 ### nw.script_segmentation.LLM
 
@@ -45,7 +45,7 @@ string response. Tests pass a cassette-wrapped stub; production passes
 
 alias of `Callable`[[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)], [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]
 
-### *class* nw.script_segmentation.PanelProposal(\*\*data)
+### *class* nw.script_segmentation.PanelProposal(, description, duration_s, notes=None)
 
 Bases: `BaseModel`
 

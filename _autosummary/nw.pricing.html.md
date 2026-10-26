@@ -81,7 +81,7 @@ The stale figure is kept — as [`as_of_total_usd`](#nw.pricing.PlanQuote.as_of_
 it must never do is *present* it as current; that is what
 [`total_usd`](#nw.pricing.PlanQuote.total_usd) and [`status`](#nw.pricing.PlanQuote.status) are for.
 
-#### as_of_total_usd *: [float](https://docs.python.org/3/builtins/functions.html#float) | [None](https://docs.python.org/3/builtins/constants.html#None)*
+#### as_of_total_usd *: [Optional](https://docs.python.org/3/library/typing.html#typing.Optional)[[float](https://docs.python.org/3/builtins/functions.html#float)]*
 
 What the persisted plan said, `None` if it already said unknown.
 
@@ -98,7 +98,7 @@ because the plan did”. Read it beside [`status`](#nw.pricing.PlanQuote.status)
 with this `False` is a caller quoting different quantities, not a
 repricing event.
 
-#### *property* delta_usd *: [float](https://docs.python.org/3/builtins/functions.html#float) | [None](https://docs.python.org/3/builtins/constants.html#None)*
+#### *property* delta_usd *: [Optional](https://docs.python.org/3/library/typing.html#typing.Optional)[[float](https://docs.python.org/3/builtins/functions.html#float)]*
 
 `total_usd - as_of_total_usd`, or `None` when either is unknown.
 
@@ -141,7 +141,7 @@ number, whether it is knowable, and whether it moved. Reach into
 * **Return type:**
   [`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str), [`Any`](https://docs.python.org/3/library/typing.html#typing.Any)]
 
-#### total_usd *: [float](https://docs.python.org/3/builtins/functions.html#float) | [None](https://docs.python.org/3/builtins/constants.html#None)*
+#### total_usd *: [Optional](https://docs.python.org/3/library/typing.html#typing.Optional)[[float](https://docs.python.org/3/builtins/functions.html#float)]*
 
 Today’s billable total, or `None` when any billable call is
 unpriceable today. `None` means unknown, never free (nw invariant #2).
@@ -182,9 +182,6 @@ frozen figure is what makes the row re-quotable later by
 written by a caller that records no basis is byte-identical to what nw
 wrote before nw#74.
 
-* **Return type:**
-  [`list`](https://docs.python.org/3/builtins/stdtypes.html#list)[[`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str), [`Any`](https://docs.python.org/3/library/typing.html#typing.Any)]]
-
 ```pycon
 >>> from falaw import CallPlan, Plan
 >>> call = CallPlan(tool="t", application="a", arguments={},
@@ -192,6 +189,9 @@ wrote before nw#74.
 >>> sorted(cost_records(Plan(calls=(call,)))[0])
 ['application', 'cache_status', 'estimated_cost_usd', 'tool']
 ```
+
+* **Return type:**
+  [`list`](https://docs.python.org/3/builtins/stdtypes.html#list)[[`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str), [`Any`](https://docs.python.org/3/library/typing.html#typing.Any)]]
 
 ### nw.pricing.current_quote(plan, \*, pricers={'llm_rates': Pricer(quote=<function \_quote_from_llm_rates>, table='falaw/data/llm_rates.json', version=<functools._lru_cache_wrapper object>), 'model_catalogue': Pricer(quote = <function \_quote_from_catalogue>, table='falaw/data/models.json', version=<functools._lru_cache_wrapper object>)})
 
@@ -265,9 +265,6 @@ over a payload whose calls sum to $0 is a broken record, and answering
 never produces such a payload; a hand-edited or truncated one can, and
 unknown is the only honest reading of it.
 
-* **Return type:**
-  [`PlanQuote`](#nw.pricing.PlanQuote)
-
 ```pycon
 >>> broken = quote_render_decision(
 ...     {"calls": [], "total_estimated_cost_usd": 3.0})
@@ -281,6 +278,9 @@ unknown is the only honest reading of it.
 ('unknown', None, 3.0)
 ```
 
+* **Return type:**
+  [`PlanQuote`](#nw.pricing.PlanQuote)
+
 ### nw.pricing.unquotable(reason)
 
 A quote for something that could not be re-quoted at all.
@@ -293,11 +293,11 @@ not `0.0`.
 [`PlanQuote.repriced`](#nw.pricing.PlanQuote.repriced) is an empty `falaw.RepricedPlan`: there
 were no calls to diff. Read [`PlanQuote.reason`](#nw.pricing.PlanQuote.reason) for what went wrong.
 
-* **Return type:**
-  [`PlanQuote`](#nw.pricing.PlanQuote)
-
 ```pycon
 >>> q = unquotable("params['plan'] is not a falaw Plan")
 >>> q.status, q.total_usd, q.has_unknown_costs
 ('unknown', None, True)
 ```
+
+* **Return type:**
+  [`PlanQuote`](#nw.pricing.PlanQuote)

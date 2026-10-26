@@ -10,10 +10,10 @@ encode their own constraints.
 
 ### Classes
 
-| [`SectionBodyV1`](#nw.bodies.section.SectionBodyV1)(\*\*data)   | Body of a section annotation.   |
-|----------------------------------------------------------------------------|---------------------------------|
+| [`SectionBodyV1`](#nw.bodies.section.SectionBodyV1)(\*, section_id[, label, ...])   | Body of a section annotation.   |
+|------------------------------------------------------------------------------------------------|---------------------------------|
 
-### *class* nw.bodies.section.SectionBodyV1(\*\*data)
+### *class* nw.bodies.section.SectionBodyV1(, section_id, label='', energy='', mood='')
 
 Bases: `BaseModel`
 

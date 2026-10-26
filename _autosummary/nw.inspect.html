@@ -7,6 +7,7 @@
     setColorMode(localStorage._theme||"auto");
   </script><link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=d88b86f9" />
     <link rel="stylesheet" type="text/css" href="../_static/shibuya.css?v=2ceb65ce" />
+    <link rel="stylesheet" type="text/css" href="../_static/sphinx_autodoc_typehints.css?v=057ac668" />
     <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
     <link media="print" rel="stylesheet" type="text/css" href="../_static/print.css?v=20ff2c19" />
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -212,16 +213,16 @@ per-shot rollup, gaps between shots, freeze alerts.</p></li>
 <div class="table-wrapper autosummary longtable docutils container">
 <table class="autosummary longtable docutils align-default">
 <tbody>
-<tr class="row-odd"><td><p><a class="reference internal" href="#nw.inspect.ComposeReport" title="nw.inspect.ComposeReport"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ComposeReport</span></code></a>(**data)</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#nw.inspect.ComposeReport" title="nw.inspect.ComposeReport"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ComposeReport</span></code></a>(*, output_path, has_final, ...)</p></td>
 <td><p>Inspection of the project-level final composed video.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#nw.inspect.FrozenSegment" title="nw.inspect.FrozenSegment"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FrozenSegment</span></code></a>(**data)</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#nw.inspect.FrozenSegment" title="nw.inspect.FrozenSegment"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FrozenSegment</span></code></a>(*, start_s, end_s)</p></td>
 <td><p>A run of consecutive frames whose pixels don't change.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#nw.inspect.Gap" title="nw.inspect.Gap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Gap</span></code></a>(**data)</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#nw.inspect.Gap" title="nw.inspect.Gap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Gap</span></code></a>(*, after_shot_id, before_shot_id, ...)</p></td>
 <td><p>A gap on the timeline between two shots.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#nw.inspect.ShotReport" title="nw.inspect.ShotReport"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ShotReport</span></code></a>(**data)</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#nw.inspect.ShotReport" title="nw.inspect.ShotReport"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ShotReport</span></code></a>(*, shot_id, output_path, ...[, ...])</p></td>
 <td><p>Inspection of one rendered shot.</p></td>
 </tr>
 </tbody>
@@ -229,7 +230,7 @@ per-shot rollup, gaps between shots, freeze alerts.</p></li>
 </div>
 <dl class="py class">
 <dt class="sig sig-object py" id="nw.inspect.ComposeReport">
-<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">nw.inspect.</span></span><span class="sig-name descname"><span class="pre">ComposeReport</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">data</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/nw/inspect.html#ComposeReport"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nw.inspect.ComposeReport" title="Link to this definition">#</a></dt>
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">nw.inspect.</span></span><span class="sig-name descname"><span class="pre">ComposeReport</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">has_final</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">total_duration_s</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">target_duration_s</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">shots</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">gaps</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">()</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/nw/inspect.html#ComposeReport"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nw.inspect.ComposeReport" title="Link to this definition">#</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">BaseModel</span></code></p>
 <p>Inspection of the project-level final composed video.</p>
 <dl class="field-list simple">
@@ -244,7 +245,7 @@ per-shot rollup, gaps between shots, freeze alerts.</p></li>
 
 <dl class="py class">
 <dt class="sig sig-object py" id="nw.inspect.FrozenSegment">
-<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">nw.inspect.</span></span><span class="sig-name descname"><span class="pre">FrozenSegment</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">data</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/nw/inspect.html#FrozenSegment"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nw.inspect.FrozenSegment" title="Link to this definition">#</a></dt>
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">nw.inspect.</span></span><span class="sig-name descname"><span class="pre">FrozenSegment</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">start_s</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">end_s</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/nw/inspect.html#FrozenSegment"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nw.inspect.FrozenSegment" title="Link to this definition">#</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">BaseModel</span></code></p>
 <p>A run of consecutive frames whose pixels don’t change.</p>
 <p>A short freeze (≤ 0.25s) is usually a model artifact; a long one (≥ 1s)
@@ -262,7 +263,7 @@ fallback that froze the last frame, etc.</p>
 
 <dl class="py class">
 <dt class="sig sig-object py" id="nw.inspect.Gap">
-<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">nw.inspect.</span></span><span class="sig-name descname"><span class="pre">Gap</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">data</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/nw/inspect.html#Gap"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nw.inspect.Gap" title="Link to this definition">#</a></dt>
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">nw.inspect.</span></span><span class="sig-name descname"><span class="pre">Gap</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">after_shot_id</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">before_shot_id</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">start_s</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">end_s</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/nw/inspect.html#Gap"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nw.inspect.Gap" title="Link to this definition">#</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">BaseModel</span></code></p>
 <p>A gap on the timeline between two shots.</p>
 <dl class="field-list simple">
@@ -277,7 +278,7 @@ fallback that froze the last frame, etc.</p>
 
 <dl class="py class">
 <dt class="sig sig-object py" id="nw.inspect.ShotReport">
-<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">nw.inspect.</span></span><span class="sig-name descname"><span class="pre">ShotReport</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">data</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/nw/inspect.html#ShotReport"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nw.inspect.ShotReport" title="Link to this definition">#</a></dt>
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">nw.inspect.</span></span><span class="sig-name descname"><span class="pre">ShotReport</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">shot_id</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">duration_s</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">target_duration_s</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">duration_within_tolerance</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">has_video</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">has_audio</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">frame_count</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fps</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">frozen_segments</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">()</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">freeze_total_s</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/nw/inspect.html#ShotReport"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nw.inspect.ShotReport" title="Link to this definition">#</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">BaseModel</span></code></p>
 <p>Inspection of one rendered shot.</p>
 <dl class="field-list simple">
@@ -374,7 +375,7 @@ target duration before flagging.</p></li>
     </div>
   </div>
 </footer>
-      <script src="../_static/documentation_options.js?v=1e158f99"></script>
+      <script src="../_static/documentation_options.js?v=d59c1f54"></script>
       <script src="../_static/doctools.js?v=fd6eb6e6"></script>
       <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script src="../_static/clipboard.min.js?v=a7894cd8"></script>

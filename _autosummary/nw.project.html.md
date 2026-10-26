@@ -69,7 +69,7 @@ Create a new project on disk and return the [`Project`](#nw.project.Project) fac
   * **root** ([`str`](https://docs.python.org/3/builtins/stdtypes.html#str) | [`Path`](https://docs.python.org/3/library/pathlib.html#pathlib.Path)) – Folder to create. Must not exist (or pass `force=True` to
     overwrite an empty folder).
   * **title** ([`str`](https://docs.python.org/3/builtins/stdtypes.html#str)) – Optional human-readable title; defaults to the folder name.
-  * **song** (`Union`[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str), [`Path`](https://docs.python.org/3/library/pathlib.html#pathlib.Path), [`None`](https://docs.python.org/3/builtins/constants.html#None)]) – Optional path to a master audio file. When given, the file
+  * **song** ([`Union`](https://docs.python.org/3/library/typing.html#typing.Union)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str), [`Path`](https://docs.python.org/3/library/pathlib.html#pathlib.Path), [`None`](https://docs.python.org/3/builtins/constants.html#None)]) – Optional path to a master audio file. When given, the file
     is *copied* into `<root>/song/` and registered in the spec.
   * **force** ([`bool`](https://docs.python.org/3/builtins/functions.html#bool)) – When True, accept an existing folder if it’s empty (no
     `project.json`); refuse if a project already exists there.

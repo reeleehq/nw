@@ -7,6 +7,7 @@
     setColorMode(localStorage._theme||"auto");
   </script><link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=d88b86f9" />
     <link rel="stylesheet" type="text/css" href="../_static/shibuya.css?v=2ceb65ce" />
+    <link rel="stylesheet" type="text/css" href="../_static/sphinx_autodoc_typehints.css?v=057ac668" />
     <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
     <link media="print" rel="stylesheet" type="text/css" href="../_static/print.css?v=20ff2c19" />
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -295,7 +296,7 @@ it must never do is <em>present</em> it as current; that is what
 </dl>
 <dl class="py attribute">
 <dt class="sig sig-object py" id="nw.pricing.PlanQuote.as_of_total_usd">
-<span class="sig-name descname"><span class="pre">as_of_total_usd</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#float" title="(in Python v3.15)"><span class="pre">float</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><span class="pre">None</span></a></span><a class="headerlink" href="#nw.pricing.PlanQuote.as_of_total_usd" title="Link to this definition">#</a></dt>
+<span class="sig-name descname"><span class="pre">as_of_total_usd</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.15)"><span class="pre">Optional</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#float" title="(in Python v3.15)"><span class="pre">float</span></a><span class="p"><span class="pre">]</span></span></span><a class="headerlink" href="#nw.pricing.PlanQuote.as_of_total_usd" title="Link to this definition">#</a></dt>
 <dd><p>What the persisted plan said, <code class="docutils literal notranslate"><span class="pre">None</span></code> if it already said unknown.</p>
 <p>A fact about the moment it was written. Render it labelled as such, or
 not at all.</p>
@@ -314,7 +315,7 @@ repricing event.</p>
 
 <dl class="py property">
 <dt class="sig sig-object py" id="nw.pricing.PlanQuote.delta_usd">
-<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">delta_usd</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#float" title="(in Python v3.15)"><span class="pre">float</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><span class="pre">None</span></a></span><a class="headerlink" href="#nw.pricing.PlanQuote.delta_usd" title="Link to this definition">#</a></dt>
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">delta_usd</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.15)"><span class="pre">Optional</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#float" title="(in Python v3.15)"><span class="pre">float</span></a><span class="p"><span class="pre">]</span></span></span><a class="headerlink" href="#nw.pricing.PlanQuote.delta_usd" title="Link to this definition">#</a></dt>
 <dd><p><code class="docutils literal notranslate"><span class="pre">total_usd</span> <span class="pre">-</span> <span class="pre">as_of_total_usd</span></code>, or <code class="docutils literal notranslate"><span class="pre">None</span></code> when either is unknown.</p>
 <p><code class="docutils literal notranslate"><span class="pre">None</span></code> rather than <code class="docutils literal notranslate"><span class="pre">0.0</span></code>: a plan that lost its price did not move
 by zero.</p>
@@ -367,7 +368,7 @@ number, whether it is knowable, and whether it moved. Reach into
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="nw.pricing.PlanQuote.total_usd">
-<span class="sig-name descname"><span class="pre">total_usd</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#float" title="(in Python v3.15)"><span class="pre">float</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><span class="pre">None</span></a></span><a class="headerlink" href="#nw.pricing.PlanQuote.total_usd" title="Link to this definition">#</a></dt>
+<span class="sig-name descname"><span class="pre">total_usd</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.15)"><span class="pre">Optional</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#float" title="(in Python v3.15)"><span class="pre">float</span></a><span class="p"><span class="pre">]</span></span></span><a class="headerlink" href="#nw.pricing.PlanQuote.total_usd" title="Link to this definition">#</a></dt>
 <dd><p>Today’s billable total, or <code class="docutils literal notranslate"><span class="pre">None</span></code> when any billable call is
 unpriceable today. <code class="docutils literal notranslate"><span class="pre">None</span></code> means unknown, never free (nw invariant #2).</p>
 </dd></dl>
@@ -411,11 +412,6 @@ frozen figure is what makes the row re-quotable later by
 <p><code class="docutils literal notranslate"><span class="pre">cost_basis</span></code> is omitted when unset, exactly as falaw omits it, so a row
 written by a caller that records no basis is byte-identical to what nw
 wrote before nw#74.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#list" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code></a>[<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#dict" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></a>[<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.15)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code></a>]]</span></p>
-</dd>
-</dl>
 <div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span data-line="1"><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">falaw</span><span class="w"> </span><span class="kn">import</span> <span class="n">CallPlan</span><span class="p">,</span> <span class="n">Plan</span>
 </span><span data-line="2"><span class="gp">&gt;&gt;&gt; </span><span class="n">call</span> <span class="o">=</span> <span class="n">CallPlan</span><span class="p">(</span><span class="n">tool</span><span class="o">=</span><span class="s2">"t"</span><span class="p">,</span> <span class="n">application</span><span class="o">=</span><span class="s2">"a"</span><span class="p">,</span> <span class="n">arguments</span><span class="o">=</span><span class="p">{},</span>
 </span><span data-line="3"><span class="gp">... </span>                <span class="n">output_kind</span><span class="o">=</span><span class="s2">"video"</span><span class="p">,</span> <span class="n">estimated_cost_usd</span><span class="o">=</span><span class="mf">1.0</span><span class="p">)</span>
@@ -423,6 +419,11 @@ wrote before nw#74.</p>
 </span><span data-line="5"><span class="go">['application', 'cache_status', 'estimated_cost_usd', 'tool']</span>
 </span></pre></div>
 </div>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#list" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code></a>[<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#dict" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></a>[<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.15)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code></a>]]</span></p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py function">
@@ -504,11 +505,6 @@ over a payload whose calls sum to $0 is a broken record, and answering
 “$0, unchanged” would report a stored $3 as a known zero. nw’s own writer
 never produces such a payload; a hand-edited or truncated one can, and
 unknown is the only honest reading of it.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="#nw.pricing.PlanQuote" title="nw.pricing.PlanQuote"><code class="xref py py-class docutils literal notranslate"><span class="pre">PlanQuote</span></code></a></span></p>
-</dd>
-</dl>
 <div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span data-line="1"><span class="gp">&gt;&gt;&gt; </span><span class="n">broken</span> <span class="o">=</span> <span class="n">quote_render_decision</span><span class="p">(</span>
 </span><span data-line="2"><span class="gp">... </span>    <span class="p">{</span><span class="s2">"calls"</span><span class="p">:</span> <span class="p">[],</span> <span class="s2">"total_estimated_cost_usd"</span><span class="p">:</span> <span class="mf">3.0</span><span class="p">})</span>
 </span><span data-line="3"><span class="gp">&gt;&gt;&gt; </span><span class="n">broken</span><span class="o">.</span><span class="n">status</span><span class="p">,</span> <span class="n">broken</span><span class="o">.</span><span class="n">total_usd</span><span class="p">,</span> <span class="n">broken</span><span class="o">.</span><span class="n">as_of_total_usd</span>
@@ -521,6 +517,11 @@ unknown is the only honest reading of it.</p>
 </span><span data-line="10"><span class="go">('unknown', None, 3.0)</span>
 </span></pre></div>
 </div>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="#nw.pricing.PlanQuote" title="nw.pricing.PlanQuote"><code class="xref py py-class docutils literal notranslate"><span class="pre">PlanQuote</span></code></a></span></p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py function">
@@ -533,16 +534,16 @@ answer is <code class="docutils literal notranslate"><span class="pre">None</spa
 not <code class="docutils literal notranslate"><span class="pre">0.0</span></code>.</p>
 <p><a class="reference internal" href="#nw.pricing.PlanQuote.repriced" title="nw.pricing.PlanQuote.repriced"><code class="xref py py-attr docutils literal notranslate"><span class="pre">PlanQuote.repriced</span></code></a> is an empty <code class="xref py py-class docutils literal notranslate"><span class="pre">falaw.RepricedPlan</span></code>: there
 were no calls to diff. Read <a class="reference internal" href="#nw.pricing.PlanQuote.reason" title="nw.pricing.PlanQuote.reason"><code class="xref py py-attr docutils literal notranslate"><span class="pre">PlanQuote.reason</span></code></a> for what went wrong.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="#nw.pricing.PlanQuote" title="nw.pricing.PlanQuote"><code class="xref py py-class docutils literal notranslate"><span class="pre">PlanQuote</span></code></a></span></p>
-</dd>
-</dl>
 <div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span data-line="1"><span class="gp">&gt;&gt;&gt; </span><span class="n">q</span> <span class="o">=</span> <span class="n">unquotable</span><span class="p">(</span><span class="s2">"params['plan'] is not a falaw Plan"</span><span class="p">)</span>
 </span><span data-line="2"><span class="gp">&gt;&gt;&gt; </span><span class="n">q</span><span class="o">.</span><span class="n">status</span><span class="p">,</span> <span class="n">q</span><span class="o">.</span><span class="n">total_usd</span><span class="p">,</span> <span class="n">q</span><span class="o">.</span><span class="n">has_unknown_costs</span>
 </span><span data-line="3"><span class="go">('unknown', None, True)</span>
 </span></pre></div>
 </div>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="#nw.pricing.PlanQuote" title="nw.pricing.PlanQuote"><code class="xref py py-class docutils literal notranslate"><span class="pre">PlanQuote</span></code></a></span></p>
+</dd>
+</dl>
 </dd></dl>
 
 </section>
@@ -587,7 +588,7 @@ were no calls to diff. Read <a class="reference internal" href="#nw.pricing.Plan
     </div>
   </div>
 </footer>
-      <script src="../_static/documentation_options.js?v=1e158f99"></script>
+      <script src="../_static/documentation_options.js?v=d59c1f54"></script>
       <script src="../_static/doctools.js?v=fd6eb6e6"></script>
       <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script src="../_static/clipboard.min.js?v=a7894cd8"></script>

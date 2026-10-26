@@ -30,10 +30,10 @@ and defaults merged — and stays opaque to the substrate, exactly as in
 
 ### Classes
 
-| [`GenreEnvelopeBodyV1`](#nw.bodies.genre_envelope.GenreEnvelopeBodyV1)(\*\*data)   | Body of the (singleton) genre-envelope annotation.   |
-|----------------------------------------------------------------------------------|------------------------------------------------------|
+| [`GenreEnvelopeBodyV1`](#nw.bodies.genre_envelope.GenreEnvelopeBodyV1)(\*, genre[, template, params])   | Body of the (singleton) genre-envelope annotation.   |
+|-------------------------------------------------------------------------------------------------------|------------------------------------------------------|
 
-### *class* nw.bodies.genre_envelope.GenreEnvelopeBodyV1(\*\*data)
+### *class* nw.bodies.genre_envelope.GenreEnvelopeBodyV1(\*, genre, template=None, params=<factory>)
 
 Bases: `BaseModel`
 

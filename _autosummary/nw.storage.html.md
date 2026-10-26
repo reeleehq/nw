@@ -152,9 +152,6 @@ has no `project.json` or keeps its own keying (no `tenant_id`). Raises
 `FileNotFoundError` when the song audio its tenant hashes is missing.
 With `dry_run` nothing is written.
 
-* **Return type:**
-  [`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]
-
 ```pycon
 >>> import tempfile, json, pathlib
 >>> root = pathlib.Path(tempfile.mkdtemp())
@@ -162,6 +159,9 @@ With `dry_run` nothing is written.
 >>> adopt_tenant_id(root) == adopt_tenant_id(root)
 True
 ```
+
+* **Return type:**
+  [`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]
 
 ### nw.storage.as_project_storage(project)
 

@@ -7,6 +7,7 @@
     setColorMode(localStorage._theme||"auto");
   </script><link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=d88b86f9" />
     <link rel="stylesheet" type="text/css" href="../_static/shibuya.css?v=2ceb65ce" />
+    <link rel="stylesheet" type="text/css" href="../_static/sphinx_autodoc_typehints.css?v=057ac668" />
     <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
     <link media="print" rel="stylesheet" type="text/css" href="../_static/print.css?v=20ff2c19" />
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -760,25 +761,25 @@ are recorded as linked artifacts), see
 <tr class="row-even"><td><p><a class="reference internal" href="#nw.CharacterImage" title="nw.CharacterImage"><code class="xref py py-obj docutils literal notranslate"><span class="pre">CharacterImage</span></code></a>(path, *[, from_ref, ...])</p></td>
 <td><p>One image associated with a character.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#nw.CharacterRef" title="nw.CharacterRef"><code class="xref py py-obj docutils literal notranslate"><span class="pre">CharacterRef</span></code></a>(**data)</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#nw.CharacterRef" title="nw.CharacterRef"><code class="xref py py-obj docutils literal notranslate"><span class="pre">CharacterRef</span></code></a>(*, name[, description, ...])</p></td>
 <td><p>Pointer to a character folder under <code class="docutils literal notranslate"><span class="pre">characters/&lt;name&gt;/</span></code>.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#nw.ComposeReport" title="nw.ComposeReport"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ComposeReport</span></code></a>(**data)</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#nw.ComposeReport" title="nw.ComposeReport"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ComposeReport</span></code></a>(*, output_path, has_final, ...)</p></td>
 <td><p>Inspection of the project-level final composed video.</p></td>
 </tr>
 <tr class="row-odd"><td><p><a class="reference internal" href="#nw.FreshnessVerdict" title="nw.FreshnessVerdict"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FreshnessVerdict</span></code></a>(annotation, is_stale, reason)</p></td>
 <td><p>Why one reachable annotation was judged stale (or not).</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#nw.DecisionEntry" title="nw.DecisionEntry"><code class="xref py py-obj docutils literal notranslate"><span class="pre">DecisionEntry</span></code></a>(**data)</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#nw.DecisionEntry" title="nw.DecisionEntry"><code class="xref py py-obj docutils literal notranslate"><span class="pre">DecisionEntry</span></code></a>(*, kind[, at, payload])</p></td>
 <td><p>One entry of a project's decision log, flattened for display.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#nw.EnvironmentRef" title="nw.EnvironmentRef"><code class="xref py py-obj docutils literal notranslate"><span class="pre">EnvironmentRef</span></code></a>(**data)</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#nw.EnvironmentRef" title="nw.EnvironmentRef"><code class="xref py py-obj docutils literal notranslate"><span class="pre">EnvironmentRef</span></code></a>(*, name[, description, ...])</p></td>
 <td><p>Pointer to an environment folder under <code class="docutils literal notranslate"><span class="pre">environments/&lt;name&gt;/</span></code>.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#nw.FrozenSegment" title="nw.FrozenSegment"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FrozenSegment</span></code></a>(**data)</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#nw.FrozenSegment" title="nw.FrozenSegment"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FrozenSegment</span></code></a>(*, start_s, end_s)</p></td>
 <td><p>A run of consecutive frames whose pixels don't change.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#nw.Gap" title="nw.Gap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Gap</span></code></a>(**data)</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#nw.Gap" title="nw.Gap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Gap</span></code></a>(*, after_shot_id, before_shot_id, ...)</p></td>
 <td><p>A gap on the timeline between two shots.</p></td>
 </tr>
 <tr class="row-even"><td><p><a class="reference internal" href="#nw.Genre" title="nw.Genre"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Genre</span></code></a>(slug, title[, description, ...])</p></td>
@@ -808,31 +809,31 @@ are recorded as linked artifacts), see
 <tr class="row-even"><td><p><a class="reference internal" href="#nw.StoredUnproducedOutput" title="nw.StoredUnproducedOutput"><code class="xref py py-obj docutils literal notranslate"><span class="pre">StoredUnproducedOutput</span></code></a>(annotation_id, body)</p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#nw.UnproducedOutputBodyV1" title="nw.UnproducedOutputBodyV1"><code class="xref py py-obj docutils literal notranslate"><span class="pre">UnproducedOutputBodyV1</span></code></a>(**data)</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#nw.UnproducedOutputBodyV1" title="nw.UnproducedOutputBodyV1"><code class="xref py py-obj docutils literal notranslate"><span class="pre">UnproducedOutputBodyV1</span></code></a>(*, transform_name[, ...])</p></td>
 <td><p>Body of an unproduced-output record.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#nw.ProjectSpec" title="nw.ProjectSpec"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ProjectSpec</span></code></a>(**data)</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#nw.ProjectSpec" title="nw.ProjectSpec"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ProjectSpec</span></code></a>(*[, schema_version, title, ...])</p></td>
 <td><p>The top-level project SSOT, persisted as <code class="docutils literal notranslate"><span class="pre">project.json</span></code>.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#nw.ProjectSummary" title="nw.ProjectSummary"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ProjectSummary</span></code></a>(**data)</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#nw.ProjectSummary" title="nw.ProjectSummary"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ProjectSummary</span></code></a>(*, title, root, ...)</p></td>
 <td><p>Typed read view of a project — what <code class="docutils literal notranslate"><span class="pre">muvid</span> <span class="pre">status</span></code> printed, but typed.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#nw.ResumptionBrief" title="nw.ResumptionBrief"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ResumptionBrief</span></code></a>(**data)</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#nw.ResumptionBrief" title="nw.ResumptionBrief"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ResumptionBrief</span></code></a>(*, title, root[, ...])</p></td>
 <td><p>A &quot;where we left off&quot; snapshot, returned by <a class="reference internal" href="#nw.Project.resumption_brief" title="nw.Project.resumption_brief"><code class="xref py py-meth docutils literal notranslate"><span class="pre">nw.Project.resumption_brief()</span></code></a>.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#nw.SectionSpec" title="nw.SectionSpec"><code class="xref py py-obj docutils literal notranslate"><span class="pre">SectionSpec</span></code></a>(**data)</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#nw.SectionSpec" title="nw.SectionSpec"><code class="xref py py-obj docutils literal notranslate"><span class="pre">SectionSpec</span></code></a>(*, id, start_s, end_s[, label, ...])</p></td>
 <td><p>A non-overlapping span of the project's master timeline.</p></td>
 </tr>
 <tr class="row-even"><td><p><a class="reference internal" href="#nw.ShotPreparation" title="nw.ShotPreparation"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ShotPreparation</span></code></a>(project_root, shot, ...[, ...])</p></td>
 <td><p>Local-only inputs for rendering a single shot.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#nw.ShotReport" title="nw.ShotReport"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ShotReport</span></code></a>(**data)</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#nw.ShotReport" title="nw.ShotReport"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ShotReport</span></code></a>(*, shot_id, output_path, ...[, ...])</p></td>
 <td><p>Inspection of one rendered shot.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#nw.ShotSpec" title="nw.ShotSpec"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ShotSpec</span></code></a>(**data)</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#nw.ShotSpec" title="nw.ShotSpec"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ShotSpec</span></code></a>(*, id, start_s, end_s[, ...])</p></td>
 <td><p>A timeline-locked visual unit.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#nw.SongInfo" title="nw.SongInfo"><code class="xref py py-obj docutils literal notranslate"><span class="pre">SongInfo</span></code></a>(**data)</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#nw.SongInfo" title="nw.SongInfo"><code class="xref py py-obj docutils literal notranslate"><span class="pre">SongInfo</span></code></a>(*, audio_path, duration_s[, ...])</p></td>
 <td><p>Metadata for the master audio file.</p></td>
 </tr>
 <tr class="row-even"><td><p><a class="reference internal" href="#nw.Strategy" title="nw.Strategy"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Strategy</span></code></a>(*args, **kwargs)</p></td>
@@ -853,7 +854,7 @@ are recorded as linked artifacts), see
 <tr class="row-odd"><td><p><a class="reference internal" href="#nw.PlanQuote" title="nw.PlanQuote"><code class="xref py py-obj docutils literal notranslate"><span class="pre">PlanQuote</span></code></a>(*, total_usd, status, ...[, reason])</p></td>
 <td><p>Today's price for a persisted plan, with the stale figure alongside.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#nw.WorkItem" title="nw.WorkItem"><code class="xref py py-obj docutils literal notranslate"><span class="pre">WorkItem</span></code></a>(**data)</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#nw.WorkItem" title="nw.WorkItem"><code class="xref py py-obj docutils literal notranslate"><span class="pre">WorkItem</span></code></a>(*, mapping_key[, parent_key, ...])</p></td>
 <td><p>One unit of a fan-out — the PDG-shaped work item (nw#26).</p></td>
 </tr>
 <tr class="row-odd"><td><p><a class="reference internal" href="#nw.FanOutUnit" title="nw.FanOutUnit"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FanOutUnit</span></code></a>(item, instance_id, plan, skeleton)</p></td>
@@ -993,7 +994,7 @@ the “use this image” anchor (lipsync seed, etc.).</p></li>
 
 <dl class="py class">
 <dt class="sig sig-object py" id="nw.CharacterRef">
-<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">nw.</span></span><span class="sig-name descname"><span class="pre">CharacterRef</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">data</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/nw/schema.html#CharacterRef"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nw.CharacterRef" title="Link to this definition">#</a></dt>
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">nw.</span></span><span class="sig-name descname"><span class="pre">CharacterRef</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">description</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reference_image_urls</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">()</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">costume</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">age</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">default_setting</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">distinguishing_features</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">()</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">palette_anchors</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">()</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">do_not_do</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">()</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/nw/schema.html#CharacterRef"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nw.CharacterRef" title="Link to this definition">#</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">BaseModel</span></code></p>
 <p>Pointer to a character folder under <code class="docutils literal notranslate"><span class="pre">characters/&lt;name&gt;/</span></code>.</p>
 <p>The stable-attribute fields mirror
@@ -1026,12 +1027,22 @@ happen to <code class="docutils literal notranslate"><span class="pre">reference
 <span class="sig-name descname"><span class="pre">name</span></span><a class="headerlink" href="#nw.Check.name" title="Link to this definition">#</a></dt>
 <dd><p>dotted and stable — it is what a user selects and what a
 <code class="docutils literal notranslate"><span class="pre">requires</span></code> refers to.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a></span></p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="nw.Check.summary">
 <span class="sig-name descname"><span class="pre">summary</span></span><a class="headerlink" href="#nw.Check.summary" title="Link to this definition">#</a></dt>
 <dd><p>one line, for the menu.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a></span></p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py attribute">
@@ -1039,6 +1050,11 @@ happen to <code class="docutils literal notranslate"><span class="pre">reference
 <span class="sig-name descname"><span class="pre">run</span></span><a class="headerlink" href="#nw.Check.run" title="Link to this definition">#</a></dt>
 <dd><p><code class="docutils literal notranslate"><span class="pre">(target,</span> <span class="pre">context)</span> <span class="pre">-&gt;</span> <span class="pre">findings</span></code>. May also return a
 <code class="docutils literal notranslate"><span class="pre">(findings,</span> <span class="pre">produced)</span></code> pair when other checks depend on it.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Callable" title="(in Python v3.15)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Callable</span></code></a>[[<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.15)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Mapping" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Mapping</span></code></a>[<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.15)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code></a>]], <a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Iterable" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Iterable</span></code></a>[<a class="reference internal" href="nw.validation.html#nw.validation.Finding" title="nw.validation.Finding"><code class="xref py py-class docutils literal notranslate"><span class="pre">Finding</span></code></a>]]</span></p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py attribute">
@@ -1046,6 +1062,11 @@ happen to <code class="docutils literal notranslate"><span class="pre">reference
 <span class="sig-name descname"><span class="pre">requires</span></span><a class="headerlink" href="#nw.Check.requires" title="Link to this definition">#</a></dt>
 <dd><p>names of checks that must run first, whose <code class="docutils literal notranslate"><span class="pre">produced</span></code>
 values arrive in <code class="docutils literal notranslate"><span class="pre">context</span></code>. Cycles raise at plan time.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#tuple" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">tuple</span></code></a>[<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>, <a class="reference external" href="https://docs.python.org/3/builtins/constants.html#Ellipsis" title="(in Python v3.15)"><code class="xref py py-data docutils literal notranslate"><span class="pre">...</span></code></a>]</span></p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py attribute">
@@ -1054,6 +1075,11 @@ values arrive in <code class="docutils literal notranslate"><span class="pre">co
 <dd><p>whether it may run alongside its independent peers.
 <code class="docutils literal notranslate"><span class="pre">False</span></code> for anything that is not thread-safe or that saturates
 the machine on its own (a full decode).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#bool" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></a></span></p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py attribute">
@@ -1064,6 +1090,11 @@ the machine on its own (a full decode).</p>
 <code class="docutils literal notranslate"><span class="pre">&quot;paid&quot;</span></code> (spends money, e.g. a hosted OCR or transcription).
 <code class="docutils literal notranslate"><span class="pre">&quot;paid&quot;</span></code> is never selected by <a class="reference internal" href="#nw.suggest" title="nw.suggest"><code class="xref py py-func docutils literal notranslate"><span class="pre">suggest()</span></code></a>; it must be asked
 for by name.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Literal" title="(in Python v3.15)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Literal</span></code></a>[<span class="highlight sphinx_autodoc_typehints-value"><code class="docutils literal notranslate"><span class="s1"><span class="pre">'free'</span></span></code></span>, <span class="highlight sphinx_autodoc_typehints-value"><code class="docutils literal notranslate"><span class="s1"><span class="pre">'cheap'</span></span></code></span>, <span class="highlight sphinx_autodoc_typehints-value"><code class="docutils literal notranslate"><span class="s1"><span class="pre">'dear'</span></span></code></span>, <span class="highlight sphinx_autodoc_typehints-value"><code class="docutils literal notranslate"><span class="s1"><span class="pre">'paid'</span></span></code></span>]</span></p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py attribute">
@@ -1072,6 +1103,11 @@ for by name.</p>
 <dd><p>things a person actually says that mean they want
 this check. What lets a menu of forty be navigated, and what an
 MCP surface matches against instead of exposing an enum.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#tuple" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">tuple</span></code></a>[<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>, <a class="reference external" href="https://docs.python.org/3/builtins/constants.html#Ellipsis" title="(in Python v3.15)"><code class="xref py py-data docutils literal notranslate"><span class="pre">...</span></code></a>]</span></p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py attribute">
@@ -1079,6 +1115,11 @@ MCP surface matches against instead of exposing an enum.</p>
 <span class="sig-name descname"><span class="pre">requires_binaries</span></span><a class="headerlink" href="#nw.Check.requires_binaries" title="Link to this definition">#</a></dt>
 <dd><p>external programs it shells out to. A missing one
 makes the check <em>skip with a reason</em>, never silently pass.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#tuple" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">tuple</span></code></a>[<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>, <a class="reference external" href="https://docs.python.org/3/builtins/constants.html#Ellipsis" title="(in Python v3.15)"><code class="xref py py-data docutils literal notranslate"><span class="pre">...</span></code></a>]</span></p>
+</dd>
+</dl>
 </dd></dl>
 
 </dd></dl>
@@ -1103,7 +1144,7 @@ machine where half of it never ran. A missing binary is not a pass.</p>
 
 <dl class="py class">
 <dt class="sig sig-object py" id="nw.ComposeReport">
-<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">nw.</span></span><span class="sig-name descname"><span class="pre">ComposeReport</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">data</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/nw/inspect.html#ComposeReport"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nw.ComposeReport" title="Link to this definition">#</a></dt>
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">nw.</span></span><span class="sig-name descname"><span class="pre">ComposeReport</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">has_final</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">total_duration_s</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">target_duration_s</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">shots</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">gaps</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">()</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/nw/inspect.html#ComposeReport"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nw.ComposeReport" title="Link to this definition">#</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">BaseModel</span></code></p>
 <p>Inspection of the project-level final composed video.</p>
 <dl class="field-list simple">
@@ -1118,7 +1159,7 @@ machine where half of it never ran. A missing binary is not a pass.</p>
 
 <dl class="py class">
 <dt class="sig sig-object py" id="nw.DecisionEntry">
-<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">nw.</span></span><span class="sig-name descname"><span class="pre">DecisionEntry</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">data</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/nw/schema.html#DecisionEntry"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nw.DecisionEntry" title="Link to this definition">#</a></dt>
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">nw.</span></span><span class="sig-name descname"><span class="pre">DecisionEntry</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">kind</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">at</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">payload</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">&lt;factory&gt;</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/nw/schema.html#DecisionEntry"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nw.DecisionEntry" title="Link to this definition">#</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">BaseModel</span></code></p>
 <p>One entry of a project’s decision log, flattened for display.</p>
 <dl class="field-list simple">
@@ -1133,7 +1174,7 @@ machine where half of it never ran. A missing binary is not a pass.</p>
 
 <dl class="py class">
 <dt class="sig sig-object py" id="nw.Deliverable">
-<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">nw.</span></span><span class="sig-name descname"><span class="pre">Deliverable</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">content_type</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">filename</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">artifact_id</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">project_id</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">genre</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ref</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">title</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">duration_s</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">size_bytes</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">created_at</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">meta</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">&lt;factory&gt;</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/nw/delivery.html#Deliverable"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nw.Deliverable" title="Link to this definition">#</a></dt>
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">nw.</span></span><span class="sig-name descname"><span class="pre">Deliverable</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">content_type</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">filename</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">artifact_id</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">project_id</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">genre</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ref</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">title</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">duration_s</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">size_bytes</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">created_at</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">meta</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">dict()</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/nw/delivery.html#Deliverable"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nw.Deliverable" title="Link to this definition">#</a></dt>
 <dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/builtins/functions.html#object" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
 <p>A finished thing a person can watch, hear, or download.</p>
 <p><code class="docutils literal notranslate"><span class="pre">path</span></code> is server-side and never leaves the host; it is what the transport
@@ -1191,7 +1232,7 @@ genre can enrich its own surface without a change here.</p>
 
 <dl class="py class">
 <dt class="sig sig-object py" id="nw.EnvironmentRef">
-<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">nw.</span></span><span class="sig-name descname"><span class="pre">EnvironmentRef</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">data</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/nw/schema.html#EnvironmentRef"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nw.EnvironmentRef" title="Link to this definition">#</a></dt>
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">nw.</span></span><span class="sig-name descname"><span class="pre">EnvironmentRef</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">description</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reference_image_urls</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">()</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/nw/schema.html#EnvironmentRef"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nw.EnvironmentRef" title="Link to this definition">#</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">BaseModel</span></code></p>
 <p>Pointer to an environment folder under <code class="docutils literal notranslate"><span class="pre">environments/&lt;name&gt;/</span></code>.</p>
 <p>Mirrors <a class="reference internal" href="nw.bodies.html#nw.bodies.EnvironmentRefBodyV1" title="nw.bodies.EnvironmentRefBodyV1"><code class="xref py py-class docutils literal notranslate"><span class="pre">nw.bodies.EnvironmentRefBodyV1</span></code></a> field-for-field, for the
@@ -1226,7 +1267,7 @@ body to say which panel is missing, not just that something is.</p>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="nw.FailedOutput.error">
-<span class="sig-name descname"><span class="pre">error</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/exceptions.html#BaseException" title="(in Python v3.15)"><span class="pre">BaseException</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><span class="pre">None</span></a></span><a class="headerlink" href="#nw.FailedOutput.error" title="Link to this definition">#</a></dt>
+<span class="sig-name descname"><span class="pre">error</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.15)"><span class="pre">Optional</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/builtins/exceptions.html#BaseException" title="(in Python v3.15)"><span class="pre">BaseException</span></a><span class="p"><span class="pre">]</span></span></span><a class="headerlink" href="#nw.FailedOutput.error" title="Link to this definition">#</a></dt>
 <dd><p>The original exception, for a caller that classifies on falaw’s typed
 hierarchy (<code class="docutils literal notranslate"><span class="pre">FalRateLimited</span></code> is worth retrying; <code class="docutils literal notranslate"><span class="pre">FalAccountLocked</span></code> is not).</p>
 </dd></dl>
@@ -1363,7 +1404,7 @@ counts statuses, not these fields.</p>
 
 <dl class="py class">
 <dt class="sig sig-object py" id="nw.Finding">
-<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">nw.</span></span><span class="sig-name descname"><span class="pre">Finding</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">check</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">severity</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">message</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">where</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">remedy</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">evidence</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">&lt;factory&gt;</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/nw/validation.html#Finding"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nw.Finding" title="Link to this definition">#</a></dt>
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">nw.</span></span><span class="sig-name descname"><span class="pre">Finding</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">check</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">severity</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">message</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">where</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">remedy</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">evidence</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">dict()</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/nw/validation.html#Finding"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nw.Finding" title="Link to this definition">#</a></dt>
 <dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/builtins/functions.html#object" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
 <p>One thing a check noticed.</p>
 <p>A finding is never a bare boolean. Whoever reads it — a human deciding
@@ -1376,6 +1417,11 @@ say those two things has not finished its job.</p>
 <dt class="sig sig-object py" id="nw.Finding.check">
 <span class="sig-name descname"><span class="pre">check</span></span><a class="headerlink" href="#nw.Finding.check" title="Link to this definition">#</a></dt>
 <dd><p>the name of the check that produced it.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a></span></p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py attribute">
@@ -1383,12 +1429,22 @@ say those two things has not finished its job.</p>
 <span class="sig-name descname"><span class="pre">severity</span></span><a class="headerlink" href="#nw.Finding.severity" title="Link to this definition">#</a></dt>
 <dd><p><code class="docutils literal notranslate"><span class="pre">&quot;info&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;warn&quot;</span></code> or <code class="docutils literal notranslate"><span class="pre">&quot;error&quot;</span></code>; only <code class="docutils literal notranslate"><span class="pre">&quot;error&quot;</span></code>
 makes a report not <code class="docutils literal notranslate"><span class="pre">ok</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Literal" title="(in Python v3.15)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Literal</span></code></a>[<span class="highlight sphinx_autodoc_typehints-value"><code class="docutils literal notranslate"><span class="s1"><span class="pre">'info'</span></span></code></span>, <span class="highlight sphinx_autodoc_typehints-value"><code class="docutils literal notranslate"><span class="s1"><span class="pre">'warn'</span></span></code></span>, <span class="highlight sphinx_autodoc_typehints-value"><code class="docutils literal notranslate"><span class="s1"><span class="pre">'error'</span></span></code></span>]</span></p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="nw.Finding.message">
 <span class="sig-name descname"><span class="pre">message</span></span><a class="headerlink" href="#nw.Finding.message" title="Link to this definition">#</a></dt>
 <dd><p>what is wrong, in one sentence a human can act on.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a></span></p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py attribute">
@@ -1397,6 +1453,11 @@ makes a report not <code class="docutils literal notranslate"><span class="pre">
 <dd><p>where in the work — a timestamp, a frame index, a shot id, a
 path. Free-form because the checks are, but never empty for
 anything above <code class="docutils literal notranslate"><span class="pre">&quot;info&quot;</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a></span></p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py attribute">
@@ -1404,6 +1465,11 @@ anything above <code class="docutils literal notranslate"><span class="pre">&quo
 <span class="sig-name descname"><span class="pre">remedy</span></span><a class="headerlink" href="#nw.Finding.remedy" title="Link to this definition">#</a></dt>
 <dd><p>what would fix it, when the check knows. <code class="docutils literal notranslate"><span class="pre">None</span></code> when it
 honestly does not.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a> | <span class="highlight sphinx_autodoc_typehints-value"><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></a></span></span></p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py attribute">
@@ -1411,6 +1477,11 @@ honestly does not.</p>
 <span class="sig-name descname"><span class="pre">evidence</span></span><a class="headerlink" href="#nw.Finding.evidence" title="Link to this definition">#</a></dt>
 <dd><p>anything a reader would want to look at — an extracted
 frame’s path, the numbers behind the verdict.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Mapping" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Mapping</span></code></a>[<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.15)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code></a>]</span></p>
+</dd>
+</dl>
 </dd></dl>
 
 </dd></dl>
@@ -1461,7 +1532,7 @@ not require re-deriving the walk by hand.</p>
 
 <dl class="py class">
 <dt class="sig sig-object py" id="nw.FrozenSegment">
-<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">nw.</span></span><span class="sig-name descname"><span class="pre">FrozenSegment</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">data</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/nw/inspect.html#FrozenSegment"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nw.FrozenSegment" title="Link to this definition">#</a></dt>
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">nw.</span></span><span class="sig-name descname"><span class="pre">FrozenSegment</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">start_s</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">end_s</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/nw/inspect.html#FrozenSegment"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nw.FrozenSegment" title="Link to this definition">#</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">BaseModel</span></code></p>
 <p>A run of consecutive frames whose pixels don’t change.</p>
 <p>A short freeze (≤ 0.25s) is usually a model artifact; a long one (≥ 1s)
@@ -1479,7 +1550,7 @@ fallback that froze the last frame, etc.</p>
 
 <dl class="py class">
 <dt class="sig sig-object py" id="nw.Gap">
-<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">nw.</span></span><span class="sig-name descname"><span class="pre">Gap</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">data</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/nw/inspect.html#Gap"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nw.Gap" title="Link to this definition">#</a></dt>
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">nw.</span></span><span class="sig-name descname"><span class="pre">Gap</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">after_shot_id</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">before_shot_id</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">start_s</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">end_s</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/nw/inspect.html#Gap"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nw.Gap" title="Link to this definition">#</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">BaseModel</span></code></p>
 <p>A gap on the timeline between two shots.</p>
 <dl class="field-list simple">
@@ -1494,7 +1565,7 @@ fallback that froze the last frame, etc.</p>
 
 <dl class="py class">
 <dt class="sig sig-object py" id="nw.Genre">
-<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">nw.</span></span><span class="sig-name descname"><span class="pre">Genre</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">slug</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">title</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">description</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">body_schema_uris</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">()</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">transform_names</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">()</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">strategy_names</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">()</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">projection_entrypoint</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">folder_conventions</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">&lt;factory&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">status</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'available'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">templates</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">()</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">intake_kinds</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">()</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cost_profile</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">defaults</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">&lt;factory&gt;</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/nw/genres.html#Genre"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nw.Genre" title="Link to this definition">#</a></dt>
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">nw.</span></span><span class="sig-name descname"><span class="pre">Genre</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">slug</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">title</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">description</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">body_schema_uris</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">()</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">transform_names</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">()</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">strategy_names</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">()</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">projection_entrypoint</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">folder_conventions</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">dict()</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">status</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'available'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">templates</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">()</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">intake_kinds</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">()</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cost_profile</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">defaults</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">dict()</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/nw/genres.html#Genre"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nw.Genre" title="Link to this definition">#</a></dt>
 <dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/builtins/functions.html#object" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
 <p>A reusable definition of a <em>production kind</em> over the nw substrate.</p>
 <p>Pure data: it <em>references</em> substrate pieces by name rather than owning
@@ -1808,7 +1879,7 @@ it must never do is <em>present</em> it as current; that is what
 </dl>
 <dl class="py attribute">
 <dt class="sig sig-object py" id="nw.PlanQuote.as_of_total_usd">
-<span class="sig-name descname"><span class="pre">as_of_total_usd</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#float" title="(in Python v3.15)"><span class="pre">float</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><span class="pre">None</span></a></span><a class="headerlink" href="#nw.PlanQuote.as_of_total_usd" title="Link to this definition">#</a></dt>
+<span class="sig-name descname"><span class="pre">as_of_total_usd</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.15)"><span class="pre">Optional</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#float" title="(in Python v3.15)"><span class="pre">float</span></a><span class="p"><span class="pre">]</span></span></span><a class="headerlink" href="#nw.PlanQuote.as_of_total_usd" title="Link to this definition">#</a></dt>
 <dd><p>What the persisted plan said, <code class="docutils literal notranslate"><span class="pre">None</span></code> if it already said unknown.</p>
 <p>A fact about the moment it was written. Render it labelled as such, or
 not at all.</p>
@@ -1827,7 +1898,7 @@ repricing event.</p>
 
 <dl class="py property">
 <dt class="sig sig-object py" id="nw.PlanQuote.delta_usd">
-<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">delta_usd</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#float" title="(in Python v3.15)"><span class="pre">float</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><span class="pre">None</span></a></span><a class="headerlink" href="#nw.PlanQuote.delta_usd" title="Link to this definition">#</a></dt>
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">delta_usd</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.15)"><span class="pre">Optional</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#float" title="(in Python v3.15)"><span class="pre">float</span></a><span class="p"><span class="pre">]</span></span></span><a class="headerlink" href="#nw.PlanQuote.delta_usd" title="Link to this definition">#</a></dt>
 <dd><p><code class="docutils literal notranslate"><span class="pre">total_usd</span> <span class="pre">-</span> <span class="pre">as_of_total_usd</span></code>, or <code class="docutils literal notranslate"><span class="pre">None</span></code> when either is unknown.</p>
 <p><code class="docutils literal notranslate"><span class="pre">None</span></code> rather than <code class="docutils literal notranslate"><span class="pre">0.0</span></code>: a plan that lost its price did not move
 by zero.</p>
@@ -1880,7 +1951,7 @@ number, whether it is knowable, and whether it moved. Reach into
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="nw.PlanQuote.total_usd">
-<span class="sig-name descname"><span class="pre">total_usd</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#float" title="(in Python v3.15)"><span class="pre">float</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><span class="pre">None</span></a></span><a class="headerlink" href="#nw.PlanQuote.total_usd" title="Link to this definition">#</a></dt>
+<span class="sig-name descname"><span class="pre">total_usd</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.15)"><span class="pre">Optional</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#float" title="(in Python v3.15)"><span class="pre">float</span></a><span class="p"><span class="pre">]</span></span></span><a class="headerlink" href="#nw.PlanQuote.total_usd" title="Link to this definition">#</a></dt>
 <dd><p>Today’s billable total, or <code class="docutils literal notranslate"><span class="pre">None</span></code> when any billable call is
 unpriceable today. <code class="docutils literal notranslate"><span class="pre">None</span></code> means unknown, never free (nw invariant #2).</p>
 </dd></dl>
@@ -1921,7 +1992,7 @@ way to lose them.</p>
 <li><p><strong>root</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a> | <a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Path</span></code></a></span>) – Folder to create. Must not exist (or pass <code class="docutils literal notranslate"><span class="pre">force=True</span></code> to
 overwrite an empty folder).</p></li>
 <li><p><strong>title</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a></span>) – Optional human-readable title; defaults to the folder name.</p></li>
-<li><p><strong>song</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Union</span></code>[<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Path</span></code></a>, <a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></a>]</span>) – Optional path to a master audio file. When given, the file
+<li><p><strong>song</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Union" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Union</span></code></a>[<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Path</span></code></a>, <span class="highlight sphinx_autodoc_typehints-value"><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></a></span>]</span>) – Optional path to a master audio file. When given, the file
 is <em>copied</em> into <code class="docutils literal notranslate"><span class="pre">&lt;root&gt;/song/</span></code> and registered in the spec.</p></li>
 <li><p><strong>force</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#bool" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></a></span>) – When True, accept an existing folder if it’s empty (no
 <code class="docutils literal notranslate"><span class="pre">project.json</span></code>); refuse if a project already exists there.</p></li>
@@ -1966,7 +2037,7 @@ these in inspector / network views.</p></li>
 </ul>
 <dl class="field-list simple">
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></a></span></p>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><span class="highlight sphinx_autodoc_typehints-value"><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></a></span></span></p>
 </dd>
 </dl>
 </dd></dl>
@@ -2141,7 +2212,7 @@ shots, characters, environments) through the graph and persists the
 rest as project.json metadata.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></a></span></p>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><span class="highlight sphinx_autodoc_typehints-value"><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></a></span></span></p>
 </dd>
 </dl>
 </dd></dl>
@@ -2191,7 +2262,7 @@ unproduced-output record in place** — it reads as a live blocker
 after reload even though this write produced the thing it described.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></a></span></p>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><span class="highlight sphinx_autodoc_typehints-value"><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></a></span></span></p>
 </dd>
 </dl>
 </dd></dl>
@@ -2380,7 +2451,7 @@ instead of being orphaned; an edit that changes nothing writes nothing.
 
 <dl class="py class">
 <dt class="sig sig-object py" id="nw.ProjectSpec">
-<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">nw.</span></span><span class="sig-name descname"><span class="pre">ProjectSpec</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">data</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/nw/schema.html#ProjectSpec"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nw.ProjectSpec" title="Link to this definition">#</a></dt>
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">nw.</span></span><span class="sig-name descname"><span class="pre">ProjectSpec</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">schema_version</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">title</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">song</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">characters</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">()</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">environments</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">()</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sections</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">()</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">shots</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">()</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">global_style</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">notes</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/nw/schema.html#ProjectSpec"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nw.ProjectSpec" title="Link to this definition">#</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">BaseModel</span></code></p>
 <p>The top-level project SSOT, persisted as <code class="docutils literal notranslate"><span class="pre">project.json</span></code>.</p>
 <p>Field names and order are chosen to round-trip identically with muvid’s
@@ -2409,7 +2480,7 @@ the project has (graph included), each store closed before the next opens.</p>
 
 <dl class="py class">
 <dt class="sig sig-object py" id="nw.ProjectSummary">
-<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">nw.</span></span><span class="sig-name descname"><span class="pre">ProjectSummary</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">data</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/nw/schema.html#ProjectSummary"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nw.ProjectSummary" title="Link to this definition">#</a></dt>
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">nw.</span></span><span class="sig-name descname"><span class="pre">ProjectSummary</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">title</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">root</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">schema_version</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">song_path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">song_duration_s</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">character_count</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">environment_count</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">section_count</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">shot_count</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rendered_shot_count</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">has_lyrics</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">has_alignment</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">has_script</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">has_final_compose</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/nw/schema.html#ProjectSummary"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nw.ProjectSummary" title="Link to this definition">#</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">BaseModel</span></code></p>
 <p>Typed read view of a project — what <code class="docutils literal notranslate"><span class="pre">muvid</span> <span class="pre">status</span></code> printed, but typed.</p>
 <p>Returned by <a class="reference internal" href="#nw.Project.read_summary" title="nw.Project.read_summary"><code class="xref py py-meth docutils literal notranslate"><span class="pre">Project.read_summary()</span></code></a>. Holds the small facts the user
@@ -2447,7 +2518,7 @@ let a server path escape in the message.</p>
 
 <dl class="py class">
 <dt class="sig sig-object py" id="nw.ResumptionBrief">
-<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">nw.</span></span><span class="sig-name descname"><span class="pre">ResumptionBrief</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">data</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/nw/schema.html#ResumptionBrief"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nw.ResumptionBrief" title="Link to this definition">#</a></dt>
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">nw.</span></span><span class="sig-name descname"><span class="pre">ResumptionBrief</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">title</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">root</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">last_session_at</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">gap_seconds</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">recent_decisions</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">()</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">downstream_of_last_authored_change</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">&lt;factory&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">last_authored_change_id</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">total_spend_usd</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">unrendered_shot_ids</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">()</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">suggested_next</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">&lt;factory&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">caveats</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">&lt;factory&gt;</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/nw/schema.html#ResumptionBrief"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nw.ResumptionBrief" title="Link to this definition">#</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">BaseModel</span></code></p>
 <p>A “where we left off” snapshot, returned by <a class="reference internal" href="#nw.Project.resumption_brief" title="nw.Project.resumption_brief"><code class="xref py py-meth docutils literal notranslate"><span class="pre">nw.Project.resumption_brief()</span></code></a>.</p>
 <p>Pure data: no fal calls, no LLM, no network. reelee renders it as prose
@@ -2517,7 +2588,7 @@ caller bug worth failing on.</p>
 
 <dl class="py class">
 <dt class="sig sig-object py" id="nw.SectionSpec">
-<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">nw.</span></span><span class="sig-name descname"><span class="pre">SectionSpec</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">data</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/nw/schema.html#SectionSpec"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nw.SectionSpec" title="Link to this definition">#</a></dt>
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">nw.</span></span><span class="sig-name descname"><span class="pre">SectionSpec</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">id</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">start_s</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">end_s</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">label</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">energy</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mood</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/nw/schema.html#SectionSpec"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nw.SectionSpec" title="Link to this definition">#</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">BaseModel</span></code></p>
 <p>A non-overlapping span of the project’s master timeline.</p>
 <p><code class="docutils literal notranslate"><span class="pre">label</span></code> is free-form (“intro”, “verse”, “chorus”, “scene-1”, “act-2”,
@@ -2535,7 +2606,7 @@ their own taxonomy.</p>
 
 <dl class="py class">
 <dt class="sig sig-object py" id="nw.ShotPreparation">
-<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">nw.</span></span><span class="sig-name descname"><span class="pre">ShotPreparation</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">project_root</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">shot</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">shot_dir</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">audio_slice_path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">audio_slice_url</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">character_anchor_paths</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">&lt;factory&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">character_anchor_urls</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">&lt;factory&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">environment_anchor_path</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">environment_anchor_url</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lyric_lines</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">&lt;factory&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">storyboard_prompt</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">global_style</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/nw/workflow.html#ShotPreparation"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nw.ShotPreparation" title="Link to this definition">#</a></dt>
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">nw.</span></span><span class="sig-name descname"><span class="pre">ShotPreparation</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">project_root</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">shot</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">shot_dir</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">audio_slice_path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">audio_slice_url</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">character_anchor_paths</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">dict()</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">character_anchor_urls</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">dict()</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">environment_anchor_path</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">environment_anchor_url</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lyric_lines</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">list()</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">storyboard_prompt</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">global_style</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/nw/workflow.html#ShotPreparation"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nw.ShotPreparation" title="Link to this definition">#</a></dt>
 <dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/builtins/functions.html#object" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
 <p>Local-only inputs for rendering a single shot.</p>
 <p>Building a ShotPreparation is a pure-filesystem operation: no fal calls
@@ -2574,7 +2645,7 @@ will raise descriptively).</p>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="nw.ShotPreparation.environment_anchor_path">
-<span class="sig-name descname"><span class="pre">environment_anchor_path</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.15)"><span class="pre">Path</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><span class="pre">None</span></a></span><a class="headerlink" href="#nw.ShotPreparation.environment_anchor_path" title="Link to this definition">#</a></dt>
+<span class="sig-name descname"><span class="pre">environment_anchor_path</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.15)"><span class="pre">Optional</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.15)"><span class="pre">Path</span></a><span class="p"><span class="pre">]</span></span></span><a class="headerlink" href="#nw.ShotPreparation.environment_anchor_path" title="Link to this definition">#</a></dt>
 <dd><p>Path to the environment establishing image, or None.</p>
 </dd></dl>
 
@@ -2606,7 +2677,7 @@ environment + style + lyric lines (when present).</p>
 
 <dl class="py class">
 <dt class="sig sig-object py" id="nw.ShotReport">
-<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">nw.</span></span><span class="sig-name descname"><span class="pre">ShotReport</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">data</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/nw/inspect.html#ShotReport"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nw.ShotReport" title="Link to this definition">#</a></dt>
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">nw.</span></span><span class="sig-name descname"><span class="pre">ShotReport</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">shot_id</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">duration_s</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">target_duration_s</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">duration_within_tolerance</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">has_video</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">has_audio</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">frame_count</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fps</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">frozen_segments</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">()</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">freeze_total_s</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/nw/inspect.html#ShotReport"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nw.ShotReport" title="Link to this definition">#</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">BaseModel</span></code></p>
 <p>Inspection of one rendered shot.</p>
 <dl class="field-list simple">
@@ -2627,7 +2698,7 @@ environment + style + lyric lines (when present).</p>
 
 <dl class="py class">
 <dt class="sig sig-object py" id="nw.ShotSpec">
-<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">nw.</span></span><span class="sig-name descname"><span class="pre">ShotSpec</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">data</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/nw/schema.html#ShotSpec"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nw.ShotSpec" title="Link to this definition">#</a></dt>
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">nw.</span></span><span class="sig-name descname"><span class="pre">ShotSpec</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">id</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">start_s</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">end_s</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">section_id</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">render_strategy</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'image_to_video'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">environment</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">characters</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">()</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">description</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">camera</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">framing</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'medium'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">notes</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/nw/schema.html#ShotSpec"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nw.ShotSpec" title="Link to this definition">#</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">BaseModel</span></code></p>
 <p>A timeline-locked visual unit.</p>
 <p><code class="docutils literal notranslate"><span class="pre">[start_s,</span> <span class="pre">end_s)</span></code> is half-open. <code class="docutils literal notranslate"><span class="pre">render_strategy</span></code> is an open string
@@ -2646,7 +2717,7 @@ the schema.</p>
 
 <dl class="py class">
 <dt class="sig sig-object py" id="nw.SongInfo">
-<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">nw.</span></span><span class="sig-name descname"><span class="pre">SongInfo</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">data</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/nw/schema.html#SongInfo"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nw.SongInfo" title="Link to this definition">#</a></dt>
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">nw.</span></span><span class="sig-name descname"><span class="pre">SongInfo</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">audio_path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">duration_s</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sample_rate</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bitrate</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bpm</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/nw/schema.html#SongInfo"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nw.SongInfo" title="Link to this definition">#</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">BaseModel</span></code></p>
 <p>Metadata for the master audio file.</p>
 <p>Compatible with muvid’s SongInfo by field name and type.</p>
@@ -2700,7 +2771,7 @@ run ffmpeg, but no fal calls.</p>
 
 <dl class="py class">
 <dt class="sig sig-object py" id="nw.Template">
-<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">nw.</span></span><span class="sig-name descname"><span class="pre">Template</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">slug</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">title</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">description</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">params</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">&lt;factory&gt;</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/nw/genres.html#Template"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nw.Template" title="Link to this definition">#</a></dt>
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">nw.</span></span><span class="sig-name descname"><span class="pre">Template</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">slug</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">title</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">description</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">params</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">dict()</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/nw/genres.html#Template"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nw.Template" title="Link to this definition">#</a></dt>
 <dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/builtins/functions.html#object" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
 <p>A named preset (“subgenre”) <em>within</em> a genre — a filled-in default config.</p>
 <p>AV-general: the substrate owns the Template’s identity (<code class="docutils literal notranslate"><span class="pre">slug</span></code>/<code class="docutils literal notranslate"><span class="pre">title</span></code>/
@@ -2894,7 +2965,7 @@ filled in; their bodies’ artifact references are placeholders that
 
 <dl class="py class">
 <dt class="sig sig-object py" id="nw.TransformInputs">
-<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">nw.</span></span><span class="sig-name descname"><span class="pre">TransformInputs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">primary</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">context</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">&lt;factory&gt;</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/nw/transforms.html#TransformInputs"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nw.TransformInputs" title="Link to this definition">#</a></dt>
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">nw.</span></span><span class="sig-name descname"><span class="pre">TransformInputs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">primary</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">context</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">dict()</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/nw/transforms.html#TransformInputs"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nw.TransformInputs" title="Link to this definition">#</a></dt>
 <dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/builtins/functions.html#object" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
 <p>The annotations a Transform consumes.</p>
 <p><code class="docutils literal notranslate"><span class="pre">primary</span></code> is the subject of the operation — a single-element tuple for
@@ -2993,7 +3064,7 @@ dead end for a model choosing among them.</p>
 
 <dl class="py class">
 <dt class="sig sig-object py" id="nw.UnproducedOutputBodyV1">
-<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">nw.</span></span><span class="sig-name descname"><span class="pre">UnproducedOutputBodyV1</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">data</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/nw/bodies/unproduced_output.html#UnproducedOutputBodyV1"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nw.UnproducedOutputBodyV1" title="Link to this definition">#</a></dt>
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">nw.</span></span><span class="sig-name descname"><span class="pre">UnproducedOutputBodyV1</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">transform_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">instance_id</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">call_index</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">upstream</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">()</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_kind</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">status</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reason</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">error_type</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">blocked_by</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">()</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/nw/bodies/unproduced_output.html#UnproducedOutputBodyV1"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nw.UnproducedOutputBodyV1" title="Link to this definition">#</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">BaseModel</span></code></p>
 <p>Body of an unproduced-output record.</p>
 <p><code class="docutils literal notranslate"><span class="pre">status</span></code> mirrors <code class="xref py py-class docutils literal notranslate"><span class="pre">nw.transforms.fanout.UnitStatus</span></code>’s two
@@ -3031,18 +3102,33 @@ is not itself a sufficient key.</p>
 <dt class="sig sig-object py" id="nw.ValidationReport.target">
 <span class="sig-name descname"><span class="pre">target</span></span><a class="headerlink" href="#nw.ValidationReport.target" title="Link to this definition">#</a></dt>
 <dd><p>what was validated.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.15)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code></a></span></p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="nw.ValidationReport.results">
 <span class="sig-name descname"><span class="pre">results</span></span><a class="headerlink" href="#nw.ValidationReport.results" title="Link to this definition">#</a></dt>
 <dd><p>one per check that was selected, in the order they were run.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#tuple" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">tuple</span></code></a>[<a class="reference internal" href="nw.validation.html#nw.validation.CheckResult" title="nw.validation.CheckResult"><code class="xref py py-class docutils literal notranslate"><span class="pre">CheckResult</span></code></a>, <a class="reference external" href="https://docs.python.org/3/builtins/constants.html#Ellipsis" title="(in Python v3.15)"><code class="xref py py-data docutils literal notranslate"><span class="pre">...</span></code></a>]</span></p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="nw.ValidationReport.elapsed_s">
 <span class="sig-name descname"><span class="pre">elapsed_s</span></span><a class="headerlink" href="#nw.ValidationReport.elapsed_s" title="Link to this definition">#</a></dt>
 <dd><p>wall-clock for the whole run.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#float" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></a></span></p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py property">
@@ -3079,7 +3165,7 @@ get the conservative answer without having to remember to ask for it.</p>
 
 <dl class="py class">
 <dt class="sig sig-object py" id="nw.WorkItem">
-<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">nw.</span></span><span class="sig-name descname"><span class="pre">WorkItem</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">data</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/nw/transforms/fanout.html#WorkItem"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nw.WorkItem" title="Link to this definition">#</a></dt>
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">nw.</span></span><span class="sig-name descname"><span class="pre">WorkItem</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mapping_key</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">parent_key</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">attributes</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">&lt;factory&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scope_interval</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/nw/transforms/fanout.html#WorkItem"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nw.WorkItem" title="Link to this definition">#</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">BaseModel</span></code></p>
 <p>One unit of a fan-out — the PDG-shaped work item (nw#26).</p>
 <p><code class="docutils literal notranslate"><span class="pre">scope_interval</span></code> puts <em>time in the demand, not the graph</em> (Nuke’s
@@ -3126,11 +3212,6 @@ no graph data.</p>
 has no <code class="docutils literal notranslate"><span class="pre">project.json</span></code> or keeps its own keying (no <code class="docutils literal notranslate"><span class="pre">tenant_id</span></code>). Raises
 <code class="docutils literal notranslate"><span class="pre">FileNotFoundError</span></code> when the song audio its tenant hashes is missing.
 With <code class="docutils literal notranslate"><span class="pre">dry_run</span></code> nothing is written.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.15)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code></a>[<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>]</span></p>
-</dd>
-</dl>
 <div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span data-line="1"><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span><span class="w"> </span><span class="nn">tempfile</span><span class="o">,</span><span class="w"> </span><span class="nn">json</span><span class="o">,</span><span class="w"> </span><span class="nn">pathlib</span>
 </span><span data-line="2"><span class="gp">&gt;&gt;&gt; </span><span class="n">root</span> <span class="o">=</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">(</span><span class="n">tempfile</span><span class="o">.</span><span class="n">mkdtemp</span><span class="p">())</span>
 </span><span data-line="3"><span class="gp">&gt;&gt;&gt; </span><span class="n">_</span> <span class="o">=</span> <span class="p">(</span><span class="n">root</span> <span class="o">/</span> <span class="s2">"project.json"</span><span class="p">)</span><span class="o">.</span><span class="n">write_text</span><span class="p">(</span><span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">({</span><span class="s2">"title"</span><span class="p">:</span> <span class="s2">"t"</span><span class="p">}))</span>
@@ -3138,6 +3219,11 @@ With <code class="docutils literal notranslate"><span class="pre">dry_run</span>
 </span><span data-line="5"><span class="go">True</span>
 </span></pre></div>
 </div>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.15)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code></a>[<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>]</span></p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py function">
@@ -3185,7 +3271,7 @@ size because one is O(all rows) and the other O(matching).</p>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>roots</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Iterable" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Iterable</span></code></a>[<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a> | <a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Path</span></code></a>]</span>) – Iterable of project roots. Each must point to an existing
 nw project.</p></li>
-<li><p><strong>fn</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Callable" title="(in Python v3.15)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Callable</span></code></a>[[<a class="reference internal" href="nw.project.html#nw.project.Project" title="nw.project.Project"><code class="xref py py-class docutils literal notranslate"><span class="pre">Project</span></code></a>], <a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.TypeVar" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">TypeVar</span></code></a>(<code class="docutils literal notranslate"><span class="pre">T</span></code>)]</span>) – Callable taking a <a class="reference internal" href="#nw.Project" title="nw.Project"><code class="xref py py-class docutils literal notranslate"><span class="pre">Project</span></code></a> and returning anything. Use this
+<li><p><strong>fn</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Callable" title="(in Python v3.15)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Callable</span></code></a>[[<a class="reference internal" href="nw.project.html#nw.project.Project" title="nw.project.Project"><code class="xref py py-class docutils literal notranslate"><span class="pre">Project</span></code></a>], <code class="docutils literal notranslate"><span class="pre">T</span></code>]</span>) – Callable taking a <a class="reference internal" href="#nw.Project" title="nw.Project"><code class="xref py py-class docutils literal notranslate"><span class="pre">Project</span></code></a> and returning anything. Use this
 for per-project operations: parsing a script, estimating cost,
 rendering, gathering reports.</p></li>
 <li><p><strong>parallel</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#bool" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></a></span>) – When True, run <code class="docutils literal notranslate"><span class="pre">fn</span></code> in a thread pool. Useful when <code class="docutils literal notranslate"><span class="pre">fn</span></code>
@@ -3194,7 +3280,7 @@ sequentially in submission order — the safest semantics.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Return type<span class="colon">:</span></dt>
-<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#list" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.TypeVar" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">TypeVar</span></code></a>(<code class="docutils literal notranslate"><span class="pre">T</span></code>)]</span></p>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#list" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code></a>[<code class="docutils literal notranslate"><span class="pre">T</span></code>]</span></p>
 </dd>
 <dt class="field-odd">Returns<span class="colon">:</span></dt>
 <dd class="field-odd"><p>A list of <code class="docutils literal notranslate"><span class="pre">fn(project)</span></code> results in the same order as <code class="docutils literal notranslate"><span class="pre">roots</span></code>.</p>
@@ -3233,11 +3319,6 @@ redacting type. A Transform that <strong>overrides</strong> <code class="docutil
 directly gets whatever the caller passed: an override that logs or
 formats its <code class="docutils literal notranslate"><span class="pre">secrets</span></code> should <code class="docutils literal notranslate"><span class="pre">as_secrets</span></code> first (or the caller should
 hand it a <a class="reference internal" href="#nw.Secrets" title="nw.Secrets"><code class="xref py py-class docutils literal notranslate"><span class="pre">Secrets</span></code></a>), because a plain <code class="docutils literal notranslate"><span class="pre">dict</span></code> prints its values.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.15)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code></a>[<a class="reference internal" href="nw.secrets.html#nw.secrets.Secrets" title="nw.secrets.Secrets"><code class="xref py py-class docutils literal notranslate"><span class="pre">Secrets</span></code></a>]</span></p>
-</dd>
-</dl>
 <div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span data-line="1"><span class="gp">&gt;&gt;&gt; </span><span class="n">as_secrets</span><span class="p">(</span><span class="kc">None</span><span class="p">)</span> <span class="ow">is</span> <span class="kc">None</span>
 </span><span data-line="2"><span class="go">True</span>
 </span><span data-line="3"><span class="gp">&gt;&gt;&gt; </span><span class="n">as_secrets</span><span class="p">({</span><span class="s2">"fal"</span><span class="p">:</span> <span class="kc">None</span><span class="p">})</span> <span class="ow">is</span> <span class="kc">None</span>
@@ -3246,6 +3327,11 @@ hand it a <a class="reference internal" href="#nw.Secrets" title="nw.Secrets"><c
 </span><span data-line="6"><span class="go">Secrets(&lt;1 redacted: fal&gt;)</span>
 </span></pre></div>
 </div>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.15)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code></a>[<a class="reference internal" href="nw.secrets.html#nw.secrets.Secrets" title="nw.secrets.Secrets"><code class="xref py py-class docutils literal notranslate"><span class="pre">Secrets</span></code></a>]</span></p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py function">
@@ -3325,11 +3411,6 @@ silently averaged away.</p>
 a genre whose factory predates <code class="xref py py-data docutils literal notranslate"><span class="pre">PLACEMENT_ARG</span></code> can still be created, but
 only in its own app’s workspace — where the host cannot address it. False for an
 unregistered genre.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#bool" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></a></span></p>
-</dd>
-</dl>
 <div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span data-line="1"><span class="gp">&gt;&gt;&gt; </span><span class="k">def</span><span class="w"> </span><span class="nf">_old</span><span class="p">(</span><span class="n">caller</span><span class="p">,</span> <span class="n">project_id</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">title</span><span class="p">,</span> <span class="n">template</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
 </span><span data-line="2"><span class="gp">... </span>    <span class="k">return</span> <span class="p">{</span><span class="s2">"project"</span><span class="p">:</span> <span class="kc">None</span><span class="p">}</span>
 </span><span data-line="3"><span class="gp">&gt;&gt;&gt; </span><span class="k">def</span><span class="w"> </span><span class="nf">_new</span><span class="p">(</span><span class="n">caller</span><span class="p">,</span> <span class="n">project_id</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">title</span><span class="p">,</span> <span class="n">template</span><span class="p">,</span> <span class="n">params</span><span class="p">,</span> <span class="n">projects_dir</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
@@ -3344,6 +3425,11 @@ unregistered genre.</p>
 </span><span data-line="12"><span class="gp">&gt;&gt;&gt; </span><span class="k">del</span> <span class="n">genre_project_factories</span><span class="p">[</span><span class="s2">"_place_new"</span><span class="p">]</span>
 </span></pre></div>
 </div>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#bool" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></a></span></p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py function">
@@ -3422,11 +3508,6 @@ frozen figure is what makes the row re-quotable later by
 <p><code class="docutils literal notranslate"><span class="pre">cost_basis</span></code> is omitted when unset, exactly as falaw omits it, so a row
 written by a caller that records no basis is byte-identical to what nw
 wrote before nw#74.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#list" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code></a>[<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#dict" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></a>[<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.15)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code></a>]]</span></p>
-</dd>
-</dl>
 <div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span data-line="1"><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">falaw</span><span class="w"> </span><span class="kn">import</span> <span class="n">CallPlan</span><span class="p">,</span> <span class="n">Plan</span>
 </span><span data-line="2"><span class="gp">&gt;&gt;&gt; </span><span class="n">call</span> <span class="o">=</span> <span class="n">CallPlan</span><span class="p">(</span><span class="n">tool</span><span class="o">=</span><span class="s2">"t"</span><span class="p">,</span> <span class="n">application</span><span class="o">=</span><span class="s2">"a"</span><span class="p">,</span> <span class="n">arguments</span><span class="o">=</span><span class="p">{},</span>
 </span><span data-line="3"><span class="gp">... </span>                <span class="n">output_kind</span><span class="o">=</span><span class="s2">"video"</span><span class="p">,</span> <span class="n">estimated_cost_usd</span><span class="o">=</span><span class="mf">1.0</span><span class="p">)</span>
@@ -3434,6 +3515,11 @@ wrote before nw#74.</p>
 </span><span data-line="5"><span class="go">['application', 'cache_status', 'estimated_cost_usd', 'tool']</span>
 </span></pre></div>
 </div>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#list" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code></a>[<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#dict" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></a>[<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.15)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code></a>]]</span></p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py function">
@@ -3624,7 +3710,7 @@ forecloses it — units are planned independently and the result is
 order-aligned, not order-dependent.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type">FanOutResult</span></p>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="#nw.FanOutResult" title="nw.transforms.fanout.FanOutResult"><code class="xref py py-class docutils literal notranslate"><span class="pre">FanOutResult</span></code></a></span></p>
 </dd>
 </dl>
 </dd></dl>
@@ -3647,7 +3733,7 @@ persistence. Idempotent, so <code class="xref py py-meth docutils literal notran
 execute time changes nothing.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type">FanOutPlan</span></p>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="#nw.FanOutPlan" title="nw.transforms.fanout.FanOutPlan"><code class="xref py py-class docutils literal notranslate"><span class="pre">FanOutPlan</span></code></a></span></p>
 </dd>
 </dl>
 </dd></dl>
@@ -3656,15 +3742,15 @@ execute time changes nothing.</p>
 <dt class="sig sig-object py" id="nw.format_ref">
 <span class="sig-prename descclassname"><span class="pre">nw.</span></span><span class="sig-name descname"><span class="pre">format_ref</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">n</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/nw/delivery.html#format_ref"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nw.format_ref" title="Link to this definition">#</a></dt>
 <dd><p>The one spelling we print. Input is permissive; output never varies.</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span data-line="1"><span class="gp">&gt;&gt;&gt; </span><span class="n">format_ref</span><span class="p">(</span><span class="mi">1</span><span class="p">),</span> <span class="n">format_ref</span><span class="p">(</span><span class="mi">42</span><span class="p">)</span>
+</span><span data-line="2"><span class="go">('cut 1', 'cut 42')</span>
+</span></pre></div>
+</div>
 <dl class="field-list simple">
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a></span></p>
 </dd>
 </dl>
-<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span data-line="1"><span class="gp">&gt;&gt;&gt; </span><span class="n">format_ref</span><span class="p">(</span><span class="mi">1</span><span class="p">),</span> <span class="n">format_ref</span><span class="p">(</span><span class="mi">42</span><span class="p">)</span>
-</span><span data-line="2"><span class="go">('cut 1', 'cut 42')</span>
-</span></pre></div>
-</div>
 </dd></dl>
 
 <dl class="py function">
@@ -3784,16 +3870,16 @@ recorded envelope certifies a completed initialization, never a failed
 one. A <code class="docutils literal notranslate"><span class="pre">project</span></code> stand-in without a <code class="docutils literal notranslate"><span class="pre">graph</span></code> (a test double, a
 factory that returns no live project) skips the recording; read it back
 via <a class="reference internal" href="#nw.Project.resolved_genre" title="nw.Project.resolved_genre"><code class="xref py py-meth docutils literal notranslate"><span class="pre">nw.Project.resolved_genre()</span></code></a>.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></a></span></p>
-</dd>
-</dl>
 <div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span data-line="1"><span class="gp">&gt;&gt;&gt; </span><span class="n">_</span> <span class="o">=</span> <span class="n">register_genre</span><span class="p">(</span><span class="n">Genre</span><span class="p">(</span><span class="n">slug</span><span class="o">=</span><span class="s2">"_noinit_demo"</span><span class="p">,</span> <span class="n">title</span><span class="o">=</span><span class="s2">"Demo"</span><span class="p">))</span>
 </span><span data-line="2"><span class="gp">&gt;&gt;&gt; </span><span class="n">initialize_genre</span><span class="p">(</span><span class="s2">"_noinit_demo"</span><span class="p">,</span> <span class="nb">object</span><span class="p">())</span>  <span class="c1"># no initializer -&gt; no seed</span>
 </span><span data-line="3"><span class="gp">&gt;&gt;&gt; </span><span class="k">del</span> <span class="n">genres</span><span class="p">[</span><span class="s2">"_noinit_demo"</span><span class="p">]</span>
 </span></pre></div>
 </div>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><span class="highlight sphinx_autodoc_typehints-value"><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></a></span></span></p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py function">
@@ -3920,11 +4006,6 @@ scopes are walked.</p>
 <p><code class="docutils literal notranslate"><span class="pre">None</span></code> is the signal to fall through to treating the input as a raw
 artifact id — which is why this never raises: “not an ordinal” is an
 ordinary, expected answer, not an error.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></a> | <a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></a></span></p>
-</dd>
-</dl>
 <div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span data-line="1"><span class="gp">&gt;&gt;&gt; </span><span class="n">parse_ref</span><span class="p">(</span><span class="s2">"cut 4"</span><span class="p">),</span> <span class="n">parse_ref</span><span class="p">(</span><span class="s2">"CUT4"</span><span class="p">),</span> <span class="n">parse_ref</span><span class="p">(</span><span class="s2">" cut - 4 "</span><span class="p">)</span>
 </span><span data-line="2"><span class="go">(4, 4, 4)</span>
 </span><span data-line="3"><span class="gp">&gt;&gt;&gt; </span><span class="n">parse_ref</span><span class="p">(</span><span class="s2">"#11"</span><span class="p">),</span> <span class="n">parse_ref</span><span class="p">(</span><span class="s2">"11"</span><span class="p">)</span>
@@ -3939,6 +4020,11 @@ accepting <code class="docutils literal notranslate"><span class="pre">cut</span
 </span><span data-line="2"><span class="go">True</span>
 </span></pre></div>
 </div>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></a> | <span class="highlight sphinx_autodoc_typehints-value"><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></a></span></span></p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py function">
@@ -3954,7 +4040,7 @@ A check that is not <code class="docutils literal notranslate"><span class="pre"
     registered — both at plan time, before anything has been spent.</p>
 </dd>
 <dt class="field-even">Return type<span class="colon">:</span></dt>
-<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#tuple" title="(in Python v3.15)"><em>tuple</em></a>[<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#tuple" title="(in Python v3.15)"><em>tuple</em></a>[<a class="reference internal" href="nw.validation.html#nw.validation.Check" title="nw.validation.Check"><em>Check</em></a>, …], …]</p>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#tuple" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">tuple</span></code></a>[<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#tuple" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">tuple</span></code></a>[<a class="reference internal" href="nw.validation.html#nw.validation.Check" title="nw.validation.Check"><code class="xref py py-class docutils literal notranslate"><span class="pre">Check</span></code></a>, <a class="reference external" href="https://docs.python.org/3/builtins/constants.html#Ellipsis" title="(in Python v3.15)"><code class="xref py py-data docutils literal notranslate"><span class="pre">...</span></code></a>], <a class="reference external" href="https://docs.python.org/3/builtins/constants.html#Ellipsis" title="(in Python v3.15)"><code class="xref py py-data docutils literal notranslate"><span class="pre">...</span></code></a>]</span></p>
 </dd>
 </dl>
 <p class="rubric">Examples</p>
@@ -3962,11 +4048,6 @@ A check that is not <code class="docutils literal notranslate"><span class="pre"
 </span><span data-line="2"><span class="go">()</span>
 </span></pre></div>
 </div>
-<dl class="field-list simple">
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#tuple" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">tuple</span></code></a>[<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#tuple" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">tuple</span></code></a>[<a class="reference internal" href="nw.validation.html#nw.validation.Check" title="nw.validation.Check"><code class="xref py py-class docutils literal notranslate"><span class="pre">Check</span></code></a>, <a class="reference external" href="https://docs.python.org/3/builtins/constants.html#Ellipsis" title="(in Python v3.15)"><code class="xref py py-data docutils literal notranslate"><span class="pre">...</span></code></a>], <a class="reference external" href="https://docs.python.org/3/builtins/constants.html#Ellipsis" title="(in Python v3.15)"><code class="xref py py-data docutils literal notranslate"><span class="pre">...</span></code></a>]</span></p>
-</dd>
-</dl>
 </dd></dl>
 
 <dl class="py function">
@@ -4078,11 +4159,6 @@ over a payload whose calls sum to $0 is a broken record, and answering
 “$0, unchanged” would report a stored $3 as a known zero. nw’s own writer
 never produces such a payload; a hand-edited or truncated one can, and
 unknown is the only honest reading of it.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="nw.pricing.html#nw.pricing.PlanQuote" title="nw.pricing.PlanQuote"><code class="xref py py-class docutils literal notranslate"><span class="pre">PlanQuote</span></code></a></span></p>
-</dd>
-</dl>
 <div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span data-line="1"><span class="gp">&gt;&gt;&gt; </span><span class="n">broken</span> <span class="o">=</span> <span class="n">quote_render_decision</span><span class="p">(</span>
 </span><span data-line="2"><span class="gp">... </span>    <span class="p">{</span><span class="s2">"calls"</span><span class="p">:</span> <span class="p">[],</span> <span class="s2">"total_estimated_cost_usd"</span><span class="p">:</span> <span class="mf">3.0</span><span class="p">})</span>
 </span><span data-line="3"><span class="gp">&gt;&gt;&gt; </span><span class="n">broken</span><span class="o">.</span><span class="n">status</span><span class="p">,</span> <span class="n">broken</span><span class="o">.</span><span class="n">total_usd</span><span class="p">,</span> <span class="n">broken</span><span class="o">.</span><span class="n">as_of_total_usd</span>
@@ -4095,6 +4171,11 @@ unknown is the only honest reading of it.</p>
 </span><span data-line="10"><span class="go">('unknown', None, 3.0)</span>
 </span></pre></div>
 </div>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="nw.pricing.html#nw.pricing.PlanQuote" title="nw.pricing.PlanQuote"><code class="xref py py-class docutils literal notranslate"><span class="pre">PlanQuote</span></code></a></span></p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py function">
@@ -4102,11 +4183,6 @@ unknown is the only honest reading of it.</p>
 <span class="sig-prename descclassname"><span class="pre">nw.</span></span><span class="sig-name descname"><span class="pre">recommend_genre</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">kind</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/nw/genres.html#recommend_genre"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nw.recommend_genre" title="Link to this definition">#</a></dt>
 <dd><p>The slug of the genre whose <code class="docutils literal notranslate"><span class="pre">intake_kinds</span></code> contains <code class="docutils literal notranslate"><span class="pre">kind</span></code> (first in slug
 order), or <code class="docutils literal notranslate"><span class="pre">None</span></code> when <code class="docutils literal notranslate"><span class="pre">kind</span></code> is falsy / unmatched.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a> | <a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></a></span></p>
-</dd>
-</dl>
 <div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span data-line="1"><span class="gp">&gt;&gt;&gt; </span><span class="n">g</span> <span class="o">=</span> <span class="n">register_genre</span><span class="p">(</span><span class="n">Genre</span><span class="p">(</span><span class="n">slug</span><span class="o">=</span><span class="s2">"_rec_demo"</span><span class="p">,</span> <span class="n">title</span><span class="o">=</span><span class="s2">"Rec"</span><span class="p">,</span> <span class="n">intake_kinds</span><span class="o">=</span><span class="p">(</span><span class="s2">"essay"</span><span class="p">,)))</span>
 </span><span data-line="2"><span class="gp">&gt;&gt;&gt; </span><span class="n">recommend_genre</span><span class="p">(</span><span class="s2">"essay"</span><span class="p">)</span>
 </span><span data-line="3"><span class="go">'_rec_demo'</span>
@@ -4115,6 +4191,11 @@ order), or <code class="docutils literal notranslate"><span class="pre">None</sp
 </span><span data-line="6"><span class="gp">&gt;&gt;&gt; </span><span class="k">del</span> <span class="n">genres</span><span class="p">[</span><span class="s2">"_rec_demo"</span><span class="p">]</span>
 </span></pre></div>
 </div>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a> | <span class="highlight sphinx_autodoc_typehints-value"><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></a></span></span></p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py function">
@@ -4124,17 +4205,17 @@ order), or <code class="docutils literal notranslate"><span class="pre">None</sp
 <p>For the places nw persists free text it did not author — an exception
 message, a failure reason — while holding the values that must not land
 there. Cheap, exact-substring, and a no-op with no secrets.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a></span></p>
-</dd>
-</dl>
 <div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span data-line="1"><span class="gp">&gt;&gt;&gt; </span><span class="n">redact</span><span class="p">(</span><span class="s2">"boom: key sk-1 rejected"</span><span class="p">,</span> <span class="p">{</span><span class="s2">"fal"</span><span class="p">:</span> <span class="s2">"sk-1"</span><span class="p">})</span>
 </span><span data-line="2"><span class="go">'boom: key &lt;redacted:fal&gt; rejected'</span>
 </span><span data-line="3"><span class="gp">&gt;&gt;&gt; </span><span class="n">redact</span><span class="p">(</span><span class="s2">"nothing here"</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
 </span><span data-line="4"><span class="go">'nothing here'</span>
 </span></pre></div>
 </div>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a></span></p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py function">
@@ -4179,11 +4260,6 @@ it does (a fan-out unit’s <code class="docutils literal notranslate"><span cla
 <dt class="sig sig-object py" id="nw.register_genre">
 <span class="sig-prename descclassname"><span class="pre">nw.</span></span><span class="sig-name descname"><span class="pre">register_genre</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">genre</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/nw/genres.html#register_genre"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nw.register_genre" title="Link to this definition">#</a></dt>
 <dd><p>Register a <a class="reference internal" href="#nw.Genre" title="nw.Genre"><code class="xref py py-class docutils literal notranslate"><span class="pre">Genre</span></code></a> under its <code class="docutils literal notranslate"><span class="pre">slug</span></code>; returns it for inline use.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="#nw.Genre" title="nw.genres.Genre"><code class="xref py py-class docutils literal notranslate"><span class="pre">Genre</span></code></a></span></p>
-</dd>
-</dl>
 <div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span data-line="1"><span class="gp">&gt;&gt;&gt; </span><span class="n">g</span> <span class="o">=</span> <span class="n">register_genre</span><span class="p">(</span><span class="n">Genre</span><span class="p">(</span><span class="n">slug</span><span class="o">=</span><span class="s2">"doctest_demo"</span><span class="p">,</span> <span class="n">title</span><span class="o">=</span><span class="s2">"Demo"</span><span class="p">))</span>
 </span><span data-line="2"><span class="gp">&gt;&gt;&gt; </span><span class="n">get_genre</span><span class="p">(</span><span class="s2">"doctest_demo"</span><span class="p">)</span><span class="o">.</span><span class="n">title</span>
 </span><span data-line="3"><span class="go">'Demo'</span>
@@ -4192,6 +4268,11 @@ it does (a fan-out unit’s <code class="docutils literal notranslate"><span cla
 </span><span data-line="6"><span class="gp">&gt;&gt;&gt; </span><span class="k">del</span> <span class="n">genres</span><span class="p">[</span><span class="s2">"doctest_demo"</span><span class="p">]</span>  <span class="c1"># keep the shared registry clean</span>
 </span></pre></div>
 </div>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="#nw.Genre" title="nw.genres.Genre"><code class="xref py py-class docutils literal notranslate"><span class="pre">Genre</span></code></a></span></p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py function">
@@ -4204,11 +4285,6 @@ it does (a fan-out unit’s <code class="docutils literal notranslate"><span cla
 <a class="reference internal" href="#nw.initialize_genre" title="nw.initialize_genre"><code class="xref py py-func docutils literal notranslate"><span class="pre">initialize_genre()</span></code></a> dispatches to it. Independent of genre *registration
 order* (keyed by the slug string). A genre that seeds nothing on create needs
 no initializer at all.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Callable" title="(in Python v3.15)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Callable</span></code></a>[[<a class="reference internal" href="#nw.Genre" title="nw.genres.Genre"><code class="xref py py-class docutils literal notranslate"><span class="pre">Genre</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.15)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code></a>[<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>], <a class="reference internal" href="nw.project.html#nw.project.Project" title="nw.project.Project"><code class="xref py py-class docutils literal notranslate"><span class="pre">Project</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/collections.abc.html#collections.abc.Mapping" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Mapping</span></code></a>[<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.15)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code></a>]], <a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></a>]</span></p>
-</dd>
-</dl>
 <div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span data-line="1"><span class="gp">&gt;&gt;&gt; </span><span class="n">_</span> <span class="o">=</span> <span class="n">register_genre</span><span class="p">(</span><span class="n">Genre</span><span class="p">(</span><span class="n">slug</span><span class="o">=</span><span class="s2">"_init_demo"</span><span class="p">,</span> <span class="n">title</span><span class="o">=</span><span class="s2">"Demo"</span><span class="p">,</span>
 </span><span data-line="2"><span class="gp">... </span>                         <span class="n">defaults</span><span class="o">=</span><span class="p">{</span><span class="s2">"look"</span><span class="p">:</span> <span class="s2">"plain"</span><span class="p">}))</span>
 </span><span data-line="3"><span class="gp">&gt;&gt;&gt; </span><span class="n">seen</span> <span class="o">=</span> <span class="p">{}</span>
@@ -4221,6 +4297,11 @@ no initializer at all.</p>
 </span><span data-line="10"><span class="gp">&gt;&gt;&gt; </span><span class="k">del</span> <span class="n">genres</span><span class="p">[</span><span class="s2">"_init_demo"</span><span class="p">];</span> <span class="k">del</span> <span class="n">genre_initializers</span><span class="p">[</span><span class="s2">"_init_demo"</span><span class="p">]</span>
 </span></pre></div>
 </div>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Callable" title="(in Python v3.15)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Callable</span></code></a>[[<a class="reference internal" href="#nw.Genre" title="nw.genres.Genre"><code class="xref py py-class docutils literal notranslate"><span class="pre">Genre</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.15)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code></a>[<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>], <a class="reference internal" href="nw.project.html#nw.project.Project" title="nw.project.Project"><code class="xref py py-class docutils literal notranslate"><span class="pre">Project</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/collections.abc.html#collections.abc.Mapping" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Mapping</span></code></a>[<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.15)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code></a>]], <span class="highlight sphinx_autodoc_typehints-value"><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></a></span>]</span></p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py function">
@@ -4231,11 +4312,6 @@ no initializer at all.</p>
 serve the genre’s project operations via <a class="reference internal" href="#nw.genre_ops" title="nw.genre_ops"><code class="xref py py-func docutils literal notranslate"><span class="pre">genre_ops()</span></code></a> without importing the
 genre’s package. Names must be unique within the genre. Registering the same genre
 twice raises (the registry refuses conflicts, as every nw genre registry does).</p>
-<dl class="field-list simple">
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#tuple" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">tuple</span></code></a></span></p>
-</dd>
-</dl>
 <div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span data-line="1"><span class="gp">&gt;&gt;&gt; </span><span class="k">def</span><span class="w"> </span><span class="nf">_peek</span><span class="p">(</span><span class="n">project</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
 </span><span data-line="2"><span class="gp">... </span><span class="w">    </span><span class="sd">'''Say hello.'''</span>
 </span><span data-line="3"><span class="gp">... </span>    <span class="k">return</span> <span class="p">{</span><span class="s2">"hello"</span><span class="p">:</span> <span class="kc">True</span><span class="p">}</span>
@@ -4250,6 +4326,11 @@ twice raises (the registry refuses conflicts, as every nw genre registry does).<
 </span><span data-line="12"><span class="gp">&gt;&gt;&gt; </span><span class="k">del</span> <span class="n">genre_ops_registry</span><span class="p">[</span><span class="s2">"_ops_demo"</span><span class="p">]</span>
 </span></pre></div>
 </div>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#tuple" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">tuple</span></code></a></span></p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py function">
@@ -4259,11 +4340,6 @@ twice raises (the registry refuses conflicts, as every nw genre registry does).<
 <p>Called by the genre’s <strong>owning app</strong> so a host that aggregates the genre can create
 its projects via <a class="reference internal" href="#nw.create_genre_project" title="nw.create_genre_project"><code class="xref py py-func docutils literal notranslate"><span class="pre">create_genre_project()</span></code></a> without knowing its storage. See
 <code class="xref py py-data docutils literal notranslate"><span class="pre">GenreProjectFactory</span></code> for the signature + the caller-space contract.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Callable" title="(in Python v3.15)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Callable</span></code></a>[<a class="reference external" href="https://docs.python.org/3/builtins/constants.html#Ellipsis" title="(in Python v3.15)"><code class="xref py py-data docutils literal notranslate"><span class="pre">...</span></code></a>, <a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#dict" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></a>]</span></p>
-</dd>
-</dl>
 <div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span data-line="1"><span class="gp">&gt;&gt;&gt; </span><span class="n">_</span> <span class="o">=</span> <span class="n">register_genre</span><span class="p">(</span><span class="n">Genre</span><span class="p">(</span><span class="n">slug</span><span class="o">=</span><span class="s2">"_pf_demo"</span><span class="p">,</span> <span class="n">title</span><span class="o">=</span><span class="s2">"Demo"</span><span class="p">,</span>
 </span><span data-line="2"><span class="gp">... </span>                         <span class="n">defaults</span><span class="o">=</span><span class="p">{</span><span class="s2">"format_id"</span><span class="p">:</span> <span class="s2">"solo"</span><span class="p">}))</span>
 </span><span data-line="3"><span class="gp">&gt;&gt;&gt; </span><span class="n">made</span> <span class="o">=</span> <span class="p">{}</span>
@@ -4278,6 +4354,11 @@ its projects via <a class="reference internal" href="#nw.create_genre_project" t
 </span><span data-line="12"><span class="gp">&gt;&gt;&gt; </span><span class="k">del</span> <span class="n">genres</span><span class="p">[</span><span class="s2">"_pf_demo"</span><span class="p">];</span> <span class="k">del</span> <span class="n">genre_project_factories</span><span class="p">[</span><span class="s2">"_pf_demo"</span><span class="p">]</span>
 </span></pre></div>
 </div>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Callable" title="(in Python v3.15)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Callable</span></code></a>[<a class="reference external" href="https://docs.python.org/3/builtins/constants.html#Ellipsis" title="(in Python v3.15)"><code class="xref py py-data docutils literal notranslate"><span class="pre">...</span></code></a>, <a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#dict" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></a>]</span></p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py function">
@@ -4288,11 +4369,6 @@ its projects via <a class="reference internal" href="#nw.create_genre_project" t
 chosen template (or <code class="docutils literal notranslate"><span class="pre">None</span></code> for “start from scratch”) to that app’s bare params
 payload; <a class="reference internal" href="#nw.resolve_genre" title="nw.resolve_genre"><code class="xref py py-func docutils literal notranslate"><span class="pre">resolve_genre()</span></code></a> adds the <code class="docutils literal notranslate"><span class="pre">{genre,</span> <span class="pre">template,</span> <span class="pre">params}</span></code> envelope.
 Independent of genre <em>registration order</em> (keyed by the slug string).</p>
-<dl class="field-list simple">
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Callable" title="(in Python v3.15)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Callable</span></code></a>[[<a class="reference internal" href="#nw.Genre" title="nw.genres.Genre"><code class="xref py py-class docutils literal notranslate"><span class="pre">Genre</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.15)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code></a>[<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>]], <a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#dict" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></a>]</span></p>
-</dd>
-</dl>
 <div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span data-line="1"><span class="gp">&gt;&gt;&gt; </span><span class="n">_</span> <span class="o">=</span> <span class="n">register_genre</span><span class="p">(</span><span class="n">Genre</span><span class="p">(</span><span class="n">slug</span><span class="o">=</span><span class="s2">"_resolver_demo"</span><span class="p">,</span> <span class="n">title</span><span class="o">=</span><span class="s2">"Demo"</span><span class="p">,</span>
 </span><span data-line="2"><span class="gp">... </span>                         <span class="n">defaults</span><span class="o">=</span><span class="p">{</span><span class="s2">"look"</span><span class="p">:</span> <span class="s2">"plain"</span><span class="p">}))</span>
 </span><span data-line="3"><span class="gp">&gt;&gt;&gt; </span><span class="n">_</span> <span class="o">=</span> <span class="n">register_genre_resolver</span><span class="p">(</span><span class="s2">"_resolver_demo"</span><span class="p">,</span>
@@ -4302,6 +4378,11 @@ Independent of genre <em>registration order</em> (keyed by the slug string).</p>
 </span><span data-line="7"><span class="gp">&gt;&gt;&gt; </span><span class="k">del</span> <span class="n">genres</span><span class="p">[</span><span class="s2">"_resolver_demo"</span><span class="p">];</span> <span class="k">del</span> <span class="n">genre_resolvers</span><span class="p">[</span><span class="s2">"_resolver_demo"</span><span class="p">]</span>
 </span></pre></div>
 </div>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Callable" title="(in Python v3.15)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Callable</span></code></a>[[<a class="reference internal" href="#nw.Genre" title="nw.genres.Genre"><code class="xref py py-class docutils literal notranslate"><span class="pre">Genre</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.15)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code></a>[<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>]], <a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#dict" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></a>]</span></p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py function">
@@ -4362,7 +4443,7 @@ third-party registrants — nw#29 stays closed to third parties for now
 regardless of when, or whether, the registry opens.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Union</span></code>[<a class="reference internal" href="#nw.Transform" title="nw.transforms.Transform"><code class="xref py py-class docutils literal notranslate"><span class="pre">Transform</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Callable" title="(in Python v3.15)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Callable</span></code></a>[[<a class="reference external" href="https://docs.python.org/3/builtins/functions.html#type" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">type</span></code></a>], <a class="reference external" href="https://docs.python.org/3/builtins/functions.html#type" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">type</span></code></a>]]</span></p>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Union" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Union</span></code></a>[<a class="reference internal" href="#nw.Transform" title="nw.transforms.Transform"><code class="xref py py-class docutils literal notranslate"><span class="pre">Transform</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Callable" title="(in Python v3.15)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Callable</span></code></a>[[<a class="reference external" href="https://docs.python.org/3/builtins/functions.html#type" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">type</span></code></a>], <a class="reference external" href="https://docs.python.org/3/builtins/functions.html#type" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">type</span></code></a>]]</span></p>
 </dd>
 </dl>
 </dd></dl>
@@ -4395,11 +4476,6 @@ ONE stable contract for every host, regardless of whether the genre has a resolv
 <p>Raises <a class="reference external" href="https://docs.python.org/3/builtins/exceptions.html#KeyError" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">KeyError</span></code></a> on an unknown genre or — <strong>uniformly, resolver or not</strong> —
 an unknown <code class="docutils literal notranslate"><span class="pre">template</span></code> slug (the substrate owns template identity; a resolver only
 interprets params, it doesn’t get to invent template slugs).</p>
-<dl class="field-list simple">
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#dict" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></a></span></p>
-</dd>
-</dl>
 <div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span data-line="1"><span class="gp">&gt;&gt;&gt; </span><span class="n">_</span> <span class="o">=</span> <span class="n">register_genre</span><span class="p">(</span><span class="n">Genre</span><span class="p">(</span><span class="n">slug</span><span class="o">=</span><span class="s2">"_rg_demo"</span><span class="p">,</span> <span class="n">title</span><span class="o">=</span><span class="s2">"Demo"</span><span class="p">,</span>
 </span><span data-line="2"><span class="gp">... </span>                         <span class="n">defaults</span><span class="o">=</span><span class="p">{</span><span class="s2">"flavor"</span><span class="p">:</span> <span class="s2">"cinematic"</span><span class="p">}))</span>
 </span><span data-line="3"><span class="gp">&gt;&gt;&gt; </span><span class="n">resolve_genre</span><span class="p">(</span><span class="s2">"_rg_demo"</span><span class="p">)</span>  <span class="c1"># no resolver registered -&gt; generic params</span>
@@ -4407,6 +4483,11 @@ interprets params, it doesn’t get to invent template slugs).</p>
 </span><span data-line="5"><span class="gp">&gt;&gt;&gt; </span><span class="k">del</span> <span class="n">genres</span><span class="p">[</span><span class="s2">"_rg_demo"</span><span class="p">]</span>
 </span></pre></div>
 </div>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#dict" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></a></span></p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py function">
@@ -4546,16 +4627,16 @@ value.</p>
 runs on every request and its job is to narrow forty items to a handful
 that a human or a model then confirms. <code class="docutils literal notranslate"><span class="pre">&quot;paid&quot;</span></code> checks are never
 suggested: money is asked for by name.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#tuple" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">tuple</span></code></a>[<a class="reference internal" href="nw.validation.html#nw.validation.Check" title="nw.validation.Check"><code class="xref py py-class docutils literal notranslate"><span class="pre">Check</span></code></a>, <a class="reference external" href="https://docs.python.org/3/builtins/constants.html#Ellipsis" title="(in Python v3.15)"><code class="xref py py-data docutils literal notranslate"><span class="pre">...</span></code></a>]</span></p>
-</dd>
-</dl>
 <p class="rubric">Examples</p>
 <div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span data-line="1"><span class="gp">&gt;&gt;&gt; </span><span class="n">suggest</span><span class="p">(</span><span class="s2">""</span><span class="p">)</span>
 </span><span data-line="2"><span class="go">()</span>
 </span></pre></div>
 </div>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#tuple" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">tuple</span></code></a>[<a class="reference internal" href="nw.validation.html#nw.validation.Check" title="nw.validation.Check"><code class="xref py py-class docutils literal notranslate"><span class="pre">Check</span></code></a>, <a class="reference external" href="https://docs.python.org/3/builtins/constants.html#Ellipsis" title="(in Python v3.15)"><code class="xref py py-data docutils literal notranslate"><span class="pre">...</span></code></a>]</span></p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py function">
@@ -4603,16 +4684,16 @@ answer is <code class="docutils literal notranslate"><span class="pre">None</spa
 not <code class="docutils literal notranslate"><span class="pre">0.0</span></code>.</p>
 <p><a class="reference internal" href="#nw.PlanQuote.repriced" title="nw.PlanQuote.repriced"><code class="xref py py-attr docutils literal notranslate"><span class="pre">PlanQuote.repriced</span></code></a> is an empty <code class="xref py py-class docutils literal notranslate"><span class="pre">falaw.RepricedPlan</span></code>: there
 were no calls to diff. Read <a class="reference internal" href="#nw.PlanQuote.reason" title="nw.PlanQuote.reason"><code class="xref py py-attr docutils literal notranslate"><span class="pre">PlanQuote.reason</span></code></a> for what went wrong.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="nw.pricing.html#nw.pricing.PlanQuote" title="nw.pricing.PlanQuote"><code class="xref py py-class docutils literal notranslate"><span class="pre">PlanQuote</span></code></a></span></p>
-</dd>
-</dl>
 <div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span data-line="1"><span class="gp">&gt;&gt;&gt; </span><span class="n">q</span> <span class="o">=</span> <span class="n">unquotable</span><span class="p">(</span><span class="s2">"params['plan'] is not a falaw Plan"</span><span class="p">)</span>
 </span><span data-line="2"><span class="gp">&gt;&gt;&gt; </span><span class="n">q</span><span class="o">.</span><span class="n">status</span><span class="p">,</span> <span class="n">q</span><span class="o">.</span><span class="n">total_usd</span><span class="p">,</span> <span class="n">q</span><span class="o">.</span><span class="n">has_unknown_costs</span>
 </span><span data-line="3"><span class="go">('unknown', None, True)</span>
 </span></pre></div>
 </div>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="nw.pricing.html#nw.pricing.PlanQuote" title="nw.pricing.PlanQuote"><code class="xref py py-class docutils literal notranslate"><span class="pre">PlanQuote</span></code></a></span></p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py function">
@@ -4646,7 +4727,7 @@ care; it is the checks that agree with their caller.</p></li>
 automatically. Empty means empty: validation is placed, never
 assumed.</p></li>
 <li><p><strong>max_workers</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></a></span>) – concurrency within a wave.</p></li>
-<li><p><strong>on_error</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Literal" title="(in Python v3.15)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Literal</span></code></a>[<code class="docutils literal notranslate"><span class="pre">'report'</span></code>, <code class="docutils literal notranslate"><span class="pre">'raise'</span></code>]</span>) – <code class="docutils literal notranslate"><span class="pre">&quot;report&quot;</span></code> records a raising check as an errored
+<li><p><strong>on_error</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Literal" title="(in Python v3.15)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Literal</span></code></a>[<span class="highlight sphinx_autodoc_typehints-value"><code class="docutils literal notranslate"><span class="s1"><span class="pre">'report'</span></span></code></span>, <span class="highlight sphinx_autodoc_typehints-value"><code class="docutils literal notranslate"><span class="s1"><span class="pre">'raise'</span></span></code></span>]</span>) – <code class="docutils literal notranslate"><span class="pre">&quot;report&quot;</span></code> records a raising check as an errored
 <a class="reference internal" href="#nw.CheckResult" title="nw.CheckResult"><code class="xref py py-class docutils literal notranslate"><span class="pre">CheckResult</span></code></a> and carries on, so one broken plugin cannot
 hide the findings of the other nine. <code class="docutils literal notranslate"><span class="pre">&quot;raise&quot;</span></code> is for developing
 a check.</p></li>
@@ -4679,11 +4760,6 @@ changes any other item’s id). The same (transform, key) pair yields the
 same id on every machine, every run, forever — which is what makes
 per-instance retry, cost attribution, and “regenerate just this one”
 addressable across runs.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/uuid.html#uuid.UUID" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">UUID</span></code></a></span></p>
-</dd>
-</dl>
 <div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span data-line="1"><span class="gp">&gt;&gt;&gt; </span><span class="n">a</span> <span class="o">=</span> <span class="n">work_item_instance_id</span><span class="p">(</span><span class="s2">"panel_to_image.fal"</span><span class="p">,</span> <span class="s2">"scene_1/panel_2"</span><span class="p">)</span>
 </span><span data-line="2"><span class="gp">&gt;&gt;&gt; </span><span class="n">a</span> <span class="o">==</span> <span class="n">work_item_instance_id</span><span class="p">(</span><span class="s2">"panel_to_image.fal"</span><span class="p">,</span> <span class="s2">"scene_1/panel_2"</span><span class="p">)</span>
 </span><span data-line="3"><span class="go">True</span>
@@ -4691,6 +4767,11 @@ addressable across runs.</p>
 </span><span data-line="5"><span class="go">True</span>
 </span></pre></div>
 </div>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/uuid.html#uuid.UUID" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">UUID</span></code></a></span></p>
+</dd>
+</dl>
 </dd></dl>
 
 <p class="rubric">Modules</p>
@@ -4808,7 +4889,7 @@ addressable across runs.</p>
     </div>
   </div>
 </footer>
-      <script src="../_static/documentation_options.js?v=1e158f99"></script>
+      <script src="../_static/documentation_options.js?v=d59c1f54"></script>
       <script src="../_static/doctools.js?v=fd6eb6e6"></script>
       <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script src="../_static/clipboard.min.js?v=a7894cd8"></script>

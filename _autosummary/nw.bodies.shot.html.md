@@ -16,10 +16,10 @@ That’s what enables reelee’s “what’s downstream of this shot?” queries
 
 ### Classes
 
-| [`ShotBodyV1`](#nw.bodies.shot.ShotBodyV1)(\*\*data)   | Body of a shot annotation.   |
-|-------------------------------------------------------------------------|------------------------------|
+| [`ShotBodyV1`](#nw.bodies.shot.ShotBodyV1)(\*, shot_id[, section_id, ...])   | Body of a shot annotation.   |
+|-----------------------------------------------------------------------------------------------|------------------------------|
 
-### *class* nw.bodies.shot.ShotBodyV1(\*\*data)
+### *class* nw.bodies.shot.ShotBodyV1(\*, shot_id, section_id='', render_strategy='image_to_video', environment='', characters=<factory>, description='', camera='', framing='medium', notes='')
 
 Bases: `BaseModel`
 

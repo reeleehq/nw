@@ -98,25 +98,40 @@ One validation, and everything a scheduler and a menu need to know.
 dotted and stable — it is what a user selects and what a
 `requires` refers to.
 
+* **Type:**
+  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
+
 #### summary
 
 one line, for the menu.
+
+* **Type:**
+  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
 
 #### run
 
 `(target, context) -> findings`. May also return a
 `(findings, produced)` pair when other checks depend on it.
 
+* **Type:**
+  [`Callable`](https://docs.python.org/3/library/typing.html#typing.Callable)[[[`Any`](https://docs.python.org/3/library/typing.html#typing.Any), [`Mapping`](https://docs.python.org/3/library/typing.html#typing.Mapping)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str), [`Any`](https://docs.python.org/3/library/typing.html#typing.Any)]], [`Iterable`](https://docs.python.org/3/library/typing.html#typing.Iterable)[[`Finding`](#nw.validation.Finding)]]
+
 #### requires
 
 names of checks that must run first, whose `produced`
 values arrive in `context`. Cycles raise at plan time.
+
+* **Type:**
+  [`tuple`](https://docs.python.org/3/builtins/stdtypes.html#tuple)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str), [`...`](https://docs.python.org/3/builtins/constants.html#Ellipsis)]
 
 #### parallel_safe
 
 whether it may run alongside its independent peers.
 `False` for anything that is not thread-safe or that saturates
 the machine on its own (a full decode).
+
+* **Type:**
+  [`bool`](https://docs.python.org/3/builtins/functions.html#bool)
 
 #### cost
 
@@ -126,16 +141,25 @@ rough wall-clock class — `"free"` (no subprocess),
 `"paid"` is never selected by [`suggest()`](#nw.validation.suggest); it must be asked
 for by name.
 
+* **Type:**
+  [`Literal`](https://docs.python.org/3/library/typing.html#typing.Literal)[`'free'`, `'cheap'`, `'dear'`, `'paid'`]
+
 #### example_requests
 
 things a person actually says that mean they want
 this check. What lets a menu of forty be navigated, and what an
 MCP surface matches against instead of exposing an enum.
 
+* **Type:**
+  [`tuple`](https://docs.python.org/3/builtins/stdtypes.html#tuple)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str), [`...`](https://docs.python.org/3/builtins/constants.html#Ellipsis)]
+
 #### requires_binaries
 
 external programs it shells out to. A missing one
 makes the check *skip with a reason*, never silently pass.
+
+* **Type:**
+  [`tuple`](https://docs.python.org/3/builtins/stdtypes.html#tuple)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str), [`...`](https://docs.python.org/3/builtins/constants.html#Ellipsis)]
 
 ### *class* nw.validation.CheckResult(name, findings=(), skipped='', error='', elapsed_s=0.0, produced=None)
 
@@ -151,7 +175,7 @@ machine where half of it never ran. A missing binary is not a pass.
 
 Ran, and found nothing at or above `FAILING_SEVERITY`.
 
-### *class* nw.validation.Finding(check, severity, message, where='', remedy=None, evidence=<factory>)
+### *class* nw.validation.Finding(check, severity, message, where='', remedy=None, evidence=dict())
 
 Bases: [`object`](https://docs.python.org/3/builtins/functions.html#object)
 
@@ -166,14 +190,23 @@ say those two things has not finished its job.
 
 the name of the check that produced it.
 
+* **Type:**
+  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
+
 #### severity
 
 `"info"`, `"warn"` or `"error"`; only `"error"`
 makes a report not `ok`.
 
+* **Type:**
+  [`Literal`](https://docs.python.org/3/library/typing.html#typing.Literal)[`'info'`, `'warn'`, `'error'`]
+
 #### message
 
 what is wrong, in one sentence a human can act on.
+
+* **Type:**
+  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
 
 #### where
 
@@ -181,15 +214,24 @@ where in the work — a timestamp, a frame index, a shot id, a
 path. Free-form because the checks are, but never empty for
 anything above `"info"`.
 
+* **Type:**
+  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
+
 #### remedy
 
 what would fix it, when the check knows. `None` when it
 honestly does not.
 
+* **Type:**
+  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str) | [`None`](https://docs.python.org/3/builtins/constants.html#None)
+
 #### evidence
 
 anything a reader would want to look at — an extracted
 frame’s path, the numbers behind the verdict.
+
+* **Type:**
+  [`Mapping`](https://docs.python.org/3/library/typing.html#typing.Mapping)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str), [`Any`](https://docs.python.org/3/library/typing.html#typing.Any)]
 
 ### *exception* nw.validation.ValidationError(report)
 
@@ -207,13 +249,22 @@ Everything a [`validate()`](#nw.validation.validate) run produced.
 
 what was validated.
 
+* **Type:**
+  [`Any`](https://docs.python.org/3/library/typing.html#typing.Any)
+
 #### results
 
 one per check that was selected, in the order they were run.
 
+* **Type:**
+  [`tuple`](https://docs.python.org/3/builtins/stdtypes.html#tuple)[[`CheckResult`](#nw.validation.CheckResult), [`...`](https://docs.python.org/3/builtins/constants.html#Ellipsis)]
+
 #### elapsed_s
 
 wall-clock for the whole run.
+
+* **Type:**
+  [`float`](https://docs.python.org/3/builtins/functions.html#float)
 
 #### *property* ok *: [bool](https://docs.python.org/3/builtins/functions.html#bool)*
 
@@ -260,7 +311,7 @@ A check that is not `parallel_safe` gets a wave to itself.
   [**ValueError**](https://docs.python.org/3/builtins/exceptions.html#ValueError) – on a dependency cycle, or a requirement that is not
       registered — both at plan time, before anything has been spent.
 * **Return type:**
-  [*tuple*](https://docs.python.org/3/builtins/stdtypes.html#tuple)[[*tuple*](https://docs.python.org/3/builtins/stdtypes.html#tuple)[[*Check*](#nw.validation.Check), …], …]
+  [`tuple`](https://docs.python.org/3/builtins/stdtypes.html#tuple)[[`tuple`](https://docs.python.org/3/builtins/stdtypes.html#tuple)[[`Check`](#nw.validation.Check), [`...`](https://docs.python.org/3/builtins/constants.html#Ellipsis)], [`...`](https://docs.python.org/3/builtins/constants.html#Ellipsis)]
 
 ### Examples
 
@@ -268,9 +319,6 @@ A check that is not `parallel_safe` gets a wave to itself.
 >>> plan_checks(())
 ()
 ```
-
-* **Return type:**
-  [`tuple`](https://docs.python.org/3/builtins/stdtypes.html#tuple)[[`tuple`](https://docs.python.org/3/builtins/stdtypes.html#tuple)[[`Check`](#nw.validation.Check), [`...`](https://docs.python.org/3/builtins/constants.html#Ellipsis)], [`...`](https://docs.python.org/3/builtins/constants.html#Ellipsis)]
 
 ### nw.validation.register_check(check=None, \*\*kwargs)
 
@@ -309,15 +357,15 @@ runs on every request and its job is to narrow forty items to a handful
 that a human or a model then confirms. `"paid"` checks are never
 suggested: money is asked for by name.
 
-* **Return type:**
-  [`tuple`](https://docs.python.org/3/builtins/stdtypes.html#tuple)[[`Check`](#nw.validation.Check), [`...`](https://docs.python.org/3/builtins/constants.html#Ellipsis)]
-
 ### Examples
 
 ```pycon
 >>> suggest("")
 ()
 ```
+
+* **Return type:**
+  [`tuple`](https://docs.python.org/3/builtins/stdtypes.html#tuple)[[`Check`](#nw.validation.Check), [`...`](https://docs.python.org/3/builtins/constants.html#Ellipsis)]
 
 ### nw.validation.validate(target, , checks=(), max_workers=4, on_error='report')
 

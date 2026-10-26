@@ -17,10 +17,10 @@ the heavy data (the actual mp4) is the referenced Artifact, not the body.
 
 ### Classes
 
-| [`RenderResultBodyV1`](#nw.bodies.render_result.RenderResultBodyV1)(\*\*data)   | Body of a render-result annotation.   |
-|---------------------------------------------------------------------------------|---------------------------------------|
+| [`RenderResultBodyV1`](#nw.bodies.render_result.RenderResultBodyV1)(\*, shot_id, strategy[, ...])   | Body of a render-result annotation.   |
+|-----------------------------------------------------------------------------------------------------|---------------------------------------|
 
-### *class* nw.bodies.render_result.RenderResultBodyV1(\*\*data)
+### *class* nw.bodies.render_result.RenderResultBodyV1(, shot_id, strategy, output_path='', artifact_id=None, duration_s=0.0, total_estimated_cost_usd=0.0)
 
 Bases: `BaseModel`
 

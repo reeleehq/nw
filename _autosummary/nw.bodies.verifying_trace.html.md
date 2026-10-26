@@ -58,11 +58,11 @@ zero-duration reference. This is the same shape with a typed payload.
 
 ### Classes
 
-| [`UpstreamDigestV1`](#nw.bodies.verifying_trace.UpstreamDigestV1)(\*\*data)     | One `(upstream annotation, its value digest)` pair.   |
-|---------------------------------------------------------------------------------|-------------------------------------------------------|
-| [`VerifyingTraceBodyV1`](#nw.bodies.verifying_trace.VerifyingTraceBodyV1)(\*\*data) | Body of a verifying-trace annotation.                 |
+| [`UpstreamDigestV1`](#nw.bodies.verifying_trace.UpstreamDigestV1)(\*, annotation_id, value_digest)   | One `(upstream annotation, its value digest)` pair.   |
+|------------------------------------------------------------------------------------------------------|-------------------------------------------------------|
+| [`VerifyingTraceBodyV1`](#nw.bodies.verifying_trace.VerifyingTraceBodyV1)(\*, for_annotation_id, ...)    | Body of a verifying-trace annotation.                 |
 
-### *class* nw.bodies.verifying_trace.UpstreamDigestV1(\*\*data)
+### *class* nw.bodies.verifying_trace.UpstreamDigestV1(, annotation_id, value_digest)
 
 Bases: `BaseModel`
 
@@ -72,7 +72,7 @@ One `(upstream annotation, its value digest)` pair.
 
 Configuration for the model, should be a dictionary conforming to [`ConfigDict`][pydantic.config.ConfigDict].
 
-### *class* nw.bodies.verifying_trace.VerifyingTraceBodyV1(\*\*data)
+### *class* nw.bodies.verifying_trace.VerifyingTraceBodyV1(, for_annotation_id, digest_scheme, upstream=(), upstream_assets=())
 
 Bases: `BaseModel`
 

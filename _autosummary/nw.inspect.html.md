@@ -25,13 +25,13 @@ Both return frozen Pydantic models for typed downstream use.
 
 ### Classes
 
-| [`ComposeReport`](#nw.inspect.ComposeReport)(\*\*data)   | Inspection of the project-level final composed video.   |
-|----------------------------------------------------------------------------|---------------------------------------------------------|
-| [`FrozenSegment`](#nw.inspect.FrozenSegment)(\*\*data)   | A run of consecutive frames whose pixels don't change.  |
-| [`Gap`](#nw.inspect.Gap)(\*\*data)             | A gap on the timeline between two shots.                |
-| [`ShotReport`](#nw.inspect.ShotReport)(\*\*data)      | Inspection of one rendered shot.                        |
+| [`ComposeReport`](#nw.inspect.ComposeReport)(\*, output_path, has_final, ...)   | Inspection of the project-level final composed video.   |
+|---------------------------------------------------------------------------------------------------|---------------------------------------------------------|
+| [`FrozenSegment`](#nw.inspect.FrozenSegment)(\*, start_s, end_s)                | A run of consecutive frames whose pixels don't change.  |
+| [`Gap`](#nw.inspect.Gap)(\*, after_shot_id, before_shot_id, ...)      | A gap on the timeline between two shots.                |
+| [`ShotReport`](#nw.inspect.ShotReport)(\*, shot_id, output_path, ...[, ...]) | Inspection of one rendered shot.                        |
 
-### *class* nw.inspect.ComposeReport(\*\*data)
+### *class* nw.inspect.ComposeReport(, output_path, has_final, total_duration_s, target_duration_s, shots, gaps=())
 
 Bases: `BaseModel`
 
@@ -41,7 +41,7 @@ Inspection of the project-level final composed video.
 
 Configuration for the model, should be a dictionary conforming to [`ConfigDict`][pydantic.config.ConfigDict].
 
-### *class* nw.inspect.FrozenSegment(\*\*data)
+### *class* nw.inspect.FrozenSegment(, start_s, end_s)
 
 Bases: `BaseModel`
 
@@ -55,7 +55,7 @@ fallback that froze the last frame, etc.
 
 Configuration for the model, should be a dictionary conforming to [`ConfigDict`][pydantic.config.ConfigDict].
 
-### *class* nw.inspect.Gap(\*\*data)
+### *class* nw.inspect.Gap(, after_shot_id, before_shot_id, start_s, end_s)
 
 Bases: `BaseModel`
 
@@ -65,7 +65,7 @@ A gap on the timeline between two shots.
 
 Configuration for the model, should be a dictionary conforming to [`ConfigDict`][pydantic.config.ConfigDict].
 
-### *class* nw.inspect.ShotReport(\*\*data)
+### *class* nw.inspect.ShotReport(, shot_id, output_path, duration_s, target_duration_s, duration_within_tolerance, has_video, has_audio, frame_count, fps, frozen_segments=(), freeze_total_s=0.0)
 
 Bases: `BaseModel`
 

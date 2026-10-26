@@ -151,7 +151,7 @@ Called when computation fails.
 
 `Job.error_kind` values — see [`Job.error_kind`](#nw.jobs.Job.error_kind).
 
-### *class* nw.jobs.Job(job_id, kind, label, status, idempotency_key, params=<factory>, created_at=None, started_at=None, finished_at=None, queue_wait_s=None, elapsed_s=None, progress=<factory>, predicted_total_s=None, remaining_s=None, eta_ts=None, eta_s=None, pct=None, confidence=None, label_hint=None, eta_key=None, cost=<factory>, cached=False, worker_silent_s=None, worker_responsive=None, artifact_ref=None, result=None, error=None, error_kind=None, error_detail=None, run_id=None, last_event_id=None)
+### *class* nw.jobs.Job(job_id, kind, label, status, idempotency_key, params=dict(), created_at=None, started_at=None, finished_at=None, queue_wait_s=None, elapsed_s=None, progress=JobProgress(), predicted_total_s=None, remaining_s=None, eta_ts=None, eta_s=None, pct=None, confidence=None, label_hint=None, eta_key=None, cost=JobCost(), cached=False, worker_silent_s=None, worker_responsive=None, artifact_ref=None, result=None, error=None, error_kind=None, error_detail=None, run_id=None, last_event_id=None)
 
 Bases: [`object`](https://docs.python.org/3/builtins/functions.html#object)
 
@@ -409,9 +409,6 @@ would make every response carrying the job unserialisable): a detail that
 does not is dropped rather than failing the job’s bookkeeping. Every string
 in it is redacted of `secrets`, as the job’s `error` text is.
 
-* **Return type:**
-  [`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict) | [`None`](https://docs.python.org/3/builtins/constants.html#None)
-
 ```pycon
 >>> from nw.genres import GenreOpRefused
 >>> error_detail_of(GenreOpRefused("cap", detail={"limit_usd": 10.0}))
@@ -424,12 +421,12 @@ True
 True
 ```
 
+* **Return type:**
+  [`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict) | [`None`](https://docs.python.org/3/builtins/constants.html#None)
+
 ### nw.jobs.error_kind_of(error)
 
 `"refused"` | `"cancelled"` | `"crashed"` for an exception a job raised.
-
-* **Return type:**
-  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
 
 ```pycon
 >>> from nw.genres import GenreOpRefused, GenreOpCancelled
@@ -437,6 +434,9 @@ True
 ...                             GenreOpCancelled(), ValueError("bug"))]
 ['refused', 'cancelled', 'crashed']
 ```
+
+* **Return type:**
+  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
 
 ### nw.jobs.estimate(project, kind, params, , config=JobsConfig(n_min=3, sample_window_k=20, pct_ceil=99, overrun_factor=1.5, cache_hit_floor_s=0.5, dur_buckets_s=(4.0, 8.0, 12.0), prior_total_s={'image': 12.0, 'video': 90.0, 'audio': 15.0}, default_prior_total_s=30.0, stale_running_s=900.0, heartbeat_interval_s=20.0, heartbeat_stale_s=120.0, approval_threshold_usd=1.0, jobs_dirname='.nw/jobs'))
 

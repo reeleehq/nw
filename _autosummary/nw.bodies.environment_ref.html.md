@@ -9,10 +9,10 @@ Same pattern as character-ref: small project-level pointer at an
 
 ### Classes
 
-| [`EnvironmentRefBodyV1`](#nw.bodies.environment_ref.EnvironmentRefBodyV1)(\*\*data)   | Body of an environment-ref annotation.   |
-|-----------------------------------------------------------------------------------|------------------------------------------|
+| [`EnvironmentRefBodyV1`](#nw.bodies.environment_ref.EnvironmentRefBodyV1)(\*, name[, description, ...])   | Body of an environment-ref annotation.   |
+|-------------------------------------------------------------------------------------------------------|------------------------------------------|
 
-### *class* nw.bodies.environment_ref.EnvironmentRefBodyV1(\*\*data)
+### *class* nw.bodies.environment_ref.EnvironmentRefBodyV1(\*, name, description='', reference_image_urls=<factory>)
 
 Bases: `BaseModel`
 

@@ -73,14 +73,14 @@ annotation is yielded once either way.
     *exist* on disk are visited in SQLite mode; in Postgres mode every
     listed scope is visited (existence is a DB question, not a file
     one).
-  * **asset_id** (`Union`[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str), [`Callable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable)[[], [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]]) – The project’s `project_asset_id` (Postgres tenant anchor),
+  * **asset_id** ([`Union`](https://docs.python.org/3/library/typing.html#typing.Union)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str), [`Callable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable)[[], [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]]) – The project’s `project_asset_id` (Postgres tenant anchor),
     or a zero-argument callable returning it (never called in SQLite
     mode).
-  * **tenant** (`Union`[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str), [`Callable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable)[[], [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)], [`None`](https://docs.python.org/3/builtins/constants.html#None)]) – What keys each Postgres tenant instead of `asset_id`; see
+  * **tenant** ([`Union`](https://docs.python.org/3/library/typing.html#typing.Union)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str), [`Callable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable)[[], [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)], [`None`](https://docs.python.org/3/builtins/constants.html#None)]) – What keys each Postgres tenant instead of `asset_id`; see
     [`open_graph_store()`](#nw.graph_backend.open_graph_store).
   * **env** ([`Mapping`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Mapping)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str), [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)] | [`None`](https://docs.python.org/3/builtins/constants.html#None)) – Environment mapping. Defaults to `os.environ`.
 * **Yields:**
-  A single iterator that produces each scope’s open store in turn. Each
+  [`Iterator`](https://docs.python.org/3/library/typing.html#typing.Iterator)[`IntervalAnnotationStore`] – A single iterator that produces each scope’s open store in turn. Each
   store is closed before the next is opened, so callers must consume
   annotations eagerly per store (which the walk does).
 * **Return type:**
@@ -98,11 +98,11 @@ Postgres mode).
 * **Parameters:**
   * **db_path** ([`Path`](https://docs.python.org/3/library/pathlib.html#pathlib.Path) | [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)) – The per-scope SQLite path (used directly in SQLite mode; in
     Postgres mode only its filename is used to derive the scope).
-  * **asset_id** (`Union`[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str), [`Callable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable)[[], [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]]) – The project’s stable `project_asset_id` — the Postgres
+  * **asset_id** ([`Union`](https://docs.python.org/3/library/typing.html#typing.Union)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str), [`Callable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable)[[], [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]]) – The project’s stable `project_asset_id` — the Postgres
     tenant anchor — or a zero-argument callable returning it. Ignored
     in SQLite mode, where a callable is never called (so a hot path
     can pass `lambda: storage.asset_id` without paying to derive it).
-  * **tenant** (`Union`[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str), [`Callable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable)[[], [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)], [`None`](https://docs.python.org/3/builtins/constants.html#None)]) – What keys the Postgres tenant (same string-or-callable form),
+  * **tenant** ([`Union`](https://docs.python.org/3/library/typing.html#typing.Union)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str), [`Callable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable)[[], [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)], [`None`](https://docs.python.org/3/builtins/constants.html#None)]) – What keys the Postgres tenant (same string-or-callable form),
     when it is not the asset id. A project’s graph is keyed on the id
     minted when it was created, so a recreated project does not
     inherit the old one’s graph. Defaults to `asset_id`.

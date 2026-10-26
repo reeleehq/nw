@@ -27,14 +27,14 @@ Apply `fn` to each project at `roots` and collect the results.
 * **Parameters:**
   * **roots** ([`Iterable`](https://docs.python.org/3/library/typing.html#typing.Iterable)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str) | [`Path`](https://docs.python.org/3/library/pathlib.html#pathlib.Path)]) – Iterable of project roots. Each must point to an existing
     nw project.
-  * **fn** ([`Callable`](https://docs.python.org/3/library/typing.html#typing.Callable)[[[`Project`](nw.project.html.md#nw.project.Project)], [`TypeVar`](https://docs.python.org/3/library/typing.html#typing.TypeVar)(`T`)]) – Callable taking a `Project` and returning anything. Use this
+  * **fn** ([`Callable`](https://docs.python.org/3/library/typing.html#typing.Callable)[[[`Project`](nw.project.html.md#nw.project.Project)], `T`]) – Callable taking a `Project` and returning anything. Use this
     for per-project operations: parsing a script, estimating cost,
     rendering, gathering reports.
   * **parallel** ([`bool`](https://docs.python.org/3/builtins/functions.html#bool)) – When True, run `fn` in a thread pool. Useful when `fn`
     is I/O- or API-bound (e.g. a render). When False (default), runs
     sequentially in submission order — the safest semantics.
 * **Return type:**
-  [`list`](https://docs.python.org/3/builtins/stdtypes.html#list)[[`TypeVar`](https://docs.python.org/3/library/typing.html#typing.TypeVar)(`T`)]
+  [`list`](https://docs.python.org/3/builtins/stdtypes.html#list)[`T`]
 * **Returns:**
   A list of `fn(project)` results in the same order as `roots`.
 

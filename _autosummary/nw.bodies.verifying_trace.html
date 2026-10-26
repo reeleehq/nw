@@ -7,6 +7,7 @@
     setColorMode(localStorage._theme||"auto");
   </script><link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=d88b86f9" />
     <link rel="stylesheet" type="text/css" href="../_static/shibuya.css?v=2ceb65ce" />
+    <link rel="stylesheet" type="text/css" href="../_static/sphinx_autodoc_typehints.css?v=057ac668" />
     <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
     <link media="print" rel="stylesheet" type="text/css" href="../_static/print.css?v=20ff2c19" />
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -237,10 +238,10 @@ behaviour.</p></li>
 <div class="table-wrapper autosummary longtable docutils container">
 <table class="autosummary longtable docutils align-default">
 <tbody>
-<tr class="row-odd"><td><p><a class="reference internal" href="#nw.bodies.verifying_trace.UpstreamDigestV1" title="nw.bodies.verifying_trace.UpstreamDigestV1"><code class="xref py py-obj docutils literal notranslate"><span class="pre">UpstreamDigestV1</span></code></a>(**data)</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#nw.bodies.verifying_trace.UpstreamDigestV1" title="nw.bodies.verifying_trace.UpstreamDigestV1"><code class="xref py py-obj docutils literal notranslate"><span class="pre">UpstreamDigestV1</span></code></a>(*, annotation_id, value_digest)</p></td>
 <td><p>One <code class="docutils literal notranslate"><span class="pre">(upstream</span> <span class="pre">annotation,</span> <span class="pre">its</span> <span class="pre">value</span> <span class="pre">digest)</span></code> pair.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#nw.bodies.verifying_trace.VerifyingTraceBodyV1" title="nw.bodies.verifying_trace.VerifyingTraceBodyV1"><code class="xref py py-obj docutils literal notranslate"><span class="pre">VerifyingTraceBodyV1</span></code></a>(**data)</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#nw.bodies.verifying_trace.VerifyingTraceBodyV1" title="nw.bodies.verifying_trace.VerifyingTraceBodyV1"><code class="xref py py-obj docutils literal notranslate"><span class="pre">VerifyingTraceBodyV1</span></code></a>(*, for_annotation_id, ...)</p></td>
 <td><p>Body of a verifying-trace annotation.</p></td>
 </tr>
 </tbody>
@@ -249,7 +250,7 @@ behaviour.</p></li>
 </section>
 <dl class="py class">
 <dt class="sig sig-object py" id="nw.bodies.verifying_trace.UpstreamDigestV1">
-<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">nw.bodies.verifying_trace.</span></span><span class="sig-name descname"><span class="pre">UpstreamDigestV1</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">data</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/nw/bodies/verifying_trace.html#UpstreamDigestV1"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nw.bodies.verifying_trace.UpstreamDigestV1" title="Link to this definition">#</a></dt>
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">nw.bodies.verifying_trace.</span></span><span class="sig-name descname"><span class="pre">UpstreamDigestV1</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">annotation_id</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">value_digest</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/nw/bodies/verifying_trace.html#UpstreamDigestV1"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nw.bodies.verifying_trace.UpstreamDigestV1" title="Link to this definition">#</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">BaseModel</span></code></p>
 <p>One <code class="docutils literal notranslate"><span class="pre">(upstream</span> <span class="pre">annotation,</span> <span class="pre">its</span> <span class="pre">value</span> <span class="pre">digest)</span></code> pair.</p>
 <dl class="field-list simple">
@@ -264,7 +265,7 @@ behaviour.</p></li>
 
 <dl class="py class">
 <dt class="sig sig-object py" id="nw.bodies.verifying_trace.VerifyingTraceBodyV1">
-<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">nw.bodies.verifying_trace.</span></span><span class="sig-name descname"><span class="pre">VerifyingTraceBodyV1</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">data</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/nw/bodies/verifying_trace.html#VerifyingTraceBodyV1"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nw.bodies.verifying_trace.VerifyingTraceBodyV1" title="Link to this definition">#</a></dt>
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">nw.bodies.verifying_trace.</span></span><span class="sig-name descname"><span class="pre">VerifyingTraceBodyV1</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">for_annotation_id</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">digest_scheme</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">upstream</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">()</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">upstream_assets</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">()</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/nw/bodies/verifying_trace.html#VerifyingTraceBodyV1"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nw.bodies.verifying_trace.VerifyingTraceBodyV1" title="Link to this definition">#</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">BaseModel</span></code></p>
 <p>Body of a verifying-trace annotation.</p>
 <p><code class="docutils literal notranslate"><span class="pre">digest_scheme</span></code> is recorded rather than assumed: lacing documents that
@@ -357,7 +358,7 @@ reachability behaviour instead of being silently declared fresh.</p>
     </div>
   </div>
 </footer>
-      <script src="../_static/documentation_options.js?v=1e158f99"></script>
+      <script src="../_static/documentation_options.js?v=d59c1f54"></script>
       <script src="../_static/doctools.js?v=fd6eb6e6"></script>
       <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script src="../_static/clipboard.min.js?v=a7894cd8"></script>

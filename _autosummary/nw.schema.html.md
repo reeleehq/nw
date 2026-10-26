@@ -24,18 +24,18 @@ Pydantic is used (instead of frozen dataclasses) for two reasons:
 
 ### Classes
 
-| [`CharacterRef`](#nw.schema.CharacterRef)(\*\*data)    | Pointer to a character folder under `characters/<name>/`.                                                                                               |
-|----------------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------|
-| [`DecisionEntry`](#nw.schema.DecisionEntry)(\*\*data)   | One entry of a project's decision log, flattened for display.                                                                                           |
-| [`EnvironmentRef`](#nw.schema.EnvironmentRef)(\*\*data)  | Pointer to an environment folder under `environments/<name>/`.                                                                                          |
-| [`ProjectSpec`](#nw.schema.ProjectSpec)(\*\*data)     | The top-level project SSOT, persisted as `project.json`.                                                                                                |
-| [`ProjectSummary`](#nw.schema.ProjectSummary)(\*\*data)  | Typed read view of a project — what `muvid status` printed, but typed.                                                                                  |
-| [`ResumptionBrief`](#nw.schema.ResumptionBrief)(\*\*data) | A "where we left off" snapshot, returned by [`nw.Project.resumption_brief()`](nw.html.md#nw.Project.resumption_brief). |
-| [`SectionSpec`](#nw.schema.SectionSpec)(\*\*data)     | A non-overlapping span of the project's master timeline.                                                                                                |
-| [`ShotSpec`](#nw.schema.ShotSpec)(\*\*data)        | A timeline-locked visual unit.                                                                                                                          |
-| [`SongInfo`](#nw.schema.SongInfo)(\*\*data)        | Metadata for the master audio file.                                                                                                                     |
+| [`CharacterRef`](#nw.schema.CharacterRef)(\*, name[, description, ...])        | Pointer to a character folder under `characters/<name>/`.                                                                                               |
+|----------------------------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------|
+| [`DecisionEntry`](#nw.schema.DecisionEntry)(\*, kind[, at, payload])            | One entry of a project's decision log, flattened for display.                                                                                           |
+| [`EnvironmentRef`](#nw.schema.EnvironmentRef)(\*, name[, description, ...])      | Pointer to an environment folder under `environments/<name>/`.                                                                                          |
+| [`ProjectSpec`](#nw.schema.ProjectSpec)(\*[, schema_version, title, ...])     | The top-level project SSOT, persisted as `project.json`.                                                                                                |
+| [`ProjectSummary`](#nw.schema.ProjectSummary)(\*, title, root, ...)              | Typed read view of a project — what `muvid status` printed, but typed.                                                                                  |
+| [`ResumptionBrief`](#nw.schema.ResumptionBrief)(\*, title, root[, ...])           | A "where we left off" snapshot, returned by [`nw.Project.resumption_brief()`](nw.html.md#nw.Project.resumption_brief). |
+| [`SectionSpec`](#nw.schema.SectionSpec)(\*, id, start_s, end_s[, label, ...]) | A non-overlapping span of the project's master timeline.                                                                                                |
+| [`ShotSpec`](#nw.schema.ShotSpec)(\*, id, start_s, end_s[, ...])           | A timeline-locked visual unit.                                                                                                                          |
+| [`SongInfo`](#nw.schema.SongInfo)(\*, audio_path, duration_s[, ...])       | Metadata for the master audio file.                                                                                                                     |
 
-### *class* nw.schema.CharacterRef(\*\*data)
+### *class* nw.schema.CharacterRef(, name, description='', reference_image_urls=(), costume='', age='', default_setting='', distinguishing_features=(), palette_anchors=(), do_not_do=())
 
 Bases: `BaseModel`
 
@@ -54,7 +54,7 @@ happen to `reference_image_urls`. Add a field to one, add it to both.
 
 Configuration for the model, should be a dictionary conforming to [`ConfigDict`][pydantic.config.ConfigDict].
 
-### *class* nw.schema.DecisionEntry(\*\*data)
+### *class* nw.schema.DecisionEntry(\*, kind, at=None, payload=<factory>)
 
 Bases: `BaseModel`
 
@@ -64,7 +64,7 @@ One entry of a project’s decision log, flattened for display.
 
 Configuration for the model, should be a dictionary conforming to [`ConfigDict`][pydantic.config.ConfigDict].
 
-### *class* nw.schema.EnvironmentRef(\*\*data)
+### *class* nw.schema.EnvironmentRef(, name, description='', reference_image_urls=())
 
 Bases: `BaseModel`
 
@@ -79,7 +79,7 @@ was erased by every `update_spec` until this mirror was completed.
 
 Configuration for the model, should be a dictionary conforming to [`ConfigDict`][pydantic.config.ConfigDict].
 
-### *class* nw.schema.ProjectSpec(\*\*data)
+### *class* nw.schema.ProjectSpec(, schema_version=1, title='', song=None, characters=(), environments=(), sections=(), shots=(), global_style='', notes='')
 
 Bases: `BaseModel`
 
@@ -93,7 +93,7 @@ other muvid-shaped project) load and re-save without churn.
 
 Configuration for the model, should be a dictionary conforming to [`ConfigDict`][pydantic.config.ConfigDict].
 
-### *class* nw.schema.ProjectSummary(\*\*data)
+### *class* nw.schema.ProjectSummary(, title, root, schema_version, song_path, song_duration_s, character_count, environment_count, section_count, shot_count, rendered_shot_count, has_lyrics, has_alignment, has_script, has_final_compose)
 
 Bases: `BaseModel`
 
@@ -112,7 +112,7 @@ Configuration for the model, should be a dictionary conforming to [`ConfigDict`]
 
 Coarse stage list — what’s been reached, in lifecycle order.
 
-### *class* nw.schema.ResumptionBrief(\*\*data)
+### *class* nw.schema.ResumptionBrief(\*, title, root, last_session_at=None, gap_seconds=None, recent_decisions=(), downstream_of_last_authored_change=<factory>, last_authored_change_id=None, total_spend_usd=0.0, unrendered_shot_ids=(), suggested_next=<factory>, caveats=<factory>)
 
 Bases: `BaseModel`
 
@@ -155,7 +155,7 @@ renders them next to the numbers instead of rediscovering them.
 
 Configuration for the model, should be a dictionary conforming to [`ConfigDict`][pydantic.config.ConfigDict].
 
-### *class* nw.schema.SectionSpec(\*\*data)
+### *class* nw.schema.SectionSpec(, id, start_s, end_s, label='', energy='', mood='')
 
 Bases: `BaseModel`
 
@@ -169,7 +169,7 @@ their own taxonomy.
 
 Configuration for the model, should be a dictionary conforming to [`ConfigDict`][pydantic.config.ConfigDict].
 
-### *class* nw.schema.ShotSpec(\*\*data)
+### *class* nw.schema.ShotSpec(, id, start_s, end_s, section_id='', render_strategy='image_to_video', environment='', characters=(), description='', camera='', framing='medium', notes='')
 
 Bases: `BaseModel`
 
@@ -184,7 +184,7 @@ the schema.
 
 Configuration for the model, should be a dictionary conforming to [`ConfigDict`][pydantic.config.ConfigDict].
 
-### *class* nw.schema.SongInfo(\*\*data)
+### *class* nw.schema.SongInfo(, audio_path, duration_s, sample_rate=0, bitrate=0, bpm=None)
 
 Bases: `BaseModel`
 

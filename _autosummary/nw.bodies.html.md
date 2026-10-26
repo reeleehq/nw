@@ -28,19 +28,19 @@ character description?”) without bespoke storage.
 
 ### Classes
 
-| [`CharacterRefBodyV1`](#nw.bodies.CharacterRefBodyV1)(\*\*data)     | Body of a character-ref annotation.                 |
-|-----------------------------------------------------------------------------------|-----------------------------------------------------|
-| [`DecisionBodyV1`](#nw.bodies.DecisionBodyV1)(\*\*data)         | Body of a decision annotation.                      |
-| [`EnvironmentRefBodyV1`](#nw.bodies.EnvironmentRefBodyV1)(\*\*data)   | Body of an environment-ref annotation.              |
-| [`GenreEnvelopeBodyV1`](#nw.bodies.GenreEnvelopeBodyV1)(\*\*data)    | Body of the (singleton) genre-envelope annotation.  |
-| [`RenderResultBodyV1`](#nw.bodies.RenderResultBodyV1)(\*\*data)     | Body of a render-result annotation.                 |
-| [`SectionBodyV1`](#nw.bodies.SectionBodyV1)(\*\*data)          | Body of a section annotation.                       |
-| [`ShotBodyV1`](#nw.bodies.ShotBodyV1)(\*\*data)             | Body of a shot annotation.                          |
-| [`UnproducedOutputBodyV1`](#nw.bodies.UnproducedOutputBodyV1)(\*\*data) | Body of an unproduced-output record.                |
-| [`UpstreamDigestV1`](#nw.bodies.UpstreamDigestV1)(\*\*data)       | One `(upstream annotation, its value digest)` pair. |
-| [`VerifyingTraceBodyV1`](#nw.bodies.VerifyingTraceBodyV1)(\*\*data)   | Body of a verifying-trace annotation.               |
+| [`CharacterRefBodyV1`](#nw.bodies.CharacterRefBodyV1)(\*, name[, description, ...])   | Body of a character-ref annotation.                 |
+|-----------------------------------------------------------------------------------------------------|-----------------------------------------------------|
+| [`DecisionBodyV1`](#nw.bodies.DecisionBodyV1)(\*, kind[, payload])                | Body of a decision annotation.                      |
+| [`EnvironmentRefBodyV1`](#nw.bodies.EnvironmentRefBodyV1)(\*, name[, description, ...]) | Body of an environment-ref annotation.              |
+| [`GenreEnvelopeBodyV1`](#nw.bodies.GenreEnvelopeBodyV1)(\*, genre[, template, params]) | Body of the (singleton) genre-envelope annotation.  |
+| [`RenderResultBodyV1`](#nw.bodies.RenderResultBodyV1)(\*, shot_id, strategy[, ...])   | Body of a render-result annotation.                 |
+| [`SectionBodyV1`](#nw.bodies.SectionBodyV1)(\*, section_id[, label, ...])        | Body of a section annotation.                       |
+| [`ShotBodyV1`](#nw.bodies.ShotBodyV1)(\*, shot_id[, section_id, ...])         | Body of a shot annotation.                          |
+| [`UnproducedOutputBodyV1`](#nw.bodies.UnproducedOutputBodyV1)(\*, transform_name[, ...])  | Body of an unproduced-output record.                |
+| [`UpstreamDigestV1`](#nw.bodies.UpstreamDigestV1)(\*, annotation_id, value_digest)  | One `(upstream annotation, its value digest)` pair. |
+| [`VerifyingTraceBodyV1`](#nw.bodies.VerifyingTraceBodyV1)(\*, for_annotation_id, ...)   | Body of a verifying-trace annotation.               |
 
-### *class* nw.bodies.CharacterRefBodyV1(\*\*data)
+### *class* nw.bodies.CharacterRefBodyV1(\*, name, description='', reference_image_urls=<factory>, costume='', age='', default_setting='', distinguishing_features=<factory>, palette_anchors=<factory>, do_not_do=<factory>)
 
 Bases: `BaseModel`
 
@@ -55,7 +55,7 @@ lacing migration.
 
 Configuration for the model, should be a dictionary conforming to [`ConfigDict`][pydantic.config.ConfigDict].
 
-### *class* nw.bodies.DecisionBodyV1(\*\*data)
+### *class* nw.bodies.DecisionBodyV1(\*, kind, payload=<factory>)
 
 Bases: `BaseModel`
 
@@ -70,7 +70,7 @@ later, it can graduate into its own body URI without disturbing this one.
 
 Configuration for the model, should be a dictionary conforming to [`ConfigDict`][pydantic.config.ConfigDict].
 
-### *class* nw.bodies.EnvironmentRefBodyV1(\*\*data)
+### *class* nw.bodies.EnvironmentRefBodyV1(\*, name, description='', reference_image_urls=<factory>)
 
 Bases: `BaseModel`
 
@@ -80,7 +80,7 @@ Body of an environment-ref annotation.
 
 Configuration for the model, should be a dictionary conforming to [`ConfigDict`][pydantic.config.ConfigDict].
 
-### *class* nw.bodies.GenreEnvelopeBodyV1(\*\*data)
+### *class* nw.bodies.GenreEnvelopeBodyV1(\*, genre, template=None, params=<factory>)
 
 Bases: `BaseModel`
 
@@ -93,7 +93,7 @@ persisted record and the creation-time contract can never drift apart.
 
 Configuration for the model, should be a dictionary conforming to [`ConfigDict`][pydantic.config.ConfigDict].
 
-### *class* nw.bodies.RenderResultBodyV1(\*\*data)
+### *class* nw.bodies.RenderResultBodyV1(, shot_id, strategy, output_path='', artifact_id=None, duration_s=0.0, total_estimated_cost_usd=0.0)
 
 Bases: `BaseModel`
 
@@ -103,7 +103,7 @@ Body of a render-result annotation.
 
 Configuration for the model, should be a dictionary conforming to [`ConfigDict`][pydantic.config.ConfigDict].
 
-### *class* nw.bodies.SectionBodyV1(\*\*data)
+### *class* nw.bodies.SectionBodyV1(, section_id, label='', energy='', mood='')
 
 Bases: `BaseModel`
 
@@ -113,7 +113,7 @@ Body of a section annotation.
 
 Configuration for the model, should be a dictionary conforming to [`ConfigDict`][pydantic.config.ConfigDict].
 
-### *class* nw.bodies.ShotBodyV1(\*\*data)
+### *class* nw.bodies.ShotBodyV1(\*, shot_id, section_id='', render_strategy='image_to_video', environment='', characters=<factory>, description='', camera='', framing='medium', notes='')
 
 Bases: `BaseModel`
 
@@ -123,7 +123,7 @@ Body of a shot annotation.
 
 Configuration for the model, should be a dictionary conforming to [`ConfigDict`][pydantic.config.ConfigDict].
 
-### *class* nw.bodies.UnproducedOutputBodyV1(\*\*data)
+### *class* nw.bodies.UnproducedOutputBodyV1(, transform_name, instance_id=None, call_index=None, upstream=(), output_kind='', status, reason='', error_type=None, blocked_by=())
 
 Bases: `BaseModel`
 
@@ -139,7 +139,7 @@ is not itself a sufficient key.
 
 Configuration for the model, should be a dictionary conforming to [`ConfigDict`][pydantic.config.ConfigDict].
 
-### *class* nw.bodies.UpstreamDigestV1(\*\*data)
+### *class* nw.bodies.UpstreamDigestV1(, annotation_id, value_digest)
 
 Bases: `BaseModel`
 
@@ -149,7 +149,7 @@ One `(upstream annotation, its value digest)` pair.
 
 Configuration for the model, should be a dictionary conforming to [`ConfigDict`][pydantic.config.ConfigDict].
 
-### *class* nw.bodies.VerifyingTraceBodyV1(\*\*data)
+### *class* nw.bodies.VerifyingTraceBodyV1(, for_annotation_id, digest_scheme, upstream=(), upstream_assets=())
 
 Bases: `BaseModel`
 

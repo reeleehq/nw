@@ -66,7 +66,7 @@ This split is what enables:
 | [`ShotPreparation`](#nw.workflow.ShotPreparation)(project_root, shot, ...[, ...])   | Local-only inputs for rendering a single shot.   |
 |----------------------------------------------------------------------------------------------------|--------------------------------------------------|
 
-### *class* nw.workflow.ShotPreparation(project_root, shot, shot_dir, audio_slice_path, audio_slice_url='', character_anchor_paths=<factory>, character_anchor_urls=<factory>, environment_anchor_path=None, environment_anchor_url='', lyric_lines=<factory>, storyboard_prompt='', global_style='')
+### *class* nw.workflow.ShotPreparation(project_root, shot, shot_dir, audio_slice_path, audio_slice_url='', character_anchor_paths=dict(), character_anchor_urls=dict(), environment_anchor_path=None, environment_anchor_url='', lyric_lines=list(), storyboard_prompt='', global_style='')
 
 Bases: [`object`](https://docs.python.org/3/builtins/functions.html#object)
 
@@ -98,7 +98,7 @@ Per-character path to the curated anchor image.
 
 Per-character fal-storage URL of the anchor image.
 
-#### environment_anchor_path *: [Path](https://docs.python.org/3/library/pathlib.html#pathlib.Path) | [None](https://docs.python.org/3/builtins/constants.html#None)*
+#### environment_anchor_path *: [Optional](https://docs.python.org/3/library/typing.html#typing.Optional)[[Path](https://docs.python.org/3/library/pathlib.html#pathlib.Path)]*
 
 Path to the environment establishing image, or None.
 

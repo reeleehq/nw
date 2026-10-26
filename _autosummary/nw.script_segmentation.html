@@ -7,6 +7,7 @@
     setColorMode(localStorage._theme||"auto");
   </script><link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=d88b86f9" />
     <link rel="stylesheet" type="text/css" href="../_static/shibuya.css?v=2ceb65ce" />
+    <link rel="stylesheet" type="text/css" href="../_static/sphinx_autodoc_typehints.css?v=057ac668" />
     <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
     <link media="print" rel="stylesheet" type="text/css" href="../_static/print.css?v=20ff2c19" />
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -215,7 +216,7 @@ module is pure — no project I/O). See
 <div class="table-wrapper autosummary longtable docutils container">
 <table class="autosummary longtable docutils align-default">
 <tbody>
-<tr class="row-odd"><td><p><a class="reference internal" href="#nw.script_segmentation.PanelProposal" title="nw.script_segmentation.PanelProposal"><code class="xref py py-obj docutils literal notranslate"><span class="pre">PanelProposal</span></code></a>(**data)</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#nw.script_segmentation.PanelProposal" title="nw.script_segmentation.PanelProposal"><code class="xref py py-obj docutils literal notranslate"><span class="pre">PanelProposal</span></code></a>(*, description, duration_s[, ...])</p></td>
 <td><p>One storyboard panel proposed by the segmenter.</p></td>
 </tr>
 </tbody>
@@ -232,7 +233,7 @@ string response. Tests pass a cassette-wrapped stub; production passes
 
 <dl class="py class">
 <dt class="sig sig-object py" id="nw.script_segmentation.PanelProposal">
-<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">nw.script_segmentation.</span></span><span class="sig-name descname"><span class="pre">PanelProposal</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">data</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/nw/script_segmentation.html#PanelProposal"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nw.script_segmentation.PanelProposal" title="Link to this definition">#</a></dt>
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">nw.script_segmentation.</span></span><span class="sig-name descname"><span class="pre">PanelProposal</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">description</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">duration_s</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">notes</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/nw/script_segmentation.html#PanelProposal"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nw.script_segmentation.PanelProposal" title="Link to this definition">#</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">BaseModel</span></code></p>
 <p>One storyboard panel proposed by the segmenter.</p>
 <p>The shape is intentionally close to <code class="docutils literal notranslate"><span class="pre">annot://schema/storyboard-panel/v1</span></code>
@@ -338,7 +339,7 @@ return a string. The expected response is a JSON array of
     </div>
   </div>
 </footer>
-      <script src="../_static/documentation_options.js?v=1e158f99"></script>
+      <script src="../_static/documentation_options.js?v=d59c1f54"></script>
       <script src="../_static/doctools.js?v=fd6eb6e6"></script>
       <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script src="../_static/clipboard.min.js?v=a7894cd8"></script>

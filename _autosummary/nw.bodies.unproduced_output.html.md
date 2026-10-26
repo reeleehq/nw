@@ -97,10 +97,10 @@ as-is.
 
 ### Classes
 
-| [`UnproducedOutputBodyV1`](#nw.bodies.unproduced_output.UnproducedOutputBodyV1)(\*\*data)   | Body of an unproduced-output record.   |
-|-------------------------------------------------------------------------------------|----------------------------------------|
+| [`UnproducedOutputBodyV1`](#nw.bodies.unproduced_output.UnproducedOutputBodyV1)(\*, transform_name[, ...])   | Body of an unproduced-output record.   |
+|------------------------------------------------------------------------------------------------------|----------------------------------------|
 
-### *class* nw.bodies.unproduced_output.UnproducedOutputBodyV1(\*\*data)
+### *class* nw.bodies.unproduced_output.UnproducedOutputBodyV1(, transform_name, instance_id=None, call_index=None, upstream=(), output_kind='', status, reason='', error_type=None, blocked_by=())
 
 Bases: `BaseModel`
 

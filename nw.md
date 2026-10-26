@@ -1,4 +1,4 @@
-> built 2026-10-14 12:51 UTC from c5444bf (main) · nw 0.0.73. Details: build_info.json
+> built 2026-10-26 12:48 UTC from 77c286e (main) · nw 0.0.74. Details: build_info.json
 
 # index.html.md
 
@@ -725,10 +725,10 @@ That is a difference of kind, not a naming drift.
 
 ### Classes
 
-| [`CharacterRefBodyV1`](_autosummary/nw.bodies.character_ref.html.md#nw.bodies.character_ref.CharacterRefBodyV1)(\*\*data)   | Body of a character-ref annotation.   |
-|---------------------------------------------------------------------------------|---------------------------------------|
+| [`CharacterRefBodyV1`](_autosummary/nw.bodies.character_ref.html.md#nw.bodies.character_ref.CharacterRefBodyV1)(\*, name[, description, ...])   | Body of a character-ref annotation.   |
+|-----------------------------------------------------------------------------------------------------|---------------------------------------|
 
-### *class* nw.bodies.character_ref.CharacterRefBodyV1(\*\*data)
+### *class* nw.bodies.character_ref.CharacterRefBodyV1(\*, name, description='', reference_image_urls=<factory>, costume='', age='', default_setting='', distinguishing_features=<factory>, palette_anchors=<factory>, do_not_do=<factory>)
 
 Bases: `BaseModel`
 
@@ -764,10 +764,10 @@ trail for “why did this come out this way?”.
 
 ### Classes
 
-| [`DecisionBodyV1`](_autosummary/nw.bodies.decision.html.md#nw.bodies.decision.DecisionBodyV1)(\*\*data)   | Body of a decision annotation.   |
-|-----------------------------------------------------------------------------|----------------------------------|
+| [`DecisionBodyV1`](_autosummary/nw.bodies.decision.html.md#nw.bodies.decision.DecisionBodyV1)(\*, kind[, payload])   | Body of a decision annotation.   |
+|----------------------------------------------------------------------------------------|----------------------------------|
 
-### *class* nw.bodies.decision.DecisionBodyV1(\*\*data)
+### *class* nw.bodies.decision.DecisionBodyV1(\*, kind, payload=<factory>)
 
 Bases: `BaseModel`
 
@@ -796,10 +796,10 @@ Same pattern as character-ref: small project-level pointer at an
 
 ### Classes
 
-| [`EnvironmentRefBodyV1`](_autosummary/nw.bodies.environment_ref.html.md#nw.bodies.environment_ref.EnvironmentRefBodyV1)(\*\*data)   | Body of an environment-ref annotation.   |
-|-----------------------------------------------------------------------------------|------------------------------------------|
+| [`EnvironmentRefBodyV1`](_autosummary/nw.bodies.environment_ref.html.md#nw.bodies.environment_ref.EnvironmentRefBodyV1)(\*, name[, description, ...])   | Body of an environment-ref annotation.   |
+|-------------------------------------------------------------------------------------------------------|------------------------------------------|
 
-### *class* nw.bodies.environment_ref.EnvironmentRefBodyV1(\*\*data)
+### *class* nw.bodies.environment_ref.EnvironmentRefBodyV1(\*, name, description='', reference_image_urls=<factory>)
 
 Bases: `BaseModel`
 
@@ -844,10 +844,10 @@ and defaults merged — and stays opaque to the substrate, exactly as in
 
 ### Classes
 
-| [`GenreEnvelopeBodyV1`](_autosummary/nw.bodies.genre_envelope.html.md#nw.bodies.genre_envelope.GenreEnvelopeBodyV1)(\*\*data)   | Body of the (singleton) genre-envelope annotation.   |
-|----------------------------------------------------------------------------------|------------------------------------------------------|
+| [`GenreEnvelopeBodyV1`](_autosummary/nw.bodies.genre_envelope.html.md#nw.bodies.genre_envelope.GenreEnvelopeBodyV1)(\*, genre[, template, params])   | Body of the (singleton) genre-envelope annotation.   |
+|-------------------------------------------------------------------------------------------------------|------------------------------------------------------|
 
-### *class* nw.bodies.genre_envelope.GenreEnvelopeBodyV1(\*\*data)
+### *class* nw.bodies.genre_envelope.GenreEnvelopeBodyV1(\*, genre, template=None, params=<factory>)
 
 Bases: `BaseModel`
 
@@ -893,19 +893,19 @@ character description?”) without bespoke storage.
 
 ### Classes
 
-| [`CharacterRefBodyV1`](_autosummary/nw.bodies.html.md#nw.bodies.CharacterRefBodyV1)(\*\*data)     | Body of a character-ref annotation.                 |
-|-----------------------------------------------------------------------------------|-----------------------------------------------------|
-| [`DecisionBodyV1`](_autosummary/nw.bodies.html.md#nw.bodies.DecisionBodyV1)(\*\*data)         | Body of a decision annotation.                      |
-| [`EnvironmentRefBodyV1`](_autosummary/nw.bodies.html.md#nw.bodies.EnvironmentRefBodyV1)(\*\*data)   | Body of an environment-ref annotation.              |
-| [`GenreEnvelopeBodyV1`](_autosummary/nw.bodies.html.md#nw.bodies.GenreEnvelopeBodyV1)(\*\*data)    | Body of the (singleton) genre-envelope annotation.  |
-| [`RenderResultBodyV1`](_autosummary/nw.bodies.html.md#nw.bodies.RenderResultBodyV1)(\*\*data)     | Body of a render-result annotation.                 |
-| [`SectionBodyV1`](_autosummary/nw.bodies.html.md#nw.bodies.SectionBodyV1)(\*\*data)          | Body of a section annotation.                       |
-| [`ShotBodyV1`](_autosummary/nw.bodies.html.md#nw.bodies.ShotBodyV1)(\*\*data)             | Body of a shot annotation.                          |
-| [`UnproducedOutputBodyV1`](_autosummary/nw.bodies.html.md#nw.bodies.UnproducedOutputBodyV1)(\*\*data) | Body of an unproduced-output record.                |
-| [`UpstreamDigestV1`](_autosummary/nw.bodies.html.md#nw.bodies.UpstreamDigestV1)(\*\*data)       | One `(upstream annotation, its value digest)` pair. |
-| [`VerifyingTraceBodyV1`](_autosummary/nw.bodies.html.md#nw.bodies.VerifyingTraceBodyV1)(\*\*data)   | Body of a verifying-trace annotation.               |
+| [`CharacterRefBodyV1`](_autosummary/nw.bodies.html.md#nw.bodies.CharacterRefBodyV1)(\*, name[, description, ...])   | Body of a character-ref annotation.                 |
+|-----------------------------------------------------------------------------------------------------|-----------------------------------------------------|
+| [`DecisionBodyV1`](_autosummary/nw.bodies.html.md#nw.bodies.DecisionBodyV1)(\*, kind[, payload])                | Body of a decision annotation.                      |
+| [`EnvironmentRefBodyV1`](_autosummary/nw.bodies.html.md#nw.bodies.EnvironmentRefBodyV1)(\*, name[, description, ...]) | Body of an environment-ref annotation.              |
+| [`GenreEnvelopeBodyV1`](_autosummary/nw.bodies.html.md#nw.bodies.GenreEnvelopeBodyV1)(\*, genre[, template, params]) | Body of the (singleton) genre-envelope annotation.  |
+| [`RenderResultBodyV1`](_autosummary/nw.bodies.html.md#nw.bodies.RenderResultBodyV1)(\*, shot_id, strategy[, ...])   | Body of a render-result annotation.                 |
+| [`SectionBodyV1`](_autosummary/nw.bodies.html.md#nw.bodies.SectionBodyV1)(\*, section_id[, label, ...])        | Body of a section annotation.                       |
+| [`ShotBodyV1`](_autosummary/nw.bodies.html.md#nw.bodies.ShotBodyV1)(\*, shot_id[, section_id, ...])         | Body of a shot annotation.                          |
+| [`UnproducedOutputBodyV1`](_autosummary/nw.bodies.html.md#nw.bodies.UnproducedOutputBodyV1)(\*, transform_name[, ...])  | Body of an unproduced-output record.                |
+| [`UpstreamDigestV1`](_autosummary/nw.bodies.html.md#nw.bodies.UpstreamDigestV1)(\*, annotation_id, value_digest)  | One `(upstream annotation, its value digest)` pair. |
+| [`VerifyingTraceBodyV1`](_autosummary/nw.bodies.html.md#nw.bodies.VerifyingTraceBodyV1)(\*, for_annotation_id, ...)   | Body of a verifying-trace annotation.               |
 
-### *class* nw.bodies.CharacterRefBodyV1(\*\*data)
+### *class* nw.bodies.CharacterRefBodyV1(\*, name, description='', reference_image_urls=<factory>, costume='', age='', default_setting='', distinguishing_features=<factory>, palette_anchors=<factory>, do_not_do=<factory>)
 
 Bases: `BaseModel`
 
@@ -920,7 +920,7 @@ lacing migration.
 
 Configuration for the model, should be a dictionary conforming to [`ConfigDict`][pydantic.config.ConfigDict].
 
-### *class* nw.bodies.DecisionBodyV1(\*\*data)
+### *class* nw.bodies.DecisionBodyV1(\*, kind, payload=<factory>)
 
 Bases: `BaseModel`
 
@@ -935,7 +935,7 @@ later, it can graduate into its own body URI without disturbing this one.
 
 Configuration for the model, should be a dictionary conforming to [`ConfigDict`][pydantic.config.ConfigDict].
 
-### *class* nw.bodies.EnvironmentRefBodyV1(\*\*data)
+### *class* nw.bodies.EnvironmentRefBodyV1(\*, name, description='', reference_image_urls=<factory>)
 
 Bases: `BaseModel`
 
@@ -945,7 +945,7 @@ Body of an environment-ref annotation.
 
 Configuration for the model, should be a dictionary conforming to [`ConfigDict`][pydantic.config.ConfigDict].
 
-### *class* nw.bodies.GenreEnvelopeBodyV1(\*\*data)
+### *class* nw.bodies.GenreEnvelopeBodyV1(\*, genre, template=None, params=<factory>)
 
 Bases: `BaseModel`
 
@@ -958,7 +958,7 @@ persisted record and the creation-time contract can never drift apart.
 
 Configuration for the model, should be a dictionary conforming to [`ConfigDict`][pydantic.config.ConfigDict].
 
-### *class* nw.bodies.RenderResultBodyV1(\*\*data)
+### *class* nw.bodies.RenderResultBodyV1(, shot_id, strategy, output_path='', artifact_id=None, duration_s=0.0, total_estimated_cost_usd=0.0)
 
 Bases: `BaseModel`
 
@@ -968,7 +968,7 @@ Body of a render-result annotation.
 
 Configuration for the model, should be a dictionary conforming to [`ConfigDict`][pydantic.config.ConfigDict].
 
-### *class* nw.bodies.SectionBodyV1(\*\*data)
+### *class* nw.bodies.SectionBodyV1(, section_id, label='', energy='', mood='')
 
 Bases: `BaseModel`
 
@@ -978,7 +978,7 @@ Body of a section annotation.
 
 Configuration for the model, should be a dictionary conforming to [`ConfigDict`][pydantic.config.ConfigDict].
 
-### *class* nw.bodies.ShotBodyV1(\*\*data)
+### *class* nw.bodies.ShotBodyV1(\*, shot_id, section_id='', render_strategy='image_to_video', environment='', characters=<factory>, description='', camera='', framing='medium', notes='')
 
 Bases: `BaseModel`
 
@@ -988,7 +988,7 @@ Body of a shot annotation.
 
 Configuration for the model, should be a dictionary conforming to [`ConfigDict`][pydantic.config.ConfigDict].
 
-### *class* nw.bodies.UnproducedOutputBodyV1(\*\*data)
+### *class* nw.bodies.UnproducedOutputBodyV1(, transform_name, instance_id=None, call_index=None, upstream=(), output_kind='', status, reason='', error_type=None, blocked_by=())
 
 Bases: `BaseModel`
 
@@ -1004,7 +1004,7 @@ is not itself a sufficient key.
 
 Configuration for the model, should be a dictionary conforming to [`ConfigDict`][pydantic.config.ConfigDict].
 
-### *class* nw.bodies.UpstreamDigestV1(\*\*data)
+### *class* nw.bodies.UpstreamDigestV1(, annotation_id, value_digest)
 
 Bases: `BaseModel`
 
@@ -1014,7 +1014,7 @@ One `(upstream annotation, its value digest)` pair.
 
 Configuration for the model, should be a dictionary conforming to [`ConfigDict`][pydantic.config.ConfigDict].
 
-### *class* nw.bodies.VerifyingTraceBodyV1(\*\*data)
+### *class* nw.bodies.VerifyingTraceBodyV1(, for_annotation_id, digest_scheme, upstream=(), upstream_assets=())
 
 Bases: `BaseModel`
 
@@ -1096,10 +1096,10 @@ the heavy data (the actual mp4) is the referenced Artifact, not the body.
 
 ### Classes
 
-| [`RenderResultBodyV1`](_autosummary/nw.bodies.render_result.html.md#nw.bodies.render_result.RenderResultBodyV1)(\*\*data)   | Body of a render-result annotation.   |
-|---------------------------------------------------------------------------------|---------------------------------------|
+| [`RenderResultBodyV1`](_autosummary/nw.bodies.render_result.html.md#nw.bodies.render_result.RenderResultBodyV1)(\*, shot_id, strategy[, ...])   | Body of a render-result annotation.   |
+|-----------------------------------------------------------------------------------------------------|---------------------------------------|
 
-### *class* nw.bodies.render_result.RenderResultBodyV1(\*\*data)
+### *class* nw.bodies.render_result.RenderResultBodyV1(, shot_id, strategy, output_path='', artifact_id=None, duration_s=0.0, total_estimated_cost_usd=0.0)
 
 Bases: `BaseModel`
 
@@ -1124,10 +1124,10 @@ encode their own constraints.
 
 ### Classes
 
-| [`SectionBodyV1`](_autosummary/nw.bodies.section.html.md#nw.bodies.section.SectionBodyV1)(\*\*data)   | Body of a section annotation.   |
-|----------------------------------------------------------------------------|---------------------------------|
+| [`SectionBodyV1`](_autosummary/nw.bodies.section.html.md#nw.bodies.section.SectionBodyV1)(\*, section_id[, label, ...])   | Body of a section annotation.   |
+|------------------------------------------------------------------------------------------------|---------------------------------|
 
-### *class* nw.bodies.section.SectionBodyV1(\*\*data)
+### *class* nw.bodies.section.SectionBodyV1(, section_id, label='', energy='', mood='')
 
 Bases: `BaseModel`
 
@@ -1158,10 +1158,10 @@ That’s what enables reelee’s “what’s downstream of this shot?” queries
 
 ### Classes
 
-| [`ShotBodyV1`](_autosummary/nw.bodies.shot.html.md#nw.bodies.shot.ShotBodyV1)(\*\*data)   | Body of a shot annotation.   |
-|-------------------------------------------------------------------------|------------------------------|
+| [`ShotBodyV1`](_autosummary/nw.bodies.shot.html.md#nw.bodies.shot.ShotBodyV1)(\*, shot_id[, section_id, ...])   | Body of a shot annotation.   |
+|-----------------------------------------------------------------------------------------------|------------------------------|
 
-### *class* nw.bodies.shot.ShotBodyV1(\*\*data)
+### *class* nw.bodies.shot.ShotBodyV1(\*, shot_id, section_id='', render_strategy='image_to_video', environment='', characters=<factory>, description='', camera='', framing='medium', notes='')
 
 Bases: `BaseModel`
 
@@ -1273,10 +1273,10 @@ as-is.
 
 ### Classes
 
-| [`UnproducedOutputBodyV1`](_autosummary/nw.bodies.unproduced_output.html.md#nw.bodies.unproduced_output.UnproducedOutputBodyV1)(\*\*data)   | Body of an unproduced-output record.   |
-|-------------------------------------------------------------------------------------|----------------------------------------|
+| [`UnproducedOutputBodyV1`](_autosummary/nw.bodies.unproduced_output.html.md#nw.bodies.unproduced_output.UnproducedOutputBodyV1)(\*, transform_name[, ...])   | Body of an unproduced-output record.   |
+|------------------------------------------------------------------------------------------------------|----------------------------------------|
 
-### *class* nw.bodies.unproduced_output.UnproducedOutputBodyV1(\*\*data)
+### *class* nw.bodies.unproduced_output.UnproducedOutputBodyV1(, transform_name, instance_id=None, call_index=None, upstream=(), output_kind='', status, reason='', error_type=None, blocked_by=())
 
 Bases: `BaseModel`
 
@@ -1355,11 +1355,11 @@ zero-duration reference. This is the same shape with a typed payload.
 
 ### Classes
 
-| [`UpstreamDigestV1`](_autosummary/nw.bodies.verifying_trace.html.md#nw.bodies.verifying_trace.UpstreamDigestV1)(\*\*data)     | One `(upstream annotation, its value digest)` pair.   |
-|---------------------------------------------------------------------------------|-------------------------------------------------------|
-| [`VerifyingTraceBodyV1`](_autosummary/nw.bodies.verifying_trace.html.md#nw.bodies.verifying_trace.VerifyingTraceBodyV1)(\*\*data) | Body of a verifying-trace annotation.                 |
+| [`UpstreamDigestV1`](_autosummary/nw.bodies.verifying_trace.html.md#nw.bodies.verifying_trace.UpstreamDigestV1)(\*, annotation_id, value_digest)   | One `(upstream annotation, its value digest)` pair.   |
+|------------------------------------------------------------------------------------------------------|-------------------------------------------------------|
+| [`VerifyingTraceBodyV1`](_autosummary/nw.bodies.verifying_trace.html.md#nw.bodies.verifying_trace.VerifyingTraceBodyV1)(\*, for_annotation_id, ...)    | Body of a verifying-trace annotation.                 |
 
-### *class* nw.bodies.verifying_trace.UpstreamDigestV1(\*\*data)
+### *class* nw.bodies.verifying_trace.UpstreamDigestV1(, annotation_id, value_digest)
 
 Bases: `BaseModel`
 
@@ -1369,7 +1369,7 @@ One `(upstream annotation, its value digest)` pair.
 
 Configuration for the model, should be a dictionary conforming to [`ConfigDict`][pydantic.config.ConfigDict].
 
-### *class* nw.bodies.verifying_trace.VerifyingTraceBodyV1(\*\*data)
+### *class* nw.bodies.verifying_trace.VerifyingTraceBodyV1(, for_annotation_id, digest_scheme, upstream=(), upstream_assets=())
 
 Bases: `BaseModel`
 
@@ -1594,7 +1594,7 @@ DECLARATION, not a hole: the host answers “this genre does not support
 that” (and may report it), never errors on it, and NEVER falls back to a
 store of its own.
 
-### *class* nw.delivery.Deliverable(path, content_type, filename, artifact_id='', project_id='', genre='', ref=None, title=None, duration_s=None, size_bytes=None, created_at=None, meta=<factory>)
+### *class* nw.delivery.Deliverable(path, content_type, filename, artifact_id='', project_id='', genre='', ref=None, title=None, duration_s=None, size_bytes=None, created_at=None, meta=dict())
 
 Bases: [`object`](https://docs.python.org/3/builtins/functions.html#object)
 
@@ -1743,7 +1743,7 @@ must not define it to mean anything else.
 
 alias of `Callable`[[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)], `list[ProjectSummary]`]
 
-### *class* nw.delivery.ProjectSummary(project_id, title='', genre='', created_at=None, modified_at=None, deliverable_count=None, meta=<factory>)
+### *class* nw.delivery.ProjectSummary(project_id, title='', genre='', created_at=None, modified_at=None, deliverable_count=None, meta=dict())
 
 Bases: [`object`](https://docs.python.org/3/builtins/functions.html#object)
 
@@ -1814,13 +1814,13 @@ Hosts SHOULD route every seam call through it. It is offered, not
 retroactively demanded: existing callers normalise where they already do,
 and converge here as they touch those sites.
 
-* **Return type:**
-  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
-
 ```pycon
 >>> caller_key("  Noel@Example.COM ")
 'noel@example.com'
 ```
+
+* **Return type:**
+  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
 
 ### nw.delivery.check_delivery_source(genre, entry)
 
@@ -1844,9 +1844,6 @@ Release-ordering corollary: a new key ships HERE before any genre
 registers it, or an older nw on the box refuses a newer genre’s honest
 registration.
 
-* **Return type:**
-  [`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)
-
 ```pycon
 >>> entry = {"resolve": lambda e, p, a: None}
 >>> check_delivery_source("g", entry) is entry
@@ -1860,6 +1857,9 @@ Traceback (most recent call last):
 ...
 ValueError: delivery source for genre 'g' has no 'resolve' — a genre that cannot resolve a claim cannot be served
 ```
+
+* **Return type:**
+  [`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)
 
 ### nw.delivery.check_title(title)
 
@@ -1907,13 +1907,13 @@ ValueError: a title cannot contain path separators or control characters
 
 The one spelling we print. Input is permissive; output never varies.
 
-* **Return type:**
-  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
-
 ```pycon
 >>> format_ref(1), format_ref(42)
 ('cut 1', 'cut 42')
 ```
+
+* **Return type:**
+  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
 
 ### nw.delivery.parse_ref(text)
 
@@ -1922,9 +1922,6 @@ The ordinal in a spoken reference, or `None` if it isn’t one.
 `None` is the signal to fall through to treating the input as a raw
 artifact id — which is why this never raises: “not an ordinal” is an
 ordinary, expected answer, not an error.
-
-* **Return type:**
-  [`int`](https://docs.python.org/3/builtins/functions.html#int) | [`None`](https://docs.python.org/3/builtins/constants.html#None)
 
 ```pycon
 >>> parse_ref("cut 4"), parse_ref("CUT4"), parse_ref(" cut - 4 ")
@@ -1943,6 +1940,9 @@ accepting `cut 0` would resolve to a neighbour under a naive index:
 True
 ```
 
+* **Return type:**
+  [`int`](https://docs.python.org/3/builtins/functions.html#int) | [`None`](https://docs.python.org/3/builtins/constants.html#None)
+
 ### nw.delivery.safe_message(exc)
 
 An exception’s message, reduced to what is safe to show a caller.
@@ -1955,15 +1955,15 @@ function). Anything else — an `OSError` proudly carrying a server path
 — is reduced to its type name: a per-genre problems entry renders in a
 tool response a non-developer reads.
 
-* **Return type:**
-  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
-
 ```pycon
 >>> safe_message(KeyError("no render named 'x'"))
 'KeyError: "no render named \'x\'"'
 >>> safe_message(OSError("[Errno 13] /somewhere/private/thing.mp3"))
 'OSError'
 ```
+
+* **Return type:**
+  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
 
 
 # _autosummary/nw.experiment.html.md
@@ -1997,14 +1997,14 @@ Apply `fn` to each project at `roots` and collect the results.
 * **Parameters:**
   * **roots** ([`Iterable`](https://docs.python.org/3/library/typing.html#typing.Iterable)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str) | [`Path`](https://docs.python.org/3/library/pathlib.html#pathlib.Path)]) – Iterable of project roots. Each must point to an existing
     nw project.
-  * **fn** ([`Callable`](https://docs.python.org/3/library/typing.html#typing.Callable)[[[`Project`](_autosummary/nw.project.html.md#nw.project.Project)], [`TypeVar`](https://docs.python.org/3/library/typing.html#typing.TypeVar)(`T`)]) – Callable taking a `Project` and returning anything. Use this
+  * **fn** ([`Callable`](https://docs.python.org/3/library/typing.html#typing.Callable)[[[`Project`](_autosummary/nw.project.html.md#nw.project.Project)], `T`]) – Callable taking a `Project` and returning anything. Use this
     for per-project operations: parsing a script, estimating cost,
     rendering, gathering reports.
   * **parallel** ([`bool`](https://docs.python.org/3/builtins/functions.html#bool)) – When True, run `fn` in a thread pool. Useful when `fn`
     is I/O- or API-bound (e.g. a render). When False (default), runs
     sequentially in submission order — the safest semantics.
 * **Return type:**
-  [`list`](https://docs.python.org/3/builtins/stdtypes.html#list)[[`TypeVar`](https://docs.python.org/3/library/typing.html#typing.TypeVar)(`T`)]
+  [`list`](https://docs.python.org/3/builtins/stdtypes.html#list)[`T`]
 * **Returns:**
   A list of `fn(project)` results in the same order as `roots`.
 
@@ -2857,14 +2857,14 @@ annotation is yielded once either way.
     *exist* on disk are visited in SQLite mode; in Postgres mode every
     listed scope is visited (existence is a DB question, not a file
     one).
-  * **asset_id** (`Union`[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str), [`Callable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable)[[], [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]]) – The project’s `project_asset_id` (Postgres tenant anchor),
+  * **asset_id** ([`Union`](https://docs.python.org/3/library/typing.html#typing.Union)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str), [`Callable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable)[[], [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]]) – The project’s `project_asset_id` (Postgres tenant anchor),
     or a zero-argument callable returning it (never called in SQLite
     mode).
-  * **tenant** (`Union`[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str), [`Callable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable)[[], [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)], [`None`](https://docs.python.org/3/builtins/constants.html#None)]) – What keys each Postgres tenant instead of `asset_id`; see
+  * **tenant** ([`Union`](https://docs.python.org/3/library/typing.html#typing.Union)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str), [`Callable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable)[[], [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)], [`None`](https://docs.python.org/3/builtins/constants.html#None)]) – What keys each Postgres tenant instead of `asset_id`; see
     [`open_graph_store()`](_autosummary/nw.graph_backend.html.md#nw.graph_backend.open_graph_store).
   * **env** ([`Mapping`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Mapping)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str), [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)] | [`None`](https://docs.python.org/3/builtins/constants.html#None)) – Environment mapping. Defaults to `os.environ`.
 * **Yields:**
-  A single iterator that produces each scope’s open store in turn. Each
+  [`Iterator`](https://docs.python.org/3/library/typing.html#typing.Iterator)[`IntervalAnnotationStore`] – A single iterator that produces each scope’s open store in turn. Each
   store is closed before the next is opened, so callers must consume
   annotations eagerly per store (which the walk does).
 * **Return type:**
@@ -2882,11 +2882,11 @@ Postgres mode).
 * **Parameters:**
   * **db_path** ([`Path`](https://docs.python.org/3/library/pathlib.html#pathlib.Path) | [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)) – The per-scope SQLite path (used directly in SQLite mode; in
     Postgres mode only its filename is used to derive the scope).
-  * **asset_id** (`Union`[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str), [`Callable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable)[[], [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]]) – The project’s stable `project_asset_id` — the Postgres
+  * **asset_id** ([`Union`](https://docs.python.org/3/library/typing.html#typing.Union)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str), [`Callable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable)[[], [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]]) – The project’s stable `project_asset_id` — the Postgres
     tenant anchor — or a zero-argument callable returning it. Ignored
     in SQLite mode, where a callable is never called (so a hot path
     can pass `lambda: storage.asset_id` without paying to derive it).
-  * **tenant** (`Union`[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str), [`Callable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable)[[], [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)], [`None`](https://docs.python.org/3/builtins/constants.html#None)]) – What keys the Postgres tenant (same string-or-callable form),
+  * **tenant** ([`Union`](https://docs.python.org/3/library/typing.html#typing.Union)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str), [`Callable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable)[[], [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)], [`None`](https://docs.python.org/3/builtins/constants.html#None)]) – What keys the Postgres tenant (same string-or-callable form),
     when it is not the asset id. A project’s graph is keyed on the id
     minted when it was created, so a recreated project does not
     inherit the old one’s graph. Defaults to `asset_id`.
@@ -3060,13 +3060,13 @@ are recorded as linked artifacts), see
 | [`Resolver`](_autosummary/nw.html.md#nw.Resolver)(\*args, \*\*kwargs)                       | `resolve(email, project_id, artifact_id) -> Deliverable` — a genre's half.                                                  |
 | [`BaseTransform`](_autosummary/nw.html.md#nw.BaseTransform)()                                    | Default [`Transform`](_autosummary/nw.html.md#nw.Transform) implementation.                                          |
 | [`CharacterImage`](_autosummary/nw.html.md#nw.CharacterImage)(path, \*[, from_ref, ...])          | One image associated with a character.                                                                                      |
-| [`CharacterRef`](_autosummary/nw.html.md#nw.CharacterRef)(\*\*data)                             | Pointer to a character folder under `characters/<name>/`.                                                                   |
-| [`ComposeReport`](_autosummary/nw.html.md#nw.ComposeReport)(\*\*data)                            | Inspection of the project-level final composed video.                                                                       |
+| [`CharacterRef`](_autosummary/nw.html.md#nw.CharacterRef)(\*, name[, description, ...])         | Pointer to a character folder under `characters/<name>/`.                                                                   |
+| [`ComposeReport`](_autosummary/nw.html.md#nw.ComposeReport)(\*, output_path, has_final, ...)     | Inspection of the project-level final composed video.                                                                       |
 | [`FreshnessVerdict`](_autosummary/nw.html.md#nw.FreshnessVerdict)(annotation, is_stale, reason)     | Why one reachable annotation was judged stale (or not).                                                                     |
-| [`DecisionEntry`](_autosummary/nw.html.md#nw.DecisionEntry)(\*\*data)                            | One entry of a project's decision log, flattened for display.                                                               |
-| [`EnvironmentRef`](_autosummary/nw.html.md#nw.EnvironmentRef)(\*\*data)                           | Pointer to an environment folder under `environments/<name>/`.                                                              |
-| [`FrozenSegment`](_autosummary/nw.html.md#nw.FrozenSegment)(\*\*data)                            | A run of consecutive frames whose pixels don't change.                                                                      |
-| [`Gap`](_autosummary/nw.html.md#nw.Gap)(\*\*data)                                      | A gap on the timeline between two shots.                                                                                    |
+| [`DecisionEntry`](_autosummary/nw.html.md#nw.DecisionEntry)(\*, kind[, at, payload])             | One entry of a project's decision log, flattened for display.                                                               |
+| [`EnvironmentRef`](_autosummary/nw.html.md#nw.EnvironmentRef)(\*, name[, description, ...])       | Pointer to an environment folder under `environments/<name>/`.                                                              |
+| [`FrozenSegment`](_autosummary/nw.html.md#nw.FrozenSegment)(\*, start_s, end_s)                  | A run of consecutive frames whose pixels don't change.                                                                      |
+| [`Gap`](_autosummary/nw.html.md#nw.Gap)(\*, after_shot_id, before_shot_id, ...)        | A gap on the timeline between two shots.                                                                                    |
 | [`Genre`](_autosummary/nw.html.md#nw.Genre)(slug, title[, description, ...])             | A reusable definition of a *production kind* over the nw substrate.                                                         |
 | [`Template`](_autosummary/nw.html.md#nw.Template)(slug, title[, description, params])       | A named preset ("subgenre") *within* a genre — a filled-in default config.                                                  |
 | [`GenreOp`](_autosummary/nw.html.md#nw.GenreOp)(name, fn, title[, description, ...])       | One operation a genre offers on its projects — a row a host builds surfaces from.                                           |
@@ -3076,22 +3076,22 @@ are recorded as linked artifacts), see
 | [`FolderStorage`](_autosummary/nw.html.md#nw.FolderStorage)(root, \*[, init_folders])            | nw's historical layout: everything under `root`.                                                                            |
 | [`MappingStorage`](_autosummary/nw.html.md#nw.MappingStorage)(\*, root, graph, docs[, ...])       | A project whose graph and documents live in mappings the caller owns.                                                       |
 | [`StoredUnproducedOutput`](_autosummary/nw.html.md#nw.StoredUnproducedOutput)(annotation_id, body)        |                                                                                                                             |
-| [`UnproducedOutputBodyV1`](_autosummary/nw.html.md#nw.UnproducedOutputBodyV1)(\*\*data)                   | Body of an unproduced-output record.                                                                                        |
-| [`ProjectSpec`](_autosummary/nw.html.md#nw.ProjectSpec)(\*\*data)                              | The top-level project SSOT, persisted as `project.json`.                                                                    |
-| [`ProjectSummary`](_autosummary/nw.html.md#nw.ProjectSummary)(\*\*data)                           | Typed read view of a project — what `muvid status` printed, but typed.                                                      |
-| [`ResumptionBrief`](_autosummary/nw.html.md#nw.ResumptionBrief)(\*\*data)                          | A "where we left off" snapshot, returned by [`nw.Project.resumption_brief()`](_autosummary/nw.html.md#nw.Project.resumption_brief). |
-| [`SectionSpec`](_autosummary/nw.html.md#nw.SectionSpec)(\*\*data)                              | A non-overlapping span of the project's master timeline.                                                                    |
+| [`UnproducedOutputBodyV1`](_autosummary/nw.html.md#nw.UnproducedOutputBodyV1)(\*, transform_name[, ...])  | Body of an unproduced-output record.                                                                                        |
+| [`ProjectSpec`](_autosummary/nw.html.md#nw.ProjectSpec)(\*[, schema_version, title, ...])      | The top-level project SSOT, persisted as `project.json`.                                                                    |
+| [`ProjectSummary`](_autosummary/nw.html.md#nw.ProjectSummary)(\*, title, root, ...)               | Typed read view of a project — what `muvid status` printed, but typed.                                                      |
+| [`ResumptionBrief`](_autosummary/nw.html.md#nw.ResumptionBrief)(\*, title, root[, ...])            | A "where we left off" snapshot, returned by [`nw.Project.resumption_brief()`](_autosummary/nw.html.md#nw.Project.resumption_brief). |
+| [`SectionSpec`](_autosummary/nw.html.md#nw.SectionSpec)(\*, id, start_s, end_s[, label, ...])  | A non-overlapping span of the project's master timeline.                                                                    |
 | [`ShotPreparation`](_autosummary/nw.html.md#nw.ShotPreparation)(project_root, shot, ...[, ...])    | Local-only inputs for rendering a single shot.                                                                              |
-| [`ShotReport`](_autosummary/nw.html.md#nw.ShotReport)(\*\*data)                               | Inspection of one rendered shot.                                                                                            |
-| [`ShotSpec`](_autosummary/nw.html.md#nw.ShotSpec)(\*\*data)                                 | A timeline-locked visual unit.                                                                                              |
-| [`SongInfo`](_autosummary/nw.html.md#nw.SongInfo)(\*\*data)                                 | Metadata for the master audio file.                                                                                         |
+| [`ShotReport`](_autosummary/nw.html.md#nw.ShotReport)(\*, shot_id, output_path, ...[, ...])   | Inspection of one rendered shot.                                                                                            |
+| [`ShotSpec`](_autosummary/nw.html.md#nw.ShotSpec)(\*, id, start_s, end_s[, ...])            | A timeline-locked visual unit.                                                                                              |
+| [`SongInfo`](_autosummary/nw.html.md#nw.SongInfo)(\*, audio_path, duration_s[, ...])        | Metadata for the master audio file.                                                                                         |
 | [`Strategy`](_autosummary/nw.html.md#nw.Strategy)(\*args, \*\*kwargs)                       | Render-strategy contract.                                                                                                   |
 | [`Transform`](_autosummary/nw.html.md#nw.Transform)(\*args, \*\*kwargs)                      | A swappable, costed function from A-annotations to B-annotations.                                                           |
 | [`TransformInputs`](_autosummary/nw.html.md#nw.TransformInputs)(primary[, context])                | The annotations a Transform consumes.                                                                                       |
 | [`TransformResult`](_autosummary/nw.html.md#nw.TransformResult)(annotations[, artifacts, ...])     | The outputs of a Transform's [`execute()`](_autosummary/nw.html.md#nw.Transform.execute).                                    |
 | [`FailedOutput`](_autosummary/nw.html.md#nw.FailedOutput)(skeleton, status[, reason, ...])      | An output annotation that was planned but never produced.                                                                   |
 | [`PlanQuote`](_autosummary/nw.html.md#nw.PlanQuote)(\*, total_usd, status, ...[, reason])    | Today's price for a persisted plan, with the stale figure alongside.                                                        |
-| [`WorkItem`](_autosummary/nw.html.md#nw.WorkItem)(\*\*data)                                 | One unit of a fan-out — the PDG-shaped work item (nw#26).                                                                   |
+| [`WorkItem`](_autosummary/nw.html.md#nw.WorkItem)(\*, mapping_key[, parent_key, ...])       | One unit of a fan-out — the PDG-shaped work item (nw#26).                                                                   |
 | [`FanOutUnit`](_autosummary/nw.html.md#nw.FanOutUnit)(item, instance_id, plan, skeleton)      | One planned unit: a work item plus its ordinary Transform plan.                                                             |
 | [`FanOutPlan`](_autosummary/nw.html.md#nw.FanOutPlan)(transform_name, units)                  | The planned fan-out — pure data, like every plan in this federation.                                                        |
 | [`FanOutItemResult`](_autosummary/nw.html.md#nw.FanOutItemResult)(item, instance_id, status)        | One unit's outcome, aligned 1:1 with the plan's units.                                                                      |
@@ -3184,7 +3184,7 @@ Returned by [`Project.list_character_images()`](_autosummary/nw.html.md#nw.Proje
 - `is_anchor`: this is the file the character card currently points at as
   the “use this image” anchor (lipsync seed, etc.).
 
-### *class* nw.CharacterRef(\*\*data)
+### *class* nw.CharacterRef(, name, description='', reference_image_urls=(), costume='', age='', default_setting='', distinguishing_features=(), palette_anchors=(), do_not_do=())
 
 Bases: `BaseModel`
 
@@ -3214,25 +3214,40 @@ One validation, and everything a scheduler and a menu need to know.
 dotted and stable — it is what a user selects and what a
 `requires` refers to.
 
+* **Type:**
+  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
+
 #### summary
 
 one line, for the menu.
+
+* **Type:**
+  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
 
 #### run
 
 `(target, context) -> findings`. May also return a
 `(findings, produced)` pair when other checks depend on it.
 
+* **Type:**
+  [`Callable`](https://docs.python.org/3/library/typing.html#typing.Callable)[[[`Any`](https://docs.python.org/3/library/typing.html#typing.Any), [`Mapping`](https://docs.python.org/3/library/typing.html#typing.Mapping)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str), [`Any`](https://docs.python.org/3/library/typing.html#typing.Any)]], [`Iterable`](https://docs.python.org/3/library/typing.html#typing.Iterable)[[`Finding`](_autosummary/nw.validation.html.md#nw.validation.Finding)]]
+
 #### requires
 
 names of checks that must run first, whose `produced`
 values arrive in `context`. Cycles raise at plan time.
+
+* **Type:**
+  [`tuple`](https://docs.python.org/3/builtins/stdtypes.html#tuple)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str), [`...`](https://docs.python.org/3/builtins/constants.html#Ellipsis)]
 
 #### parallel_safe
 
 whether it may run alongside its independent peers.
 `False` for anything that is not thread-safe or that saturates
 the machine on its own (a full decode).
+
+* **Type:**
+  [`bool`](https://docs.python.org/3/builtins/functions.html#bool)
 
 #### cost
 
@@ -3242,16 +3257,25 @@ rough wall-clock class — `"free"` (no subprocess),
 `"paid"` is never selected by [`suggest()`](_autosummary/nw.html.md#nw.suggest); it must be asked
 for by name.
 
+* **Type:**
+  [`Literal`](https://docs.python.org/3/library/typing.html#typing.Literal)[`'free'`, `'cheap'`, `'dear'`, `'paid'`]
+
 #### example_requests
 
 things a person actually says that mean they want
 this check. What lets a menu of forty be navigated, and what an
 MCP surface matches against instead of exposing an enum.
 
+* **Type:**
+  [`tuple`](https://docs.python.org/3/builtins/stdtypes.html#tuple)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str), [`...`](https://docs.python.org/3/builtins/constants.html#Ellipsis)]
+
 #### requires_binaries
 
 external programs it shells out to. A missing one
 makes the check *skip with a reason*, never silently pass.
+
+* **Type:**
+  [`tuple`](https://docs.python.org/3/builtins/stdtypes.html#tuple)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str), [`...`](https://docs.python.org/3/builtins/constants.html#Ellipsis)]
 
 ### *class* nw.CheckResult(name, findings=(), skipped='', error='', elapsed_s=0.0, produced=None)
 
@@ -3267,7 +3291,7 @@ machine where half of it never ran. A missing binary is not a pass.
 
 Ran, and found nothing at or above `FAILING_SEVERITY`.
 
-### *class* nw.ComposeReport(\*\*data)
+### *class* nw.ComposeReport(, output_path, has_final, total_duration_s, target_duration_s, shots, gaps=())
 
 Bases: `BaseModel`
 
@@ -3277,7 +3301,7 @@ Inspection of the project-level final composed video.
 
 Configuration for the model, should be a dictionary conforming to [`ConfigDict`][pydantic.config.ConfigDict].
 
-### *class* nw.DecisionEntry(\*\*data)
+### *class* nw.DecisionEntry(\*, kind, at=None, payload=<factory>)
 
 Bases: `BaseModel`
 
@@ -3287,7 +3311,7 @@ One entry of a project’s decision log, flattened for display.
 
 Configuration for the model, should be a dictionary conforming to [`ConfigDict`][pydantic.config.ConfigDict].
 
-### *class* nw.Deliverable(path, content_type, filename, artifact_id='', project_id='', genre='', ref=None, title=None, duration_s=None, size_bytes=None, created_at=None, meta=<factory>)
+### *class* nw.Deliverable(path, content_type, filename, artifact_id='', project_id='', genre='', ref=None, title=None, duration_s=None, size_bytes=None, created_at=None, meta=dict())
 
 Bases: [`object`](https://docs.python.org/3/builtins/functions.html#object)
 
@@ -3340,7 +3364,7 @@ Genre-specific extras a listing or watch page may show. Free-form on
 purpose — the host renders what it recognises and ignores the rest, so a
 genre can enrich its own surface without a change here.
 
-### *class* nw.EnvironmentRef(\*\*data)
+### *class* nw.EnvironmentRef(, name, description='', reference_image_urls=())
 
 Bases: `BaseModel`
 
@@ -3369,7 +3393,7 @@ body to say which panel is missing, not just that something is.
 
 Indices of the calls whose failure blocked this one.
 
-#### error *: [BaseException](https://docs.python.org/3/builtins/exceptions.html#BaseException) | [None](https://docs.python.org/3/builtins/constants.html#None)*
+#### error *: [Optional](https://docs.python.org/3/library/typing.html#typing.Optional)[[BaseException](https://docs.python.org/3/builtins/exceptions.html#BaseException)]*
 
 The original exception, for a caller that classifies on falaw’s typed
 hierarchy (`FalRateLimited` is worth retrying; `FalAccountLocked` is not).
@@ -3479,7 +3503,7 @@ Bases: [`object`](https://docs.python.org/3/builtins/functions.html#object)
 
 One planned unit: a work item plus its ordinary Transform plan.
 
-### *class* nw.Finding(check, severity, message, where='', remedy=None, evidence=<factory>)
+### *class* nw.Finding(check, severity, message, where='', remedy=None, evidence=dict())
 
 Bases: [`object`](https://docs.python.org/3/builtins/functions.html#object)
 
@@ -3494,14 +3518,23 @@ say those two things has not finished its job.
 
 the name of the check that produced it.
 
+* **Type:**
+  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
+
 #### severity
 
 `"info"`, `"warn"` or `"error"`; only `"error"`
 makes a report not `ok`.
 
+* **Type:**
+  [`Literal`](https://docs.python.org/3/library/typing.html#typing.Literal)[`'info'`, `'warn'`, `'error'`]
+
 #### message
 
 what is wrong, in one sentence a human can act on.
+
+* **Type:**
+  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
 
 #### where
 
@@ -3509,15 +3542,24 @@ where in the work — a timestamp, a frame index, a shot id, a
 path. Free-form because the checks are, but never empty for
 anything above `"info"`.
 
+* **Type:**
+  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
+
 #### remedy
 
 what would fix it, when the check knows. `None` when it
 honestly does not.
 
+* **Type:**
+  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str) | [`None`](https://docs.python.org/3/builtins/constants.html#None)
+
 #### evidence
 
 anything a reader would want to look at — an extracted
 frame’s path, the numbers behind the verdict.
+
+* **Type:**
+  [`Mapping`](https://docs.python.org/3/library/typing.html#typing.Mapping)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str), [`Any`](https://docs.python.org/3/library/typing.html#typing.Any)]
 
 ### *class* nw.FolderStorage(root, , init_folders=('characters', 'environments', 'shots', 'output', 'lyrics', 'script', 'song', '.nw'))
 
@@ -3553,7 +3595,7 @@ Emitted by [`stale_verdicts()`](_autosummary/nw.html.md#nw.stale_verdicts). `rea
 when a single parent did, so “why is this stale?” has an answer that does
 not require re-deriving the walk by hand.
 
-### *class* nw.FrozenSegment(\*\*data)
+### *class* nw.FrozenSegment(, start_s, end_s)
 
 Bases: `BaseModel`
 
@@ -3567,7 +3609,7 @@ fallback that froze the last frame, etc.
 
 Configuration for the model, should be a dictionary conforming to [`ConfigDict`][pydantic.config.ConfigDict].
 
-### *class* nw.Gap(\*\*data)
+### *class* nw.Gap(, after_shot_id, before_shot_id, start_s, end_s)
 
 Bases: `BaseModel`
 
@@ -3577,7 +3619,7 @@ A gap on the timeline between two shots.
 
 Configuration for the model, should be a dictionary conforming to [`ConfigDict`][pydantic.config.ConfigDict].
 
-### *class* nw.Genre(slug, title, description='', body_schema_uris=(), transform_names=(), strategy_names=(), projection_entrypoint=None, folder_conventions=<factory>, status='available', templates=(), intake_kinds=(), cost_profile=None, defaults=<factory>)
+### *class* nw.Genre(slug, title, description='', body_schema_uris=(), transform_names=(), strategy_names=(), projection_entrypoint=None, folder_conventions=dict(), status='available', templates=(), intake_kinds=(), cost_profile=None, defaults=dict())
 
 Bases: [`object`](https://docs.python.org/3/builtins/functions.html#object)
 
@@ -3848,7 +3890,7 @@ The stale figure is kept — as [`as_of_total_usd`](_autosummary/nw.html.md#nw.P
 it must never do is *present* it as current; that is what
 [`total_usd`](_autosummary/nw.html.md#nw.PlanQuote.total_usd) and [`status`](_autosummary/nw.html.md#nw.PlanQuote.status) are for.
 
-#### as_of_total_usd *: [float](https://docs.python.org/3/builtins/functions.html#float) | [None](https://docs.python.org/3/builtins/constants.html#None)*
+#### as_of_total_usd *: [Optional](https://docs.python.org/3/library/typing.html#typing.Optional)[[float](https://docs.python.org/3/builtins/functions.html#float)]*
 
 What the persisted plan said, `None` if it already said unknown.
 
@@ -3865,7 +3907,7 @@ because the plan did”. Read it beside [`status`](_autosummary/nw.html.md#nw.Pl
 with this `False` is a caller quoting different quantities, not a
 repricing event.
 
-#### *property* delta_usd *: [float](https://docs.python.org/3/builtins/functions.html#float) | [None](https://docs.python.org/3/builtins/constants.html#None)*
+#### *property* delta_usd *: [Optional](https://docs.python.org/3/library/typing.html#typing.Optional)[[float](https://docs.python.org/3/builtins/functions.html#float)]*
 
 `total_usd - as_of_total_usd`, or `None` when either is unknown.
 
@@ -3908,7 +3950,7 @@ number, whether it is knowable, and whether it moved. Reach into
 * **Return type:**
   [`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str), [`Any`](https://docs.python.org/3/library/typing.html#typing.Any)]
 
-#### total_usd *: [float](https://docs.python.org/3/builtins/functions.html#float) | [None](https://docs.python.org/3/builtins/constants.html#None)*
+#### total_usd *: [Optional](https://docs.python.org/3/library/typing.html#typing.Optional)[[float](https://docs.python.org/3/builtins/functions.html#float)]*
 
 Today’s billable total, or `None` when any billable call is
 unpriceable today. `None` means unknown, never free (nw invariant #2).
@@ -3942,7 +3984,7 @@ Create a new project on disk and return the [`Project`](_autosummary/nw.html.md#
   * **root** ([`str`](https://docs.python.org/3/builtins/stdtypes.html#str) | [`Path`](https://docs.python.org/3/library/pathlib.html#pathlib.Path)) – Folder to create. Must not exist (or pass `force=True` to
     overwrite an empty folder).
   * **title** ([`str`](https://docs.python.org/3/builtins/stdtypes.html#str)) – Optional human-readable title; defaults to the folder name.
-  * **song** (`Union`[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str), [`Path`](https://docs.python.org/3/library/pathlib.html#pathlib.Path), [`None`](https://docs.python.org/3/builtins/constants.html#None)]) – Optional path to a master audio file. When given, the file
+  * **song** ([`Union`](https://docs.python.org/3/library/typing.html#typing.Union)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str), [`Path`](https://docs.python.org/3/library/pathlib.html#pathlib.Path), [`None`](https://docs.python.org/3/builtins/constants.html#None)]) – Optional path to a master audio file. When given, the file
     is *copied* into `<root>/song/` and registered in the spec.
   * **force** ([`bool`](https://docs.python.org/3/builtins/functions.html#bool)) – When True, accept an existing folder if it’s empty (no
     `project.json`); refuse if a project already exists there.
@@ -4319,7 +4361,7 @@ The id is *stable* across edits — see `_upsert()`.
 * **Return type:**
   [`UUID`](https://docs.python.org/3/library/uuid.html#uuid.UUID)
 
-### *class* nw.ProjectSpec(\*\*data)
+### *class* nw.ProjectSpec(, schema_version=1, title='', song=None, characters=(), environments=(), sections=(), shots=(), global_style='', notes='')
 
 Bases: `BaseModel`
 
@@ -4344,7 +4386,7 @@ Where one project’s documents and annotation stores live.
 when there is no graph yet. `open_stores` yields every annotation scope
 the project has (graph included), each store closed before the next opens.
 
-### *class* nw.ProjectSummary(\*\*data)
+### *class* nw.ProjectSummary(, title, root, schema_version, song_path, song_duration_s, character_count, environment_count, section_count, shot_count, rendered_shot_count, has_lyrics, has_alignment, has_script, has_final_compose)
 
 Bases: `BaseModel`
 
@@ -4377,7 +4419,7 @@ Raises `KeyError` when nothing resolves (the host answers 404) and
 `PermissionError` when it resolves but is not the caller’s (403). Never
 let a server path escape in the message.
 
-### *class* nw.ResumptionBrief(\*\*data)
+### *class* nw.ResumptionBrief(\*, title, root, last_session_at=None, gap_seconds=None, recent_decisions=(), downstream_of_last_authored_change=<factory>, last_authored_change_id=None, total_spend_usd=0.0, unrendered_shot_ids=(), suggested_next=<factory>, caveats=<factory>)
 
 Bases: `BaseModel`
 
@@ -4438,7 +4480,7 @@ A copy with `named` layered on top (a boundary adding a provider).
 * **Return type:**
   [`Secrets`](_autosummary/nw.secrets.html.md#nw.secrets.Secrets)
 
-### *class* nw.SectionSpec(\*\*data)
+### *class* nw.SectionSpec(, id, start_s, end_s, label='', energy='', mood='')
 
 Bases: `BaseModel`
 
@@ -4452,7 +4494,7 @@ their own taxonomy.
 
 Configuration for the model, should be a dictionary conforming to [`ConfigDict`][pydantic.config.ConfigDict].
 
-### *class* nw.ShotPreparation(project_root, shot, shot_dir, audio_slice_path, audio_slice_url='', character_anchor_paths=<factory>, character_anchor_urls=<factory>, environment_anchor_path=None, environment_anchor_url='', lyric_lines=<factory>, storyboard_prompt='', global_style='')
+### *class* nw.ShotPreparation(project_root, shot, shot_dir, audio_slice_path, audio_slice_url='', character_anchor_paths=dict(), character_anchor_urls=dict(), environment_anchor_path=None, environment_anchor_url='', lyric_lines=list(), storyboard_prompt='', global_style='')
 
 Bases: [`object`](https://docs.python.org/3/builtins/functions.html#object)
 
@@ -4484,7 +4526,7 @@ Per-character path to the curated anchor image.
 
 Per-character fal-storage URL of the anchor image.
 
-#### environment_anchor_path *: [Path](https://docs.python.org/3/library/pathlib.html#pathlib.Path) | [None](https://docs.python.org/3/builtins/constants.html#None)*
+#### environment_anchor_path *: [Optional](https://docs.python.org/3/library/typing.html#typing.Optional)[[Path](https://docs.python.org/3/library/pathlib.html#pathlib.Path)]*
 
 Path to the environment establishing image, or None.
 
@@ -4504,7 +4546,7 @@ environment + style + lyric lines (when present).
 * **Type:**
   Full prose prompt
 
-### *class* nw.ShotReport(\*\*data)
+### *class* nw.ShotReport(, shot_id, output_path, duration_s, target_duration_s, duration_within_tolerance, has_video, has_audio, frame_count, fps, frozen_segments=(), freeze_total_s=0.0)
 
 Bases: `BaseModel`
 
@@ -4518,7 +4560,7 @@ Any freeze ≥ 1.0s is suspicious. Anything ≥ 0.5s is worth flagging.
 
 Configuration for the model, should be a dictionary conforming to [`ConfigDict`][pydantic.config.ConfigDict].
 
-### *class* nw.ShotSpec(\*\*data)
+### *class* nw.ShotSpec(, id, start_s, end_s, section_id='', render_strategy='image_to_video', environment='', characters=(), description='', camera='', framing='medium', notes='')
 
 Bases: `BaseModel`
 
@@ -4533,7 +4575,7 @@ the schema.
 
 Configuration for the model, should be a dictionary conforming to [`ConfigDict`][pydantic.config.ConfigDict].
 
-### *class* nw.SongInfo(\*\*data)
+### *class* nw.SongInfo(, audio_path, duration_s, sample_rate=0, bitrate=0, bpm=None)
 
 Bases: `BaseModel`
 
@@ -4570,7 +4612,7 @@ Build a `falaw.Plan` for the prepared shot. No fal calls.
 * **Return type:**
   `Plan`
 
-### *class* nw.Template(slug, title, description='', params=<factory>)
+### *class* nw.Template(slug, title, description='', params=dict())
 
 Bases: [`object`](https://docs.python.org/3/builtins/functions.html#object)
 
@@ -4746,7 +4788,7 @@ filled in; their bodies’ artifact references are placeholders that
 * **Return type:**
   [`tuple`](https://docs.python.org/3/builtins/stdtypes.html#tuple)[`Plan`, [`tuple`](https://docs.python.org/3/builtins/stdtypes.html#tuple)[`Annotation`, [`...`](https://docs.python.org/3/builtins/constants.html#Ellipsis)]]
 
-### *class* nw.TransformInputs(primary, context=<factory>)
+### *class* nw.TransformInputs(primary, context=dict())
 
 Bases: [`object`](https://docs.python.org/3/builtins/functions.html#object)
 
@@ -4826,7 +4868,7 @@ A [`KeyError`](https://docs.python.org/3/builtins/exceptions.html#KeyError) so a
 working; its message names the known ops, because “no such op” with no menu is a
 dead end for a model choosing among them.
 
-### *class* nw.UnproducedOutputBodyV1(\*\*data)
+### *class* nw.UnproducedOutputBodyV1(, transform_name, instance_id=None, call_index=None, upstream=(), output_kind='', status, reason='', error_type=None, blocked_by=())
 
 Bases: `BaseModel`
 
@@ -4858,13 +4900,22 @@ Everything a [`validate()`](_autosummary/nw.html.md#nw.validate) run produced.
 
 what was validated.
 
+* **Type:**
+  [`Any`](https://docs.python.org/3/library/typing.html#typing.Any)
+
 #### results
 
 one per check that was selected, in the order they were run.
 
+* **Type:**
+  [`tuple`](https://docs.python.org/3/builtins/stdtypes.html#tuple)[[`CheckResult`](_autosummary/nw.validation.html.md#nw.validation.CheckResult), [`...`](https://docs.python.org/3/builtins/constants.html#Ellipsis)]
+
 #### elapsed_s
 
 wall-clock for the whole run.
+
+* **Type:**
+  [`float`](https://docs.python.org/3/builtins/functions.html#float)
 
 #### *property* ok *: [bool](https://docs.python.org/3/builtins/functions.html#bool)*
 
@@ -4887,7 +4938,7 @@ A few lines a human can read without unpacking the object.
 * **Return type:**
   [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
 
-### *class* nw.WorkItem(\*\*data)
+### *class* nw.WorkItem(\*, mapping_key, parent_key=None, attributes=<factory>, scope_interval=None)
 
 Bases: `BaseModel`
 
@@ -4933,9 +4984,6 @@ has no `project.json` or keeps its own keying (no `tenant_id`). Raises
 `FileNotFoundError` when the song audio its tenant hashes is missing.
 With `dry_run` nothing is written.
 
-* **Return type:**
-  [`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]
-
 ```pycon
 >>> import tempfile, json, pathlib
 >>> root = pathlib.Path(tempfile.mkdtemp())
@@ -4943,6 +4991,9 @@ With `dry_run` nothing is written.
 >>> adopt_tenant_id(root) == adopt_tenant_id(root)
 True
 ```
+
+* **Return type:**
+  [`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]
 
 ### nw.all_stale(project_root)
 
@@ -4982,14 +5033,14 @@ Apply `fn` to each project at `roots` and collect the results.
 * **Parameters:**
   * **roots** ([`Iterable`](https://docs.python.org/3/library/typing.html#typing.Iterable)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str) | [`Path`](https://docs.python.org/3/library/pathlib.html#pathlib.Path)]) – Iterable of project roots. Each must point to an existing
     nw project.
-  * **fn** ([`Callable`](https://docs.python.org/3/library/typing.html#typing.Callable)[[[`Project`](_autosummary/nw.project.html.md#nw.project.Project)], [`TypeVar`](https://docs.python.org/3/library/typing.html#typing.TypeVar)(`T`)]) – Callable taking a [`Project`](_autosummary/nw.html.md#nw.Project) and returning anything. Use this
+  * **fn** ([`Callable`](https://docs.python.org/3/library/typing.html#typing.Callable)[[[`Project`](_autosummary/nw.project.html.md#nw.project.Project)], `T`]) – Callable taking a [`Project`](_autosummary/nw.html.md#nw.Project) and returning anything. Use this
     for per-project operations: parsing a script, estimating cost,
     rendering, gathering reports.
   * **parallel** ([`bool`](https://docs.python.org/3/builtins/functions.html#bool)) – When True, run `fn` in a thread pool. Useful when `fn`
     is I/O- or API-bound (e.g. a render). When False (default), runs
     sequentially in submission order — the safest semantics.
 * **Return type:**
-  [`list`](https://docs.python.org/3/builtins/stdtypes.html#list)[[`TypeVar`](https://docs.python.org/3/library/typing.html#typing.TypeVar)(`T`)]
+  [`list`](https://docs.python.org/3/builtins/stdtypes.html#list)[`T`]
 * **Returns:**
   A list of `fn(project)` results in the same order as `roots`.
 
@@ -5024,9 +5075,6 @@ directly gets whatever the caller passed: an override that logs or
 formats its `secrets` should `as_secrets` first (or the caller should
 hand it a [`Secrets`](_autosummary/nw.html.md#nw.Secrets)), because a plain `dict` prints its values.
 
-* **Return type:**
-  [`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[[`Secrets`](_autosummary/nw.secrets.html.md#nw.secrets.Secrets)]
-
 ```pycon
 >>> as_secrets(None) is None
 True
@@ -5035,6 +5083,9 @@ True
 >>> as_secrets({"fal": "k"})
 Secrets(<1 redacted: fal>)
 ```
+
+* **Return type:**
+  [`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[[`Secrets`](_autosummary/nw.secrets.html.md#nw.secrets.Secrets)]
 
 ### nw.backfill_traces(project_root, , execute=False)
 
@@ -5115,9 +5166,6 @@ a genre whose factory predates `PLACEMENT_ARG` can still be created, but
 only in its own app’s workspace — where the host cannot address it. False for an
 unregistered genre.
 
-* **Return type:**
-  [`bool`](https://docs.python.org/3/builtins/functions.html#bool)
-
 ```pycon
 >>> def _old(caller, project_id, *, title, template, params):
 ...     return {"project": None}
@@ -5132,6 +5180,9 @@ False
 >>> del genre_project_factories["_place_old"]
 >>> del genre_project_factories["_place_new"]
 ```
+
+* **Return type:**
+  [`bool`](https://docs.python.org/3/builtins/functions.html#bool)
 
 ### nw.clone_project(src_root, dst_root, , preserve=('song', 'lyrics', 'characters'), reset=('script', 'shots', 'output', '.nw'), title=None, force=False)
 
@@ -5196,9 +5247,6 @@ frozen figure is what makes the row re-quotable later by
 written by a caller that records no basis is byte-identical to what nw
 wrote before nw#74.
 
-* **Return type:**
-  [`list`](https://docs.python.org/3/builtins/stdtypes.html#list)[[`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str), [`Any`](https://docs.python.org/3/library/typing.html#typing.Any)]]
-
 ```pycon
 >>> from falaw import CallPlan, Plan
 >>> call = CallPlan(tool="t", application="a", arguments={},
@@ -5206,6 +5254,9 @@ wrote before nw#74.
 >>> sorted(cost_records(Plan(calls=(call,)))[0])
 ['application', 'cache_status', 'estimated_cost_usd', 'tool']
 ```
+
+* **Return type:**
+  [`list`](https://docs.python.org/3/builtins/stdtypes.html#list)[[`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str), [`Any`](https://docs.python.org/3/library/typing.html#typing.Any)]]
 
 ### nw.create_genre_project(genre, caller, project_id, , title=None, template=None, projects_dir=None)
 
@@ -5377,7 +5428,7 @@ forecloses it — units are planned independently and the result is
 order-aligned, not order-dependent.
 
 * **Return type:**
-  FanOutResult
+  [`FanOutResult`](_autosummary/nw.html.md#nw.FanOutResult)
 
 ### nw.fan_out_plan(transform, project, items, , inputs_for, params=None)
 
@@ -5399,19 +5450,19 @@ persistence. Idempotent, so `BaseTransform.execute()` re-stamping at
 execute time changes nothing.
 
 * **Return type:**
-  FanOutPlan
+  [`FanOutPlan`](_autosummary/nw.html.md#nw.FanOutPlan)
 
 ### nw.format_ref(n)
 
 The one spelling we print. Input is permissive; output never varies.
 
-* **Return type:**
-  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
-
 ```pycon
 >>> format_ref(1), format_ref(42)
 ('cut 1', 'cut 42')
 ```
+
+* **Return type:**
+  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
 
 ### nw.genre_catalog()
 
@@ -5503,14 +5554,14 @@ one. A `project` stand-in without a `graph` (a test double, a
 factory that returns no live project) skips the recording; read it back
 via [`nw.Project.resolved_genre()`](_autosummary/nw.html.md#nw.Project.resolved_genre).
 
-* **Return type:**
-  [`None`](https://docs.python.org/3/builtins/constants.html#None)
-
 ```pycon
 >>> _ = register_genre(Genre(slug="_noinit_demo", title="Demo"))
 >>> initialize_genre("_noinit_demo", object())  # no initializer -> no seed
 >>> del genres["_noinit_demo"]
 ```
+
+* **Return type:**
+  [`None`](https://docs.python.org/3/builtins/constants.html#None)
 
 ### nw.is_migrated(project_root)
 
@@ -5606,9 +5657,6 @@ The ordinal in a spoken reference, or `None` if it isn’t one.
 artifact id — which is why this never raises: “not an ordinal” is an
 ordinary, expected answer, not an error.
 
-* **Return type:**
-  [`int`](https://docs.python.org/3/builtins/functions.html#int) | [`None`](https://docs.python.org/3/builtins/constants.html#None)
-
 ```pycon
 >>> parse_ref("cut 4"), parse_ref("CUT4"), parse_ref(" cut - 4 ")
 (4, 4, 4)
@@ -5626,6 +5674,9 @@ accepting `cut 0` would resolve to a neighbour under a naive index:
 True
 ```
 
+* **Return type:**
+  [`int`](https://docs.python.org/3/builtins/functions.html#int) | [`None`](https://docs.python.org/3/builtins/constants.html#None)
+
 ### nw.plan_checks(selection)
 
 Order the selection into waves that may each run concurrently.
@@ -5638,7 +5689,7 @@ A check that is not `parallel_safe` gets a wave to itself.
   [**ValueError**](https://docs.python.org/3/builtins/exceptions.html#ValueError) – on a dependency cycle, or a requirement that is not
       registered — both at plan time, before anything has been spent.
 * **Return type:**
-  [*tuple*](https://docs.python.org/3/builtins/stdtypes.html#tuple)[[*tuple*](https://docs.python.org/3/builtins/stdtypes.html#tuple)[[*Check*](_autosummary/nw.validation.html.md#nw.validation.Check), …], …]
+  [`tuple`](https://docs.python.org/3/builtins/stdtypes.html#tuple)[[`tuple`](https://docs.python.org/3/builtins/stdtypes.html#tuple)[[`Check`](_autosummary/nw.validation.html.md#nw.validation.Check), [`...`](https://docs.python.org/3/builtins/constants.html#Ellipsis)], [`...`](https://docs.python.org/3/builtins/constants.html#Ellipsis)]
 
 ### Examples
 
@@ -5646,9 +5697,6 @@ A check that is not `parallel_safe` gets a wave to itself.
 >>> plan_checks(())
 ()
 ```
-
-* **Return type:**
-  [`tuple`](https://docs.python.org/3/builtins/stdtypes.html#tuple)[[`tuple`](https://docs.python.org/3/builtins/stdtypes.html#tuple)[[`Check`](_autosummary/nw.validation.html.md#nw.validation.Check), [`...`](https://docs.python.org/3/builtins/constants.html#Ellipsis)], [`...`](https://docs.python.org/3/builtins/constants.html#Ellipsis)]
 
 ### nw.plan_from_cost_records(records)
 
@@ -5744,9 +5792,6 @@ over a payload whose calls sum to $0 is a broken record, and answering
 never produces such a payload; a hand-edited or truncated one can, and
 unknown is the only honest reading of it.
 
-* **Return type:**
-  [`PlanQuote`](_autosummary/nw.pricing.html.md#nw.pricing.PlanQuote)
-
 ```pycon
 >>> broken = quote_render_decision(
 ...     {"calls": [], "total_estimated_cost_usd": 3.0})
@@ -5760,13 +5805,13 @@ unknown is the only honest reading of it.
 ('unknown', None, 3.0)
 ```
 
+* **Return type:**
+  [`PlanQuote`](_autosummary/nw.pricing.html.md#nw.pricing.PlanQuote)
+
 ### nw.recommend_genre(kind)
 
 The slug of the genre whose `intake_kinds` contains `kind` (first in slug
 order), or `None` when `kind` is falsy / unmatched.
-
-* **Return type:**
-  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str) | [`None`](https://docs.python.org/3/builtins/constants.html#None)
 
 ```pycon
 >>> g = register_genre(Genre(slug="_rec_demo", title="Rec", intake_kinds=("essay",)))
@@ -5777,6 +5822,9 @@ True
 >>> del genres["_rec_demo"]
 ```
 
+* **Return type:**
+  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str) | [`None`](https://docs.python.org/3/builtins/constants.html#None)
+
 ### nw.redact(text, secrets)
 
 `text` with every secret value replaced by `<redacted:name>`.
@@ -5785,15 +5833,15 @@ For the places nw persists free text it did not author — an exception
 message, a failure reason — while holding the values that must not land
 there. Cheap, exact-substring, and a no-op with no secrets.
 
-* **Return type:**
-  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
-
 ```pycon
 >>> redact("boom: key sk-1 rejected", {"fal": "sk-1"})
 'boom: key <redacted:fal> rejected'
 >>> redact("nothing here", None)
 'nothing here'
 ```
+
+* **Return type:**
+  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
 
 ### nw.redact_exception(error, secrets)
 
@@ -5835,9 +5883,6 @@ def _duration(target, ctx): ...
 
 Register a [`Genre`](_autosummary/nw.html.md#nw.Genre) under its `slug`; returns it for inline use.
 
-* **Return type:**
-  [`Genre`](_autosummary/nw.html.md#nw.Genre)
-
 ```pycon
 >>> g = register_genre(Genre(slug="doctest_demo", title="Demo"))
 >>> get_genre("doctest_demo").title
@@ -5846,6 +5891,9 @@ Register a [`Genre`](_autosummary/nw.html.md#nw.Genre) under its `slug`; returns
 True
 >>> del genres["doctest_demo"]  # keep the shared registry clean
 ```
+
+* **Return type:**
+  [`Genre`](_autosummary/nw.html.md#nw.Genre)
 
 ### nw.register_genre_initializer(slug, initializer)
 
@@ -5857,9 +5905,6 @@ params) -> None` seeds a freshly-created project for the chosen genre/template
 [`initialize_genre()`](_autosummary/nw.html.md#nw.initialize_genre) dispatches to it. Independent of genre \*registration
 order\* (keyed by the slug string). A genre that seeds nothing on create needs
 no initializer at all.
-
-* **Return type:**
-  [`Callable`](https://docs.python.org/3/library/typing.html#typing.Callable)[[[`Genre`](_autosummary/nw.html.md#nw.Genre), [`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)], [`Project`](_autosummary/nw.project.html.md#nw.project.Project), [`Mapping`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Mapping)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str), [`Any`](https://docs.python.org/3/library/typing.html#typing.Any)]], [`None`](https://docs.python.org/3/builtins/constants.html#None)]
 
 ```pycon
 >>> _ = register_genre(Genre(slug="_init_demo", title="Demo",
@@ -5874,6 +5919,9 @@ no initializer at all.
 >>> del genres["_init_demo"]; del genre_initializers["_init_demo"]
 ```
 
+* **Return type:**
+  [`Callable`](https://docs.python.org/3/library/typing.html#typing.Callable)[[[`Genre`](_autosummary/nw.html.md#nw.Genre), [`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)], [`Project`](_autosummary/nw.project.html.md#nw.project.Project), [`Mapping`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Mapping)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str), [`Any`](https://docs.python.org/3/library/typing.html#typing.Any)]], [`None`](https://docs.python.org/3/builtins/constants.html#None)]
+
 ### nw.register_genre_ops(genre_slug, ops)
 
 Register the operations a genre offers on its projects; returns them as a tuple.
@@ -5882,9 +5930,6 @@ Called once by the genre’s **owning app**, beside its project factory, so a ho
 serve the genre’s project operations via [`genre_ops()`](_autosummary/nw.html.md#nw.genre_ops) without importing the
 genre’s package. Names must be unique within the genre. Registering the same genre
 twice raises (the registry refuses conflicts, as every nw genre registry does).
-
-* **Return type:**
-  [`tuple`](https://docs.python.org/3/builtins/stdtypes.html#tuple)
 
 ```pycon
 >>> def _peek(project) -> dict:
@@ -5901,6 +5946,9 @@ twice raises (the registry refuses conflicts, as every nw genre registry does).
 >>> del genre_ops_registry["_ops_demo"]
 ```
 
+* **Return type:**
+  [`tuple`](https://docs.python.org/3/builtins/stdtypes.html#tuple)
+
 ### nw.register_genre_project_factory(slug, factory)
 
 Register a project factory for a genre slug; returns it for inline use.
@@ -5908,9 +5956,6 @@ Register a project factory for a genre slug; returns it for inline use.
 Called by the genre’s **owning app** so a host that aggregates the genre can create
 its projects via [`create_genre_project()`](_autosummary/nw.html.md#nw.create_genre_project) without knowing its storage. See
 `GenreProjectFactory` for the signature + the caller-space contract.
-
-* **Return type:**
-  [`Callable`](https://docs.python.org/3/library/typing.html#typing.Callable)[[`...`](https://docs.python.org/3/builtins/constants.html#Ellipsis), [`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)]
 
 ```pycon
 >>> _ = register_genre(Genre(slug="_pf_demo", title="Demo",
@@ -5927,6 +5972,9 @@ its projects via [`create_genre_project()`](_autosummary/nw.html.md#nw.create_ge
 >>> del genres["_pf_demo"]; del genre_project_factories["_pf_demo"]
 ```
 
+* **Return type:**
+  [`Callable`](https://docs.python.org/3/library/typing.html#typing.Callable)[[`...`](https://docs.python.org/3/builtins/constants.html#Ellipsis), [`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)]
+
 ### nw.register_genre_resolver(slug, resolver)
 
 Register a resolver for a genre slug; returns it for inline use.
@@ -5935,9 +5983,6 @@ Called by the genre’s owning app. `resolver(genre, template) -> params` maps a
 chosen template (or `None` for “start from scratch”) to that app’s bare params
 payload; [`resolve_genre()`](_autosummary/nw.html.md#nw.resolve_genre) adds the `{genre, template, params}` envelope.
 Independent of genre *registration order* (keyed by the slug string).
-
-* **Return type:**
-  [`Callable`](https://docs.python.org/3/library/typing.html#typing.Callable)[[[`Genre`](_autosummary/nw.html.md#nw.Genre), [`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]], [`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)]
 
 ```pycon
 >>> _ = register_genre(Genre(slug="_resolver_demo", title="Demo",
@@ -5948,6 +5993,9 @@ Independent of genre *registration order* (keyed by the slug string).
 {'genre': '_resolver_demo', 'template': None, 'params': {'look': 'plain', 'via': 'resolver'}}
 >>> del genres["_resolver_demo"]; del genre_resolvers["_resolver_demo"]
 ```
+
+* **Return type:**
+  [`Callable`](https://docs.python.org/3/library/typing.html#typing.Callable)[[[`Genre`](_autosummary/nw.html.md#nw.Genre), [`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]], [`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)]
 
 ### nw.register_project_storage(name, resolver)
 
@@ -6005,7 +6053,7 @@ extension.md`); this is the one piece of that decision worth doing
 regardless of when, or whether, the registry opens.
 
 * **Return type:**
-  `Union`[[`Transform`](_autosummary/nw.html.md#nw.Transform), [`Callable`](https://docs.python.org/3/library/typing.html#typing.Callable)[[[`type`](https://docs.python.org/3/builtins/functions.html#type)], [`type`](https://docs.python.org/3/builtins/functions.html#type)]]
+  [`Union`](https://docs.python.org/3/library/typing.html#typing.Union)[[`Transform`](_autosummary/nw.html.md#nw.Transform), [`Callable`](https://docs.python.org/3/library/typing.html#typing.Callable)[[[`type`](https://docs.python.org/3/builtins/functions.html#type)], [`type`](https://docs.python.org/3/builtins/functions.html#type)]]
 
 ### nw.resolve_defaults(genre, template=None)
 
@@ -6034,9 +6082,6 @@ Raises [`KeyError`](https://docs.python.org/3/builtins/exceptions.html#KeyError)
 an unknown `template` slug (the substrate owns template identity; a resolver only
 interprets params, it doesn’t get to invent template slugs).
 
-* **Return type:**
-  [`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)
-
 ```pycon
 >>> _ = register_genre(Genre(slug="_rg_demo", title="Demo",
 ...                          defaults={"flavor": "cinematic"}))
@@ -6044,6 +6089,9 @@ interprets params, it doesn’t get to invent template slugs).
 {'genre': '_rg_demo', 'template': None, 'params': {'flavor': 'cinematic'}}
 >>> del genres["_rg_demo"]
 ```
+
+* **Return type:**
+  [`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)
 
 ### nw.shot_report(project, shot_id, , freeze_sample_fps=4.0, duration_tolerance_s=0.1)
 
@@ -6169,15 +6217,15 @@ runs on every request and its job is to narrow forty items to a handful
 that a human or a model then confirms. `"paid"` checks are never
 suggested: money is asked for by name.
 
-* **Return type:**
-  [`tuple`](https://docs.python.org/3/builtins/stdtypes.html#tuple)[[`Check`](_autosummary/nw.validation.html.md#nw.validation.Check), [`...`](https://docs.python.org/3/builtins/constants.html#Ellipsis)]
-
 ### Examples
 
 ```pycon
 >>> suggest("")
 ()
 ```
+
+* **Return type:**
+  [`tuple`](https://docs.python.org/3/builtins/stdtypes.html#tuple)[[`Check`](_autosummary/nw.validation.html.md#nw.validation.Check), [`...`](https://docs.python.org/3/builtins/constants.html#Ellipsis)]
 
 ### nw.summarize_all(roots)
 
@@ -6222,14 +6270,14 @@ not `0.0`.
 [`PlanQuote.repriced`](_autosummary/nw.html.md#nw.PlanQuote.repriced) is an empty `falaw.RepricedPlan`: there
 were no calls to diff. Read [`PlanQuote.reason`](_autosummary/nw.html.md#nw.PlanQuote.reason) for what went wrong.
 
-* **Return type:**
-  [`PlanQuote`](_autosummary/nw.pricing.html.md#nw.pricing.PlanQuote)
-
 ```pycon
 >>> q = unquotable("params['plan'] is not a falaw Plan")
 >>> q.status, q.total_usd, q.has_unknown_costs
 ('unknown', None, True)
 ```
+
+* **Return type:**
+  [`PlanQuote`](_autosummary/nw.pricing.html.md#nw.pricing.PlanQuote)
 
 ### nw.using_secrets(secrets)
 
@@ -6287,9 +6335,6 @@ same id on every machine, every run, forever — which is what makes
 per-instance retry, cost attribution, and “regenerate just this one”
 addressable across runs.
 
-* **Return type:**
-  [`UUID`](https://docs.python.org/3/library/uuid.html#uuid.UUID)
-
 ```pycon
 >>> a = work_item_instance_id("panel_to_image.fal", "scene_1/panel_2")
 >>> a == work_item_instance_id("panel_to_image.fal", "scene_1/panel_2")
@@ -6297,6 +6342,9 @@ True
 >>> a != work_item_instance_id("panel_to_voiceover", "scene_1/panel_2")
 True
 ```
+
+* **Return type:**
+  [`UUID`](https://docs.python.org/3/library/uuid.html#uuid.UUID)
 
 ### Modules
 
@@ -6354,13 +6402,13 @@ Both return frozen Pydantic models for typed downstream use.
 
 ### Classes
 
-| [`ComposeReport`](_autosummary/nw.inspect.html.md#nw.inspect.ComposeReport)(\*\*data)   | Inspection of the project-level final composed video.   |
-|----------------------------------------------------------------------------|---------------------------------------------------------|
-| [`FrozenSegment`](_autosummary/nw.inspect.html.md#nw.inspect.FrozenSegment)(\*\*data)   | A run of consecutive frames whose pixels don't change.  |
-| [`Gap`](_autosummary/nw.inspect.html.md#nw.inspect.Gap)(\*\*data)             | A gap on the timeline between two shots.                |
-| [`ShotReport`](_autosummary/nw.inspect.html.md#nw.inspect.ShotReport)(\*\*data)      | Inspection of one rendered shot.                        |
+| [`ComposeReport`](_autosummary/nw.inspect.html.md#nw.inspect.ComposeReport)(\*, output_path, has_final, ...)   | Inspection of the project-level final composed video.   |
+|---------------------------------------------------------------------------------------------------|---------------------------------------------------------|
+| [`FrozenSegment`](_autosummary/nw.inspect.html.md#nw.inspect.FrozenSegment)(\*, start_s, end_s)                | A run of consecutive frames whose pixels don't change.  |
+| [`Gap`](_autosummary/nw.inspect.html.md#nw.inspect.Gap)(\*, after_shot_id, before_shot_id, ...)      | A gap on the timeline between two shots.                |
+| [`ShotReport`](_autosummary/nw.inspect.html.md#nw.inspect.ShotReport)(\*, shot_id, output_path, ...[, ...]) | Inspection of one rendered shot.                        |
 
-### *class* nw.inspect.ComposeReport(\*\*data)
+### *class* nw.inspect.ComposeReport(, output_path, has_final, total_duration_s, target_duration_s, shots, gaps=())
 
 Bases: `BaseModel`
 
@@ -6370,7 +6418,7 @@ Inspection of the project-level final composed video.
 
 Configuration for the model, should be a dictionary conforming to [`ConfigDict`][pydantic.config.ConfigDict].
 
-### *class* nw.inspect.FrozenSegment(\*\*data)
+### *class* nw.inspect.FrozenSegment(, start_s, end_s)
 
 Bases: `BaseModel`
 
@@ -6384,7 +6432,7 @@ fallback that froze the last frame, etc.
 
 Configuration for the model, should be a dictionary conforming to [`ConfigDict`][pydantic.config.ConfigDict].
 
-### *class* nw.inspect.Gap(\*\*data)
+### *class* nw.inspect.Gap(, after_shot_id, before_shot_id, start_s, end_s)
 
 Bases: `BaseModel`
 
@@ -6394,7 +6442,7 @@ A gap on the timeline between two shots.
 
 Configuration for the model, should be a dictionary conforming to [`ConfigDict`][pydantic.config.ConfigDict].
 
-### *class* nw.inspect.ShotReport(\*\*data)
+### *class* nw.inspect.ShotReport(, shot_id, output_path, duration_s, target_duration_s, duration_within_tolerance, has_video, has_audio, frame_count, fps, frozen_segments=(), freeze_total_s=0.0)
 
 Bases: `BaseModel`
 
@@ -6588,7 +6636,7 @@ Called when computation fails.
 
 `Job.error_kind` values — see [`Job.error_kind`](_autosummary/nw.jobs.html.md#nw.jobs.Job.error_kind).
 
-### *class* nw.jobs.Job(job_id, kind, label, status, idempotency_key, params=<factory>, created_at=None, started_at=None, finished_at=None, queue_wait_s=None, elapsed_s=None, progress=<factory>, predicted_total_s=None, remaining_s=None, eta_ts=None, eta_s=None, pct=None, confidence=None, label_hint=None, eta_key=None, cost=<factory>, cached=False, worker_silent_s=None, worker_responsive=None, artifact_ref=None, result=None, error=None, error_kind=None, error_detail=None, run_id=None, last_event_id=None)
+### *class* nw.jobs.Job(job_id, kind, label, status, idempotency_key, params=dict(), created_at=None, started_at=None, finished_at=None, queue_wait_s=None, elapsed_s=None, progress=JobProgress(), predicted_total_s=None, remaining_s=None, eta_ts=None, eta_s=None, pct=None, confidence=None, label_hint=None, eta_key=None, cost=JobCost(), cached=False, worker_silent_s=None, worker_responsive=None, artifact_ref=None, result=None, error=None, error_kind=None, error_detail=None, run_id=None, last_event_id=None)
 
 Bases: [`object`](https://docs.python.org/3/builtins/functions.html#object)
 
@@ -6846,9 +6894,6 @@ would make every response carrying the job unserialisable): a detail that
 does not is dropped rather than failing the job’s bookkeeping. Every string
 in it is redacted of `secrets`, as the job’s `error` text is.
 
-* **Return type:**
-  [`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict) | [`None`](https://docs.python.org/3/builtins/constants.html#None)
-
 ```pycon
 >>> from nw.genres import GenreOpRefused
 >>> error_detail_of(GenreOpRefused("cap", detail={"limit_usd": 10.0}))
@@ -6861,12 +6906,12 @@ True
 True
 ```
 
+* **Return type:**
+  [`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict) | [`None`](https://docs.python.org/3/builtins/constants.html#None)
+
 ### nw.jobs.error_kind_of(error)
 
 `"refused"` | `"cancelled"` | `"crashed"` for an exception a job raised.
-
-* **Return type:**
-  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
 
 ```pycon
 >>> from nw.genres import GenreOpRefused, GenreOpCancelled
@@ -6874,6 +6919,9 @@ True
 ...                             GenreOpCancelled(), ValueError("bug"))]
 ['refused', 'cancelled', 'crashed']
 ```
+
+* **Return type:**
+  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
 
 ### nw.jobs.estimate(project, kind, params, , config=JobsConfig(n_min=3, sample_window_k=20, pct_ceil=99, overrun_factor=1.5, cache_hit_floor_s=0.5, dur_buckets_s=(4.0, 8.0, 12.0), prior_total_s={'image': 12.0, 'video': 90.0, 'audio': 15.0}, default_prior_total_s=30.0, stale_running_s=900.0, heartbeat_interval_s=20.0, heartbeat_stale_s=120.0, approval_threshold_usd=1.0, jobs_dirname='.nw/jobs'))
 
@@ -7112,7 +7160,7 @@ Bases: [`RuntimeError`](https://docs.python.org/3/builtins/exceptions.html#Runti
 
 The host reads its artifacts from somewhere other than the project’s blobs.
 
-### *class* nw.media_catalog.CatalogReport(rows_written=0, rows_unchanged=0, blobs_linked=0, blobs_present=0, blobs_copied=0, bytes_copied=0, cross_device=False, unregistered=<factory>)
+### *class* nw.media_catalog.CatalogReport(rows_written=0, rows_unchanged=0, blobs_linked=0, blobs_present=0, blobs_copied=0, bytes_copied=0, cross_device=False, unregistered=list())
 
 Bases: [`object`](https://docs.python.org/3/builtins/functions.html#object)
 
@@ -7163,9 +7211,6 @@ host this writes for is reliably newer than that date.
 
 One record, ready to serialize.
 
-* **Return type:**
-  [`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)
-
 ```pycon
 >>> row = CatalogRow.build("ab" * 32, kind="image",
 ...     generated_at="2026-09-20T00:00:00Z", width=800, height=600)
@@ -7176,6 +7221,9 @@ True
 >>> sorted(row) == sorted(CatalogRow.FIELDS)
 True
 ```
+
+* **Return type:**
+  [`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)
 
 ### *exception* nw.media_catalog.CorruptBlob
 
@@ -7279,9 +7327,6 @@ of an object store would instead report complete success and leave every id
 explicitly; it does not get it by accident. `remedy` lets a caller name its
 own way of doing that in the message (an importer’s opt-out flag, say).
 
-* **Return type:**
-  [`None`](https://docs.python.org/3/builtins/constants.html#None)
-
 ```pycon
 >>> assert_local_backend({})
 >>> assert_local_backend({"REELEE_ARTIFACT_BACKEND": "fs"})
@@ -7291,6 +7336,9 @@ Traceback (most recent call last):
     ...
 nw.media_catalog.CatalogBackendMismatch: ...
 ```
+
+* **Return type:**
+  [`None`](https://docs.python.org/3/builtins/constants.html#None)
 
 ### nw.media_catalog.catalog_row(artifact_id, , kind, generated_at, width=None, height=None, duration_s=None, note='')
 
@@ -7306,9 +7354,6 @@ SHA-256 of a file’s bytes, read in chunks — the catalog id of that file.
 The same digest lacing computes for an `asset_id` (pinned by a test), kept
 here so the writer can be reasoned about without the graph layer.
 
-* **Return type:**
-  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
-
 ```pycon
 >>> import tempfile, pathlib
 >>> with tempfile.TemporaryDirectory() as d:
@@ -7316,6 +7361,9 @@ here so the writer can be reasoned about without the graph layer.
 ...     hash_file(p)
 'ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad'
 ```
+
+* **Return type:**
+  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
 
 
 # _autosummary/nw.migrate.html.md
@@ -7560,7 +7608,7 @@ The stale figure is kept — as [`as_of_total_usd`](_autosummary/nw.pricing.html
 it must never do is *present* it as current; that is what
 [`total_usd`](_autosummary/nw.pricing.html.md#nw.pricing.PlanQuote.total_usd) and [`status`](_autosummary/nw.pricing.html.md#nw.pricing.PlanQuote.status) are for.
 
-#### as_of_total_usd *: [float](https://docs.python.org/3/builtins/functions.html#float) | [None](https://docs.python.org/3/builtins/constants.html#None)*
+#### as_of_total_usd *: [Optional](https://docs.python.org/3/library/typing.html#typing.Optional)[[float](https://docs.python.org/3/builtins/functions.html#float)]*
 
 What the persisted plan said, `None` if it already said unknown.
 
@@ -7577,7 +7625,7 @@ because the plan did”. Read it beside [`status`](_autosummary/nw.pricing.html.
 with this `False` is a caller quoting different quantities, not a
 repricing event.
 
-#### *property* delta_usd *: [float](https://docs.python.org/3/builtins/functions.html#float) | [None](https://docs.python.org/3/builtins/constants.html#None)*
+#### *property* delta_usd *: [Optional](https://docs.python.org/3/library/typing.html#typing.Optional)[[float](https://docs.python.org/3/builtins/functions.html#float)]*
 
 `total_usd - as_of_total_usd`, or `None` when either is unknown.
 
@@ -7620,7 +7668,7 @@ number, whether it is knowable, and whether it moved. Reach into
 * **Return type:**
   [`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str), [`Any`](https://docs.python.org/3/library/typing.html#typing.Any)]
 
-#### total_usd *: [float](https://docs.python.org/3/builtins/functions.html#float) | [None](https://docs.python.org/3/builtins/constants.html#None)*
+#### total_usd *: [Optional](https://docs.python.org/3/library/typing.html#typing.Optional)[[float](https://docs.python.org/3/builtins/functions.html#float)]*
 
 Today’s billable total, or `None` when any billable call is
 unpriceable today. `None` means unknown, never free (nw invariant #2).
@@ -7661,9 +7709,6 @@ frozen figure is what makes the row re-quotable later by
 written by a caller that records no basis is byte-identical to what nw
 wrote before nw#74.
 
-* **Return type:**
-  [`list`](https://docs.python.org/3/builtins/stdtypes.html#list)[[`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str), [`Any`](https://docs.python.org/3/library/typing.html#typing.Any)]]
-
 ```pycon
 >>> from falaw import CallPlan, Plan
 >>> call = CallPlan(tool="t", application="a", arguments={},
@@ -7671,6 +7716,9 @@ wrote before nw#74.
 >>> sorted(cost_records(Plan(calls=(call,)))[0])
 ['application', 'cache_status', 'estimated_cost_usd', 'tool']
 ```
+
+* **Return type:**
+  [`list`](https://docs.python.org/3/builtins/stdtypes.html#list)[[`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str), [`Any`](https://docs.python.org/3/library/typing.html#typing.Any)]]
 
 ### nw.pricing.current_quote(plan, \*, pricers={'llm_rates': Pricer(quote=<function \_quote_from_llm_rates>, table='falaw/data/llm_rates.json', version=<functools._lru_cache_wrapper object>), 'model_catalogue': Pricer(quote = <function \_quote_from_catalogue>, table='falaw/data/models.json', version=<functools._lru_cache_wrapper object>)})
 
@@ -7744,9 +7792,6 @@ over a payload whose calls sum to $0 is a broken record, and answering
 never produces such a payload; a hand-edited or truncated one can, and
 unknown is the only honest reading of it.
 
-* **Return type:**
-  [`PlanQuote`](_autosummary/nw.pricing.html.md#nw.pricing.PlanQuote)
-
 ```pycon
 >>> broken = quote_render_decision(
 ...     {"calls": [], "total_estimated_cost_usd": 3.0})
@@ -7760,6 +7805,9 @@ unknown is the only honest reading of it.
 ('unknown', None, 3.0)
 ```
 
+* **Return type:**
+  [`PlanQuote`](_autosummary/nw.pricing.html.md#nw.pricing.PlanQuote)
+
 ### nw.pricing.unquotable(reason)
 
 A quote for something that could not be re-quoted at all.
@@ -7772,14 +7820,14 @@ not `0.0`.
 [`PlanQuote.repriced`](_autosummary/nw.pricing.html.md#nw.pricing.PlanQuote.repriced) is an empty `falaw.RepricedPlan`: there
 were no calls to diff. Read [`PlanQuote.reason`](_autosummary/nw.pricing.html.md#nw.pricing.PlanQuote.reason) for what went wrong.
 
-* **Return type:**
-  [`PlanQuote`](_autosummary/nw.pricing.html.md#nw.pricing.PlanQuote)
-
 ```pycon
 >>> q = unquotable("params['plan'] is not a falaw Plan")
 >>> q.status, q.total_usd, q.has_unknown_costs
 ('unknown', None, True)
 ```
+
+* **Return type:**
+  [`PlanQuote`](_autosummary/nw.pricing.html.md#nw.pricing.PlanQuote)
 
 
 # _autosummary/nw.project.html.md
@@ -7855,7 +7903,7 @@ Create a new project on disk and return the [`Project`](_autosummary/nw.project.
   * **root** ([`str`](https://docs.python.org/3/builtins/stdtypes.html#str) | [`Path`](https://docs.python.org/3/library/pathlib.html#pathlib.Path)) – Folder to create. Must not exist (or pass `force=True` to
     overwrite an empty folder).
   * **title** ([`str`](https://docs.python.org/3/builtins/stdtypes.html#str)) – Optional human-readable title; defaults to the folder name.
-  * **song** (`Union`[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str), [`Path`](https://docs.python.org/3/library/pathlib.html#pathlib.Path), [`None`](https://docs.python.org/3/builtins/constants.html#None)]) – Optional path to a master audio file. When given, the file
+  * **song** ([`Union`](https://docs.python.org/3/library/typing.html#typing.Union)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str), [`Path`](https://docs.python.org/3/library/pathlib.html#pathlib.Path), [`None`](https://docs.python.org/3/builtins/constants.html#None)]) – Optional path to a master audio file. When given, the file
     is *copied* into `<root>/song/` and registered in the spec.
   * **force** ([`bool`](https://docs.python.org/3/builtins/functions.html#bool)) – When True, accept an existing folder if it’s empty (no
     `project.json`); refuse if a project already exists there.
@@ -8347,18 +8395,18 @@ Pydantic is used (instead of frozen dataclasses) for two reasons:
 
 ### Classes
 
-| [`CharacterRef`](_autosummary/nw.schema.html.md#nw.schema.CharacterRef)(\*\*data)    | Pointer to a character folder under `characters/<name>/`.                                                                                               |
-|----------------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------|
-| [`DecisionEntry`](_autosummary/nw.schema.html.md#nw.schema.DecisionEntry)(\*\*data)   | One entry of a project's decision log, flattened for display.                                                                                           |
-| [`EnvironmentRef`](_autosummary/nw.schema.html.md#nw.schema.EnvironmentRef)(\*\*data)  | Pointer to an environment folder under `environments/<name>/`.                                                                                          |
-| [`ProjectSpec`](_autosummary/nw.schema.html.md#nw.schema.ProjectSpec)(\*\*data)     | The top-level project SSOT, persisted as `project.json`.                                                                                                |
-| [`ProjectSummary`](_autosummary/nw.schema.html.md#nw.schema.ProjectSummary)(\*\*data)  | Typed read view of a project — what `muvid status` printed, but typed.                                                                                  |
-| [`ResumptionBrief`](_autosummary/nw.schema.html.md#nw.schema.ResumptionBrief)(\*\*data) | A "where we left off" snapshot, returned by [`nw.Project.resumption_brief()`](_autosummary/nw.html.md#nw.Project.resumption_brief). |
-| [`SectionSpec`](_autosummary/nw.schema.html.md#nw.schema.SectionSpec)(\*\*data)     | A non-overlapping span of the project's master timeline.                                                                                                |
-| [`ShotSpec`](_autosummary/nw.schema.html.md#nw.schema.ShotSpec)(\*\*data)        | A timeline-locked visual unit.                                                                                                                          |
-| [`SongInfo`](_autosummary/nw.schema.html.md#nw.schema.SongInfo)(\*\*data)        | Metadata for the master audio file.                                                                                                                     |
+| [`CharacterRef`](_autosummary/nw.schema.html.md#nw.schema.CharacterRef)(\*, name[, description, ...])        | Pointer to a character folder under `characters/<name>/`.                                                                                               |
+|----------------------------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------|
+| [`DecisionEntry`](_autosummary/nw.schema.html.md#nw.schema.DecisionEntry)(\*, kind[, at, payload])            | One entry of a project's decision log, flattened for display.                                                                                           |
+| [`EnvironmentRef`](_autosummary/nw.schema.html.md#nw.schema.EnvironmentRef)(\*, name[, description, ...])      | Pointer to an environment folder under `environments/<name>/`.                                                                                          |
+| [`ProjectSpec`](_autosummary/nw.schema.html.md#nw.schema.ProjectSpec)(\*[, schema_version, title, ...])     | The top-level project SSOT, persisted as `project.json`.                                                                                                |
+| [`ProjectSummary`](_autosummary/nw.schema.html.md#nw.schema.ProjectSummary)(\*, title, root, ...)              | Typed read view of a project — what `muvid status` printed, but typed.                                                                                  |
+| [`ResumptionBrief`](_autosummary/nw.schema.html.md#nw.schema.ResumptionBrief)(\*, title, root[, ...])           | A "where we left off" snapshot, returned by [`nw.Project.resumption_brief()`](_autosummary/nw.html.md#nw.Project.resumption_brief). |
+| [`SectionSpec`](_autosummary/nw.schema.html.md#nw.schema.SectionSpec)(\*, id, start_s, end_s[, label, ...]) | A non-overlapping span of the project's master timeline.                                                                                                |
+| [`ShotSpec`](_autosummary/nw.schema.html.md#nw.schema.ShotSpec)(\*, id, start_s, end_s[, ...])           | A timeline-locked visual unit.                                                                                                                          |
+| [`SongInfo`](_autosummary/nw.schema.html.md#nw.schema.SongInfo)(\*, audio_path, duration_s[, ...])       | Metadata for the master audio file.                                                                                                                     |
 
-### *class* nw.schema.CharacterRef(\*\*data)
+### *class* nw.schema.CharacterRef(, name, description='', reference_image_urls=(), costume='', age='', default_setting='', distinguishing_features=(), palette_anchors=(), do_not_do=())
 
 Bases: `BaseModel`
 
@@ -8377,7 +8425,7 @@ happen to `reference_image_urls`. Add a field to one, add it to both.
 
 Configuration for the model, should be a dictionary conforming to [`ConfigDict`][pydantic.config.ConfigDict].
 
-### *class* nw.schema.DecisionEntry(\*\*data)
+### *class* nw.schema.DecisionEntry(\*, kind, at=None, payload=<factory>)
 
 Bases: `BaseModel`
 
@@ -8387,7 +8435,7 @@ One entry of a project’s decision log, flattened for display.
 
 Configuration for the model, should be a dictionary conforming to [`ConfigDict`][pydantic.config.ConfigDict].
 
-### *class* nw.schema.EnvironmentRef(\*\*data)
+### *class* nw.schema.EnvironmentRef(, name, description='', reference_image_urls=())
 
 Bases: `BaseModel`
 
@@ -8402,7 +8450,7 @@ was erased by every `update_spec` until this mirror was completed.
 
 Configuration for the model, should be a dictionary conforming to [`ConfigDict`][pydantic.config.ConfigDict].
 
-### *class* nw.schema.ProjectSpec(\*\*data)
+### *class* nw.schema.ProjectSpec(, schema_version=1, title='', song=None, characters=(), environments=(), sections=(), shots=(), global_style='', notes='')
 
 Bases: `BaseModel`
 
@@ -8416,7 +8464,7 @@ other muvid-shaped project) load and re-save without churn.
 
 Configuration for the model, should be a dictionary conforming to [`ConfigDict`][pydantic.config.ConfigDict].
 
-### *class* nw.schema.ProjectSummary(\*\*data)
+### *class* nw.schema.ProjectSummary(, title, root, schema_version, song_path, song_duration_s, character_count, environment_count, section_count, shot_count, rendered_shot_count, has_lyrics, has_alignment, has_script, has_final_compose)
 
 Bases: `BaseModel`
 
@@ -8435,7 +8483,7 @@ Configuration for the model, should be a dictionary conforming to [`ConfigDict`]
 
 Coarse stage list — what’s been reached, in lifecycle order.
 
-### *class* nw.schema.ResumptionBrief(\*\*data)
+### *class* nw.schema.ResumptionBrief(\*, title, root, last_session_at=None, gap_seconds=None, recent_decisions=(), downstream_of_last_authored_change=<factory>, last_authored_change_id=None, total_spend_usd=0.0, unrendered_shot_ids=(), suggested_next=<factory>, caveats=<factory>)
 
 Bases: `BaseModel`
 
@@ -8478,7 +8526,7 @@ renders them next to the numbers instead of rediscovering them.
 
 Configuration for the model, should be a dictionary conforming to [`ConfigDict`][pydantic.config.ConfigDict].
 
-### *class* nw.schema.SectionSpec(\*\*data)
+### *class* nw.schema.SectionSpec(, id, start_s, end_s, label='', energy='', mood='')
 
 Bases: `BaseModel`
 
@@ -8492,7 +8540,7 @@ their own taxonomy.
 
 Configuration for the model, should be a dictionary conforming to [`ConfigDict`][pydantic.config.ConfigDict].
 
-### *class* nw.schema.ShotSpec(\*\*data)
+### *class* nw.schema.ShotSpec(, id, start_s, end_s, section_id='', render_strategy='image_to_video', environment='', characters=(), description='', camera='', framing='medium', notes='')
 
 Bases: `BaseModel`
 
@@ -8507,7 +8555,7 @@ the schema.
 
 Configuration for the model, should be a dictionary conforming to [`ConfigDict`][pydantic.config.ConfigDict].
 
-### *class* nw.schema.SongInfo(\*\*data)
+### *class* nw.schema.SongInfo(, audio_path, duration_s, sample_rate=0, bitrate=0, bpm=None)
 
 Bases: `BaseModel`
 
@@ -8558,8 +8606,8 @@ module is pure — no project I/O). See
 
 ### Classes
 
-| [`PanelProposal`](_autosummary/nw.script_segmentation.html.md#nw.script_segmentation.PanelProposal)(\*\*data)   | One storyboard panel proposed by the segmenter.   |
-|----------------------------------------------------------------------------|---------------------------------------------------|
+| [`PanelProposal`](_autosummary/nw.script_segmentation.html.md#nw.script_segmentation.PanelProposal)(\*, description, duration_s[, ...])   | One storyboard panel proposed by the segmenter.   |
+|------------------------------------------------------------------------------------------------------|---------------------------------------------------|
 
 ### nw.script_segmentation.LLM
 
@@ -8569,7 +8617,7 @@ string response. Tests pass a cassette-wrapped stub; production passes
 
 alias of `Callable`[[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)], [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]
 
-### *class* nw.script_segmentation.PanelProposal(\*\*data)
+### *class* nw.script_segmentation.PanelProposal(, description, duration_s, notes=None)
 
 Bases: `BaseModel`
 
@@ -8738,9 +8786,6 @@ directly gets whatever the caller passed: an override that logs or
 formats its `secrets` should `as_secrets` first (or the caller should
 hand it a [`Secrets`](_autosummary/nw.secrets.html.md#nw.secrets.Secrets)), because a plain `dict` prints its values.
 
-* **Return type:**
-  [`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[[`Secrets`](_autosummary/nw.secrets.html.md#nw.secrets.Secrets)]
-
 ```pycon
 >>> as_secrets(None) is None
 True
@@ -8750,6 +8795,9 @@ True
 Secrets(<1 redacted: fal>)
 ```
 
+* **Return type:**
+  [`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[[`Secrets`](_autosummary/nw.secrets.html.md#nw.secrets.Secrets)]
+
 ### nw.secrets.redact(text, secrets)
 
 `text` with every secret value replaced by `<redacted:name>`.
@@ -8758,15 +8806,15 @@ For the places nw persists free text it did not author — an exception
 message, a failure reason — while holding the values that must not land
 there. Cheap, exact-substring, and a no-op with no secrets.
 
-* **Return type:**
-  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
-
 ```pycon
 >>> redact("boom: key sk-1 rejected", {"fal": "sk-1"})
 'boom: key <redacted:fal> rejected'
 >>> redact("nothing here", None)
 'nothing here'
 ```
+
+* **Return type:**
+  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
 
 ### nw.secrets.redact_exception(error, secrets)
 
@@ -8958,9 +9006,6 @@ has no `project.json` or keeps its own keying (no `tenant_id`). Raises
 `FileNotFoundError` when the song audio its tenant hashes is missing.
 With `dry_run` nothing is written.
 
-* **Return type:**
-  [`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]
-
 ```pycon
 >>> import tempfile, json, pathlib
 >>> root = pathlib.Path(tempfile.mkdtemp())
@@ -8968,6 +9013,9 @@ With `dry_run` nothing is written.
 >>> adopt_tenant_id(root) == adopt_tenant_id(root)
 True
 ```
+
+* **Return type:**
+  [`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]
 
 ### nw.storage.as_project_storage(project)
 
@@ -9171,25 +9219,40 @@ One validation, and everything a scheduler and a menu need to know.
 dotted and stable — it is what a user selects and what a
 `requires` refers to.
 
+* **Type:**
+  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
+
 #### summary
 
 one line, for the menu.
+
+* **Type:**
+  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
 
 #### run
 
 `(target, context) -> findings`. May also return a
 `(findings, produced)` pair when other checks depend on it.
 
+* **Type:**
+  [`Callable`](https://docs.python.org/3/library/typing.html#typing.Callable)[[[`Any`](https://docs.python.org/3/library/typing.html#typing.Any), [`Mapping`](https://docs.python.org/3/library/typing.html#typing.Mapping)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str), [`Any`](https://docs.python.org/3/library/typing.html#typing.Any)]], [`Iterable`](https://docs.python.org/3/library/typing.html#typing.Iterable)[[`Finding`](_autosummary/nw.validation.html.md#nw.validation.Finding)]]
+
 #### requires
 
 names of checks that must run first, whose `produced`
 values arrive in `context`. Cycles raise at plan time.
+
+* **Type:**
+  [`tuple`](https://docs.python.org/3/builtins/stdtypes.html#tuple)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str), [`...`](https://docs.python.org/3/builtins/constants.html#Ellipsis)]
 
 #### parallel_safe
 
 whether it may run alongside its independent peers.
 `False` for anything that is not thread-safe or that saturates
 the machine on its own (a full decode).
+
+* **Type:**
+  [`bool`](https://docs.python.org/3/builtins/functions.html#bool)
 
 #### cost
 
@@ -9199,16 +9262,25 @@ rough wall-clock class — `"free"` (no subprocess),
 `"paid"` is never selected by [`suggest()`](_autosummary/nw.validation.html.md#nw.validation.suggest); it must be asked
 for by name.
 
+* **Type:**
+  [`Literal`](https://docs.python.org/3/library/typing.html#typing.Literal)[`'free'`, `'cheap'`, `'dear'`, `'paid'`]
+
 #### example_requests
 
 things a person actually says that mean they want
 this check. What lets a menu of forty be navigated, and what an
 MCP surface matches against instead of exposing an enum.
 
+* **Type:**
+  [`tuple`](https://docs.python.org/3/builtins/stdtypes.html#tuple)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str), [`...`](https://docs.python.org/3/builtins/constants.html#Ellipsis)]
+
 #### requires_binaries
 
 external programs it shells out to. A missing one
 makes the check *skip with a reason*, never silently pass.
+
+* **Type:**
+  [`tuple`](https://docs.python.org/3/builtins/stdtypes.html#tuple)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str), [`...`](https://docs.python.org/3/builtins/constants.html#Ellipsis)]
 
 ### *class* nw.validation.CheckResult(name, findings=(), skipped='', error='', elapsed_s=0.0, produced=None)
 
@@ -9224,7 +9296,7 @@ machine where half of it never ran. A missing binary is not a pass.
 
 Ran, and found nothing at or above `FAILING_SEVERITY`.
 
-### *class* nw.validation.Finding(check, severity, message, where='', remedy=None, evidence=<factory>)
+### *class* nw.validation.Finding(check, severity, message, where='', remedy=None, evidence=dict())
 
 Bases: [`object`](https://docs.python.org/3/builtins/functions.html#object)
 
@@ -9239,14 +9311,23 @@ say those two things has not finished its job.
 
 the name of the check that produced it.
 
+* **Type:**
+  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
+
 #### severity
 
 `"info"`, `"warn"` or `"error"`; only `"error"`
 makes a report not `ok`.
 
+* **Type:**
+  [`Literal`](https://docs.python.org/3/library/typing.html#typing.Literal)[`'info'`, `'warn'`, `'error'`]
+
 #### message
 
 what is wrong, in one sentence a human can act on.
+
+* **Type:**
+  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
 
 #### where
 
@@ -9254,15 +9335,24 @@ where in the work — a timestamp, a frame index, a shot id, a
 path. Free-form because the checks are, but never empty for
 anything above `"info"`.
 
+* **Type:**
+  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
+
 #### remedy
 
 what would fix it, when the check knows. `None` when it
 honestly does not.
 
+* **Type:**
+  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str) | [`None`](https://docs.python.org/3/builtins/constants.html#None)
+
 #### evidence
 
 anything a reader would want to look at — an extracted
 frame’s path, the numbers behind the verdict.
+
+* **Type:**
+  [`Mapping`](https://docs.python.org/3/library/typing.html#typing.Mapping)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str), [`Any`](https://docs.python.org/3/library/typing.html#typing.Any)]
 
 ### *exception* nw.validation.ValidationError(report)
 
@@ -9280,13 +9370,22 @@ Everything a [`validate()`](_autosummary/nw.validation.html.md#nw.validation.val
 
 what was validated.
 
+* **Type:**
+  [`Any`](https://docs.python.org/3/library/typing.html#typing.Any)
+
 #### results
 
 one per check that was selected, in the order they were run.
 
+* **Type:**
+  [`tuple`](https://docs.python.org/3/builtins/stdtypes.html#tuple)[[`CheckResult`](_autosummary/nw.validation.html.md#nw.validation.CheckResult), [`...`](https://docs.python.org/3/builtins/constants.html#Ellipsis)]
+
 #### elapsed_s
 
 wall-clock for the whole run.
+
+* **Type:**
+  [`float`](https://docs.python.org/3/builtins/functions.html#float)
 
 #### *property* ok *: [bool](https://docs.python.org/3/builtins/functions.html#bool)*
 
@@ -9333,7 +9432,7 @@ A check that is not `parallel_safe` gets a wave to itself.
   [**ValueError**](https://docs.python.org/3/builtins/exceptions.html#ValueError) – on a dependency cycle, or a requirement that is not
       registered — both at plan time, before anything has been spent.
 * **Return type:**
-  [*tuple*](https://docs.python.org/3/builtins/stdtypes.html#tuple)[[*tuple*](https://docs.python.org/3/builtins/stdtypes.html#tuple)[[*Check*](_autosummary/nw.validation.html.md#nw.validation.Check), …], …]
+  [`tuple`](https://docs.python.org/3/builtins/stdtypes.html#tuple)[[`tuple`](https://docs.python.org/3/builtins/stdtypes.html#tuple)[[`Check`](_autosummary/nw.validation.html.md#nw.validation.Check), [`...`](https://docs.python.org/3/builtins/constants.html#Ellipsis)], [`...`](https://docs.python.org/3/builtins/constants.html#Ellipsis)]
 
 ### Examples
 
@@ -9341,9 +9440,6 @@ A check that is not `parallel_safe` gets a wave to itself.
 >>> plan_checks(())
 ()
 ```
-
-* **Return type:**
-  [`tuple`](https://docs.python.org/3/builtins/stdtypes.html#tuple)[[`tuple`](https://docs.python.org/3/builtins/stdtypes.html#tuple)[[`Check`](_autosummary/nw.validation.html.md#nw.validation.Check), [`...`](https://docs.python.org/3/builtins/constants.html#Ellipsis)], [`...`](https://docs.python.org/3/builtins/constants.html#Ellipsis)]
 
 ### nw.validation.register_check(check=None, \*\*kwargs)
 
@@ -9382,15 +9478,15 @@ runs on every request and its job is to narrow forty items to a handful
 that a human or a model then confirms. `"paid"` checks are never
 suggested: money is asked for by name.
 
-* **Return type:**
-  [`tuple`](https://docs.python.org/3/builtins/stdtypes.html#tuple)[[`Check`](_autosummary/nw.validation.html.md#nw.validation.Check), [`...`](https://docs.python.org/3/builtins/constants.html#Ellipsis)]
-
 ### Examples
 
 ```pycon
 >>> suggest("")
 ()
 ```
+
+* **Return type:**
+  [`tuple`](https://docs.python.org/3/builtins/stdtypes.html#tuple)[[`Check`](_autosummary/nw.validation.html.md#nw.validation.Check), [`...`](https://docs.python.org/3/builtins/constants.html#Ellipsis)]
 
 ### nw.validation.validate(target, , checks=(), max_workers=4, on_error='report')
 
@@ -9493,7 +9589,7 @@ This split is what enables:
 | [`ShotPreparation`](_autosummary/nw.workflow.html.md#nw.workflow.ShotPreparation)(project_root, shot, ...[, ...])   | Local-only inputs for rendering a single shot.   |
 |----------------------------------------------------------------------------------------------------|--------------------------------------------------|
 
-### *class* nw.workflow.ShotPreparation(project_root, shot, shot_dir, audio_slice_path, audio_slice_url='', character_anchor_paths=<factory>, character_anchor_urls=<factory>, environment_anchor_path=None, environment_anchor_url='', lyric_lines=<factory>, storyboard_prompt='', global_style='')
+### *class* nw.workflow.ShotPreparation(project_root, shot, shot_dir, audio_slice_path, audio_slice_url='', character_anchor_paths=dict(), character_anchor_urls=dict(), environment_anchor_path=None, environment_anchor_url='', lyric_lines=list(), storyboard_prompt='', global_style='')
 
 Bases: [`object`](https://docs.python.org/3/builtins/functions.html#object)
 
@@ -9525,7 +9621,7 @@ Per-character path to the curated anchor image.
 
 Per-character fal-storage URL of the anchor image.
 
-#### environment_anchor_path *: [Path](https://docs.python.org/3/library/pathlib.html#pathlib.Path) | [None](https://docs.python.org/3/builtins/constants.html#None)*
+#### environment_anchor_path *: [Optional](https://docs.python.org/3/library/typing.html#typing.Optional)[[Path](https://docs.python.org/3/library/pathlib.html#pathlib.Path)]*
 
 Path to the environment establishing image, or None.
 
@@ -9622,7 +9718,7 @@ produce different URLs. The local file paths are byte-stable.
 
 # About this build
 
-This documentation was built on **2026-10-14 12:51 UTC** from commit <a href="https://github.com/reeleehq/nw/commit/c5444bf02ea1a853efdda939912db0872937663c"><code>c5444bf</code></a> on branch <code>main</code>, for **nw 0.0.73** (from <code>pyproject.toml</code>).
+This documentation was built on **2026-10-26 12:48 UTC** from commit <a href="https://github.com/reeleehq/nw/commit/77c286e37f5ab636e39e6a3c03e0c3fdf9f3b1a4"><code>77c286e</code></a> on branch <code>main</code>, for **nw 0.0.74** (from <code>pyproject.toml</code>).
 
 #### NOTE
 Nothing suggests a mismatch: the tree was clean at the commit above, and the documented version is the one on PyPI.
@@ -9631,9 +9727,9 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 
 |                     |                                                                                                                                                    |
 |---------------------|----------------------------------------------------------------------------------------------------------------------------------------------------|
-| Commit              | <a href="https://github.com/reeleehq/nw/commit/c5444bf02ea1a853efdda939912db0872937663c"><code>c5444bf02ea1a853efdda939912db0872937663c</code></a> |
+| Commit              | <a href="https://github.com/reeleehq/nw/commit/77c286e37f5ab636e39e6a3c03e0c3fdf9f3b1a4"><code>77c286e37f5ab636e39e6a3c03e0c3fdf9f3b1a4</code></a> |
 | Branch              | <code>main</code>                                                                                                                                  |
-| Tags at this commit | <code>0.0.73</code>                                                                                                                                |
+| Tags at this commit | <code>0.0.74</code>                                                                                                                                |
 | Working tree        | clean                                                                                                                                              |
 | Remote              | <code>https://github.com/reeleehq/nw</code>                                                                                                        |
 
@@ -9642,16 +9738,16 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 |              |                                                                                            |
 |--------------|--------------------------------------------------------------------------------------------|
 | Repository   | <code>reeleehq/nw</code>                                                                   |
-| Run          | <a href="https://github.com/reeleehq/nw/actions/runs/38566670590">38566670590</a>          |
+| Run          | <a href="https://github.com/reeleehq/nw/actions/runs/40324691311">40324691311</a>          |
 | Ref          | <code>refs/heads/main</code>                                                               |
-| Event commit | <code>3a31339a9e59dff3d0ef508ffedbe136fe7914e0</code> (in the history of the built commit) |
+| Event commit | <code>9e0960c2d5ebf51d52ba1e63af95ead71cecc7e7</code> (in the history of the built commit) |
 
 ## Tools
 
 |          |         |
 |----------|---------|
-| epythet  | 0.2.17  |
-| Sphinx   | 9.1.0   |
+| epythet  | 0.2.22  |
+| Sphinx   | 9.1.1   |
 | docutils | 0.22.4  |
 | Python   | 3.12.15 |
 
@@ -9669,14 +9765,14 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 
 ## Package on PyPI
 
-Latest release: <a href="https://pypi.org/project/nw/0.0.73/">0.0.73</a>, the same as the documented version.
+Latest release: <a href="https://pypi.org/project/nw/0.0.74/">0.0.74</a>, the same as the documented version.
 
 ## Reproduce
 
 ```bash
 git clone https://github.com/reeleehq/nw && cd nw
-git checkout c5444bf02ea1a853efdda939912db0872937663c
-pip install "epythet==0.2.17"
+git checkout 77c286e37f5ab636e39e6a3c03e0c3fdf9f3b1a4
+pip install "epythet==0.2.22"
 epythet quickstart . --ignore tests/ scrap/ examples/
 ```
 

@@ -16,10 +16,10 @@ trail for “why did this come out this way?”.
 
 ### Classes
 
-| [`DecisionBodyV1`](#nw.bodies.decision.DecisionBodyV1)(\*\*data)   | Body of a decision annotation.   |
-|-----------------------------------------------------------------------------|----------------------------------|
+| [`DecisionBodyV1`](#nw.bodies.decision.DecisionBodyV1)(\*, kind[, payload])   | Body of a decision annotation.   |
+|----------------------------------------------------------------------------------------|----------------------------------|
 
-### *class* nw.bodies.decision.DecisionBodyV1(\*\*data)
+### *class* nw.bodies.decision.DecisionBodyV1(\*, kind, payload=<factory>)
 
 Bases: `BaseModel`
 

@@ -30,10 +30,10 @@ That is a difference of kind, not a naming drift.
 
 ### Classes
 
-| [`CharacterRefBodyV1`](#nw.bodies.character_ref.CharacterRefBodyV1)(\*\*data)   | Body of a character-ref annotation.   |
-|---------------------------------------------------------------------------------|---------------------------------------|
+| [`CharacterRefBodyV1`](#nw.bodies.character_ref.CharacterRefBodyV1)(\*, name[, description, ...])   | Body of a character-ref annotation.   |
+|-----------------------------------------------------------------------------------------------------|---------------------------------------|
 
-### *class* nw.bodies.character_ref.CharacterRefBodyV1(\*\*data)
+### *class* nw.bodies.character_ref.CharacterRefBodyV1(\*, name, description='', reference_image_urls=<factory>, costume='', age='', default_setting='', distinguishing_features=<factory>, palette_anchors=<factory>, do_not_do=<factory>)
 
 Bases: `BaseModel`
 
