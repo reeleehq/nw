@@ -17,6 +17,8 @@ from __future__ import annotations
 from uuid import UUID, uuid4
 
 import pytest
+from pydantic import BaseModel
+from typing import Annotated
 
 import nw
 from lacing.digest import (
@@ -25,6 +27,7 @@ from lacing.digest import (
     annotation_value_digest,
 )
 from lacing import (
+    Derived,
     Annotation,
     MediaRef,
     Provenance,
@@ -379,19 +382,67 @@ def _as_recorded_under(proj, target: Annotation, scheme: str) -> None:
     _rewrite_trace(proj, target.id, mutate)
 
 
-def test_a_trace_recorded_under_an_older_known_scheme_still_verifies(tmp_path):
+DERIVED_FIELD_URI = "annot://schema/freshness-derived-field/v1"
+
+
+class _WithDerivedField(BaseModel):
+    artifact_id: str = ""
+    asset_id: Annotated[str, Derived("artifact_id")] = ""
+
+
+@pytest.fixture
+def derived_field_schema():
+    """A body schema whose v1 and v2 digests differ (it has a ``Derived`` field)."""
+    from lacing import schema as lacing_schema
+
+    lacing_schema.register_body_schema(DERIVED_FIELD_URI, _WithDerivedField)
+    yield
+    lacing_schema._BODY_REGISTRY.pop(DERIVED_FIELD_URI, None)
+
+
+def _parent_with_derived_field(proj) -> Annotation:
+    ann = _derived(proj, (), body={"artifact_id": "a", "asset_id": "1"})
+    return _rewrite_in_place(
+        proj,
+        ann.model_copy(update={"body_schema_uri": DERIVED_FIELD_URI}),
+        body=ann.body,
+    )
+
+
+def test_a_trace_recorded_under_an_older_known_scheme_still_verifies(
+    tmp_path, derived_field_schema
+):
     """nw#130: a lacing upgrade must not turn every old trace stale.
 
-    The trace is checked under the scheme it was recorded under; only an
-    unknown scheme is unverifiable.
+    The parent's v1 and v2 digests differ, so this fails if the verifier
+    computes the current scheme instead of the one the trace was recorded under.
     """
-    proj, a_id, b, c = _chain(tmp_path)
+    proj = nw.Project.init(tmp_path / "p")
+    parent = _parent_with_derived_field(proj)
+    child = _derived(proj, (parent.id,), body={"url": "x"})
     old = VALUE_DIGEST_SCHEMES[0]
     assert old != VALUE_DIGEST_SCHEME
-    _as_recorded_under(proj, b, old)
+    _as_recorded_under(proj, child, old)
 
-    assert nw.stale_after(proj.root, a_id) == []
     assert nw.all_stale(proj.root) == []
+
+
+def test_a_derived_field_edit_is_seen_under_v1_but_not_v2(
+    tmp_path, derived_field_schema
+):
+    """The scheme decides what counts as a change, per trace."""
+    proj = nw.Project.init(tmp_path / "p")
+    parent = _parent_with_derived_field(proj)
+    child = _derived(proj, (parent.id,), body={"url": "x"})
+    _as_recorded_under(proj, child, VALUE_DIGEST_SCHEMES[0])
+    _rewrite_in_place(proj, parent, body={"artifact_id": "a", "asset_id": "2"})
+    assert _ids(nw.all_stale(proj.root)) == {child.id}
+
+    proj2 = nw.Project.init(tmp_path / "q")
+    parent2 = _parent_with_derived_field(proj2)
+    _derived(proj2, (parent2.id,), body={"url": "x"})
+    _rewrite_in_place(proj2, parent2, body={"artifact_id": "a", "asset_id": "2"})
+    assert nw.all_stale(proj2.root) == []
 
 
 def test_a_change_is_still_caught_under_an_older_scheme(tmp_path):
@@ -414,7 +465,7 @@ def test_an_undigestible_upstream_is_stale(tmp_path, monkeypatch):
 
     import nw.freshness as freshness
 
-    def _boom(_ann):
+    def _boom(_ann, **_):
         raise TypeError("body has a non-str key")
 
     monkeypatch.setattr(freshness, "annotation_value_digest", _boom)

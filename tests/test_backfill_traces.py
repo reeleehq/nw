@@ -316,3 +316,23 @@ def test_an_unknown_generation_time_is_never_blessed(tmp_path, which):
     assert "unknown" in report["skipped"][0]["reason"]
     assert _traced_targets(proj.root) == set()
     assert child.id in _stale_ids(proj.root)
+
+
+def test_a_trace_under_an_older_known_scheme_counts_as_already_traced(tmp_path):
+    """nw#130: an older scheme lacing can still verify is usable, not foreign."""
+    from lacing.digest import VALUE_DIGEST_SCHEMES
+    from nw.graph import _trace_is_usable
+
+    proj = nw.Project.init(tmp_path / "p")
+    a_id = _authored(proj)
+    child = _legacy_derived(proj, (a_id,), body={"url": "c"})
+    nw.backfill_traces(proj.root, execute=True)
+
+    class _Body:
+        digest_scheme = VALUE_DIGEST_SCHEMES[0]
+        upstream = ()
+        upstream_assets = ()
+
+    assert _trace_is_usable(_Body, ()) is True
+    assert _trace_is_usable(_Body, (a_id,)) is False  # parents still checked
+    assert child.id not in _stale_ids(proj.root)

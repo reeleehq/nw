@@ -1153,7 +1153,7 @@ def backfill_traces(project_root: ProjectLike, *, execute: bool = False) -> dict
 
 def _trace_is_usable(body, parents: tuple) -> bool:
     """Whether an existing trace can actually VERIFY — the freshness rule's
-    own preconditions: the digest scheme matches, every recorded upstream id
+    own preconditions: the digest scheme is one lacing can verify, every recorded upstream id
     parses, and the recorded upstream set is exactly the parents. A trace
     failing any of these reads stale forever (digest-scheme-changed /
     trace-upstream-mismatch), which is not "already traced" in any sense an

@@ -126,25 +126,14 @@ from .storage import ProjectLike
 REASON_FRESH = "verified-fresh"
 REASON_GENERATED_AT_UNKNOWN = "generated-at-unknown"
 REASON_NO_TRACE = "no-trace"
-def is_verifiable_digest_scheme(scheme: str) -> bool:
-    """Whether a trace recorded under ``scheme`` can still be verified.
-
-    A trace is checked under the scheme it was *recorded* under (lacing keeps
-    every released scheme computable), so a lacing upgrade does not turn old
-    traces stale. Only a scheme lacing does not know is unverifiable. Note
-    that a scheme whose digest depends on registered body schemas (v2) is
-    only as good as the producer and verifier registering the same ones.
-    """
-    return scheme in VALUE_DIGEST_SCHEMES
-
-
-REASON_SCHEME_CHANGED = "digest-scheme-changed"
+REASON_SCHEME_CHANGED = "digest-scheme-changed"  # now: a scheme lacing does not know
 REASON_TRACE_PARENTS_DIFFER = "trace-parents-differ"
 REASON_TRACE_UNREADABLE = "trace-unreadable"
 REASON_UPSTREAM_MISSING = "upstream-missing"
 REASON_UPSTREAM_STALE = "upstream-stale"
 REASON_UPSTREAM_CHANGED = "upstream-changed"
 REASON_PROVENANCE_CYCLE = "provenance-cycle"
+
 
 STALE_REASONS: tuple[str, ...] = (
     REASON_GENERATED_AT_UNKNOWN,
@@ -160,6 +149,18 @@ STALE_REASONS: tuple[str, ...] = (
 """Every reason that resolves to *stale*. :data:`REASON_FRESH` is the only
 verdict that does not, which is the invariant that keeps "unverifiable means
 stale" true by construction rather than by review."""
+
+
+def is_verifiable_digest_scheme(scheme: str) -> bool:
+    """Whether a trace recorded under ``scheme`` can still be verified.
+
+    A trace is checked under the scheme it was *recorded* under (lacing keeps
+    every released scheme computable), so a lacing upgrade does not turn old
+    traces stale. Only a scheme lacing does not know is unverifiable. Note
+    that a scheme whose digest depends on registered body schemas (v2) is
+    only as good as the producer and verifier registering the same ones.
+    """
+    return scheme in VALUE_DIGEST_SCHEMES
 
 
 @dataclass(frozen=True, slots=True)
