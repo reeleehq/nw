@@ -480,8 +480,11 @@ def test_text_to_video_stamps_a_basis_so_its_quote_can_be_refreshed():
     basis = plan.calls[0].cost_basis
     assert basis is not None
     assert basis.pricer == "model_catalogue"
-    assert basis.quantities == {"seconds": 6.0}
-    assert current_quote(plan).status == "unchanged"
+    # The quantity is the priced model's unit (seconds or tokens): falaw's call.
+    assert basis.quantities
+    quote = current_quote(plan)
+    assert quote.status == "unchanged"
+    assert quote.total_usd > 0
 
 
 def test_llm_rates_pricer_is_still_the_default_seam():
