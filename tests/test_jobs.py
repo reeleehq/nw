@@ -1749,3 +1749,109 @@ def test_a_call_ending_clears_only_its_own_phase():
     jobs._mirror_provider_phase(record, "done", {"call_id": "b"}, other)
     jobs._mirror_provider_phase(record, "done", {"call_id": "a"}, mine)
     assert other == {} and mine == {"provider_phase": None, "provider_queue_position": None}
+
+
+# ---------------------------------------------------------------------------
+# re-enqueue edge cases (nw#124)
+# ---------------------------------------------------------------------------
+
+
+def test_reenqueue_over_a_cancelled_job_whose_thread_still_runs_is_deduped(project):
+    """Cancel is cooperative: the old thread keeps running (and spending) after
+    the job reads cancelled. A new enqueue of the key must not launch a second
+    worker over it, nor let the old one's result leak into a new record."""
+    release = threading.Event()
+    calls: list[str] = []
+    cancel_seen: list[bool] = []
+    inner = _blocking_stub(release, calls=calls)
+
+    def stub(project, params, *, job_id, on_event, should_cancel):
+        out = inner(project, params, job_id=job_id, on_event=on_event, should_cancel=should_cancel)
+        cancel_seen.append(should_cancel())
+        return out
+
+    dispatch = {"op": stub}
+    job = jobs.enqueue(project, "op", VIDEO_PARAMS, dispatch=dispatch)
+    _poll_until(project, job.job_id, lambda j: j.status == jobs.RUNNING)
+    jobs.cancel_job(project, job.job_id)
+
+    again = jobs.enqueue(project, "op", VIDEO_PARAMS, dispatch=dispatch)
+    assert again.job_id == job.job_id
+
+    release.set()
+    final = _poll_until(project, job.job_id, lambda j: j.status == jobs.CANCELLED)
+    assert final.status == jobs.CANCELLED  # the old run's result did not revive it
+    assert len(calls) == 1  # no second worker was launched over it
+    assert cancel_seen == [True]  # the old render still sees its own cancel
+
+    # Once the thread has exited the key is free again.
+    deadline = time.time() + 5
+    while jobs._runtime(project, jobs.DEFAULT_CONFIG).middleware.is_running(job.job_id):
+        assert time.time() < deadline
+        time.sleep(0.01)
+    rerun = jobs.enqueue(project, "op", VIDEO_PARAMS, dispatch=dispatch)
+    done = _poll_until(project, rerun.job_id, lambda j: j.status == jobs.SUCCEEDED)
+    assert done.status == jobs.SUCCEEDED
+    assert len(calls) == 2
+
+
+def test_failed_relaunch_of_a_terminal_key_keeps_the_previous_run(project):
+    """A re-run whose launch fails must not erase the finished run it replaced."""
+    release = threading.Event()
+    release.set()
+    dispatch = {"op": _blocking_stub(release)}
+    job = jobs.enqueue(project, "op", VIDEO_PARAMS, dispatch=dispatch)
+    first = _poll_until(project, job.job_id, lambda j: j.status == jobs.SUCCEEDED)
+    assert first.status == jobs.SUCCEEDED
+
+    class Refusing:
+        def launch(self, *a, **k):
+            raise RuntimeError("cannot start thread")
+
+    with pytest.raises(RuntimeError, match="cannot start thread"):
+        jobs.enqueue(project, "op", VIDEO_PARAMS, dispatch=dispatch, backend=Refusing())
+
+    kept = jobs.get_job(project, job.job_id)
+    assert kept is not None
+    assert kept.status == jobs.SUCCEEDED
+    assert kept.artifact_ref == first.artifact_ref
+
+
+def test_unserializable_rerun_params_keep_the_previous_run_and_the_key(project):
+    """The swap fails at the index write, before launch: still rolled back."""
+    release = threading.Event()
+    release.set()
+    dispatch = {"op": _blocking_stub(release)}
+    job = jobs.enqueue(project, "op", VIDEO_PARAMS, dispatch=dispatch, idempotency_key="k")
+    _poll_until(project, job.job_id, lambda j: j.status == jobs.SUCCEEDED)
+
+    with pytest.raises(TypeError):
+        jobs.enqueue(
+            project, "op", {**VIDEO_PARAMS, "bad": object()}, dispatch=dispatch, idempotency_key="k"
+        )
+    kept = jobs.get_job(project, "k")
+    assert kept is not None and kept.status == jobs.SUCCEEDED
+
+    rerun = jobs.enqueue(project, "op", VIDEO_PARAMS, dispatch=dispatch, idempotency_key="k")
+    assert _poll_until(project, "k", lambda j: j.status == jobs.SUCCEEDED).status == jobs.SUCCEEDED
+
+
+def test_failing_index_write_on_rerun_leaves_the_previous_run_whole(project, monkeypatch):
+    """A store that fails every index write (disk full) must not leave the key
+    queued forever with its au result deleted."""
+    release = threading.Event()
+    release.set()
+    dispatch = {"op": _blocking_stub(release)}
+    job = jobs.enqueue(project, "op", VIDEO_PARAMS, dispatch=dispatch, idempotency_key="k")
+    _poll_until(project, "k", lambda j: j.status == jobs.SUCCEEDED)
+
+    rt = jobs._runtime(project, jobs.DEFAULT_CONFIG)
+
+    def boom(self, key, value):
+        raise OSError("disk full")
+
+    monkeypatch.setattr(type(rt.index), "__setitem__", boom)
+    with pytest.raises(OSError):
+        jobs.enqueue(project, "op", VIDEO_PARAMS, dispatch=dispatch, idempotency_key="k")
+    monkeypatch.undo()
+    assert jobs.get_job(project, "k").status == jobs.SUCCEEDED
