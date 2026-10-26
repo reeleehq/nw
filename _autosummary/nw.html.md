@@ -2588,6 +2588,9 @@ tool builder.
 
 Look up a genre by slug; raises [`KeyError`](https://docs.python.org/3/builtins/exceptions.html#KeyError) with the known slugs.
 
+The message reaches end users (a connector relays it), so it names the genres and
+nothing about Python; an app registers one with [`register_genre()`](#nw.register_genre).
+
 * **Return type:**
   [`Genre`](#nw.Genre)
 

@@ -3838,6 +3838,8 @@ tool builder.</p>
 <dt class="sig sig-object py" id="nw.get_genre">
 <span class="sig-prename descclassname"><span class="pre">nw.</span></span><span class="sig-name descname"><span class="pre">get_genre</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">slug</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/nw/genres.html#get_genre"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nw.get_genre" title="Link to this definition">#</a></dt>
 <dd><p>Look up a genre by slug; raises <a class="reference external" href="https://docs.python.org/3/builtins/exceptions.html#KeyError" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">KeyError</span></code></a> with the known slugs.</p>
+<p>The message reaches end users (a connector relays it), so it names the genres and
+nothing about Python; an app registers one with <a class="reference internal" href="#nw.register_genre" title="nw.register_genre"><code class="xref py py-func docutils literal notranslate"><span class="pre">register_genre()</span></code></a>.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="#nw.Genre" title="nw.genres.Genre"><code class="xref py py-class docutils literal notranslate"><span class="pre">Genre</span></code></a></span></p>
@@ -4947,7 +4949,7 @@ addressable across runs.</p>
     </div>
   </div>
 </footer>
-      <script src="../_static/documentation_options.js?v=461c1127"></script>
+      <script src="../_static/documentation_options.js?v=e264953e"></script>
       <script src="../_static/doctools.js?v=fd6eb6e6"></script>
       <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script src="../_static/clipboard.min.js?v=a7894cd8"></script>

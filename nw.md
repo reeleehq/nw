@@ -1,4 +1,4 @@
-> built 2026-10-26 16:38 UTC from 96c67ce (main) · nw 0.0.76. Details: build_info.json
+> built 2026-10-26 17:36 UTC from 26a8fce (main) · nw 0.0.77. Details: build_info.json
 
 # index.html.md
 
@@ -5520,6 +5520,9 @@ tool builder.
 
 Look up a genre by slug; raises [`KeyError`](https://docs.python.org/3/builtins/exceptions.html#KeyError) with the known slugs.
 
+The message reaches end users (a connector relays it), so it names the genres and
+nothing about Python; an app registers one with [`register_genre()`](_autosummary/nw.html.md#nw.register_genre).
+
 * **Return type:**
   [`Genre`](_autosummary/nw.html.md#nw.Genre)
 
@@ -9766,20 +9769,18 @@ produce different URLs. The local file paths are byte-stable.
 
 # About this build
 
-This documentation was built on **2026-10-26 16:38 UTC** from commit <a href="https://github.com/reeleehq/nw/commit/96c67cea026f384bd25ccd72c4319205d02d6434"><code>96c67ce</code></a> on branch <code>main</code>, for **nw 0.0.76** (from <code>pyproject.toml</code>).
+This documentation was built on **2026-10-26 17:36 UTC** from commit <a href="https://github.com/reeleehq/nw/commit/26a8fce551854753a3012ee81d42825f85e886b3"><code>26a8fce</code></a> on branch <code>main</code>, for **nw 0.0.77** (from <code>pyproject.toml</code>).
 
-#### WARNING
-The documentation and the package may be misaligned:
-
-- The documented version (0.0.76) is ahead of the latest release on PyPI (0.0.75): these docs describe unreleased code.
+#### NOTE
+Nothing suggests a mismatch: the tree was clean at the commit above, and the documented version is the one on PyPI.
 
 ## Source
 
 |                     |                                                                                                                                                    |
 |---------------------|----------------------------------------------------------------------------------------------------------------------------------------------------|
-| Commit              | <a href="https://github.com/reeleehq/nw/commit/96c67cea026f384bd25ccd72c4319205d02d6434"><code>96c67cea026f384bd25ccd72c4319205d02d6434</code></a> |
+| Commit              | <a href="https://github.com/reeleehq/nw/commit/26a8fce551854753a3012ee81d42825f85e886b3"><code>26a8fce551854753a3012ee81d42825f85e886b3</code></a> |
 | Branch              | <code>main</code>                                                                                                                                  |
-| Tags at this commit | <code>0.0.76</code>                                                                                                                                |
+| Tags at this commit | <code>0.0.77</code>                                                                                                                                |
 | Working tree        | clean                                                                                                                                              |
 | Remote              | <code>https://github.com/reeleehq/nw</code>                                                                                                        |
 
@@ -9788,9 +9789,9 @@ The documentation and the package may be misaligned:
 |              |                                                                                            |
 |--------------|--------------------------------------------------------------------------------------------|
 | Repository   | <code>reeleehq/nw</code>                                                                   |
-| Run          | <a href="https://github.com/reeleehq/nw/actions/runs/40360486011">40360486011</a>          |
+| Run          | <a href="https://github.com/reeleehq/nw/actions/runs/40369706363">40369706363</a>          |
 | Ref          | <code>refs/heads/main</code>                                                               |
-| Event commit | <code>69a0525c74b35b8d173a157d049ceba2af93faf5</code> (in the history of the built commit) |
+| Event commit | <code>7f8a7cf08d6fc96fd5fc7bba653464e23e79d783</code> (in the history of the built commit) |
 
 ## Tools
 
@@ -9815,13 +9816,13 @@ The documentation and the package may be misaligned:
 
 ## Package on PyPI
 
-Latest release: <a href="https://pypi.org/project/nw/0.0.75/">0.0.75</a>, older than the documented version (0.0.76).
+Latest release: <a href="https://pypi.org/project/nw/0.0.77/">0.0.77</a>, the same as the documented version.
 
 ## Reproduce
 
 ```bash
 git clone https://github.com/reeleehq/nw && cd nw
-git checkout 96c67cea026f384bd25ccd72c4319205d02d6434
+git checkout 26a8fce551854753a3012ee81d42825f85e886b3
 pip install "epythet==0.2.22"
 epythet quickstart . --ignore tests/ scrap/ examples/
 ```
