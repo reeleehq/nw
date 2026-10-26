@@ -1834,3 +1834,24 @@ def test_unserializable_rerun_params_keep_the_previous_run_and_the_key(project):
 
     rerun = jobs.enqueue(project, "op", VIDEO_PARAMS, dispatch=dispatch, idempotency_key="k")
     assert _poll_until(project, "k", lambda j: j.status == jobs.SUCCEEDED).status == jobs.SUCCEEDED
+
+
+def test_failing_index_write_on_rerun_leaves_the_previous_run_whole(project, monkeypatch):
+    """A store that fails every index write (disk full) must not leave the key
+    queued forever with its au result deleted."""
+    release = threading.Event()
+    release.set()
+    dispatch = {"op": _blocking_stub(release)}
+    job = jobs.enqueue(project, "op", VIDEO_PARAMS, dispatch=dispatch, idempotency_key="k")
+    _poll_until(project, "k", lambda j: j.status == jobs.SUCCEEDED)
+
+    rt = jobs._runtime(project, jobs.DEFAULT_CONFIG)
+
+    def boom(self, key, value):
+        raise OSError("disk full")
+
+    monkeypatch.setattr(type(rt.index), "__setitem__", boom)
+    with pytest.raises(OSError):
+        jobs.enqueue(project, "op", VIDEO_PARAMS, dispatch=dispatch, idempotency_key="k")
+    monkeypatch.undo()
+    assert jobs.get_job(project, "k").status == jobs.SUCCEEDED

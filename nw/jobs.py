@@ -481,6 +481,8 @@ def enqueue(
             )
             the_backend = backend if backend is not None else rt.backend
             try:
+                # Index first: a failed write then leaves the previous run whole.
+                _index_set_locked(rt, job_id, record)
                 if existing is not None:
                     # A re-run of a terminal key: the previous run's au result
                     # would otherwise be what this call (and any poll) reads
@@ -488,7 +490,6 @@ def enqueue(
                     # last run's terminal status (nw#120).
                     with suppress(KeyError):
                         del rt.au_store[job_id]
-                _index_set_locked(rt, job_id, record)
                 the_backend.launch(bound, (), {}, job_id, rt.au_store)
                 unentered = None  # a worker owns the context now
             except BaseException:
@@ -496,12 +497,17 @@ def enqueue(
                 # behind it reads as a live PENDING job to the next enqueue of
                 # this key (au's store answers PENDING for a missing entry) and
                 # is never reaped (nw#117); a re-run of a terminal key gets the
-                # finished (possibly billed) run it replaced back (nw#124).
+                # finished (possibly billed) run it replaced back (nw#124). The
+                # au result goes back before the index, each step guarded, so a
+                # store that is failing cannot leave a record without its result.
                 if existing is None:
-                    rt.index.pop(job_id, None)
+                    with suppress(Exception):
+                        rt.index.pop(job_id, None)
                 else:
-                    _index_set_locked(rt, job_id, existing)
-                    rt.au_store[job_id] = au_result
+                    with suppress(Exception):
+                        rt.au_store[job_id] = au_result
+                    with suppress(Exception):
+                        _index_set_locked(rt, job_id, existing)
                 raise
 
     except BaseException:
