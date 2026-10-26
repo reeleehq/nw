@@ -64,6 +64,7 @@ the top of this module — no magic numbers below.
 
 from __future__ import annotations
 
+import dataclasses
 import hashlib
 import json
 import logging
@@ -248,6 +249,24 @@ class Job:
     the healthiest one.
     """
 
+    provider_phase: str | None = None
+    """Where the PROVIDER says the work is, while the job runs: ``"in_queue"`` (waiting
+    in its line) or ``"in_progress"`` (being made), as the render's events reported it.
+
+    ``None`` is *unknown*, never "in progress": a job that is not running, a cache
+    hit, a non-fal op, a provider that reports no queue state. ``started_at`` alone
+    cannot answer this: it is when OUR worker started, which includes however long the
+    provider kept the work in line.
+    """
+
+    provider_queue_position: int | None = None
+    """The provider's ``queue_position`` while ``provider_phase`` is ``"in_queue"``
+    (0 = next), else ``None``."""
+
+    provider_started_at: str | None = None
+    """When the provider first reported the work in progress (ISO UTC), else ``None``.
+    A job that makes several provider calls reports the latest one's start."""
+
     worker_responsive: bool | None = None
     """Whether the worker is provably still alive, **by the reaper's own rule**.
 
@@ -418,6 +437,10 @@ def enqueue(
                 "units": units,
                 "expected_cache_hit": bool(params.get("expected_cache_hit", False)),
                 "cached": False,
+                "provider_phase": None,
+                "provider_call_id": None,
+                "provider_queue_position": None,
+                "provider_started_at": None,
                 "cancel_requested": False,
                 "pct_floor": None,
                 "progress": {},
@@ -797,6 +820,9 @@ def to_dict(job: Job) -> dict:
         "label_hint": job.label_hint,
         "key": job.eta_key,
         "cost": asdict(job.cost),
+        "provider_phase": job.provider_phase,
+        "provider_queue_position": job.provider_queue_position,
+        "provider_started_at": job.provider_started_at,
         "worker_silent_s": job.worker_silent_s,
         "worker_responsive": job.worker_responsive,
         "artifact_ref": job.artifact_ref,
@@ -1190,6 +1216,7 @@ def _bind_worker(
             scrubbed: BaseException | None = None
             with (
                 fal_ctx,
+                _provider_events(sink),
                 extra_ctx if extra_ctx is not None else nullcontext(),
                 using_secrets(secrets),
             ):
@@ -1275,6 +1302,59 @@ def _call_dispatch(
     return callable_(project, params, **extras)
 
 
+PROVIDER_PHASES = ("in_queue", "in_progress")
+#: Statuses in which the worker is still running, so the provider's phase is live.
+_LIVE = (RUNNING, CANCELLING)
+#: Events that end a provider call: the phase it reported no longer holds.
+_PROVIDER_CALL_ENDS = ("done", "error", "cache_hit")
+
+
+def _provider_events(sink) -> AbstractContextManager[Any]:
+    """Deliver the provider's own call events (falaw's ``ProgressEvent``) to ``sink``.
+
+    Bound on the worker thread, so every fal call the job's render makes reports its
+    queue position and phase without each layer between taking an ``on_event``. A falaw
+    that predates ``falaw.events.listening`` just reports nothing.
+    """
+    try:
+        from falaw.events import listening
+    except ImportError:
+        return nullcontext()
+    return listening(sink)
+
+
+def _mirror_provider_phase(record: Mapping, kind, fields: Mapping, updates: dict) -> None:
+    """Fold a ``provider_phase`` (and ``queue_position``) an event reports into ``updates``.
+
+    An event that names no phase leaves the record alone: silence is not a phase.
+    ``provider_started_at`` is stamped on the way INTO ``in_progress`` (not on every
+    in-progress event), and the queue position is only kept while in the queue. With
+    several calls in flight the phase is the LATEST report's.
+    """
+    phase = fields.get("provider_phase")
+    if phase not in PROVIDER_PHASES:
+        # A call ending (a result, a failure, a cache hit) ends its phase: the job is
+        # doing local work, or waiting on its next call, not "filming".
+        call_id = fields.get("call_id")
+        if (
+            record.get("provider_phase")
+            and kind in _PROVIDER_CALL_ENDS
+            and (call_id is None or call_id == record.get("provider_call_id"))
+        ):
+            updates["provider_phase"] = None
+            updates["provider_queue_position"] = None
+        return
+    updates["provider_phase"] = phase
+    updates["provider_call_id"] = fields.get("call_id")
+    if phase == "in_queue":
+        position = fields.get("queue_position")
+        updates["provider_queue_position"] = position if isinstance(position, int) else None
+    else:
+        updates["provider_queue_position"] = None
+        if record.get("provider_phase") != "in_progress":
+            updates["provider_started_at"] = _now_iso()
+
+
 def _mirror_event_into_index(rt, job_id, ev) -> None:
     """Project a render lifecycle event into the index: progress, cost, cached,
     last_event_id, artifact_ref."""
@@ -1329,6 +1409,7 @@ def _mirror_event_into_index(rt, job_id, ev) -> None:
         updates["cost"] = cost
         if kind == "cache_hit" or fields.get("cache_hit") or fields.get("cached"):
             updates["cached"] = True
+        _mirror_provider_phase(record, kind, fields, updates)
         for src in ("last_event_id", "event_id", "id"):
             if fields.get(src) is not None:
                 updates["last_event_id"] = fields[src]
@@ -1585,6 +1666,13 @@ def _project_job(rt, record, au_result, config) -> Job:
         eta_key=eta_key,
         cost=cost,
         cached=bool(record.get("cached")),
+        # Only a running job has a live provider phase; a finished one reports the
+        # moment it started, not a phase that ended with it.
+        provider_phase=record.get("provider_phase") if status in _LIVE else None,
+        provider_queue_position=(
+            record.get("provider_queue_position") if status in _LIVE else None
+        ),
+        provider_started_at=record.get("provider_started_at"),
         worker_silent_s=worker_silent_s,
         worker_responsive=worker_responsive,
         artifact_ref=artifact_ref,
@@ -1969,6 +2057,10 @@ def _event_fields(ev) -> Mapping:
         return fields
     if isinstance(ev, Mapping):
         return ev
+    if dataclasses.is_dataclass(ev) and not isinstance(ev, type):
+        # A producer's own event record (falaw's ProgressEvent): its fields are the
+        # event's fields, no wrapper needed.
+        return dataclasses.asdict(ev)
     return {}
 
 
