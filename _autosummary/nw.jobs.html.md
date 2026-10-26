@@ -151,7 +151,7 @@ Called when computation fails.
 
 `Job.error_kind` values — see [`Job.error_kind`](#nw.jobs.Job.error_kind).
 
-### *class* nw.jobs.Job(job_id, kind, label, status, idempotency_key, params=dict(), created_at=None, started_at=None, finished_at=None, queue_wait_s=None, elapsed_s=None, progress=JobProgress(), predicted_total_s=None, remaining_s=None, eta_ts=None, eta_s=None, pct=None, confidence=None, label_hint=None, eta_key=None, cost=JobCost(), cached=False, worker_silent_s=None, worker_responsive=None, artifact_ref=None, result=None, error=None, error_kind=None, error_detail=None, run_id=None, last_event_id=None)
+### *class* nw.jobs.Job(job_id, kind, label, status, idempotency_key, params=dict(), created_at=None, started_at=None, finished_at=None, queue_wait_s=None, elapsed_s=None, progress=JobProgress(), predicted_total_s=None, remaining_s=None, eta_ts=None, eta_s=None, pct=None, confidence=None, label_hint=None, eta_key=None, cost=JobCost(), cached=False, worker_silent_s=None, provider_phase=None, provider_queue_position=None, provider_started_at=None, worker_responsive=None, artifact_ref=None, result=None, error=None, error_kind=None, error_detail=None, run_id=None, last_event_id=None)
 
 Bases: [`object`](https://docs.python.org/3/builtins/functions.html#object)
 
@@ -177,6 +177,29 @@ text either way.
 
 * **Type:**
   Why a job did not succeed, for a screen to say so
+
+#### provider_phase *: [str](https://docs.python.org/3/builtins/stdtypes.html#str) | [None](https://docs.python.org/3/builtins/constants.html#None)* *= None*
+
+`"in_queue"` (waiting
+in its line) or `"in_progress"` (being made), as the render’s events reported it.
+
+`None` is *unknown*, never “in progress”: a job that is not running, a cache
+hit, a non-fal op, a provider that reports no queue state. `started_at` alone
+cannot answer this: it is when OUR worker started, which includes however long the
+provider kept the work in line.
+
+* **Type:**
+  Where the PROVIDER says the work is, while the job runs
+
+#### provider_queue_position *: [int](https://docs.python.org/3/builtins/functions.html#int) | [None](https://docs.python.org/3/builtins/constants.html#None)* *= None*
+
+The provider’s `queue_position` while `provider_phase` is `"in_queue"`
+(0 = next), else `None`.
+
+#### provider_started_at *: [str](https://docs.python.org/3/builtins/stdtypes.html#str) | [None](https://docs.python.org/3/builtins/constants.html#None)* *= None*
+
+When the provider first reported the work in progress (ISO UTC), else `None`.
+A job that makes several provider calls reports the latest one’s start.
 
 #### worker_responsive *: [bool](https://docs.python.org/3/builtins/functions.html#bool) | [None](https://docs.python.org/3/builtins/constants.html#None)* *= None*
 
@@ -380,6 +403,14 @@ already exists, that job is returned instead of launching a duplicate.
     importing them — e.g. reelee’s BYO vision (aix) + ElevenLabs keys,
     which otherwise fall back to owner/env in a background job because
     `ThreadBackend` does not copy `ContextVars` into the worker.
+    The hook runs **under the runtime’s non-reentrant lock**
+    (`rt.lock`), so it must be quick and must not call back into
+    `nw.jobs` (`enqueue`, `get_job`, `cancel`…): that would
+    deadlock. If `backend.launch` then fails, the returned context
+    manager is entered and exited once, so anything it acquired in the
+    call itself is released (outside the lock, so its `__enter__`/
+    `__exit__` run once, on the request thread); it is otherwise
+    entered only by the worker.
   * **secrets** ([`Mapping`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Mapping)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str), [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)] | [`None`](https://docs.python.org/3/builtins/constants.html#None)) – the caller’s per-call credentials ([`nw.Secrets`](nw.html.md#nw.Secrets); any
     mapping is coerced), for a render that spends a bring-your-own
     key. Held **in memory only**: never written to the job index

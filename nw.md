@@ -1,4 +1,4 @@
-> built 2026-10-26 17:36 UTC from 26a8fce (main) · nw 0.0.77. Details: build_info.json
+> built 2026-10-26 19:33 UTC from 6de4cc2 (main) · nw 0.0.78. Details: build_info.json
 
 # index.html.md
 
@@ -6680,7 +6680,7 @@ Called when computation fails.
 
 `Job.error_kind` values — see [`Job.error_kind`](_autosummary/nw.jobs.html.md#nw.jobs.Job.error_kind).
 
-### *class* nw.jobs.Job(job_id, kind, label, status, idempotency_key, params=dict(), created_at=None, started_at=None, finished_at=None, queue_wait_s=None, elapsed_s=None, progress=JobProgress(), predicted_total_s=None, remaining_s=None, eta_ts=None, eta_s=None, pct=None, confidence=None, label_hint=None, eta_key=None, cost=JobCost(), cached=False, worker_silent_s=None, worker_responsive=None, artifact_ref=None, result=None, error=None, error_kind=None, error_detail=None, run_id=None, last_event_id=None)
+### *class* nw.jobs.Job(job_id, kind, label, status, idempotency_key, params=dict(), created_at=None, started_at=None, finished_at=None, queue_wait_s=None, elapsed_s=None, progress=JobProgress(), predicted_total_s=None, remaining_s=None, eta_ts=None, eta_s=None, pct=None, confidence=None, label_hint=None, eta_key=None, cost=JobCost(), cached=False, worker_silent_s=None, provider_phase=None, provider_queue_position=None, provider_started_at=None, worker_responsive=None, artifact_ref=None, result=None, error=None, error_kind=None, error_detail=None, run_id=None, last_event_id=None)
 
 Bases: [`object`](https://docs.python.org/3/builtins/functions.html#object)
 
@@ -6706,6 +6706,29 @@ text either way.
 
 * **Type:**
   Why a job did not succeed, for a screen to say so
+
+#### provider_phase *: [str](https://docs.python.org/3/builtins/stdtypes.html#str) | [None](https://docs.python.org/3/builtins/constants.html#None)* *= None*
+
+`"in_queue"` (waiting
+in its line) or `"in_progress"` (being made), as the render’s events reported it.
+
+`None` is *unknown*, never “in progress”: a job that is not running, a cache
+hit, a non-fal op, a provider that reports no queue state. `started_at` alone
+cannot answer this: it is when OUR worker started, which includes however long the
+provider kept the work in line.
+
+* **Type:**
+  Where the PROVIDER says the work is, while the job runs
+
+#### provider_queue_position *: [int](https://docs.python.org/3/builtins/functions.html#int) | [None](https://docs.python.org/3/builtins/constants.html#None)* *= None*
+
+The provider’s `queue_position` while `provider_phase` is `"in_queue"`
+(0 = next), else `None`.
+
+#### provider_started_at *: [str](https://docs.python.org/3/builtins/stdtypes.html#str) | [None](https://docs.python.org/3/builtins/constants.html#None)* *= None*
+
+When the provider first reported the work in progress (ISO UTC), else `None`.
+A job that makes several provider calls reports the latest one’s start.
 
 #### worker_responsive *: [bool](https://docs.python.org/3/builtins/functions.html#bool) | [None](https://docs.python.org/3/builtins/constants.html#None)* *= None*
 
@@ -6909,6 +6932,14 @@ already exists, that job is returned instead of launching a duplicate.
     importing them — e.g. reelee’s BYO vision (aix) + ElevenLabs keys,
     which otherwise fall back to owner/env in a background job because
     `ThreadBackend` does not copy `ContextVars` into the worker.
+    The hook runs **under the runtime’s non-reentrant lock**
+    (`rt.lock`), so it must be quick and must not call back into
+    `nw.jobs` (`enqueue`, `get_job`, `cancel`…): that would
+    deadlock. If `backend.launch` then fails, the returned context
+    manager is entered and exited once, so anything it acquired in the
+    call itself is released (outside the lock, so its `__enter__`/
+    `__exit__` run once, on the request thread); it is otherwise
+    entered only by the worker.
   * **secrets** ([`Mapping`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Mapping)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str), [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)] | [`None`](https://docs.python.org/3/builtins/constants.html#None)) – the caller’s per-call credentials ([`nw.Secrets`](_autosummary/nw.html.md#nw.Secrets); any
     mapping is coerced), for a render that spends a bring-your-own
     key. Held **in memory only**: never written to the job index
@@ -9769,18 +9800,20 @@ produce different URLs. The local file paths are byte-stable.
 
 # About this build
 
-This documentation was built on **2026-10-26 17:36 UTC** from commit <a href="https://github.com/reeleehq/nw/commit/26a8fce551854753a3012ee81d42825f85e886b3"><code>26a8fce</code></a> on branch <code>main</code>, for **nw 0.0.77** (from <code>pyproject.toml</code>).
+This documentation was built on **2026-10-26 19:33 UTC** from commit <a href="https://github.com/reeleehq/nw/commit/6de4cc2de684c6355c0750d64f7fd9f36c0673ac"><code>6de4cc2</code></a> on branch <code>main</code>, for **nw 0.0.78** (from <code>pyproject.toml</code>).
 
-#### NOTE
-Nothing suggests a mismatch: the tree was clean at the commit above, and the documented version is the one on PyPI.
+#### WARNING
+The documentation and the package may be misaligned:
+
+- The documented version (0.0.78) is ahead of the latest release on PyPI (0.0.77): these docs describe unreleased code.
 
 ## Source
 
 |                     |                                                                                                                                                    |
 |---------------------|----------------------------------------------------------------------------------------------------------------------------------------------------|
-| Commit              | <a href="https://github.com/reeleehq/nw/commit/26a8fce551854753a3012ee81d42825f85e886b3"><code>26a8fce551854753a3012ee81d42825f85e886b3</code></a> |
+| Commit              | <a href="https://github.com/reeleehq/nw/commit/6de4cc2de684c6355c0750d64f7fd9f36c0673ac"><code>6de4cc2de684c6355c0750d64f7fd9f36c0673ac</code></a> |
 | Branch              | <code>main</code>                                                                                                                                  |
-| Tags at this commit | <code>0.0.77</code>                                                                                                                                |
+| Tags at this commit | <code>0.0.78</code>                                                                                                                                |
 | Working tree        | clean                                                                                                                                              |
 | Remote              | <code>https://github.com/reeleehq/nw</code>                                                                                                        |
 
@@ -9789,9 +9822,9 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 |              |                                                                                            |
 |--------------|--------------------------------------------------------------------------------------------|
 | Repository   | <code>reeleehq/nw</code>                                                                   |
-| Run          | <a href="https://github.com/reeleehq/nw/actions/runs/40369706363">40369706363</a>          |
+| Run          | <a href="https://github.com/reeleehq/nw/actions/runs/40387469281">40387469281</a>          |
 | Ref          | <code>refs/heads/main</code>                                                               |
-| Event commit | <code>7f8a7cf08d6fc96fd5fc7bba653464e23e79d783</code> (in the history of the built commit) |
+| Event commit | <code>067d740798696ee7e12198929f2ee30a7591b43e</code> (in the history of the built commit) |
 
 ## Tools
 
@@ -9816,13 +9849,13 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 
 ## Package on PyPI
 
-Latest release: <a href="https://pypi.org/project/nw/0.0.77/">0.0.77</a>, the same as the documented version.
+Latest release: <a href="https://pypi.org/project/nw/0.0.77/">0.0.77</a>, older than the documented version (0.0.78).
 
 ## Reproduce
 
 ```bash
 git clone https://github.com/reeleehq/nw && cd nw
-git checkout 26a8fce551854753a3012ee81d42825f85e886b3
+git checkout 6de4cc2de684c6355c0750d64f7fd9f36c0673ac
 pip install "epythet==0.2.22"
 epythet quickstart . --ignore tests/ scrap/ examples/
 ```
