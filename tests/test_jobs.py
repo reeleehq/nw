@@ -720,6 +720,86 @@ def test_capture_context_rebinds_caller_state_in_the_worker(project):
     assert seen["value"] == "byo-from-request"  # the hook re-bound it in the worker
 
 
+def test_capture_context_is_called_on_the_request_thread_and_entered_in_the_worker(
+    project,
+):
+    """The hook's contract (nw#117): called inside ``enqueue`` on the caller's
+    thread; the context manager it returns is entered around the render on the
+    worker thread."""
+    where: dict = {}
+    request_thread = threading.get_ident()
+
+    def capture():
+        where["captured_on"] = threading.get_ident()
+
+        @contextlib.contextmanager
+        def _cm():
+            where["entered_on"] = threading.get_ident()
+            yield
+
+        return _cm()
+
+    def stub(project, params, *, job_id, on_event, should_cancel):
+        where["rendered_on"] = threading.get_ident()
+        where["entered_before_render"] = "entered_on" in where
+
+    job = jobs.enqueue(
+        project,
+        "journey.full_auto",
+        VIDEO_PARAMS,
+        on_event=lambda e: None,
+        dispatch={"journey.full_auto": stub},
+        capture_context=capture,
+    )
+    assert where["captured_on"] == request_thread  # already called when enqueue returns
+    _poll_until(project, job.job_id, lambda j: j.status in jobs.TERMINAL_STATUSES)
+    assert where["entered_on"] == where["rendered_on"] != request_thread
+    assert where["entered_before_render"]
+
+
+def test_raising_capture_context_leaves_no_orphan_record(project):
+    """A hook that raises must not leave a queued record that is never launched:
+    nothing is indexed, and a retry with the same key enqueues normally."""
+
+    def boom():
+        raise RuntimeError("no request context")
+
+    kw = dict(
+        on_event=lambda e: None,
+        dispatch={"journey.full_auto": lambda *a, **k: None},
+    )
+    with pytest.raises(RuntimeError, match="no request context"):
+        jobs.enqueue(
+            project, "journey.full_auto", VIDEO_PARAMS, capture_context=boom, **kw
+        )
+    rt = jobs._runtime(project, jobs.DEFAULT_CONFIG)
+    with rt.lock:
+        assert jobs._index_get_locked(
+            rt, jobs._default_idempotency_key(project, "journey.full_auto", VIDEO_PARAMS)
+        ) is None
+    job = jobs.enqueue(project, "journey.full_auto", VIDEO_PARAMS, **kw)
+    done = _poll_until(
+        project, job.job_id, lambda j: j.status in jobs.TERMINAL_STATUSES
+    )
+    assert done.status == jobs.SUCCEEDED
+
+
+def test_failing_launch_leaves_no_orphan_record(project):
+    """Same class as a raising hook (nw#117): a backend whose ``launch`` raises
+    must not leave a queued record behind for the key."""
+
+    class Refusing:
+        def launch(self, *a, **k):
+            raise RuntimeError("cannot start thread")
+
+    kw = dict(on_event=lambda e: None, dispatch={"journey.full_auto": lambda *a, **k: None})
+    with pytest.raises(RuntimeError, match="cannot start thread"):
+        jobs.enqueue(project, "journey.full_auto", VIDEO_PARAMS, backend=Refusing(), **kw)
+    job = jobs.enqueue(project, "journey.full_auto", VIDEO_PARAMS, **kw)
+    done = _poll_until(project, job.job_id, lambda j: j.status in jobs.TERMINAL_STATUSES)
+    assert done.status == jobs.SUCCEEDED
+
+
 # ---------------------------------------------------------------------------
 # unknown cost — a $0 must stay readable (reelee-studio survey, working rule 7)
 # ---------------------------------------------------------------------------
