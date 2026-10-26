@@ -1153,14 +1153,14 @@ def backfill_traces(project_root: ProjectLike, *, execute: bool = False) -> dict
 
 def _trace_is_usable(body, parents: tuple) -> bool:
     """Whether an existing trace can actually VERIFY — the freshness rule's
-    own preconditions: the digest scheme matches, every recorded upstream id
+    own preconditions: the digest scheme is one lacing can verify, every recorded upstream id
     parses, and the recorded upstream set is exactly the parents. A trace
     failing any of these reads stale forever (digest-scheme-changed /
     trace-upstream-mismatch), which is not "already traced" in any sense an
     operator's instrument should report as healthy."""
-    from lacing.digest import VALUE_DIGEST_SCHEME
+    from .freshness import is_verifiable_digest_scheme
 
-    if body.digest_scheme != VALUE_DIGEST_SCHEME:
+    if not is_verifiable_digest_scheme(body.digest_scheme):
         return False
     try:
         recorded = {UUID(u.annotation_id) for u in body.upstream}

@@ -59,7 +59,10 @@ dependencies = [
     # mapping. Imported lazily, but it is the contract of a public class.
     # >=0.0.54 for `store.lock(key)` (lacing#70): `Project.lock` delegates to it
     # (nw#113); an AttributeError on anything older.
-    "lacing>=0.0.54",
+    # >=0.0.61 for `VALUE_DIGEST_SCHEMES` and `annotation_value_digest(scheme=)`
+    # (lacing#88): a trace is verified under the scheme it was recorded under
+    # (nw#130), which is an ImportError on anything older.
+    "lacing>=0.0.61",
     "xdol>=0.1.11",
     # The job facade (`nw.jobs`) is written in `au`. Required because the host
     # contract uses it (reelee and muvid enqueue through it) and `au` installs
