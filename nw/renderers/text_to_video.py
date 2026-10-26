@@ -11,14 +11,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from falaw import (
-    CallPlan,
-    Plan,
-    catalogue_cost_basis,
-    make_call_plan,
-)
-from falaw.cost import estimate_call_cost
-from falaw.registry import get_model, pick_model
+from falaw import CallPlan, Plan, plan_text_to_video
 from lacing import Artifact
 
 from ._common import download_to, trim_or_pad_video
@@ -45,28 +38,13 @@ class TextToVideoStrategy:
             raise RuntimeError(
                 f"text_to_video: shot {prep.shot_id!r} has no description."
             )
-        overrides = model_overrides or {}
-        model_id = overrides.get("text_to_video")
-        if model_id:
-            record = get_model(model_id)
-        else:
-            record = pick_model(category="text_to_video", quality_tier=quality)
-        cost = estimate_call_cost(record, seconds=prep.duration_s)
-
-        call = make_call_plan(
-            tool="text_to_video",
-            application=record.id,
-            arguments={"prompt": prompt},
-            output_kind="video",
-            estimated_cost_usd=cost,
-            # This strategy hand-builds its call rather than going through a
-            # `plan_*`, so nothing stamps the basis for it. Without one the
-            # call re-prices as `no_basis` — unknown — and a stored quote for
-            # this shot can never be refreshed (nw#74). `seconds` is the only
-            # quantity `estimate_call_cost` saw, and it is estimator-only: it
-            # never reaches `arguments`, which is exactly why the basis has to
-            # carry it.
-            cost_basis=catalogue_cost_basis(record.id, seconds=prep.duration_s),
+        # falaw owns the pricing rules (per-second vs per-token models) and
+        # stamps the cost basis, so a stored quote can be refreshed (nw#74).
+        call = plan_text_to_video(
+            prompt,
+            quality=quality,
+            model_id=(model_overrides or {}).get("text_to_video"),
+            duration_s=prep.duration_s,
             metadata={"shot_id": prep.shot_id, "strategy": "text_to_video"},
         )
         return Plan(calls=(call,))
