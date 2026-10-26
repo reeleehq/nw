@@ -784,6 +784,22 @@ def test_raising_capture_context_leaves_no_orphan_record(project):
     assert done.status == jobs.SUCCEEDED
 
 
+def test_failing_launch_leaves_no_orphan_record(project):
+    """Same class as a raising hook (nw#117): a backend whose ``launch`` raises
+    must not leave a queued record behind for the key."""
+
+    class Refusing:
+        def launch(self, *a, **k):
+            raise RuntimeError("cannot start thread")
+
+    kw = dict(on_event=lambda e: None, dispatch={"journey.full_auto": lambda *a, **k: None})
+    with pytest.raises(RuntimeError, match="cannot start thread"):
+        jobs.enqueue(project, "journey.full_auto", VIDEO_PARAMS, backend=Refusing(), **kw)
+    job = jobs.enqueue(project, "journey.full_auto", VIDEO_PARAMS, **kw)
+    done = _poll_until(project, job.job_id, lambda j: j.status in jobs.TERMINAL_STATUSES)
+    assert done.status == jobs.SUCCEEDED
+
+
 # ---------------------------------------------------------------------------
 # unknown cost — a $0 must stay readable (reelee-studio survey, working rule 7)
 # ---------------------------------------------------------------------------

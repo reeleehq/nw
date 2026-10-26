@@ -440,7 +440,14 @@ def enqueue(
         _index_set_locked(rt, job_id, record)
 
         the_backend = backend if backend is not None else rt.backend
-        the_backend.launch(bound, (), {}, job_id, rt.au_store)
+        try:
+            the_backend.launch(bound, (), {}, job_id, rt.au_store)
+        except BaseException:
+            # A record with no worker behind it reads as a live PENDING job
+            # to the next enqueue of this key (au's store answers PENDING for
+            # a missing entry) and is never reaped (nw#117).
+            rt.index.pop(job_id, None)
+            raise
 
     return _project_job(rt, record, rt.au_store[job_id], config)
 
