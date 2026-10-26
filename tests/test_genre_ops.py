@@ -249,26 +249,35 @@ def test_genre_limits_register_once_and_read_as_a_copy():
 
     import nw
 
-    nw.register_genre_limits("_limits_t", {"edge_s": 0.25, "n": 3})
+    returned = nw.register_genre_limits("_limits_t", {"edge_s": 0.25, "n": 3})
     try:
+        assert nw.genre_limits("_limits_t") == {"edge_s": 0.25, "n": 3}
+        returned["edge_s"] = 9  # copies both ways: the registry is unchanged
         got = nw.genre_limits("_limits_t")
-        assert got == {"edge_s": 0.25, "n": 3}
-        got["edge_s"] = 9  # a copy: the registry is unchanged
+        got["edge_s"] = 9
         assert nw.genre_limits("_limits_t")["edge_s"] == 0.25
-        with pytest.raises(Exception):
-            nw.register_genre_limits("_limits_t", {"edge_s": 1.0})  # conflicts refused
+        with pytest.raises(Exception) as info:
+            nw.register_genre_limits("_limits_t", {"edge_s": 1.0})
+        assert "already" in str(info.value).lower() or "conflict" in type(info.value).__name__.lower()
     finally:
         del nw.genre_limits_registry["_limits_t"]
     assert nw.genre_limits("_limits_t") == {}
 
 
-def test_genre_limits_must_be_numbers():
-    import pytest
-
+@pytest.mark.parametrize(
+    "limits, error",
+    [
+        ({"edge_s": "0.25"}, TypeError),
+        ({"flag": True}, TypeError),
+        ({"x": float("nan")}, ValueError),
+        ({"x": float("inf")}, ValueError),
+        ({"": 1}, ValueError),
+        ({}, ValueError),
+    ],
+)
+def test_genre_limits_must_be_finite_numbers_and_nonempty(limits, error):
     import nw
 
-    with pytest.raises(TypeError):
-        nw.register_genre_limits("_limits_bad", {"edge_s": "0.25"})
-    with pytest.raises(TypeError):
-        nw.register_genre_limits("_limits_bad", {"flag": True})
-    assert nw.genre_limits("_limits_bad") == {}
+    with pytest.raises(error):
+        nw.register_genre_limits("_limits_bad", limits)
+    assert nw.genre_limits("_limits_bad") == {}  # nothing blocks a later real registration

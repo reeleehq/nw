@@ -43,6 +43,8 @@ schemas + Transforms" stance is in
 from __future__ import annotations
 
 import inspect
+import math
+import numbers
 import re
 from collections.abc import Mapping
 from dataclasses import dataclass, field
@@ -1345,7 +1347,9 @@ def register_genre_limits(genre_slug: str, limits: Mapping[str, float]) -> dict:
     frontend that validates the same bounds as the backend (a slider's range, a snap
     distance) reads them from here instead of mirroring them by hand. Values are plain
     numbers; names are the app's (``snake_case`` by convention, with the unit as a
-    suffix: ``edge_s``).
+    suffix: ``edge_s``). Bounds of an operation's own parameter belong in that op's
+    ``params_schema`` (``minimum``/``maximum``); this is for limits with no parameter
+    to attach to.
 
     >>> register_genre_limits("_limits_demo", {"edge_s": 0.25})
     {'edge_s': 0.25}
@@ -1356,16 +1360,21 @@ def register_genre_limits(genre_slug: str, limits: Mapping[str, float]) -> dict:
     >>> del genre_limits_registry["_limits_demo"]
     """
     _validate_slug(genre_slug, what="genre limits")
-    limits = dict(limits)
-    for name, value in limits.items():
+    if not limits:
+        raise ValueError(f"genre {genre_slug!r}: no limits to register")
+    clean: dict = {}
+    for name, value in dict(limits).items():
         if not isinstance(name, str) or not name:
             raise ValueError(f"genre {genre_slug!r}: limit names must be non-empty strings")
-        if isinstance(value, bool) or not isinstance(value, (int, float)):
+        if isinstance(value, bool) or not isinstance(value, numbers.Real):
             raise TypeError(
                 f"genre {genre_slug!r}: limit {name!r} must be a number, got {value!r}"
             )
-    genre_limits_registry.register(genre_slug, limits)
-    return limits
+        if not math.isfinite(value):  # NaN / Infinity are not JSON
+            raise ValueError(f"genre {genre_slug!r}: limit {name!r} must be finite")
+        clean[name] = int(value) if isinstance(value, numbers.Integral) else float(value)
+    genre_limits_registry.register(genre_slug, MappingProxyType(clean))
+    return dict(clean)
 
 
 def genre_limits(genre_slug: str) -> dict:
@@ -1434,4 +1443,7 @@ __all__ = [
     "genre_ops",
     "genre_op",
     "genre_ops_catalogue",
+    "genre_limits_registry",
+    "register_genre_limits",
+    "genre_limits",
 ]
