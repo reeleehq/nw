@@ -19,6 +19,11 @@ from uuid import UUID, uuid4
 import pytest
 
 import nw
+from lacing.digest import (
+    VALUE_DIGEST_SCHEME,
+    VALUE_DIGEST_SCHEMES,
+    annotation_value_digest,
+)
 from lacing import (
     Annotation,
     MediaRef,
@@ -352,6 +357,51 @@ def test_a_trace_from_another_digest_scheme_is_stale(tmp_path):
 
     assert b.id in _ids(nw.stale_after(proj.root, a_id))
     assert _reason_for(proj, a_id, b.id) == REASON_SCHEME_CHANGED
+
+
+def _as_recorded_under(proj, target: Annotation, scheme: str) -> None:
+    """Re-record ``target``'s trace as if written under an older ``scheme``."""
+    by_id = {a.id: a for a in nw.iter_all_annotations(proj.root)}
+
+    def mutate(body):
+        upstream = tuple(
+            u.model_copy(
+                update={
+                    "value_digest": annotation_value_digest(
+                        by_id[UUID(u.annotation_id)], scheme=scheme
+                    )
+                }
+            )
+            for u in body.upstream
+        )
+        return body.model_copy(update={"digest_scheme": scheme, "upstream": upstream})
+
+    _rewrite_trace(proj, target.id, mutate)
+
+
+def test_a_trace_recorded_under_an_older_known_scheme_still_verifies(tmp_path):
+    """nw#130: a lacing upgrade must not turn every old trace stale.
+
+    The trace is checked under the scheme it was recorded under; only an
+    unknown scheme is unverifiable.
+    """
+    proj, a_id, b, c = _chain(tmp_path)
+    old = VALUE_DIGEST_SCHEMES[0]
+    assert old != VALUE_DIGEST_SCHEME
+    _as_recorded_under(proj, b, old)
+
+    assert nw.stale_after(proj.root, a_id) == []
+    assert nw.all_stale(proj.root) == []
+
+
+def test_a_change_is_still_caught_under_an_older_scheme(tmp_path):
+    """Verifying under the recorded scheme is not the same as not verifying."""
+    proj, a_id, b, c = _chain(tmp_path)
+    _as_recorded_under(proj, b, VALUE_DIGEST_SCHEMES[0])
+    _authored(proj, label="edited")
+
+    assert b.id in _ids(nw.stale_after(proj.root, a_id))
+    assert _reason_for(proj, a_id, b.id) == REASON_UPSTREAM_CHANGED
 
 
 def test_an_undigestible_upstream_is_stale(tmp_path, monkeypatch):

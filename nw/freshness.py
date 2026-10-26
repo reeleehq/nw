@@ -107,7 +107,10 @@ from typing import Optional
 from uuid import UUID
 
 from lacing import Annotation
-from lacing.digest import VALUE_DIGEST_SCHEME, annotation_value_digest
+from lacing.digest import (
+    VALUE_DIGEST_SCHEMES,
+    annotation_value_digest,
+)
 
 from .bodies.verifying_trace import (
     VERIFYING_TRACE_BODY_SCHEMA_URI,
@@ -123,6 +126,18 @@ from .storage import ProjectLike
 REASON_FRESH = "verified-fresh"
 REASON_GENERATED_AT_UNKNOWN = "generated-at-unknown"
 REASON_NO_TRACE = "no-trace"
+def is_verifiable_digest_scheme(scheme: str) -> bool:
+    """Whether a trace recorded under ``scheme`` can still be verified.
+
+    A trace is checked under the scheme it was *recorded* under (lacing keeps
+    every released scheme computable), so a lacing upgrade does not turn old
+    traces stale. Only a scheme lacing does not know is unverifiable. Note
+    that a scheme whose digest depends on registered body schemas (v2) is
+    only as good as the producer and verifier registering the same ones.
+    """
+    return scheme in VALUE_DIGEST_SCHEMES
+
+
 REASON_SCHEME_CHANGED = "digest-scheme-changed"
 REASON_TRACE_PARENTS_DIFFER = "trace-parents-differ"
 REASON_TRACE_UNREADABLE = "trace-unreadable"
@@ -245,13 +260,15 @@ def _verdicts_for(
     by_id: dict[UUID, Annotation] = {a.id: a for a in annotations}
     traces = _traces_by_target(annotations)
 
-    digests: dict[UUID, Optional[str]] = {}
+    digests: dict[tuple[UUID, str], Optional[str]] = {}
 
-    def digest_of(ann: Annotation) -> Optional[str]:
-        """Memoized value digest; ``None`` when the body cannot be digested."""
-        if ann.id not in digests:
+    def digest_of(ann: Annotation, scheme: str) -> Optional[str]:
+        """Memoized value digest under ``scheme``; ``None`` when the body
+        cannot be digested."""
+        key = (ann.id, scheme)
+        if key not in digests:
             try:
-                digests[ann.id] = annotation_value_digest(ann)
+                digests[key] = annotation_value_digest(ann, scheme=scheme)
             except Exception:
                 # A body outside the JSON contract (lacing raises
                 # NonStringBodyKeyError) cannot be compared. Catching is the
@@ -259,8 +276,8 @@ def _verdicts_for(
                 # crash on one broken row. The sentinel's *value* is not: any
                 # non-digest sentinel compares unequal to a recorded 64-hex
                 # digest, so the caller reads it as "changed" either way.
-                digests[ann.id] = None
-        return digests[ann.id]
+                digests[key] = None
+        return digests[key]
 
     verdicts: dict[UUID, FreshnessVerdict] = {}
     resolving: set[UUID] = set()
@@ -292,7 +309,7 @@ def _verdicts_for(
         trace = traces.get(node_id)
         if trace is None:
             return FreshnessVerdict(ann, True, REASON_NO_TRACE)
-        if trace.digest_scheme != VALUE_DIGEST_SCHEME:
+        if not is_verifiable_digest_scheme(trace.digest_scheme):
             return FreshnessVerdict(ann, True, REASON_SCHEME_CHANGED)
         try:
             recorded = {
@@ -332,7 +349,7 @@ def _verdicts_for(
             # None is never equal to a recorded 64-hex digest, so the
             # undigestible case falls to "changed" by construction rather than
             # by a separate branch that no test could distinguish.
-            if digest_of(parent) != recorded[pid]:
+            if digest_of(parent, trace.digest_scheme) != recorded[pid]:
                 return FreshnessVerdict(ann, True, REASON_UPSTREAM_CHANGED, pid)
         return FreshnessVerdict(ann, False, REASON_FRESH)
 
