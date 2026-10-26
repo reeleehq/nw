@@ -350,6 +350,14 @@ def enqueue(
             importing them — e.g. reelee's BYO vision (aix) + ElevenLabs keys,
             which otherwise fall back to owner/env in a background job because
             ``ThreadBackend`` does not copy ``ContextVars`` into the worker.
+            The hook runs **under the runtime's non-reentrant lock**
+            (``rt.lock``), so it must be quick and must not call back into
+            ``nw.jobs`` (``enqueue``, ``get_job``, ``cancel``…): that would
+            deadlock. If ``backend.launch`` then fails, the returned context
+            manager is entered and exited once, so anything it acquired in the
+            call itself is released (outside the lock, so its ``__enter__``/
+            ``__exit__`` run once, on the request thread); it is otherwise
+            entered only by the worker.
         secrets: the caller's per-call credentials (:class:`nw.Secrets`; any
             mapping is coerced), for a render that spends a bring-your-own
             key. Held **in memory only**: never written to the job index
@@ -376,79 +384,96 @@ def enqueue(
     units = _eta_units(params)
     eta_candidates, output_kind = _eta_candidates(params, config)
 
-    with rt.lock:
-        existing = _index_get_locked(rt, job_id)
-        if existing is not None:
-            au_result = rt.au_store[job_id]
-            status = _normalize_status(
-                au_result.status,
-                cancel_requested=existing.get("cancel_requested", False),
+    unentered = None
+    try:
+        with rt.lock:
+            existing = _index_get_locked(rt, job_id)
+            if existing is not None:
+                au_result = rt.au_store[job_id]
+                status = _normalize_status(
+                    au_result.status,
+                    cancel_requested=existing.get("cancel_requested", False),
+                )
+                if status not in TERMINAL_STATUSES:
+                    # Live job with this key already exists → dedup, run once.
+                    return _project_job(rt, existing, au_result, config)
+
+            callable_ = dispatch.get(kind)
+            if callable_ is None:
+                raise KeyError(
+                    f"unknown job kind {kind!r} (dispatch has {sorted(dispatch)})"
+                )
+
+            record = {
+                "job_id": job_id,
+                "kind": kind,
+                "label": label,
+                "idempotency_key": idempotency_key,
+                "params": params,
+                "created_at": _now_iso(),
+                "started_at": None,
+                "finished_at": None,
+                "eta_candidates": [list(c) for c in eta_candidates],
+                "output_kind": output_kind,
+                "units": units,
+                "expected_cache_hit": bool(params.get("expected_cache_hit", False)),
+                "cached": False,
+                "cancel_requested": False,
+                "pct_floor": None,
+                "progress": {},
+                # Same gate, same rule: a supplied plan is re-quoted at today's
+                # rates and its answer wins, so the tray never shows a frozen
+                # figure as this job's price (nw#74).
+                "cost": {"estimated_usd": _estimated_usd(params)},
+                "artifact_ref": None,
+                "result": None,
+                "error": None,
+                "error_kind": None,
+                "error_detail": None,
+                "last_event_id": None,
+            }
+            # Bind BEFORE the record exists: ``_bind_worker`` runs the caller's
+            # ``capture_context`` hook, and a hook that raises must not leave a
+            # "queued" record behind that no worker will ever pick up (nw#117).
+            # The hook runs here, on the request thread, under ``rt.lock``.
+            unentered = capture_context() if capture_context is not None else None
+            bound = _bind_worker(
+                project,
+                kind,
+                params,
+                callable_,
+                job_id=job_id,
+                on_event=on_event,
+                rt=rt,
+                config=config,
+                extra_ctx=unentered,
+                secrets=as_secrets(secrets),
             )
-            if status not in TERMINAL_STATUSES:
-                # Live job with this key already exists → dedup, run once.
-                return _project_job(rt, existing, au_result, config)
+            if existing is not None:
+                # A re-run of a terminal key: the previous run's au result would
+                # otherwise be what this call (and any poll) reads until the new
+                # worker writes RUNNING — a fresh job reporting last run's
+                # terminal status (nw#120).
+                with suppress(KeyError):
+                    del rt.au_store[job_id]
+            _index_set_locked(rt, job_id, record)
 
-        callable_ = dispatch.get(kind)
-        if callable_ is None:
-            raise KeyError(
-                f"unknown job kind {kind!r} (dispatch has {sorted(dispatch)})"
-            )
+            the_backend = backend if backend is not None else rt.backend
+            try:
+                the_backend.launch(bound, (), {}, job_id, rt.au_store)
+                unentered = None  # a worker owns the context now
+            except BaseException:
+                # A record with no worker behind it reads as a live PENDING job
+                # to the next enqueue of this key (au's store answers PENDING for
+                # a missing entry) and is never reaped (nw#117).
+                rt.index.pop(job_id, None)
+                raise
 
-        record = {
-            "job_id": job_id,
-            "kind": kind,
-            "label": label,
-            "idempotency_key": idempotency_key,
-            "params": params,
-            "created_at": _now_iso(),
-            "started_at": None,
-            "finished_at": None,
-            "eta_candidates": [list(c) for c in eta_candidates],
-            "output_kind": output_kind,
-            "units": units,
-            "expected_cache_hit": bool(params.get("expected_cache_hit", False)),
-            "cached": False,
-            "cancel_requested": False,
-            "pct_floor": None,
-            "progress": {},
-            # Same gate, same rule: a supplied plan is re-quoted at today's
-            # rates and its answer wins, so the tray never shows a frozen
-            # figure as this job's price (nw#74).
-            "cost": {"estimated_usd": _estimated_usd(params)},
-            "artifact_ref": None,
-            "result": None,
-            "error": None,
-            "error_kind": None,
-            "error_detail": None,
-            "last_event_id": None,
-        }
-        # Bind BEFORE the record exists: ``_bind_worker`` runs the caller's
-        # ``capture_context`` hook, and a hook that raises must not leave a
-        # "queued" record behind that no worker will ever pick up (nw#117).
-        bound = _bind_worker(
-            project,
-            kind,
-            params,
-            callable_,
-            job_id=job_id,
-            on_event=on_event,
-            rt=rt,
-            config=config,
-            capture_context=capture_context,
-            secrets=as_secrets(secrets),
-        )
-        _index_set_locked(rt, job_id, record)
-
-        the_backend = backend if backend is not None else rt.backend
-        try:
-            the_backend.launch(bound, (), {}, job_id, rt.au_store)
-        except BaseException:
-            # A record with no worker behind it reads as a live PENDING job
-            # to the next enqueue of this key (au's store answers PENDING for
-            # a missing entry) and is never reaped (nw#117).
-            rt.index.pop(job_id, None)
-            raise
-
+    except BaseException:
+        # No worker will ever enter the hook's context: release what it
+        # acquired in the call itself, outside ``rt.lock`` (nw#120).
+        _release_unentered(unentered)
+        raise
     return _project_job(rt, record, rt.au_store[job_id], config)
 
 
@@ -1089,7 +1114,7 @@ def _bind_worker(
     on_event,
     rt,
     config,
-    capture_context=None,
+    extra_ctx=None,
     secrets=None,
 ):
     """Bind the render callable into a zero-arg worker body that (a) re-establishes
@@ -1097,14 +1122,12 @@ def _bind_worker(
     routes events into both the caller's sink and the index mirror, (c) exposes a
     durable ``should_cancel``.
 
-    ``capture_context`` (if given) is invoked **here**, on the request thread, so
-    it snapshots request-scoped state now; the context manager it returns is
-    entered around the render on the worker thread (``ThreadBackend`` does not
-    copy ``ContextVars`` into the worker, so anything the caller owns must be
-    re-bound explicitly — see :func:`enqueue`)."""
+    ``extra_ctx`` is the context manager :func:`enqueue` got from the caller's
+    ``capture_context`` hook (called on the request thread); it is entered
+    around the render on the worker thread (``ThreadBackend`` does not copy
+    ``ContextVars`` into the worker, so anything the caller owns must be
+    re-bound explicitly)."""
     captured_fal_key = _capture_fal_credentials()
-    # Snapshot the caller's context NOW (request thread); enter it in the worker.
-    extra_ctx = capture_context() if capture_context is not None else None
 
     def should_cancel() -> bool:
         with rt.lock:
@@ -1204,6 +1227,20 @@ def _bind_worker(
         return result
 
     return run
+
+
+def _release_unentered(ctx) -> None:
+    """Enter-and-exit a context manager no worker will enter.
+
+    The one protocol that works for any context manager: a class-based one
+    that acquired in ``__init__`` releases in ``__exit__``; a generator-based
+    one just runs its setup and teardown once. Failures are swallowed — this
+    is cleanup on a path that is already raising.
+    """
+    if ctx is not None:
+        with suppress(Exception):
+            with ctx:
+                pass
 
 
 def _capture_fal_credentials():
