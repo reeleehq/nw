@@ -1,4 +1,4 @@
-> built 2026-10-26 19:33 UTC from 6de4cc2 (main) · nw 0.0.78. Details: build_info.json
+> built 2026-10-26 21:18 UTC from 851cf1b (main) · nw 0.0.79. Details: build_info.json
 
 # index.html.md
 
@@ -2161,6 +2161,7 @@ Stated so nobody reads more into the number than is there:
 
 | [`all_stale`](_autosummary/nw.freshness.html.md#nw.freshness.all_stale)(project_root)                  | Every annotation that is currently stale, regardless of cause.        |
 |-------------------------------------------------------------------------------------------|-----------------------------------------------------------------------|
+| [`is_verifiable_digest_scheme`](_autosummary/nw.freshness.html.md#nw.freshness.is_verifiable_digest_scheme)(scheme)      | Whether a trace recorded under `scheme` can still be verified.        |
 | [`stale_after`](_autosummary/nw.freshness.html.md#nw.freshness.stale_after)(project_root, changed_id)    | Return every annotation that `changed_id` actually invalidated.       |
 | [`stale_verdicts`](_autosummary/nw.freshness.html.md#nw.freshness.stale_verdicts)(project_root, changed_id) | Classify every annotation downstream of `changed_id`.                 |
 | [`stale_verdicts_all`](_autosummary/nw.freshness.html.md#nw.freshness.stale_verdicts_all)(project_root)         | Classify every derived annotation in the project — the snapshot form. |
@@ -2198,6 +2199,19 @@ on instead of re-deriving its own definition of the word.
 
 * **Return type:**
   [`list`](https://docs.python.org/3/builtins/stdtypes.html#list)[`Annotation`]
+
+### nw.freshness.is_verifiable_digest_scheme(scheme)
+
+Whether a trace recorded under `scheme` can still be verified.
+
+A trace is checked under the scheme it was *recorded* under (lacing keeps
+every released scheme computable), so a lacing upgrade does not turn old
+traces stale. Only a scheme lacing does not know is unverifiable. Note
+that a scheme whose digest depends on registered body schemas (v2) is
+only as good as the producer and verifier registering the same ones.
+
+* **Return type:**
+  [`bool`](https://docs.python.org/3/builtins/functions.html#bool)
 
 ### nw.freshness.stale_after(project_root, changed_id)
 
@@ -9800,20 +9814,18 @@ produce different URLs. The local file paths are byte-stable.
 
 # About this build
 
-This documentation was built on **2026-10-26 19:33 UTC** from commit <a href="https://github.com/reeleehq/nw/commit/6de4cc2de684c6355c0750d64f7fd9f36c0673ac"><code>6de4cc2</code></a> on branch <code>main</code>, for **nw 0.0.78** (from <code>pyproject.toml</code>).
+This documentation was built on **2026-10-26 21:18 UTC** from commit <a href="https://github.com/reeleehq/nw/commit/851cf1b166567998bbe67acd059d56f52b911b25"><code>851cf1b</code></a> on branch <code>main</code>, for **nw 0.0.79** (from <code>pyproject.toml</code>).
 
-#### WARNING
-The documentation and the package may be misaligned:
-
-- The documented version (0.0.78) is ahead of the latest release on PyPI (0.0.77): these docs describe unreleased code.
+#### NOTE
+Nothing suggests a mismatch: the tree was clean at the commit above, and the documented version is the one on PyPI.
 
 ## Source
 
 |                     |                                                                                                                                                    |
 |---------------------|----------------------------------------------------------------------------------------------------------------------------------------------------|
-| Commit              | <a href="https://github.com/reeleehq/nw/commit/6de4cc2de684c6355c0750d64f7fd9f36c0673ac"><code>6de4cc2de684c6355c0750d64f7fd9f36c0673ac</code></a> |
+| Commit              | <a href="https://github.com/reeleehq/nw/commit/851cf1b166567998bbe67acd059d56f52b911b25"><code>851cf1b166567998bbe67acd059d56f52b911b25</code></a> |
 | Branch              | <code>main</code>                                                                                                                                  |
-| Tags at this commit | <code>0.0.78</code>                                                                                                                                |
+| Tags at this commit | <code>0.0.79</code>                                                                                                                                |
 | Working tree        | clean                                                                                                                                              |
 | Remote              | <code>https://github.com/reeleehq/nw</code>                                                                                                        |
 
@@ -9822,9 +9834,9 @@ The documentation and the package may be misaligned:
 |              |                                                                                            |
 |--------------|--------------------------------------------------------------------------------------------|
 | Repository   | <code>reeleehq/nw</code>                                                                   |
-| Run          | <a href="https://github.com/reeleehq/nw/actions/runs/40387469281">40387469281</a>          |
+| Run          | <a href="https://github.com/reeleehq/nw/actions/runs/40402513551">40402513551</a>          |
 | Ref          | <code>refs/heads/main</code>                                                               |
-| Event commit | <code>067d740798696ee7e12198929f2ee30a7591b43e</code> (in the history of the built commit) |
+| Event commit | <code>bfc651fc3484e4583d5f821a08c3b9cb4c6a87b1</code> (in the history of the built commit) |
 
 ## Tools
 
@@ -9849,13 +9861,13 @@ The documentation and the package may be misaligned:
 
 ## Package on PyPI
 
-Latest release: <a href="https://pypi.org/project/nw/0.0.77/">0.0.77</a>, older than the documented version (0.0.78).
+Latest release: <a href="https://pypi.org/project/nw/0.0.79/">0.0.79</a>, the same as the documented version.
 
 ## Reproduce
 
 ```bash
 git clone https://github.com/reeleehq/nw && cd nw
-git checkout 6de4cc2de684c6355c0750d64f7fd9f36c0673ac
+git checkout 851cf1b166567998bbe67acd059d56f52b911b25
 pip install "epythet==0.2.22"
 epythet quickstart . --ignore tests/ scrap/ examples/
 ```

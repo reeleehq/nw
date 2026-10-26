@@ -128,6 +128,7 @@ data-aria-dark="Switch to auto color mode">
 <li><a class="reference internal" href="#nw.freshness.FreshnessVerdict"><code class="docutils literal notranslate"><span class="pre">FreshnessVerdict</span></code></a></li>
 <li><a class="reference internal" href="#nw.freshness.STALE_REASONS"><code class="docutils literal notranslate"><span class="pre">STALE_REASONS</span></code></a></li>
 <li><a class="reference internal" href="#nw.freshness.all_stale"><code class="docutils literal notranslate"><span class="pre">all_stale()</span></code></a></li>
+<li><a class="reference internal" href="#nw.freshness.is_verifiable_digest_scheme"><code class="docutils literal notranslate"><span class="pre">is_verifiable_digest_scheme()</span></code></a></li>
 <li><a class="reference internal" href="#nw.freshness.stale_after"><code class="docutils literal notranslate"><span class="pre">stale_after()</span></code></a></li>
 <li><a class="reference internal" href="#nw.freshness.stale_verdicts"><code class="docutils literal notranslate"><span class="pre">stale_verdicts()</span></code></a></li>
 <li><a class="reference internal" href="#nw.freshness.stale_verdicts_all"><code class="docutils literal notranslate"><span class="pre">stale_verdicts_all()</span></code></a></li>
@@ -285,13 +286,16 @@ is exactly <code class="docutils literal notranslate"><span class="pre">was_deri
 <tr class="row-odd"><td><p><a class="reference internal" href="#nw.freshness.all_stale" title="nw.freshness.all_stale"><code class="xref py py-obj docutils literal notranslate"><span class="pre">all_stale</span></code></a>(project_root)</p></td>
 <td><p>Every annotation that is currently stale, regardless of cause.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#nw.freshness.stale_after" title="nw.freshness.stale_after"><code class="xref py py-obj docutils literal notranslate"><span class="pre">stale_after</span></code></a>(project_root, changed_id)</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#nw.freshness.is_verifiable_digest_scheme" title="nw.freshness.is_verifiable_digest_scheme"><code class="xref py py-obj docutils literal notranslate"><span class="pre">is_verifiable_digest_scheme</span></code></a>(scheme)</p></td>
+<td><p>Whether a trace recorded under <code class="docutils literal notranslate"><span class="pre">scheme</span></code> can still be verified.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#nw.freshness.stale_after" title="nw.freshness.stale_after"><code class="xref py py-obj docutils literal notranslate"><span class="pre">stale_after</span></code></a>(project_root, changed_id)</p></td>
 <td><p>Return every annotation that <code class="docutils literal notranslate"><span class="pre">changed_id</span></code> actually invalidated.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#nw.freshness.stale_verdicts" title="nw.freshness.stale_verdicts"><code class="xref py py-obj docutils literal notranslate"><span class="pre">stale_verdicts</span></code></a>(project_root, changed_id)</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#nw.freshness.stale_verdicts" title="nw.freshness.stale_verdicts"><code class="xref py py-obj docutils literal notranslate"><span class="pre">stale_verdicts</span></code></a>(project_root, changed_id)</p></td>
 <td><p>Classify every annotation downstream of <code class="docutils literal notranslate"><span class="pre">changed_id</span></code>.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#nw.freshness.stale_verdicts_all" title="nw.freshness.stale_verdicts_all"><code class="xref py py-obj docutils literal notranslate"><span class="pre">stale_verdicts_all</span></code></a>(project_root)</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#nw.freshness.stale_verdicts_all" title="nw.freshness.stale_verdicts_all"><code class="xref py py-obj docutils literal notranslate"><span class="pre">stale_verdicts_all</span></code></a>(project_root)</p></td>
 <td><p>Classify every derived annotation in the project — the snapshot form.</p></td>
 </tr>
 </tbody>
@@ -340,6 +344,22 @@ on instead of re-deriving its own definition of the word.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#list" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code></a>[<code class="xref py py-class docutils literal notranslate"><span class="pre">Annotation</span></code>]</span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="nw.freshness.is_verifiable_digest_scheme">
+<span class="sig-prename descclassname"><span class="pre">nw.freshness.</span></span><span class="sig-name descname"><span class="pre">is_verifiable_digest_scheme</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">scheme</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/nw/freshness.html#is_verifiable_digest_scheme"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nw.freshness.is_verifiable_digest_scheme" title="Link to this definition">#</a></dt>
+<dd><p>Whether a trace recorded under <code class="docutils literal notranslate"><span class="pre">scheme</span></code> can still be verified.</p>
+<p>A trace is checked under the scheme it was <em>recorded</em> under (lacing keeps
+every released scheme computable), so a lacing upgrade does not turn old
+traces stale. Only a scheme lacing does not know is unverifiable. Note
+that a scheme whose digest depends on registered body schemas (v2) is
+only as good as the producer and verifier registering the same ones.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#bool" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></a></span></p>
 </dd>
 </dl>
 </dd></dl>
@@ -462,7 +482,7 @@ projects, not installing a pure wrapper.</p>
     </div>
   </div>
 </footer>
-      <script src="../_static/documentation_options.js?v=0a7e36fc"></script>
+      <script src="../_static/documentation_options.js?v=ae06b2e5"></script>
       <script src="../_static/doctools.js?v=fd6eb6e6"></script>
       <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script src="../_static/clipboard.min.js?v=a7894cd8"></script>

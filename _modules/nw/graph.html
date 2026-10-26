@@ -1392,14 +1392,14 @@ data-aria-dark="Switch to auto color mode">
 </span><span data-line="1153">
 </span><span data-line="1154"><span class="k">def</span><span class="w"> </span><span class="nf">_trace_is_usable</span><span class="p">(</span><span class="n">body</span><span class="p">,</span> <span class="n">parents</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
 </span><span data-line="1155"><span class="w">    </span><span class="sd">"""Whether an existing trace can actually VERIFY — the freshness rule's</span>
-</span><span data-line="1156"><span class="sd">    own preconditions: the digest scheme matches, every recorded upstream id</span>
+</span><span data-line="1156"><span class="sd">    own preconditions: the digest scheme is one lacing can verify, every recorded upstream id</span>
 </span><span data-line="1157"><span class="sd">    parses, and the recorded upstream set is exactly the parents. A trace</span>
 </span><span data-line="1158"><span class="sd">    failing any of these reads stale forever (digest-scheme-changed /</span>
 </span><span data-line="1159"><span class="sd">    trace-upstream-mismatch), which is not "already traced" in any sense an</span>
 </span><span data-line="1160"><span class="sd">    operator's instrument should report as healthy."""</span>
-</span><span data-line="1161">    <span class="kn">from</span><span class="w"> </span><span class="nn">lacing.digest</span><span class="w"> </span><span class="kn">import</span> <span class="n">VALUE_DIGEST_SCHEME</span>
+</span><span data-line="1161">    <span class="kn">from</span><span class="w"> </span><span class="nn">.freshness</span><span class="w"> </span><span class="kn">import</span> <span class="n">is_verifiable_digest_scheme</span>
 </span><span data-line="1162">
-</span><span data-line="1163">    <span class="k">if</span> <span class="n">body</span><span class="o">.</span><span class="n">digest_scheme</span> <span class="o">!=</span> <span class="n">VALUE_DIGEST_SCHEME</span><span class="p">:</span>
+</span><span data-line="1163">    <span class="k">if</span> <span class="ow">not</span> <span class="n">is_verifiable_digest_scheme</span><span class="p">(</span><span class="n">body</span><span class="o">.</span><span class="n">digest_scheme</span><span class="p">):</span>
 </span><span data-line="1164">        <span class="k">return</span> <span class="kc">False</span>
 </span><span data-line="1165">    <span class="k">try</span><span class="p">:</span>
 </span><span data-line="1166">        <span class="n">recorded</span> <span class="o">=</span> <span class="p">{</span><span class="n">UUID</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">annotation_id</span><span class="p">)</span> <span class="k">for</span> <span class="n">u</span> <span class="ow">in</span> <span class="n">body</span><span class="o">.</span><span class="n">upstream</span><span class="p">}</span>
@@ -1677,7 +1677,7 @@ data-aria-dark="Switch to auto color mode">
     </div>
   </div>
 </footer>
-      <script src="../../_static/documentation_options.js?v=0a7e36fc"></script>
+      <script src="../../_static/documentation_options.js?v=ae06b2e5"></script>
       <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
       <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>

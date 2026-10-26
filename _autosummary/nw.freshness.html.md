@@ -109,6 +109,7 @@ Stated so nobody reads more into the number than is there:
 
 | [`all_stale`](#nw.freshness.all_stale)(project_root)                  | Every annotation that is currently stale, regardless of cause.        |
 |-------------------------------------------------------------------------------------------|-----------------------------------------------------------------------|
+| [`is_verifiable_digest_scheme`](#nw.freshness.is_verifiable_digest_scheme)(scheme)      | Whether a trace recorded under `scheme` can still be verified.        |
 | [`stale_after`](#nw.freshness.stale_after)(project_root, changed_id)    | Return every annotation that `changed_id` actually invalidated.       |
 | [`stale_verdicts`](#nw.freshness.stale_verdicts)(project_root, changed_id) | Classify every annotation downstream of `changed_id`.                 |
 | [`stale_verdicts_all`](#nw.freshness.stale_verdicts_all)(project_root)         | Classify every derived annotation in the project — the snapshot form. |
@@ -146,6 +147,19 @@ on instead of re-deriving its own definition of the word.
 
 * **Return type:**
   [`list`](https://docs.python.org/3/builtins/stdtypes.html#list)[`Annotation`]
+
+### nw.freshness.is_verifiable_digest_scheme(scheme)
+
+Whether a trace recorded under `scheme` can still be verified.
+
+A trace is checked under the scheme it was *recorded* under (lacing keeps
+every released scheme computable), so a lacing upgrade does not turn old
+traces stale. Only a scheme lacing does not know is unverifiable. Note
+that a scheme whose digest depends on registered body schemas (v2) is
+only as good as the producer and verifier registering the same ones.
+
+* **Return type:**
+  [`bool`](https://docs.python.org/3/builtins/functions.html#bool)
 
 ### nw.freshness.stale_after(project_root, changed_id)
 
