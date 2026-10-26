@@ -407,6 +407,7 @@ data-aria-dark="Switch to auto color mode">
 <li><a class="reference internal" href="#nw.fan_out_plan"><code class="docutils literal notranslate"><span class="pre">fan_out_plan()</span></code></a></li>
 <li><a class="reference internal" href="#nw.format_ref"><code class="docutils literal notranslate"><span class="pre">format_ref()</span></code></a></li>
 <li><a class="reference internal" href="#nw.genre_catalog"><code class="docutils literal notranslate"><span class="pre">genre_catalog()</span></code></a></li>
+<li><a class="reference internal" href="#nw.genre_limits"><code class="docutils literal notranslate"><span class="pre">genre_limits()</span></code></a></li>
 <li><a class="reference internal" href="#nw.genre_op"><code class="docutils literal notranslate"><span class="pre">genre_op()</span></code></a></li>
 <li><a class="reference internal" href="#nw.genre_ops"><code class="docutils literal notranslate"><span class="pre">genre_ops()</span></code></a></li>
 <li><a class="reference internal" href="#nw.genre_ops_catalogue"><code class="docutils literal notranslate"><span class="pre">genre_ops_catalogue()</span></code></a></li>
@@ -436,6 +437,7 @@ data-aria-dark="Switch to auto color mode">
 <li><a class="reference internal" href="#nw.register_check"><code class="docutils literal notranslate"><span class="pre">register_check()</span></code></a></li>
 <li><a class="reference internal" href="#nw.register_genre"><code class="docutils literal notranslate"><span class="pre">register_genre()</span></code></a></li>
 <li><a class="reference internal" href="#nw.register_genre_initializer"><code class="docutils literal notranslate"><span class="pre">register_genre_initializer()</span></code></a></li>
+<li><a class="reference internal" href="#nw.register_genre_limits"><code class="docutils literal notranslate"><span class="pre">register_genre_limits()</span></code></a></li>
 <li><a class="reference internal" href="#nw.register_genre_ops"><code class="docutils literal notranslate"><span class="pre">register_genre_ops()</span></code></a></li>
 <li><a class="reference internal" href="#nw.register_genre_project_factory"><code class="docutils literal notranslate"><span class="pre">register_genre_project_factory()</span></code></a></li>
 <li><a class="reference internal" href="#nw.register_genre_resolver"><code class="docutils literal notranslate"><span class="pre">register_genre_resolver()</span></code></a></li>
@@ -583,6 +585,12 @@ are recorded as linked artifacts), see
 </tr>
 <tr class="row-even"><td><p><a class="reference internal" href="#nw.genre_ops_catalogue" title="nw.genre_ops_catalogue"><code class="xref py py-obj docutils literal notranslate"><span class="pre">genre_ops_catalogue</span></code></a>(genre_slug)</p></td>
 <td><p>The pure-JSON catalogue of <code class="docutils literal notranslate"><span class="pre">genre_slug</span></code>'s ops (<code class="docutils literal notranslate"><span class="pre">[]</span></code> for a genre with none).</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#nw.register_genre_limits" title="nw.register_genre_limits"><code class="xref py py-obj docutils literal notranslate"><span class="pre">register_genre_limits</span></code></a>(genre_slug, limits)</p></td>
+<td><p>Register the numeric limits a genre's operations enforce; returns them as a dict.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#nw.genre_limits" title="nw.genre_limits"><code class="xref py py-obj docutils literal notranslate"><span class="pre">genre_limits</span></code></a>(genre_slug)</p></td>
+<td><p>The limits registered for <code class="docutils literal notranslate"><span class="pre">genre_slug</span></code> (<code class="docutils literal notranslate"><span class="pre">{}</span></code> if none); a copy.</p></td>
 </tr>
 <tr class="row-odd"><td><p><a class="reference internal" href="#nw.adopt_tenant_id" title="nw.adopt_tenant_id"><code class="xref py py-obj docutils literal notranslate"><span class="pre">adopt_tenant_id</span></code></a>(project, *[, dry_run])</p></td>
 <td><p>Pin a legacy project's historical tenant into <code class="docutils literal notranslate"><span class="pre">project.json</span></code> (nw#112).</p></td>
@@ -3779,6 +3787,17 @@ execute time changes nothing.</p>
 </dd></dl>
 
 <dl class="py function">
+<dt class="sig sig-object py" id="nw.genre_limits">
+<span class="sig-prename descclassname"><span class="pre">nw.</span></span><span class="sig-name descname"><span class="pre">genre_limits</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">genre_slug</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/nw/genres.html#genre_limits"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nw.genre_limits" title="Link to this definition">#</a></dt>
+<dd><p>The limits registered for <code class="docutils literal notranslate"><span class="pre">genre_slug</span></code> (<code class="docutils literal notranslate"><span class="pre">{}</span></code> if none); a copy.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#dict" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></a></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
 <dt class="sig sig-object py" id="nw.genre_op">
 <span class="sig-prename descclassname"><span class="pre">nw.</span></span><span class="sig-name descname"><span class="pre">genre_op</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">genre_slug</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/nw/genres.html#genre_op"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nw.genre_op" title="Link to this definition">#</a></dt>
 <dd><p>The op <code class="docutils literal notranslate"><span class="pre">name</span></code> of <code class="docutils literal notranslate"><span class="pre">genre_slug</span></code>; <a class="reference internal" href="#nw.UnknownGenreOpError" title="nw.UnknownGenreOpError"><code class="xref py py-class docutils literal notranslate"><span class="pre">UnknownGenreOpError</span></code></a> naming the known.</p>
@@ -4312,6 +4331,33 @@ no initializer at all.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Callable" title="(in Python v3.15)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Callable</span></code></a>[[<a class="reference internal" href="#nw.Genre" title="nw.genres.Genre"><code class="xref py py-class docutils literal notranslate"><span class="pre">Genre</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.15)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code></a>[<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>], <a class="reference internal" href="nw.project.html#nw.project.Project" title="nw.project.Project"><code class="xref py py-class docutils literal notranslate"><span class="pre">Project</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/collections.abc.html#collections.abc.Mapping" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Mapping</span></code></a>[<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.15)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code></a>]], <span class="highlight sphinx_autodoc_typehints-value"><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></a></span>]</span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="nw.register_genre_limits">
+<span class="sig-prename descclassname"><span class="pre">nw.</span></span><span class="sig-name descname"><span class="pre">register_genre_limits</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">genre_slug</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">limits</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/nw/genres.html#register_genre_limits"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nw.register_genre_limits" title="Link to this definition">#</a></dt>
+<dd><p>Register the numeric limits a genre’s operations enforce; returns them as a dict.</p>
+<p>Called once by the genre’s <strong>owning app</strong>, beside <a class="reference internal" href="#nw.register_genre_ops" title="nw.register_genre_ops"><code class="xref py py-func docutils literal notranslate"><span class="pre">register_genre_ops()</span></code></a>. A
+frontend that validates the same bounds as the backend (a slider’s range, a snap
+distance) reads them from here instead of mirroring them by hand. Values are plain
+numbers; names are the app’s (<code class="docutils literal notranslate"><span class="pre">snake_case</span></code> by convention, with the unit as a
+suffix: <code class="docutils literal notranslate"><span class="pre">edge_s</span></code>). Bounds of an operation’s own parameter belong in that op’s
+<code class="docutils literal notranslate"><span class="pre">params_schema</span></code> (<code class="docutils literal notranslate"><span class="pre">minimum</span></code>/<code class="docutils literal notranslate"><span class="pre">maximum</span></code>); this is for limits with no parameter
+to attach to.</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span data-line="1"><span class="gp">&gt;&gt;&gt; </span><span class="n">register_genre_limits</span><span class="p">(</span><span class="s2">"_limits_demo"</span><span class="p">,</span> <span class="p">{</span><span class="s2">"edge_s"</span><span class="p">:</span> <span class="mf">0.25</span><span class="p">})</span>
+</span><span data-line="2"><span class="go">{'edge_s': 0.25}</span>
+</span><span data-line="3"><span class="gp">&gt;&gt;&gt; </span><span class="n">genre_limits</span><span class="p">(</span><span class="s2">"_limits_demo"</span><span class="p">)</span>
+</span><span data-line="4"><span class="go">{'edge_s': 0.25}</span>
+</span><span data-line="5"><span class="gp">&gt;&gt;&gt; </span><span class="n">genre_limits</span><span class="p">(</span><span class="s2">"_nobody"</span><span class="p">)</span>
+</span><span data-line="6"><span class="go">{}</span>
+</span><span data-line="7"><span class="gp">&gt;&gt;&gt; </span><span class="k">del</span> <span class="n">genre_limits_registry</span><span class="p">[</span><span class="s2">"_limits_demo"</span><span class="p">]</span>
+</span></pre></div>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#dict" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></a></span></p>
 </dd>
 </dl>
 </dd></dl>
@@ -4901,7 +4947,7 @@ addressable across runs.</p>
     </div>
   </div>
 </footer>
-      <script src="../_static/documentation_options.js?v=71e49b4d"></script>
+      <script src="../_static/documentation_options.js?v=461c1127"></script>
       <script src="../_static/doctools.js?v=fd6eb6e6"></script>
       <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script src="../_static/clipboard.min.js?v=a7894cd8"></script>

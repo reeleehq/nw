@@ -67,6 +67,8 @@ are recorded as linked artifacts), see
 | [`genre_ops`](#nw.genre_ops)(genre_slug)                             | The ops registered for `genre_slug`, in registration order (`()` if none).                                                           |
 | [`genre_op`](#nw.genre_op)(genre_slug, name)                        | The op `name` of `genre_slug`; [`UnknownGenreOpError`](#nw.UnknownGenreOpError) naming the known.                |
 | [`genre_ops_catalogue`](#nw.genre_ops_catalogue)(genre_slug)                   | The pure-JSON catalogue of `genre_slug`'s ops (`[]` for a genre with none).                                                          |
+| [`register_genre_limits`](#nw.register_genre_limits)(genre_slug, limits)         | Register the numeric limits a genre's operations enforce; returns them as a dict.                                                    |
+| [`genre_limits`](#nw.genre_limits)(genre_slug)                          | The limits registered for `genre_slug` (`{}` if none); a copy.                                                                       |
 | [`adopt_tenant_id`](#nw.adopt_tenant_id)(project, \*[, dry_run])           | Pin a legacy project's historical tenant into `project.json` (nw#112).                                                               |
 | [`as_project_storage`](#nw.as_project_storage)(project)                       | The [`ProjectStorage`](#nw.ProjectStorage) for a path, a storage, or an `nw.Project`.                       |
 | [`register_project_storage`](#nw.register_project_storage)(name, resolver)          | Register a resolver that recognises a genre's project folders.                                                                       |
@@ -2549,6 +2551,13 @@ This is the generic, app-agnostic catalog an HTTP route / MCP tool serves; see
 * **Return type:**
   [`list`](https://docs.python.org/3/builtins/stdtypes.html#list)[[`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)]
 
+### nw.genre_limits(genre_slug)
+
+The limits registered for `genre_slug` (`{}` if none); a copy.
+
+* **Return type:**
+  [`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)
+
 ### nw.genre_op(genre_slug, name)
 
 The op `name` of `genre_slug`; [`UnknownGenreOpError`](#nw.UnknownGenreOpError) naming the known.
@@ -2996,6 +3005,31 @@ no initializer at all.
 
 * **Return type:**
   [`Callable`](https://docs.python.org/3/library/typing.html#typing.Callable)[[[`Genre`](#nw.Genre), [`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)], [`Project`](nw.project.html.md#nw.project.Project), [`Mapping`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Mapping)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str), [`Any`](https://docs.python.org/3/library/typing.html#typing.Any)]], [`None`](https://docs.python.org/3/builtins/constants.html#None)]
+
+### nw.register_genre_limits(genre_slug, limits)
+
+Register the numeric limits a genre’s operations enforce; returns them as a dict.
+
+Called once by the genre’s **owning app**, beside [`register_genre_ops()`](#nw.register_genre_ops). A
+frontend that validates the same bounds as the backend (a slider’s range, a snap
+distance) reads them from here instead of mirroring them by hand. Values are plain
+numbers; names are the app’s (`snake_case` by convention, with the unit as a
+suffix: `edge_s`). Bounds of an operation’s own parameter belong in that op’s
+`params_schema` (`minimum`/`maximum`); this is for limits with no parameter
+to attach to.
+
+```pycon
+>>> register_genre_limits("_limits_demo", {"edge_s": 0.25})
+{'edge_s': 0.25}
+>>> genre_limits("_limits_demo")
+{'edge_s': 0.25}
+>>> genre_limits("_nobody")
+{}
+>>> del genre_limits_registry["_limits_demo"]
+```
+
+* **Return type:**
+  [`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)
 
 ### nw.register_genre_ops(genre_slug, ops)
 

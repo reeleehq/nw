@@ -2,18 +2,20 @@
 
 # About this build
 
-This documentation was built on **2026-10-26 15:00 UTC** from commit <a href="https://github.com/reeleehq/nw/commit/b32221624fb62092b5611ac61f7bd1a01ce8f9db"><code>b322216</code></a> on branch <code>main</code>, for **nw 0.0.75** (from <code>pyproject.toml</code>).
+This documentation was built on **2026-10-26 16:38 UTC** from commit <a href="https://github.com/reeleehq/nw/commit/96c67cea026f384bd25ccd72c4319205d02d6434"><code>96c67ce</code></a> on branch <code>main</code>, for **nw 0.0.76** (from <code>pyproject.toml</code>).
 
-#### NOTE
-Nothing suggests a mismatch: the tree was clean at the commit above, and the documented version is the one on PyPI.
+#### WARNING
+The documentation and the package may be misaligned:
+
+- The documented version (0.0.76) is ahead of the latest release on PyPI (0.0.75): these docs describe unreleased code.
 
 ## Source
 
 |                     |                                                                                                                                                    |
 |---------------------|----------------------------------------------------------------------------------------------------------------------------------------------------|
-| Commit              | <a href="https://github.com/reeleehq/nw/commit/b32221624fb62092b5611ac61f7bd1a01ce8f9db"><code>b32221624fb62092b5611ac61f7bd1a01ce8f9db</code></a> |
+| Commit              | <a href="https://github.com/reeleehq/nw/commit/96c67cea026f384bd25ccd72c4319205d02d6434"><code>96c67cea026f384bd25ccd72c4319205d02d6434</code></a> |
 | Branch              | <code>main</code>                                                                                                                                  |
-| Tags at this commit | <code>0.0.75</code>                                                                                                                                |
+| Tags at this commit | <code>0.0.76</code>                                                                                                                                |
 | Working tree        | clean                                                                                                                                              |
 | Remote              | <code>https://github.com/reeleehq/nw</code>                                                                                                        |
 
@@ -22,9 +24,9 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 |              |                                                                                            |
 |--------------|--------------------------------------------------------------------------------------------|
 | Repository   | <code>reeleehq/nw</code>                                                                   |
-| Run          | <a href="https://github.com/reeleehq/nw/actions/runs/40344626344">40344626344</a>          |
+| Run          | <a href="https://github.com/reeleehq/nw/actions/runs/40360486011">40360486011</a>          |
 | Ref          | <code>refs/heads/main</code>                                                               |
-| Event commit | <code>26c62d2b4641568c374c843f8497125c80a2e384</code> (in the history of the built commit) |
+| Event commit | <code>69a0525c74b35b8d173a157d049ceba2af93faf5</code> (in the history of the built commit) |
 
 ## Tools
 
@@ -49,13 +51,13 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 
 ## Package on PyPI
 
-Latest release: <a href="https://pypi.org/project/nw/0.0.75/">0.0.75</a>, the same as the documented version.
+Latest release: <a href="https://pypi.org/project/nw/0.0.75/">0.0.75</a>, older than the documented version (0.0.76).
 
 ## Reproduce
 
 ```bash
 git clone https://github.com/reeleehq/nw && cd nw
-git checkout b32221624fb62092b5611ac61f7bd1a01ce8f9db
+git checkout 96c67cea026f384bd25ccd72c4319205d02d6434
 pip install "epythet==0.2.22"
 epythet quickstart . --ignore tests/ scrap/ examples/
 ```

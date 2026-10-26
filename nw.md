@@ -1,4 +1,4 @@
-> built 2026-10-26 15:00 UTC from b322216 (main) · nw 0.0.75. Details: build_info.json
+> built 2026-10-26 16:38 UTC from 96c67ce (main) · nw 0.0.76. Details: build_info.json
 
 # index.html.md
 
@@ -2999,6 +2999,8 @@ are recorded as linked artifacts), see
 | [`genre_ops`](_autosummary/nw.html.md#nw.genre_ops)(genre_slug)                             | The ops registered for `genre_slug`, in registration order (`()` if none).                                                           |
 | [`genre_op`](_autosummary/nw.html.md#nw.genre_op)(genre_slug, name)                        | The op `name` of `genre_slug`; [`UnknownGenreOpError`](_autosummary/nw.html.md#nw.UnknownGenreOpError) naming the known.                |
 | [`genre_ops_catalogue`](_autosummary/nw.html.md#nw.genre_ops_catalogue)(genre_slug)                   | The pure-JSON catalogue of `genre_slug`'s ops (`[]` for a genre with none).                                                          |
+| [`register_genre_limits`](_autosummary/nw.html.md#nw.register_genre_limits)(genre_slug, limits)         | Register the numeric limits a genre's operations enforce; returns them as a dict.                                                    |
+| [`genre_limits`](_autosummary/nw.html.md#nw.genre_limits)(genre_slug)                          | The limits registered for `genre_slug` (`{}` if none); a copy.                                                                       |
 | [`adopt_tenant_id`](_autosummary/nw.html.md#nw.adopt_tenant_id)(project, \*[, dry_run])           | Pin a legacy project's historical tenant into `project.json` (nw#112).                                                               |
 | [`as_project_storage`](_autosummary/nw.html.md#nw.as_project_storage)(project)                       | The [`ProjectStorage`](_autosummary/nw.html.md#nw.ProjectStorage) for a path, a storage, or an `nw.Project`.                       |
 | [`register_project_storage`](_autosummary/nw.html.md#nw.register_project_storage)(name, resolver)          | Register a resolver that recognises a genre's project folders.                                                                       |
@@ -5481,6 +5483,13 @@ This is the generic, app-agnostic catalog an HTTP route / MCP tool serves; see
 * **Return type:**
   [`list`](https://docs.python.org/3/builtins/stdtypes.html#list)[[`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)]
 
+### nw.genre_limits(genre_slug)
+
+The limits registered for `genre_slug` (`{}` if none); a copy.
+
+* **Return type:**
+  [`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)
+
 ### nw.genre_op(genre_slug, name)
 
 The op `name` of `genre_slug`; [`UnknownGenreOpError`](_autosummary/nw.html.md#nw.UnknownGenreOpError) naming the known.
@@ -5928,6 +5937,31 @@ no initializer at all.
 
 * **Return type:**
   [`Callable`](https://docs.python.org/3/library/typing.html#typing.Callable)[[[`Genre`](_autosummary/nw.html.md#nw.Genre), [`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)], [`Project`](_autosummary/nw.project.html.md#nw.project.Project), [`Mapping`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Mapping)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str), [`Any`](https://docs.python.org/3/library/typing.html#typing.Any)]], [`None`](https://docs.python.org/3/builtins/constants.html#None)]
+
+### nw.register_genre_limits(genre_slug, limits)
+
+Register the numeric limits a genre’s operations enforce; returns them as a dict.
+
+Called once by the genre’s **owning app**, beside [`register_genre_ops()`](_autosummary/nw.html.md#nw.register_genre_ops). A
+frontend that validates the same bounds as the backend (a slider’s range, a snap
+distance) reads them from here instead of mirroring them by hand. Values are plain
+numbers; names are the app’s (`snake_case` by convention, with the unit as a
+suffix: `edge_s`). Bounds of an operation’s own parameter belong in that op’s
+`params_schema` (`minimum`/`maximum`); this is for limits with no parameter
+to attach to.
+
+```pycon
+>>> register_genre_limits("_limits_demo", {"edge_s": 0.25})
+{'edge_s': 0.25}
+>>> genre_limits("_limits_demo")
+{'edge_s': 0.25}
+>>> genre_limits("_nobody")
+{}
+>>> del genre_limits_registry["_limits_demo"]
+```
+
+* **Return type:**
+  [`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)
 
 ### nw.register_genre_ops(genre_slug, ops)
 
@@ -9732,18 +9766,20 @@ produce different URLs. The local file paths are byte-stable.
 
 # About this build
 
-This documentation was built on **2026-10-26 15:00 UTC** from commit <a href="https://github.com/reeleehq/nw/commit/b32221624fb62092b5611ac61f7bd1a01ce8f9db"><code>b322216</code></a> on branch <code>main</code>, for **nw 0.0.75** (from <code>pyproject.toml</code>).
+This documentation was built on **2026-10-26 16:38 UTC** from commit <a href="https://github.com/reeleehq/nw/commit/96c67cea026f384bd25ccd72c4319205d02d6434"><code>96c67ce</code></a> on branch <code>main</code>, for **nw 0.0.76** (from <code>pyproject.toml</code>).
 
-#### NOTE
-Nothing suggests a mismatch: the tree was clean at the commit above, and the documented version is the one on PyPI.
+#### WARNING
+The documentation and the package may be misaligned:
+
+- The documented version (0.0.76) is ahead of the latest release on PyPI (0.0.75): these docs describe unreleased code.
 
 ## Source
 
 |                     |                                                                                                                                                    |
 |---------------------|----------------------------------------------------------------------------------------------------------------------------------------------------|
-| Commit              | <a href="https://github.com/reeleehq/nw/commit/b32221624fb62092b5611ac61f7bd1a01ce8f9db"><code>b32221624fb62092b5611ac61f7bd1a01ce8f9db</code></a> |
+| Commit              | <a href="https://github.com/reeleehq/nw/commit/96c67cea026f384bd25ccd72c4319205d02d6434"><code>96c67cea026f384bd25ccd72c4319205d02d6434</code></a> |
 | Branch              | <code>main</code>                                                                                                                                  |
-| Tags at this commit | <code>0.0.75</code>                                                                                                                                |
+| Tags at this commit | <code>0.0.76</code>                                                                                                                                |
 | Working tree        | clean                                                                                                                                              |
 | Remote              | <code>https://github.com/reeleehq/nw</code>                                                                                                        |
 
@@ -9752,9 +9788,9 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 |              |                                                                                            |
 |--------------|--------------------------------------------------------------------------------------------|
 | Repository   | <code>reeleehq/nw</code>                                                                   |
-| Run          | <a href="https://github.com/reeleehq/nw/actions/runs/40344626344">40344626344</a>          |
+| Run          | <a href="https://github.com/reeleehq/nw/actions/runs/40360486011">40360486011</a>          |
 | Ref          | <code>refs/heads/main</code>                                                               |
-| Event commit | <code>26c62d2b4641568c374c843f8497125c80a2e384</code> (in the history of the built commit) |
+| Event commit | <code>69a0525c74b35b8d173a157d049ceba2af93faf5</code> (in the history of the built commit) |
 
 ## Tools
 
@@ -9779,13 +9815,13 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 
 ## Package on PyPI
 
-Latest release: <a href="https://pypi.org/project/nw/0.0.75/">0.0.75</a>, the same as the documented version.
+Latest release: <a href="https://pypi.org/project/nw/0.0.75/">0.0.75</a>, older than the documented version (0.0.76).
 
 ## Reproduce
 
 ```bash
 git clone https://github.com/reeleehq/nw && cd nw
-git checkout b32221624fb62092b5611ac61f7bd1a01ce8f9db
+git checkout 96c67cea026f384bd25ccd72c4319205d02d6434
 pip install "epythet==0.2.22"
 epythet quickstart . --ignore tests/ scrap/ examples/
 ```
