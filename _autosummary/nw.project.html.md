@@ -91,6 +91,13 @@ Marks the file the card’s `reference_image_path` points at as
 * **Return type:**
   [`list`](https://docs.python.org/3/builtins/stdtypes.html#list)[[`CharacterImage`](#nw.project.CharacterImage)]
 
+#### lock(name)
+
+Exclusive lock `name` on this project (see `nw.storage.project_lock()`).
+
+* **Return type:**
+  [`AbstractContextManager`](https://docs.python.org/3/library/contextlib.html#contextlib.AbstractContextManager)[[`None`](https://docs.python.org/3/builtins/constants.html#None)]
+
 #### log_decision(kind, \*\*payload)
 
 Record a typed decision in the project graph + the JSONL audit log.

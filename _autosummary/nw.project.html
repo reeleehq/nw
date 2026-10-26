@@ -128,6 +128,7 @@ data-aria-dark="Switch to auto color mode">
 <li><a class="reference internal" href="#nw.project.Project.add_character"><code class="docutils literal notranslate"><span class="pre">Project.add_character()</span></code></a></li>
 <li><a class="reference internal" href="#nw.project.Project.init"><code class="docutils literal notranslate"><span class="pre">Project.init()</span></code></a></li>
 <li><a class="reference internal" href="#nw.project.Project.list_character_images"><code class="docutils literal notranslate"><span class="pre">Project.list_character_images()</span></code></a></li>
+<li><a class="reference internal" href="#nw.project.Project.lock"><code class="docutils literal notranslate"><span class="pre">Project.lock()</span></code></a></li>
 <li><a class="reference internal" href="#nw.project.Project.log_decision"><code class="docutils literal notranslate"><span class="pre">Project.log_decision()</span></code></a></li>
 <li><a class="reference internal" href="#nw.project.Project.read_spec"><code class="docutils literal notranslate"><span class="pre">Project.read_spec()</span></code></a></li>
 <li><a class="reference internal" href="#nw.project.Project.read_summary"><code class="docutils literal notranslate"><span class="pre">Project.read_summary()</span></code></a></li>
@@ -289,6 +290,17 @@ Marks the file the card’s <code class="docutils literal notranslate"><span cla
 <dl class="field-list simple">
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#list" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code></a>[<a class="reference internal" href="#nw.project.CharacterImage" title="nw.project.CharacterImage"><code class="xref py py-class docutils literal notranslate"><span class="pre">CharacterImage</span></code></a>]</span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nw.project.Project.lock">
+<span class="sig-name descname"><span class="pre">lock</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/nw/project.html#Project.lock"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nw.project.Project.lock" title="Link to this definition">#</a></dt>
+<dd><p>Exclusive lock <code class="docutils literal notranslate"><span class="pre">name</span></code> on this project (see <code class="xref py py-func docutils literal notranslate"><span class="pre">nw.storage.project_lock()</span></code>).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/contextlib.html#contextlib.AbstractContextManager" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">AbstractContextManager</span></code></a>[<span class="highlight sphinx_autodoc_typehints-value"><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></a></span>]</span></p>
 </dd>
 </dl>
 </dd></dl>
@@ -532,7 +544,7 @@ rest as project.json metadata.</p>
     </div>
   </div>
 </footer>
-      <script src="../_static/documentation_options.js?v=d59c1f54"></script>
+      <script src="../_static/documentation_options.js?v=71e49b4d"></script>
       <script src="../_static/doctools.js?v=fd6eb6e6"></script>
       <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
