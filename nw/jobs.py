@@ -1346,7 +1346,9 @@ def _provider_events(sink) -> AbstractContextManager[Any]:
     return listening(sink)
 
 
-def _mirror_provider_phase(record: Mapping, kind, fields: Mapping, updates: dict) -> None:
+def _mirror_provider_phase(
+    record: Mapping, kind, fields: Mapping, updates: dict
+) -> None:
     """Fold a ``provider_phase`` (and ``queue_position``) an event reports into ``updates``.
 
     An event that names no phase leaves the record alone: silence is not a phase.
@@ -1371,7 +1373,9 @@ def _mirror_provider_phase(record: Mapping, kind, fields: Mapping, updates: dict
     updates["provider_call_id"] = fields.get("call_id")
     if phase == "in_queue":
         position = fields.get("queue_position")
-        updates["provider_queue_position"] = position if isinstance(position, int) else None
+        updates["provider_queue_position"] = (
+            position if isinstance(position, int) else None
+        )
     else:
         updates["provider_queue_position"] = None
         if record.get("provider_phase") != "in_progress":
