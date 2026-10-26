@@ -242,3 +242,33 @@ def test_spends_is_declared_and_exported():
     assert free.to_dict()["spends"] is False and paid.to_dict()["spends"] is True
     with pytest.raises(TypeError, match="spends"):
         nw.GenreOp("status", _status, title="Show", spends="yes")
+
+
+def test_genre_limits_register_once_and_read_as_a_copy():
+    import pytest
+
+    import nw
+
+    nw.register_genre_limits("_limits_t", {"edge_s": 0.25, "n": 3})
+    try:
+        got = nw.genre_limits("_limits_t")
+        assert got == {"edge_s": 0.25, "n": 3}
+        got["edge_s"] = 9  # a copy: the registry is unchanged
+        assert nw.genre_limits("_limits_t")["edge_s"] == 0.25
+        with pytest.raises(Exception):
+            nw.register_genre_limits("_limits_t", {"edge_s": 1.0})  # conflicts refused
+    finally:
+        del nw.genre_limits_registry["_limits_t"]
+    assert nw.genre_limits("_limits_t") == {}
+
+
+def test_genre_limits_must_be_numbers():
+    import pytest
+
+    import nw
+
+    with pytest.raises(TypeError):
+        nw.register_genre_limits("_limits_bad", {"edge_s": "0.25"})
+    with pytest.raises(TypeError):
+        nw.register_genre_limits("_limits_bad", {"flag": True})
+    assert nw.genre_limits("_limits_bad") == {}
