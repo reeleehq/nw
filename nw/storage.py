@@ -110,6 +110,35 @@ class ProjectStorage(Protocol):
 ProjectLike = Union[str, Path, ProjectStorage]
 
 
+@contextmanager
+def project_lock(storage: ProjectStorage, name: str) -> Iterator[None]:
+    """Hold the exclusive lock ``name`` on ``storage``'s project (nw#113).
+
+    Delegates to the graph store's ``lock(key)`` (lacing#70), so the reach of
+    the exclusion is the backend's: every open of the project on this host for
+    SQLite, every client of the database for Postgres. Different names do not
+    exclude each other, a holder that dies releases it, and it is not
+    re-entrant. Works on any :class:`ProjectStorage`, whatever its backend.
+
+    The store is opened read-only so that taking a lock never writes (a
+    read-write open ensures tiers, which contends with a live writer); only a
+    project with no graph yet falls back to the creating open. A
+    :class:`MappingStorage` locks per store instance (``MemoryStore``
+    semantics), not per mapping: two storages over one mapping do not exclude.
+    """
+    try:
+        store = storage.open_graph_readonly()
+    except FileNotFoundError:
+        store = storage.open_graph()
+    try:
+        with store.lock(name):
+            yield
+    finally:
+        close = getattr(store, "close", None)
+        if callable(close):
+            close()
+
+
 # ---------------------------------------------------------------------------
 # Shared helpers
 # ---------------------------------------------------------------------------

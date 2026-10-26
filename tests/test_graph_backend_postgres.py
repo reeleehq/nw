@@ -251,3 +251,28 @@ def test_alignment_scope_present_in_walk(tmp_path, pg_env):
         if a.tier == "lyric-line"
     ]
     assert texts == ["ring the bells"]
+
+
+def test_project_lock_excludes_across_connections_on_postgres(tmp_path, pg_env):
+    """``Project.lock`` holds across two independent opens of one project (nw#113)."""
+    import threading
+
+    root = _seed_pre_graph_project(tmp_path, "locked", title="Lock")
+    migrate_to_graph(root)
+    first, second = nw.Project(root), nw.Project(root)
+    inside, attempting, acquired = (threading.Event() for _ in range(3))
+
+    def contender():
+        inside.wait(5)
+        attempting.set()
+        with second.lock("meta"):
+            acquired.set()
+
+    t = threading.Thread(target=contender, daemon=True)
+    t.start()
+    with first.lock("meta"):
+        inside.set()
+        assert attempting.wait(5)
+        assert not acquired.wait(0.5)
+    t.join(5)
+    assert not t.is_alive() and acquired.is_set()

@@ -26,6 +26,7 @@ import shutil
 from datetime import datetime, timezone
 from pathlib import Path
 from uuid import uuid4
+from contextlib import AbstractContextManager
 from typing import Any, Iterable, Optional
 
 
@@ -73,7 +74,13 @@ from .graph import (
     remove_annotations_with_traces,
 )
 from .bodies import GENRE_ENVELOPE_TIER, UNPRODUCED_OUTPUT_TIER, VERIFYING_TRACE_TIER
-from .storage import TENANT_KEY, FolderStorage, ProjectStorage, as_project_storage
+from .storage import (
+    TENANT_KEY,
+    FolderStorage,
+    ProjectStorage,
+    as_project_storage,
+    project_lock,
+)
 from .migrate import (
     _TIER_CHARACTER_REF,
     _TIER_DECISION,
@@ -777,6 +784,10 @@ class Project:
             has_script=(self.root / "script" / "script.md").exists(),
             has_final_compose=(self.root / "output" / "final.mp4").exists(),
         )
+
+    def lock(self, name: str) -> AbstractContextManager[None]:
+        """Exclusive lock ``name`` on this project (see :func:`nw.storage.project_lock`)."""
+        return project_lock(self.storage, name)
 
     # -- session resumption -------------------------------------------------
 
