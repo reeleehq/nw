@@ -313,12 +313,15 @@ def register_genre(genre: Genre) -> Genre:
 
 
 def get_genre(slug: str) -> Genre:
-    """Look up a genre by slug; raises :class:`KeyError` with the known slugs."""
+    """Look up a genre by slug; raises :class:`KeyError` with the known slugs.
+
+    The message reaches end users (a connector relays it), so it names the genres and
+    nothing about Python; an app registers one with :func:`register_genre`.
+    """
     if slug not in genres:
         known = sorted(genres.keys())
         raise KeyError(
-            f"No genre {slug!r}; registered: {known}. Apps register genres via "
-            "`nw.register_genre(Genre(...))`."
+            f"No genre {slug!r}; the genres are: {known}."
         )
     return genres[slug]
 
