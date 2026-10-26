@@ -1749,3 +1749,60 @@ def test_a_call_ending_clears_only_its_own_phase():
     jobs._mirror_provider_phase(record, "done", {"call_id": "b"}, other)
     jobs._mirror_provider_phase(record, "done", {"call_id": "a"}, mine)
     assert other == {} and mine == {"provider_phase": None, "provider_queue_position": None}
+
+
+# ---------------------------------------------------------------------------
+# re-enqueue edge cases (nw#124)
+# ---------------------------------------------------------------------------
+
+
+def test_reenqueue_over_a_cancelled_job_whose_thread_still_runs_is_deduped(project):
+    """Cancel is cooperative: the old thread keeps running (and spending) after
+    the job reads cancelled. A new enqueue of the key must not launch a second
+    worker over it, nor let the old one's result leak into a new record."""
+    release = threading.Event()
+    calls: list[str] = []
+    dispatch = {"op": _blocking_stub(release, calls=calls)}
+    job = jobs.enqueue(project, "op", VIDEO_PARAMS, dispatch=dispatch)
+    _poll_until(project, job.job_id, lambda j: j.status == jobs.RUNNING)
+    jobs.cancel_job(project, job.job_id)
+
+    again = jobs.enqueue(project, "op", VIDEO_PARAMS, dispatch=dispatch)
+    assert again.job_id == job.job_id
+    assert len(calls) == 1  # no second worker
+
+    release.set()
+    final = _poll_until(project, job.job_id, lambda j: j.status == jobs.CANCELLED)
+    assert final.status == jobs.CANCELLED  # the old run's result did not revive it
+
+    # Once the thread has exited the key is free again.
+    deadline = time.time() + 5
+    while jobs._runtime(project, jobs.DEFAULT_CONFIG).middleware.is_running(job.job_id):
+        assert time.time() < deadline
+        time.sleep(0.01)
+    rerun = jobs.enqueue(project, "op", VIDEO_PARAMS, dispatch=dispatch)
+    done = _poll_until(project, rerun.job_id, lambda j: j.status == jobs.SUCCEEDED)
+    assert done.status == jobs.SUCCEEDED
+    assert len(calls) == 2
+
+
+def test_failed_relaunch_of_a_terminal_key_keeps_the_previous_run(project):
+    """A re-run whose launch fails must not erase the finished run it replaced."""
+    release = threading.Event()
+    release.set()
+    dispatch = {"op": _blocking_stub(release)}
+    job = jobs.enqueue(project, "op", VIDEO_PARAMS, dispatch=dispatch)
+    first = _poll_until(project, job.job_id, lambda j: j.status == jobs.SUCCEEDED)
+    assert first.status == jobs.SUCCEEDED
+
+    class Refusing:
+        def launch(self, *a, **k):
+            raise RuntimeError("cannot start thread")
+
+    with pytest.raises(RuntimeError, match="cannot start thread"):
+        jobs.enqueue(project, "op", VIDEO_PARAMS, dispatch=dispatch, backend=Refusing())
+
+    kept = jobs.get_job(project, job.job_id)
+    assert kept is not None
+    assert kept.status == jobs.SUCCEEDED
+    assert kept.artifact_ref == first.artifact_ref

@@ -413,7 +413,14 @@ def enqueue(
                     au_result.status,
                     cancel_requested=existing.get("cancel_requested", False),
                 )
-                if status not in TERMINAL_STATUSES:
+                # A cancelled job reads terminal while its thread may still be
+                # running (cancel is cooperative). Launching over it would hand
+                # the new record to a worker that never sees its own
+                # ``cancel_requested`` and writes its events/result into the new
+                # job, so the key stays live until that thread has exited (nw#124).
+                if status not in TERMINAL_STATUSES or rt.middleware.is_running_locked(
+                    job_id
+                ):
                     # Live job with this key already exists → dedup, run once.
                     return _project_job(rt, existing, au_result, config)
 
@@ -472,11 +479,14 @@ def enqueue(
                 extra_ctx=unentered,
                 secrets=as_secrets(secrets),
             )
+            previous_au = None
             if existing is not None:
                 # A re-run of a terminal key: the previous run's au result would
                 # otherwise be what this call (and any poll) reads until the new
                 # worker writes RUNNING — a fresh job reporting last run's
-                # terminal status (nw#120).
+                # terminal status (nw#120). Kept so a failed launch can put it
+                # back (nw#124).
+                previous_au = au_result
                 with suppress(KeyError):
                     del rt.au_store[job_id]
             _index_set_locked(rt, job_id, record)
@@ -488,8 +498,14 @@ def enqueue(
             except BaseException:
                 # A record with no worker behind it reads as a live PENDING job
                 # to the next enqueue of this key (au's store answers PENDING for
-                # a missing entry) and is never reaped (nw#117).
-                rt.index.pop(job_id, None)
+                # a missing entry) and is never reaped (nw#117). A re-run of a
+                # terminal key restores the finished (possibly billed) run it
+                # replaced instead (nw#124).
+                if existing is None:
+                    rt.index.pop(job_id, None)
+                else:
+                    _index_set_locked(rt, job_id, existing)
+                    rt.au_store[job_id] = previous_au
                 raise
 
     except BaseException:
@@ -933,7 +949,12 @@ class DurationLearningMiddleware(Middleware):
 
     def is_running(self, key: str) -> bool:
         with self._lock:
-            return key in self._start
+            return self.is_running_locked(key)
+
+    def is_running_locked(self, key: str) -> bool:
+        """:meth:`is_running` for a caller already holding the runtime lock
+        (it is this middleware's lock too, and not reentrant)."""
+        return key in self._start
 
     def _record_sample_locked(self, eta_key: str, elapsed: float) -> None:
         samples = _durations_get(self._durations, eta_key)
