@@ -829,6 +829,31 @@ def test_failing_launch_releases_the_captured_context(project):
     assert events == ["enter", "exit"]
 
 
+def test_release_after_failed_launch_runs_outside_the_lock(project):
+    """The released context may call back into nw.jobs: it is not under rt.lock."""
+
+    class CallsBack:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *exc):
+            jobs.list_jobs(project)  # takes rt.lock; would deadlock if held
+
+    class Refusing:
+        def launch(self, *a, **k):
+            raise RuntimeError("cannot start thread")
+
+    with pytest.raises(RuntimeError, match="cannot start thread"):
+        jobs.enqueue(
+            project,
+            "journey.full_auto",
+            VIDEO_PARAMS,
+            backend=Refusing(),
+            capture_context=CallsBack,
+            dispatch={"journey.full_auto": lambda *a, **k: None},
+        )
+
+
 def test_reenqueue_of_a_terminal_job_reads_queued_not_the_last_run(project):
     """The returned job is the new run, not the previous run's terminal status
     (nw#120)."""
