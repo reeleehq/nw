@@ -1,4 +1,4 @@
-> built 2026-10-27 02:46 UTC from c110cb6 (main) · nw 0.0.84. Details: build_info.json
+> built 2026-10-27 06:47 UTC from ec6d82b (main) · nw 0.0.85. Details: build_info.json
 
 # index.html.md
 
@@ -777,15 +777,27 @@ Cancel every non-terminal member, then return [`status()`](_autosummary/nw.batch
 * **Return type:**
   [`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict) | [`None`](https://docs.python.org/3/builtins/constants.html#None)
 
-### nw.batches.enqueue_batch(project, items, , kind=None, label=None, config=JobsConfig(n_min=3, sample_window_k=20, pct_ceil=99, overrun_factor=1.5, cache_hit_floor_s=0.5, dur_buckets_s=(4.0, 8.0, 12.0), prior_total_s={'image': 12.0, 'video': 90.0, 'audio': 15.0}, default_prior_total_s=30.0, stale_running_s=900.0, heartbeat_interval_s=20.0, heartbeat_stale_s=120.0, approval_threshold_usd=1.0, jobs_dirname='.nw/jobs'), \*\*enqueue_kwargs)
+### nw.batches.enqueue_batch(project, items, , kind=None, label=None, config=JobsConfig(n_min=3, sample_window_k=20, pct_ceil=99, overrun_factor=1.5, cache_hit_floor_s=0.5, dur_buckets_s=(4.0, 8.0, 12.0), prior_total_s={'image': 12.0, 'video': 90.0, 'audio': 15.0}, default_prior_total_s=30.0, stale_running_s=900.0, heartbeat_interval_s=20.0, heartbeat_stale_s=120.0, approval_threshold_usd=1.0, jobs_dirname='.nw/jobs'), enqueue=None, \*\*enqueue_kwargs)
 
 Enqueue every item as a job and record the batch. Never blocks.
 
 `enqueue_kwargs` (`dispatch`, `on_event`, `secrets`,
-`capture_context`, `backend`) go to each [`nw.jobs.enqueue()`](_autosummary/nw.jobs.html.md#nw.jobs.enqueue) call
-unchanged. Every item is validated (keys, `kind` in `dispatch`,
-`units`) before the first one launches, so a bad item leaves nothing
-running. Re-submitting a batch that exists returns it without enqueueing.
+`capture_context`, `backend`) go to each `enqueue` call unchanged.
+Every item is validated (keys, `kind` in `dispatch`, `units`) before
+the first one launches, so a bad item leaves nothing running. Re-submitting
+a batch that exists returns it without enqueueing.
+
+`enqueue` (default [`nw.jobs.enqueue()`](_autosummary/nw.jobs.html.md#nw.jobs.enqueue), called with the same
+arguments) is the seam for a host’s own single-job door, so a batch member
+is enqueued exactly as a lone job would be. It must enqueue the job
+the item names (it may add server-side params only if they do not change
+the job id): a returned job whose id differs from the item’s raises
+`ValueError` and no batch is recorded, because the record would point at
+the wrong job. That is a host bug, so it is raised loudly, not repaired:
+the members enqueued before it keep running, and a retry may relaunch the
+ones that have finished (and bill them again). With a custom `enqueue`
+and no `dispatch`, the up-front `kind`-in-`dispatch` check is
+skipped: the door owns its dispatch, so it owns that check.
 
 Items resolving to the same job collapse to one member (first position wins).
 
@@ -10332,7 +10344,7 @@ produce different URLs. The local file paths are byte-stable.
 
 # About this build
 
-This documentation was built on **2026-10-27 02:46 UTC** from commit <a href="https://github.com/reeleehq/nw/commit/c110cb614dfd568ab83b425d77b88702d01e9486"><code>c110cb6</code></a> on branch <code>main</code>, for **nw 0.0.84** (from <code>pyproject.toml</code>).
+This documentation was built on **2026-10-27 06:47 UTC** from commit <a href="https://github.com/reeleehq/nw/commit/ec6d82bb920e3b6baf27c9b7c6cc8ed0e7b08620"><code>ec6d82b</code></a> on branch <code>main</code>, for **nw 0.0.85** (from <code>pyproject.toml</code>).
 
 #### NOTE
 Nothing suggests a mismatch: the tree was clean at the commit above, and the documented version is the one on PyPI.
@@ -10341,9 +10353,9 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 
 |                     |                                                                                                                                                    |
 |---------------------|----------------------------------------------------------------------------------------------------------------------------------------------------|
-| Commit              | <a href="https://github.com/reeleehq/nw/commit/c110cb614dfd568ab83b425d77b88702d01e9486"><code>c110cb614dfd568ab83b425d77b88702d01e9486</code></a> |
+| Commit              | <a href="https://github.com/reeleehq/nw/commit/ec6d82bb920e3b6baf27c9b7c6cc8ed0e7b08620"><code>ec6d82bb920e3b6baf27c9b7c6cc8ed0e7b08620</code></a> |
 | Branch              | <code>main</code>                                                                                                                                  |
-| Tags at this commit | <code>0.0.84</code>                                                                                                                                |
+| Tags at this commit | <code>0.0.85</code>                                                                                                                                |
 | Working tree        | clean                                                                                                                                              |
 | Remote              | <code>https://github.com/reeleehq/nw</code>                                                                                                        |
 
@@ -10352,9 +10364,9 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 |              |                                                                                            |
 |--------------|--------------------------------------------------------------------------------------------|
 | Repository   | <code>reeleehq/nw</code>                                                                   |
-| Run          | <a href="https://github.com/reeleehq/nw/actions/runs/40440093545">40440093545</a>          |
+| Run          | <a href="https://github.com/reeleehq/nw/actions/runs/40462892404">40462892404</a>          |
 | Ref          | <code>refs/heads/main</code>                                                               |
-| Event commit | <code>da27c66c3718c7a1a292b0ed96d0a7509513b9a4</code> (in the history of the built commit) |
+| Event commit | <code>25702bf05974dfa116975ff8805972a46eb49ba1</code> (in the history of the built commit) |
 
 ## Tools
 
@@ -10379,13 +10391,13 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 
 ## Package on PyPI
 
-Latest release: <a href="https://pypi.org/project/nw/0.0.84/">0.0.84</a>, the same as the documented version.
+Latest release: <a href="https://pypi.org/project/nw/0.0.85/">0.0.85</a>, the same as the documented version.
 
 ## Reproduce
 
 ```bash
 git clone https://github.com/reeleehq/nw && cd nw
-git checkout c110cb614dfd568ab83b425d77b88702d01e9486
+git checkout ec6d82bb920e3b6baf27c9b7c6cc8ed0e7b08620
 pip install "epythet==0.2.22"
 epythet quickstart . --ignore tests/ scrap/ examples/
 ```

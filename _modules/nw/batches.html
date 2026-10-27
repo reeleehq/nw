@@ -195,7 +195,7 @@ data-aria-dark="Switch to auto color mode">
 </span><span data-line="38"><span class="kn">import</span><span class="w"> </span><span class="nn">hashlib</span>
 </span><span data-line="39"><span class="kn">import</span><span class="w"> </span><span class="nn">json</span>
 </span><span data-line="40"><span class="kn">import</span><span class="w"> </span><span class="nn">time</span>
-</span><span data-line="41"><span class="kn">from</span><span class="w"> </span><span class="nn">collections.abc</span><span class="w"> </span><span class="kn">import</span> <span class="n">Iterable</span><span class="p">,</span> <span class="n">Mapping</span>
+</span><span data-line="41"><span class="kn">from</span><span class="w"> </span><span class="nn">collections.abc</span><span class="w"> </span><span class="kn">import</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Iterable</span><span class="p">,</span> <span class="n">Mapping</span>
 </span><span data-line="42"><span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">asdict</span><span class="p">,</span> <span class="n">dataclass</span>
 </span><span data-line="43"><span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
 </span><span data-line="44"><span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span>
@@ -246,308 +246,332 @@ data-aria-dark="Switch to auto color mode">
 </span><span data-line="84">    <span class="n">kind</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 </span><span data-line="85">    <span class="n">label</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 </span><span data-line="86">    <span class="n">config</span><span class="p">:</span> <span class="n">JobsConfig</span> <span class="o">=</span> <span class="n">DEFAULT_CONFIG</span><span class="p">,</span>
-</span><span data-line="87">    <span class="o">**</span><span class="n">enqueue_kwargs</span><span class="p">,</span>
-</span><span data-line="88"><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">BatchRecord</span><span class="p">:</span>
-</span><span data-line="89"><span class="w">    </span><span class="sd">"""Enqueue every item as a job and record the batch. Never blocks.</span>
-</span><span data-line="90">
-</span><span data-line="91"><span class="sd">    ``enqueue_kwargs`` (``dispatch``, ``on_event``, ``secrets``,</span>
-</span><span data-line="92"><span class="sd">    ``capture_context``, ``backend``) go to each :func:`nw.jobs.enqueue` call</span>
-</span><span data-line="93"><span class="sd">    unchanged. Every item is validated (keys, ``kind`` in ``dispatch``,</span>
-</span><span data-line="94"><span class="sd">    ``units``) before the first one launches, so a bad item leaves nothing</span>
-</span><span data-line="95"><span class="sd">    running. Re-submitting a batch that exists returns it without enqueueing.</span>
-</span><span data-line="96">
-</span><span data-line="97"><span class="sd">    Items resolving to the same job collapse to one member (first position wins).</span>
-</span><span data-line="98"><span class="sd">    """</span>
-</span><span data-line="99">    <span class="n">specs</span> <span class="o">=</span> <span class="n">_item_specs</span><span class="p">(</span><span class="n">items</span><span class="p">,</span> <span class="n">kind</span><span class="p">,</span> <span class="n">dispatch</span><span class="o">=</span><span class="n">enqueue_kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"dispatch"</span><span class="p">))</span>
-</span><span data-line="100">    <span class="n">ids</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span>
-</span><span data-line="101">        <span class="nb">dict</span><span class="o">.</span><span class="n">fromkeys</span><span class="p">(</span>  <span class="c1"># ordered set: items resolving to one job collapse</span>
-</span><span data-line="102">            <span class="n">_jobs</span><span class="o">.</span><span class="n">job_id_for</span><span class="p">(</span>
-</span><span data-line="103">                <span class="n">project</span><span class="p">,</span>
-</span><span data-line="104">                <span class="n">spec</span><span class="p">[</span><span class="s2">"kind"</span><span class="p">],</span>
-</span><span data-line="105">                <span class="n">spec</span><span class="p">[</span><span class="s2">"params"</span><span class="p">],</span>
-</span><span data-line="106">                <span class="n">idempotency_key</span><span class="o">=</span><span class="n">spec</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"idempotency_key"</span><span class="p">),</span>
-</span><span data-line="107">            <span class="p">)</span>
-</span><span data-line="108">            <span class="k">for</span> <span class="n">spec</span> <span class="ow">in</span> <span class="n">specs</span>
-</span><span data-line="109">        <span class="p">)</span>
-</span><span data-line="110">    <span class="p">)</span>
-</span><span data-line="111">    <span class="n">batch_id</span> <span class="o">=</span> <span class="n">_batch_id</span><span class="p">(</span><span class="n">ids</span><span class="p">)</span>
-</span><span data-line="112">    <span class="n">store</span> <span class="o">=</span> <span class="n">_store</span><span class="p">(</span><span class="n">project</span><span class="o">.</span><span class="n">root</span><span class="p">,</span> <span class="n">config</span><span class="p">,</span> <span class="n">create</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-</span><span data-line="113">    <span class="k">if</span> <span class="n">batch_id</span> <span class="ow">in</span> <span class="n">store</span><span class="p">:</span>
-</span><span data-line="114">        <span class="c1"># Re-submission returns the batch; it does NOT re-enqueue, because</span>
-</span><span data-line="115">        <span class="c1"># ``enqueue`` re-launches a key whose job has finished and that would</span>
-</span><span data-line="116">        <span class="c1"># bill the whole batch again.</span>
-</span><span data-line="117">        <span class="k">return</span> <span class="n">_record_from</span><span class="p">(</span><span class="n">store</span><span class="p">[</span><span class="n">batch_id</span><span class="p">])</span>
-</span><span data-line="118">    <span class="k">for</span> <span class="n">spec</span> <span class="ow">in</span> <span class="n">specs</span><span class="p">:</span>
-</span><span data-line="119">        <span class="n">_jobs</span><span class="o">.</span><span class="n">enqueue</span><span class="p">(</span><span class="n">project</span><span class="p">,</span> <span class="n">config</span><span class="o">=</span><span class="n">config</span><span class="p">,</span> <span class="o">**</span><span class="n">spec</span><span class="p">,</span> <span class="o">**</span><span class="n">enqueue_kwargs</span><span class="p">)</span>
-</span><span data-line="120">    <span class="n">record</span> <span class="o">=</span> <span class="n">BatchRecord</span><span class="p">(</span>
-</span><span data-line="121">        <span class="n">batch_id</span><span class="o">=</span><span class="n">batch_id</span><span class="p">,</span>
-</span><span data-line="122">        <span class="n">job_ids</span><span class="o">=</span><span class="n">ids</span><span class="p">,</span>
-</span><span data-line="123">        <span class="n">label</span><span class="o">=</span><span class="n">label</span> <span class="ow">or</span> <span class="sa">f</span><span class="s2">"batch of </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">ids</span><span class="p">)</span><span class="si">}</span><span class="s2">"</span><span class="p">,</span>
-</span><span data-line="124">        <span class="n">created_at</span><span class="o">=</span><span class="n">_jobs</span><span class="o">.</span><span class="n">now_iso</span><span class="p">(),</span>
-</span><span data-line="125">    <span class="p">)</span>
-</span><span data-line="126">    <span class="n">store</span><span class="p">[</span><span class="n">batch_id</span><span class="p">]</span> <span class="o">=</span> <span class="n">record</span><span class="o">.</span><span class="n">to_dict</span><span class="p">()</span>
-</span><span data-line="127">    <span class="k">return</span> <span class="n">record</span></div>
+</span><span data-line="87">    <span class="n">enqueue</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n">_jobs</span><span class="o">.</span><span class="n">Job</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span data-line="88">    <span class="o">**</span><span class="n">enqueue_kwargs</span><span class="p">,</span>
+</span><span data-line="89"><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">BatchRecord</span><span class="p">:</span>
+</span><span data-line="90"><span class="w">    </span><span class="sd">"""Enqueue every item as a job and record the batch. Never blocks.</span>
+</span><span data-line="91">
+</span><span data-line="92"><span class="sd">    ``enqueue_kwargs`` (``dispatch``, ``on_event``, ``secrets``,</span>
+</span><span data-line="93"><span class="sd">    ``capture_context``, ``backend``) go to each ``enqueue`` call unchanged.</span>
+</span><span data-line="94"><span class="sd">    Every item is validated (keys, ``kind`` in ``dispatch``, ``units``) before</span>
+</span><span data-line="95"><span class="sd">    the first one launches, so a bad item leaves nothing running. Re-submitting</span>
+</span><span data-line="96"><span class="sd">    a batch that exists returns it without enqueueing.</span>
+</span><span data-line="97">
+</span><span data-line="98"><span class="sd">    ``enqueue`` (default :func:`nw.jobs.enqueue`, called with the same</span>
+</span><span data-line="99"><span class="sd">    arguments) is the seam for a host's own single-job door, so a batch member</span>
+</span><span data-line="100"><span class="sd">    is enqueued exactly as a lone job would be. It must enqueue the job</span>
+</span><span data-line="101"><span class="sd">    the item names (it may add server-side params only if they do not change</span>
+</span><span data-line="102"><span class="sd">    the job id): a returned job whose id differs from the item's raises</span>
+</span><span data-line="103"><span class="sd">    ``ValueError`` and no batch is recorded, because the record would point at</span>
+</span><span data-line="104"><span class="sd">    the wrong job. That is a host bug, so it is raised loudly, not repaired:</span>
+</span><span data-line="105"><span class="sd">    the members enqueued before it keep running, and a retry may relaunch the</span>
+</span><span data-line="106"><span class="sd">    ones that have finished (and bill them again). With a custom ``enqueue``</span>
+</span><span data-line="107"><span class="sd">    and no ``dispatch``, the up-front ``kind``-in-``dispatch`` check is</span>
+</span><span data-line="108"><span class="sd">    skipped: the door owns its dispatch, so it owns that check.</span>
+</span><span data-line="109">
+</span><span data-line="110"><span class="sd">    Items resolving to the same job collapse to one member (first position wins).</span>
+</span><span data-line="111"><span class="sd">    """</span>
+</span><span data-line="112">    <span class="n">specs</span> <span class="o">=</span> <span class="n">_item_specs</span><span class="p">(</span><span class="n">items</span><span class="p">,</span> <span class="n">kind</span><span class="p">,</span> <span class="n">dispatch</span><span class="o">=</span><span class="n">enqueue_kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"dispatch"</span><span class="p">))</span>
+</span><span data-line="113">    <span class="n">spec_ids</span> <span class="o">=</span> <span class="n">_spec_job_ids</span><span class="p">(</span><span class="n">project</span><span class="p">,</span> <span class="n">specs</span><span class="p">)</span>
+</span><span data-line="114">    <span class="c1"># ordered set: items resolving to one job collapse</span>
+</span><span data-line="115">    <span class="n">ids</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="nb">dict</span><span class="o">.</span><span class="n">fromkeys</span><span class="p">(</span><span class="n">spec_ids</span><span class="p">))</span>
+</span><span data-line="116">    <span class="n">batch_id</span> <span class="o">=</span> <span class="n">_batch_id</span><span class="p">(</span><span class="n">ids</span><span class="p">)</span>
+</span><span data-line="117">    <span class="n">store</span> <span class="o">=</span> <span class="n">_store</span><span class="p">(</span><span class="n">project</span><span class="o">.</span><span class="n">root</span><span class="p">,</span> <span class="n">config</span><span class="p">,</span> <span class="n">create</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</span><span data-line="118">    <span class="k">if</span> <span class="n">batch_id</span> <span class="ow">in</span> <span class="n">store</span><span class="p">:</span>
+</span><span data-line="119">        <span class="c1"># Re-submission returns the batch; it does NOT re-enqueue, because</span>
+</span><span data-line="120">        <span class="c1"># ``enqueue`` re-launches a key whose job has finished and that would</span>
+</span><span data-line="121">        <span class="c1"># bill the whole batch again.</span>
+</span><span data-line="122">        <span class="k">return</span> <span class="n">_record_from</span><span class="p">(</span><span class="n">store</span><span class="p">[</span><span class="n">batch_id</span><span class="p">])</span>
+</span><span data-line="123">    <span class="n">door</span> <span class="o">=</span> <span class="n">enqueue</span> <span class="ow">or</span> <span class="n">_jobs</span><span class="o">.</span><span class="n">enqueue</span>
+</span><span data-line="124">    <span class="k">for</span> <span class="n">spec</span><span class="p">,</span> <span class="n">expected</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">specs</span><span class="p">,</span> <span class="n">spec_ids</span><span class="p">):</span>
+</span><span data-line="125">        <span class="n">job</span> <span class="o">=</span> <span class="n">door</span><span class="p">(</span><span class="n">project</span><span class="p">,</span> <span class="n">config</span><span class="o">=</span><span class="n">config</span><span class="p">,</span> <span class="o">**</span><span class="n">spec</span><span class="p">,</span> <span class="o">**</span><span class="n">enqueue_kwargs</span><span class="p">)</span>
+</span><span data-line="126">        <span class="k">if</span> <span class="n">job</span><span class="o">.</span><span class="n">job_id</span> <span class="o">!=</span> <span class="n">expected</span><span class="p">:</span>
+</span><span data-line="127">            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+</span><span data-line="128">                <span class="sa">f</span><span class="s2">"enqueue returned job </span><span class="si">{</span><span class="n">job</span><span class="o">.</span><span class="n">job_id</span><span class="si">!r}</span><span class="s2"> for a batch item that names "</span>
+</span><span data-line="129">                <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">expected</span><span class="si">!r}</span><span class="s2">: a batch's enqueue must not change the job's params"</span>
+</span><span data-line="130">            <span class="p">)</span>
+</span><span data-line="131">    <span class="n">record</span> <span class="o">=</span> <span class="n">BatchRecord</span><span class="p">(</span>
+</span><span data-line="132">        <span class="n">batch_id</span><span class="o">=</span><span class="n">batch_id</span><span class="p">,</span>
+</span><span data-line="133">        <span class="n">job_ids</span><span class="o">=</span><span class="n">ids</span><span class="p">,</span>
+</span><span data-line="134">        <span class="n">label</span><span class="o">=</span><span class="n">label</span> <span class="ow">or</span> <span class="sa">f</span><span class="s2">"batch of </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">ids</span><span class="p">)</span><span class="si">}</span><span class="s2">"</span><span class="p">,</span>
+</span><span data-line="135">        <span class="n">created_at</span><span class="o">=</span><span class="n">_jobs</span><span class="o">.</span><span class="n">now_iso</span><span class="p">(),</span>
+</span><span data-line="136">    <span class="p">)</span>
+</span><span data-line="137">    <span class="n">store</span><span class="p">[</span><span class="n">batch_id</span><span class="p">]</span> <span class="o">=</span> <span class="n">record</span><span class="o">.</span><span class="n">to_dict</span><span class="p">()</span>
+</span><span data-line="138">    <span class="k">return</span> <span class="n">record</span></div>
 
-</span><span data-line="128">
-</span><span data-line="129">
+</span><span data-line="139">
+</span><span data-line="140">
 <div class="viewcode-block" id="estimate_batch">
 <a class="viewcode-back" href="../../_autosummary/nw.batches.html#nw.batches.estimate_batch">[docs]</a>
-</span><span data-line="130"><span class="k">def</span><span class="w"> </span><span class="nf">estimate_batch</span><span class="p">(</span>
-</span><span data-line="131">    <span class="n">project</span><span class="p">,</span>
-</span><span data-line="132">    <span class="n">items</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]],</span>
-</span><span data-line="133">    <span class="o">*</span><span class="p">,</span>
-</span><span data-line="134">    <span class="n">kind</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-</span><span data-line="135">    <span class="n">config</span><span class="p">:</span> <span class="n">JobsConfig</span> <span class="o">=</span> <span class="n">DEFAULT_CONFIG</span><span class="p">,</span>
-</span><span data-line="136"><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
-</span><span data-line="137"><span class="w">    </span><span class="sd">"""Dry-run gate for a whole batch, without enqueueing anything.</span>
-</span><span data-line="138">
-</span><span data-line="139"><span class="sd">    ``{estimated_usd, has_unknown_costs, approval_threshold_usd,</span>
-</span><span data-line="140"><span class="sd">    requires_approval, n_items, items}``. ``estimated_usd`` is the sum of the</span>
-</span><span data-line="141"><span class="sd">    known per-item estimates and is ``None`` as soon as any item is unknown;</span>
-</span><span data-line="142"><span class="sd">    unknown forces approval. The threshold applies to the *batch* total, and a</span>
-</span><span data-line="143"><span class="sd">    single item that alone requires approval does too.</span>
-</span><span data-line="144"><span class="sd">    """</span>
-</span><span data-line="145">    <span class="n">per_item</span> <span class="o">=</span> <span class="p">[</span>
-</span><span data-line="146">        <span class="n">_jobs</span><span class="o">.</span><span class="n">estimate</span><span class="p">(</span><span class="n">project</span><span class="p">,</span> <span class="n">spec</span><span class="p">[</span><span class="s2">"kind"</span><span class="p">],</span> <span class="n">spec</span><span class="p">[</span><span class="s2">"params"</span><span class="p">],</span> <span class="n">config</span><span class="o">=</span><span class="n">config</span><span class="p">)</span>
-</span><span data-line="147">        <span class="k">for</span> <span class="n">spec</span> <span class="ow">in</span> <span class="n">_item_specs</span><span class="p">(</span><span class="n">items</span><span class="p">,</span> <span class="n">kind</span><span class="p">)</span>
-</span><span data-line="148">    <span class="p">]</span>
-</span><span data-line="149">    <span class="n">has_unknown</span> <span class="o">=</span> <span class="nb">any</span><span class="p">(</span><span class="n">e</span><span class="p">[</span><span class="s2">"has_unknown_costs"</span><span class="p">]</span> <span class="k">for</span> <span class="n">e</span> <span class="ow">in</span> <span class="n">per_item</span><span class="p">)</span>
-</span><span data-line="150">    <span class="n">total</span> <span class="o">=</span> <span class="kc">None</span> <span class="k">if</span> <span class="n">has_unknown</span> <span class="k">else</span> <span class="nb">sum</span><span class="p">(</span><span class="n">e</span><span class="p">[</span><span class="s2">"estimated_usd"</span><span class="p">]</span> <span class="k">for</span> <span class="n">e</span> <span class="ow">in</span> <span class="n">per_item</span><span class="p">)</span>
-</span><span data-line="151">    <span class="n">threshold</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">approval_threshold_usd</span>
-</span><span data-line="152">    <span class="k">return</span> <span class="p">{</span>
-</span><span data-line="153">        <span class="s2">"estimated_usd"</span><span class="p">:</span> <span class="n">total</span><span class="p">,</span>
-</span><span data-line="154">        <span class="s2">"has_unknown_costs"</span><span class="p">:</span> <span class="n">has_unknown</span><span class="p">,</span>
-</span><span data-line="155">        <span class="s2">"approval_threshold_usd"</span><span class="p">:</span> <span class="n">threshold</span><span class="p">,</span>
-</span><span data-line="156">        <span class="c1"># Non-negative costs: an item at/over the threshold puts the total there too.</span>
-</span><span data-line="157">        <span class="s2">"requires_approval"</span><span class="p">:</span> <span class="n">has_unknown</span> <span class="ow">or</span> <span class="p">(</span><span class="n">total</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">total</span> <span class="o">&gt;=</span> <span class="n">threshold</span><span class="p">),</span>
-</span><span data-line="158">        <span class="s2">"n_items"</span><span class="p">:</span> <span class="nb">len</span><span class="p">(</span><span class="n">per_item</span><span class="p">),</span>
-</span><span data-line="159">        <span class="s2">"items"</span><span class="p">:</span> <span class="n">per_item</span><span class="p">,</span>
-</span><span data-line="160">    <span class="p">}</span></div>
+</span><span data-line="141"><span class="k">def</span><span class="w"> </span><span class="nf">estimate_batch</span><span class="p">(</span>
+</span><span data-line="142">    <span class="n">project</span><span class="p">,</span>
+</span><span data-line="143">    <span class="n">items</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]],</span>
+</span><span data-line="144">    <span class="o">*</span><span class="p">,</span>
+</span><span data-line="145">    <span class="n">kind</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span data-line="146">    <span class="n">config</span><span class="p">:</span> <span class="n">JobsConfig</span> <span class="o">=</span> <span class="n">DEFAULT_CONFIG</span><span class="p">,</span>
+</span><span data-line="147"><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+</span><span data-line="148"><span class="w">    </span><span class="sd">"""Dry-run gate for a whole batch, without enqueueing anything.</span>
+</span><span data-line="149">
+</span><span data-line="150"><span class="sd">    ``{estimated_usd, has_unknown_costs, approval_threshold_usd,</span>
+</span><span data-line="151"><span class="sd">    requires_approval, n_items, items}``. ``estimated_usd`` is the sum of the</span>
+</span><span data-line="152"><span class="sd">    known per-item estimates and is ``None`` as soon as any item is unknown;</span>
+</span><span data-line="153"><span class="sd">    unknown forces approval. The threshold applies to the *batch* total, and a</span>
+</span><span data-line="154"><span class="sd">    single item that alone requires approval does too.</span>
+</span><span data-line="155"><span class="sd">    """</span>
+</span><span data-line="156">    <span class="n">per_item</span> <span class="o">=</span> <span class="p">[</span>
+</span><span data-line="157">        <span class="n">_jobs</span><span class="o">.</span><span class="n">estimate</span><span class="p">(</span><span class="n">project</span><span class="p">,</span> <span class="n">spec</span><span class="p">[</span><span class="s2">"kind"</span><span class="p">],</span> <span class="n">spec</span><span class="p">[</span><span class="s2">"params"</span><span class="p">],</span> <span class="n">config</span><span class="o">=</span><span class="n">config</span><span class="p">)</span>
+</span><span data-line="158">        <span class="k">for</span> <span class="n">spec</span> <span class="ow">in</span> <span class="n">_item_specs</span><span class="p">(</span><span class="n">items</span><span class="p">,</span> <span class="n">kind</span><span class="p">)</span>
+</span><span data-line="159">    <span class="p">]</span>
+</span><span data-line="160">    <span class="n">has_unknown</span> <span class="o">=</span> <span class="nb">any</span><span class="p">(</span><span class="n">e</span><span class="p">[</span><span class="s2">"has_unknown_costs"</span><span class="p">]</span> <span class="k">for</span> <span class="n">e</span> <span class="ow">in</span> <span class="n">per_item</span><span class="p">)</span>
+</span><span data-line="161">    <span class="n">total</span> <span class="o">=</span> <span class="kc">None</span> <span class="k">if</span> <span class="n">has_unknown</span> <span class="k">else</span> <span class="nb">sum</span><span class="p">(</span><span class="n">e</span><span class="p">[</span><span class="s2">"estimated_usd"</span><span class="p">]</span> <span class="k">for</span> <span class="n">e</span> <span class="ow">in</span> <span class="n">per_item</span><span class="p">)</span>
+</span><span data-line="162">    <span class="n">threshold</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">approval_threshold_usd</span>
+</span><span data-line="163">    <span class="k">return</span> <span class="p">{</span>
+</span><span data-line="164">        <span class="s2">"estimated_usd"</span><span class="p">:</span> <span class="n">total</span><span class="p">,</span>
+</span><span data-line="165">        <span class="s2">"has_unknown_costs"</span><span class="p">:</span> <span class="n">has_unknown</span><span class="p">,</span>
+</span><span data-line="166">        <span class="s2">"approval_threshold_usd"</span><span class="p">:</span> <span class="n">threshold</span><span class="p">,</span>
+</span><span data-line="167">        <span class="c1"># Non-negative costs: an item at/over the threshold puts the total there too.</span>
+</span><span data-line="168">        <span class="s2">"requires_approval"</span><span class="p">:</span> <span class="n">has_unknown</span> <span class="ow">or</span> <span class="p">(</span><span class="n">total</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">total</span> <span class="o">&gt;=</span> <span class="n">threshold</span><span class="p">),</span>
+</span><span data-line="169">        <span class="s2">"n_items"</span><span class="p">:</span> <span class="nb">len</span><span class="p">(</span><span class="n">per_item</span><span class="p">),</span>
+</span><span data-line="170">        <span class="s2">"items"</span><span class="p">:</span> <span class="n">per_item</span><span class="p">,</span>
+</span><span data-line="171">    <span class="p">}</span></div>
 
-</span><span data-line="161">
-</span><span data-line="162">
-</span><span data-line="163"><span class="c1"># ---------------------------------------------------------------------------</span>
-</span><span data-line="164"><span class="c1"># Read: record / status / wait / output / cancel</span>
-</span><span data-line="165"><span class="c1"># ---------------------------------------------------------------------------</span>
-</span><span data-line="166">
-</span><span data-line="167">
+</span><span data-line="172">
+</span><span data-line="173">
+</span><span data-line="174"><span class="c1"># ---------------------------------------------------------------------------</span>
+</span><span data-line="175"><span class="c1"># Read: record / status / wait / output / cancel</span>
+</span><span data-line="176"><span class="c1"># ---------------------------------------------------------------------------</span>
+</span><span data-line="177">
+</span><span data-line="178">
 <div class="viewcode-block" id="get_batch">
 <a class="viewcode-back" href="../../_autosummary/nw.batches.html#nw.batches.get_batch">[docs]</a>
-</span><span data-line="168"><span class="k">def</span><span class="w"> </span><span class="nf">get_batch</span><span class="p">(</span>
-</span><span data-line="169">    <span class="n">project</span><span class="p">,</span> <span class="n">batch_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">config</span><span class="p">:</span> <span class="n">JobsConfig</span> <span class="o">=</span> <span class="n">DEFAULT_CONFIG</span>
-</span><span data-line="170"><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">BatchRecord</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
-</span><span data-line="171"><span class="w">    </span><span class="sd">"""The stored batch record, or ``None`` if unknown."""</span>
-</span><span data-line="172">    <span class="n">data</span> <span class="o">=</span> <span class="n">_store</span><span class="p">(</span><span class="n">project</span><span class="o">.</span><span class="n">root</span><span class="p">,</span> <span class="n">config</span><span class="p">)</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">batch_id</span><span class="p">)</span>
-</span><span data-line="173">    <span class="k">return</span> <span class="n">_record_from</span><span class="p">(</span><span class="n">data</span><span class="p">)</span> <span class="k">if</span> <span class="n">data</span> <span class="k">else</span> <span class="kc">None</span></div>
+</span><span data-line="179"><span class="k">def</span><span class="w"> </span><span class="nf">get_batch</span><span class="p">(</span>
+</span><span data-line="180">    <span class="n">project</span><span class="p">,</span> <span class="n">batch_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">config</span><span class="p">:</span> <span class="n">JobsConfig</span> <span class="o">=</span> <span class="n">DEFAULT_CONFIG</span>
+</span><span data-line="181"><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">BatchRecord</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
+</span><span data-line="182"><span class="w">    </span><span class="sd">"""The stored batch record, or ``None`` if unknown."""</span>
+</span><span data-line="183">    <span class="n">data</span> <span class="o">=</span> <span class="n">_store</span><span class="p">(</span><span class="n">project</span><span class="o">.</span><span class="n">root</span><span class="p">,</span> <span class="n">config</span><span class="p">)</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">batch_id</span><span class="p">)</span>
+</span><span data-line="184">    <span class="k">return</span> <span class="n">_record_from</span><span class="p">(</span><span class="n">data</span><span class="p">)</span> <span class="k">if</span> <span class="n">data</span> <span class="k">else</span> <span class="kc">None</span></div>
 
-</span><span data-line="174">
-</span><span data-line="175">
+</span><span data-line="185">
+</span><span data-line="186">
 <div class="viewcode-block" id="status">
 <a class="viewcode-back" href="../../_autosummary/nw.batches.html#nw.batches.status">[docs]</a>
-</span><span data-line="176"><span class="k">def</span><span class="w"> </span><span class="nf">status</span><span class="p">(</span>
-</span><span data-line="177">    <span class="n">project</span><span class="p">,</span> <span class="n">batch_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">config</span><span class="p">:</span> <span class="n">JobsConfig</span> <span class="o">=</span> <span class="n">DEFAULT_CONFIG</span>
-</span><span data-line="178"><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
-</span><span data-line="179"><span class="w">    </span><span class="sd">"""Aggregate of the member jobs, computed now. ``None`` if the batch is unknown.</span>
-</span><span data-line="180">
-</span><span data-line="181"><span class="sd">    ``{batch_id, label, total, counts, done, cost, timed_out: False}``. ``counts``</span>
-</span><span data-line="182"><span class="sd">    has one entry per status present (plus :data:`MISSING`); ``done`` is True when</span>
-</span><span data-line="183"><span class="sd">    no member is queued/running/cancelling. ``cost`` carries the sums with their</span>
-</span><span data-line="184"><span class="sd">    honesty flags: ``estimated_usd`` is ``None`` if any member's is unknown, and</span>
-</span><span data-line="185"><span class="sd">    ``actual_is_lower_bound`` is True if any member's is.</span>
-</span><span data-line="186"><span class="sd">    """</span>
-</span><span data-line="187">    <span class="n">record</span> <span class="o">=</span> <span class="n">get_batch</span><span class="p">(</span><span class="n">project</span><span class="p">,</span> <span class="n">batch_id</span><span class="p">,</span> <span class="n">config</span><span class="o">=</span><span class="n">config</span><span class="p">)</span>
-</span><span data-line="188">    <span class="k">if</span> <span class="n">record</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-</span><span data-line="189">        <span class="k">return</span> <span class="kc">None</span>
-</span><span data-line="190">    <span class="k">return</span> <span class="n">_aggregate</span><span class="p">(</span><span class="n">record</span><span class="p">,</span> <span class="n">_members</span><span class="p">(</span><span class="n">project</span><span class="p">,</span> <span class="n">record</span><span class="p">,</span> <span class="n">config</span><span class="p">))</span></div>
-
+</span><span data-line="187"><span class="k">def</span><span class="w"> </span><span class="nf">status</span><span class="p">(</span>
+</span><span data-line="188">    <span class="n">project</span><span class="p">,</span> <span class="n">batch_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">config</span><span class="p">:</span> <span class="n">JobsConfig</span> <span class="o">=</span> <span class="n">DEFAULT_CONFIG</span>
+</span><span data-line="189"><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
+</span><span data-line="190"><span class="w">    </span><span class="sd">"""Aggregate of the member jobs, computed now. ``None`` if the batch is unknown.</span>
 </span><span data-line="191">
-</span><span data-line="192">
+</span><span data-line="192"><span class="sd">    ``{batch_id, label, total, counts, done, cost, timed_out: False}``. ``counts``</span>
+</span><span data-line="193"><span class="sd">    has one entry per status present (plus :data:`MISSING`); ``done`` is True when</span>
+</span><span data-line="194"><span class="sd">    no member is queued/running/cancelling. ``cost`` carries the sums with their</span>
+</span><span data-line="195"><span class="sd">    honesty flags: ``estimated_usd`` is ``None`` if any member's is unknown, and</span>
+</span><span data-line="196"><span class="sd">    ``actual_is_lower_bound`` is True if any member's is.</span>
+</span><span data-line="197"><span class="sd">    """</span>
+</span><span data-line="198">    <span class="n">record</span> <span class="o">=</span> <span class="n">get_batch</span><span class="p">(</span><span class="n">project</span><span class="p">,</span> <span class="n">batch_id</span><span class="p">,</span> <span class="n">config</span><span class="o">=</span><span class="n">config</span><span class="p">)</span>
+</span><span data-line="199">    <span class="k">if</span> <span class="n">record</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+</span><span data-line="200">        <span class="k">return</span> <span class="kc">None</span>
+</span><span data-line="201">    <span class="k">return</span> <span class="n">_aggregate</span><span class="p">(</span><span class="n">record</span><span class="p">,</span> <span class="n">_members</span><span class="p">(</span><span class="n">project</span><span class="p">,</span> <span class="n">record</span><span class="p">,</span> <span class="n">config</span><span class="p">))</span></div>
+
+</span><span data-line="202">
+</span><span data-line="203">
 <div class="viewcode-block" id="wait">
 <a class="viewcode-back" href="../../_autosummary/nw.batches.html#nw.batches.wait">[docs]</a>
-</span><span data-line="193"><span class="k">def</span><span class="w"> </span><span class="nf">wait</span><span class="p">(</span>
-</span><span data-line="194">    <span class="n">project</span><span class="p">,</span>
-</span><span data-line="195">    <span class="n">batch_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
-</span><span data-line="196">    <span class="n">timeout</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
-</span><span data-line="197">    <span class="o">*</span><span class="p">,</span>
-</span><span data-line="198">    <span class="n">poll_s</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">DEFAULT_POLL_S</span><span class="p">,</span>
-</span><span data-line="199">    <span class="n">config</span><span class="p">:</span> <span class="n">JobsConfig</span> <span class="o">=</span> <span class="n">DEFAULT_CONFIG</span><span class="p">,</span>
-</span><span data-line="200"><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
-</span><span data-line="201"><span class="w">    </span><span class="sd">"""Block until the batch is done or ``timeout`` seconds pass (a hard cap).</span>
-</span><span data-line="202">
-</span><span data-line="203"><span class="sd">    ``timeout`` must be &gt;= 0. Wakes on job finish/cancel via the project's :class:`nw.jobs.JobNotifier` (managed</span>
-</span><span data-line="204"><span class="sd">    backend only; a custom ``backend=`` falls back to the ``poll_s`` re-read).</span>
-</span><span data-line="205">
-</span><span data-line="206"><span class="sd">    Returns the :func:`status` aggregate with ``timed_out`` True when the cap hit</span>
-</span><span data-line="207"><span class="sd">    first, so a caller can loop on it. ``None`` if the batch is unknown.</span>
-</span><span data-line="208"><span class="sd">    """</span>
-</span><span data-line="209">    <span class="k">if</span> <span class="ow">not</span> <span class="n">timeout</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">:</span>
-</span><span data-line="210">        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"timeout must be a non-negative number, got </span><span class="si">{</span><span class="n">timeout</span><span class="si">!r}</span><span class="s2">"</span><span class="p">)</span>
-</span><span data-line="211">    <span class="n">record</span> <span class="o">=</span> <span class="n">get_batch</span><span class="p">(</span><span class="n">project</span><span class="p">,</span> <span class="n">batch_id</span><span class="p">,</span> <span class="n">config</span><span class="o">=</span><span class="n">config</span><span class="p">)</span>
-</span><span data-line="212">    <span class="k">if</span> <span class="n">record</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-</span><span data-line="213">        <span class="k">return</span> <span class="kc">None</span>
-</span><span data-line="214">    <span class="n">notifier</span> <span class="o">=</span> <span class="n">_jobs</span><span class="o">.</span><span class="n">job_notifier</span><span class="p">(</span><span class="n">project</span><span class="p">,</span> <span class="n">config</span><span class="o">=</span><span class="n">config</span><span class="p">)</span>
-</span><span data-line="215">    <span class="n">deadline</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">monotonic</span><span class="p">()</span> <span class="o">+</span> <span class="n">timeout</span>
-</span><span data-line="216">    <span class="n">members</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>  <span class="c1"># job_id -&gt; job (None = missing)</span>
-</span><span data-line="217">    <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
-</span><span data-line="218">        <span class="n">seen</span> <span class="o">=</span> <span class="n">notifier</span><span class="o">.</span><span class="n">count</span><span class="p">()</span>
-</span><span data-line="219">        <span class="k">for</span> <span class="n">job_id</span> <span class="ow">in</span> <span class="n">record</span><span class="o">.</span><span class="n">job_ids</span><span class="p">:</span>  <span class="c1"># settled jobs are never re-read</span>
-</span><span data-line="220">            <span class="k">if</span> <span class="n">job_id</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">members</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">_is_settled</span><span class="p">(</span><span class="n">members</span><span class="p">[</span><span class="n">job_id</span><span class="p">]):</span>
-</span><span data-line="221">                <span class="n">members</span><span class="p">[</span><span class="n">job_id</span><span class="p">]</span> <span class="o">=</span> <span class="n">_jobs</span><span class="o">.</span><span class="n">get_job</span><span class="p">(</span><span class="n">project</span><span class="p">,</span> <span class="n">job_id</span><span class="p">,</span> <span class="n">config</span><span class="o">=</span><span class="n">config</span><span class="p">)</span>
-</span><span data-line="222">        <span class="n">agg</span> <span class="o">=</span> <span class="n">_aggregate</span><span class="p">(</span><span class="n">record</span><span class="p">,</span> <span class="p">[</span><span class="n">members</span><span class="p">[</span><span class="n">j</span><span class="p">]</span> <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="n">record</span><span class="o">.</span><span class="n">job_ids</span><span class="p">])</span>
-</span><span data-line="223">        <span class="k">if</span> <span class="n">agg</span><span class="p">[</span><span class="s2">"done"</span><span class="p">]:</span>
-</span><span data-line="224">            <span class="k">return</span> <span class="n">agg</span>
-</span><span data-line="225">        <span class="n">remaining</span> <span class="o">=</span> <span class="n">deadline</span> <span class="o">-</span> <span class="n">time</span><span class="o">.</span><span class="n">monotonic</span><span class="p">()</span>
-</span><span data-line="226">        <span class="k">if</span> <span class="n">remaining</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">:</span>
-</span><span data-line="227">            <span class="k">return</span> <span class="p">{</span><span class="o">**</span><span class="n">agg</span><span class="p">,</span> <span class="s2">"timed_out"</span><span class="p">:</span> <span class="kc">True</span><span class="p">}</span>
-</span><span data-line="228">        <span class="n">notifier</span><span class="o">.</span><span class="n">wait</span><span class="p">(</span><span class="n">seen</span><span class="p">,</span> <span class="nb">min</span><span class="p">(</span><span class="n">poll_s</span><span class="p">,</span> <span class="n">remaining</span><span class="p">))</span></div>
+</span><span data-line="204"><span class="k">def</span><span class="w"> </span><span class="nf">wait</span><span class="p">(</span>
+</span><span data-line="205">    <span class="n">project</span><span class="p">,</span>
+</span><span data-line="206">    <span class="n">batch_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+</span><span data-line="207">    <span class="n">timeout</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span data-line="208">    <span class="o">*</span><span class="p">,</span>
+</span><span data-line="209">    <span class="n">poll_s</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">DEFAULT_POLL_S</span><span class="p">,</span>
+</span><span data-line="210">    <span class="n">config</span><span class="p">:</span> <span class="n">JobsConfig</span> <span class="o">=</span> <span class="n">DEFAULT_CONFIG</span><span class="p">,</span>
+</span><span data-line="211"><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
+</span><span data-line="212"><span class="w">    </span><span class="sd">"""Block until the batch is done or ``timeout`` seconds pass (a hard cap).</span>
+</span><span data-line="213">
+</span><span data-line="214"><span class="sd">    ``timeout`` must be &gt;= 0. Wakes on job finish/cancel via the project's :class:`nw.jobs.JobNotifier` (managed</span>
+</span><span data-line="215"><span class="sd">    backend only; a custom ``backend=`` falls back to the ``poll_s`` re-read).</span>
+</span><span data-line="216">
+</span><span data-line="217"><span class="sd">    Returns the :func:`status` aggregate with ``timed_out`` True when the cap hit</span>
+</span><span data-line="218"><span class="sd">    first, so a caller can loop on it. ``None`` if the batch is unknown.</span>
+</span><span data-line="219"><span class="sd">    """</span>
+</span><span data-line="220">    <span class="k">if</span> <span class="ow">not</span> <span class="n">timeout</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">:</span>
+</span><span data-line="221">        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"timeout must be a non-negative number, got </span><span class="si">{</span><span class="n">timeout</span><span class="si">!r}</span><span class="s2">"</span><span class="p">)</span>
+</span><span data-line="222">    <span class="n">record</span> <span class="o">=</span> <span class="n">get_batch</span><span class="p">(</span><span class="n">project</span><span class="p">,</span> <span class="n">batch_id</span><span class="p">,</span> <span class="n">config</span><span class="o">=</span><span class="n">config</span><span class="p">)</span>
+</span><span data-line="223">    <span class="k">if</span> <span class="n">record</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+</span><span data-line="224">        <span class="k">return</span> <span class="kc">None</span>
+</span><span data-line="225">    <span class="n">notifier</span> <span class="o">=</span> <span class="n">_jobs</span><span class="o">.</span><span class="n">job_notifier</span><span class="p">(</span><span class="n">project</span><span class="p">,</span> <span class="n">config</span><span class="o">=</span><span class="n">config</span><span class="p">)</span>
+</span><span data-line="226">    <span class="n">deadline</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">monotonic</span><span class="p">()</span> <span class="o">+</span> <span class="n">timeout</span>
+</span><span data-line="227">    <span class="n">members</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>  <span class="c1"># job_id -&gt; job (None = missing)</span>
+</span><span data-line="228">    <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+</span><span data-line="229">        <span class="n">seen</span> <span class="o">=</span> <span class="n">notifier</span><span class="o">.</span><span class="n">count</span><span class="p">()</span>
+</span><span data-line="230">        <span class="k">for</span> <span class="n">job_id</span> <span class="ow">in</span> <span class="n">record</span><span class="o">.</span><span class="n">job_ids</span><span class="p">:</span>  <span class="c1"># settled jobs are never re-read</span>
+</span><span data-line="231">            <span class="k">if</span> <span class="n">job_id</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">members</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">_is_settled</span><span class="p">(</span><span class="n">members</span><span class="p">[</span><span class="n">job_id</span><span class="p">]):</span>
+</span><span data-line="232">                <span class="n">members</span><span class="p">[</span><span class="n">job_id</span><span class="p">]</span> <span class="o">=</span> <span class="n">_jobs</span><span class="o">.</span><span class="n">get_job</span><span class="p">(</span><span class="n">project</span><span class="p">,</span> <span class="n">job_id</span><span class="p">,</span> <span class="n">config</span><span class="o">=</span><span class="n">config</span><span class="p">)</span>
+</span><span data-line="233">        <span class="n">agg</span> <span class="o">=</span> <span class="n">_aggregate</span><span class="p">(</span><span class="n">record</span><span class="p">,</span> <span class="p">[</span><span class="n">members</span><span class="p">[</span><span class="n">j</span><span class="p">]</span> <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="n">record</span><span class="o">.</span><span class="n">job_ids</span><span class="p">])</span>
+</span><span data-line="234">        <span class="k">if</span> <span class="n">agg</span><span class="p">[</span><span class="s2">"done"</span><span class="p">]:</span>
+</span><span data-line="235">            <span class="k">return</span> <span class="n">agg</span>
+</span><span data-line="236">        <span class="n">remaining</span> <span class="o">=</span> <span class="n">deadline</span> <span class="o">-</span> <span class="n">time</span><span class="o">.</span><span class="n">monotonic</span><span class="p">()</span>
+</span><span data-line="237">        <span class="k">if</span> <span class="n">remaining</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">:</span>
+</span><span data-line="238">            <span class="k">return</span> <span class="p">{</span><span class="o">**</span><span class="n">agg</span><span class="p">,</span> <span class="s2">"timed_out"</span><span class="p">:</span> <span class="kc">True</span><span class="p">}</span>
+</span><span data-line="239">        <span class="n">notifier</span><span class="o">.</span><span class="n">wait</span><span class="p">(</span><span class="n">seen</span><span class="p">,</span> <span class="nb">min</span><span class="p">(</span><span class="n">poll_s</span><span class="p">,</span> <span class="n">remaining</span><span class="p">))</span></div>
 
-</span><span data-line="229">
-</span><span data-line="230">
+</span><span data-line="240">
+</span><span data-line="241">
 <div class="viewcode-block" id="output">
 <a class="viewcode-back" href="../../_autosummary/nw.batches.html#nw.batches.output">[docs]</a>
-</span><span data-line="231"><span class="k">def</span><span class="w"> </span><span class="nf">output</span><span class="p">(</span>
-</span><span data-line="232">    <span class="n">project</span><span class="p">,</span> <span class="n">batch_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">config</span><span class="p">:</span> <span class="n">JobsConfig</span> <span class="o">=</span> <span class="n">DEFAULT_CONFIG</span>
-</span><span data-line="233"><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
-</span><span data-line="234"><span class="w">    </span><span class="sd">"""Per-outcome results, in batch order within each bucket.</span>
-</span><span data-line="235">
-</span><span data-line="236"><span class="sd">    ``{succeeded: [{job_id, result}], failed: [{job_id, error, error_kind}],</span>
-</span><span data-line="237"><span class="sd">    cancelled: [{job_id}], pending: [{job_id, status}]}``; a vanished member is</span>
-</span><span data-line="238"><span class="sd">    listed under ``failed`` with ``error_kind="missing"``. ``None`` if unknown.</span>
-</span><span data-line="239"><span class="sd">    """</span>
-</span><span data-line="240">    <span class="n">record</span> <span class="o">=</span> <span class="n">get_batch</span><span class="p">(</span><span class="n">project</span><span class="p">,</span> <span class="n">batch_id</span><span class="p">,</span> <span class="n">config</span><span class="o">=</span><span class="n">config</span><span class="p">)</span>
-</span><span data-line="241">    <span class="k">if</span> <span class="n">record</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-</span><span data-line="242">        <span class="k">return</span> <span class="kc">None</span>
-</span><span data-line="243">    <span class="n">out</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">list</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
-</span><span data-line="244">        <span class="s2">"succeeded"</span><span class="p">:</span> <span class="p">[],</span>
-</span><span data-line="245">        <span class="s2">"failed"</span><span class="p">:</span> <span class="p">[],</span>
-</span><span data-line="246">        <span class="s2">"cancelled"</span><span class="p">:</span> <span class="p">[],</span>
-</span><span data-line="247">        <span class="s2">"pending"</span><span class="p">:</span> <span class="p">[],</span>
-</span><span data-line="248">    <span class="p">}</span>
-</span><span data-line="249">    <span class="k">for</span> <span class="n">job_id</span><span class="p">,</span> <span class="n">job</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">record</span><span class="o">.</span><span class="n">job_ids</span><span class="p">,</span> <span class="n">_members</span><span class="p">(</span><span class="n">project</span><span class="p">,</span> <span class="n">record</span><span class="p">,</span> <span class="n">config</span><span class="p">)):</span>
-</span><span data-line="250">        <span class="k">if</span> <span class="n">job</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-</span><span data-line="251">            <span class="n">out</span><span class="p">[</span><span class="s2">"failed"</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
-</span><span data-line="252">                <span class="p">{</span><span class="s2">"job_id"</span><span class="p">:</span> <span class="n">job_id</span><span class="p">,</span> <span class="s2">"error"</span><span class="p">:</span> <span class="s2">"job record missing"</span><span class="p">,</span> <span class="s2">"error_kind"</span><span class="p">:</span> <span class="n">MISSING</span><span class="p">}</span>
-</span><span data-line="253">            <span class="p">)</span>
-</span><span data-line="254">        <span class="k">elif</span> <span class="n">job</span><span class="o">.</span><span class="n">status</span> <span class="o">==</span> <span class="n">_jobs</span><span class="o">.</span><span class="n">SUCCEEDED</span><span class="p">:</span>
-</span><span data-line="255">            <span class="n">out</span><span class="p">[</span><span class="s2">"succeeded"</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">({</span><span class="s2">"job_id"</span><span class="p">:</span> <span class="n">job_id</span><span class="p">,</span> <span class="s2">"result"</span><span class="p">:</span> <span class="n">job</span><span class="o">.</span><span class="n">result</span><span class="p">})</span>
-</span><span data-line="256">        <span class="k">elif</span> <span class="n">job</span><span class="o">.</span><span class="n">status</span> <span class="o">==</span> <span class="n">_jobs</span><span class="o">.</span><span class="n">FAILED</span><span class="p">:</span>
-</span><span data-line="257">            <span class="n">out</span><span class="p">[</span><span class="s2">"failed"</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
-</span><span data-line="258">                <span class="p">{</span><span class="s2">"job_id"</span><span class="p">:</span> <span class="n">job_id</span><span class="p">,</span> <span class="s2">"error"</span><span class="p">:</span> <span class="n">job</span><span class="o">.</span><span class="n">error</span><span class="p">,</span> <span class="s2">"error_kind"</span><span class="p">:</span> <span class="n">job</span><span class="o">.</span><span class="n">error_kind</span><span class="p">}</span>
-</span><span data-line="259">            <span class="p">)</span>
-</span><span data-line="260">        <span class="k">elif</span> <span class="n">job</span><span class="o">.</span><span class="n">status</span> <span class="o">==</span> <span class="n">_jobs</span><span class="o">.</span><span class="n">CANCELLED</span><span class="p">:</span>
-</span><span data-line="261">            <span class="n">out</span><span class="p">[</span><span class="s2">"cancelled"</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">({</span><span class="s2">"job_id"</span><span class="p">:</span> <span class="n">job_id</span><span class="p">})</span>
-</span><span data-line="262">        <span class="k">else</span><span class="p">:</span>
-</span><span data-line="263">            <span class="n">out</span><span class="p">[</span><span class="s2">"pending"</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">({</span><span class="s2">"job_id"</span><span class="p">:</span> <span class="n">job_id</span><span class="p">,</span> <span class="s2">"status"</span><span class="p">:</span> <span class="n">job</span><span class="o">.</span><span class="n">status</span><span class="p">})</span>
-</span><span data-line="264">    <span class="k">return</span> <span class="n">out</span></div>
+</span><span data-line="242"><span class="k">def</span><span class="w"> </span><span class="nf">output</span><span class="p">(</span>
+</span><span data-line="243">    <span class="n">project</span><span class="p">,</span> <span class="n">batch_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">config</span><span class="p">:</span> <span class="n">JobsConfig</span> <span class="o">=</span> <span class="n">DEFAULT_CONFIG</span>
+</span><span data-line="244"><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
+</span><span data-line="245"><span class="w">    </span><span class="sd">"""Per-outcome results, in batch order within each bucket.</span>
+</span><span data-line="246">
+</span><span data-line="247"><span class="sd">    ``{succeeded: [{job_id, result}], failed: [{job_id, error, error_kind}],</span>
+</span><span data-line="248"><span class="sd">    cancelled: [{job_id}], pending: [{job_id, status}]}``; a vanished member is</span>
+</span><span data-line="249"><span class="sd">    listed under ``failed`` with ``error_kind="missing"``. ``None`` if unknown.</span>
+</span><span data-line="250"><span class="sd">    """</span>
+</span><span data-line="251">    <span class="n">record</span> <span class="o">=</span> <span class="n">get_batch</span><span class="p">(</span><span class="n">project</span><span class="p">,</span> <span class="n">batch_id</span><span class="p">,</span> <span class="n">config</span><span class="o">=</span><span class="n">config</span><span class="p">)</span>
+</span><span data-line="252">    <span class="k">if</span> <span class="n">record</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+</span><span data-line="253">        <span class="k">return</span> <span class="kc">None</span>
+</span><span data-line="254">    <span class="n">out</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">list</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
+</span><span data-line="255">        <span class="s2">"succeeded"</span><span class="p">:</span> <span class="p">[],</span>
+</span><span data-line="256">        <span class="s2">"failed"</span><span class="p">:</span> <span class="p">[],</span>
+</span><span data-line="257">        <span class="s2">"cancelled"</span><span class="p">:</span> <span class="p">[],</span>
+</span><span data-line="258">        <span class="s2">"pending"</span><span class="p">:</span> <span class="p">[],</span>
+</span><span data-line="259">    <span class="p">}</span>
+</span><span data-line="260">    <span class="k">for</span> <span class="n">job_id</span><span class="p">,</span> <span class="n">job</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">record</span><span class="o">.</span><span class="n">job_ids</span><span class="p">,</span> <span class="n">_members</span><span class="p">(</span><span class="n">project</span><span class="p">,</span> <span class="n">record</span><span class="p">,</span> <span class="n">config</span><span class="p">)):</span>
+</span><span data-line="261">        <span class="k">if</span> <span class="n">job</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+</span><span data-line="262">            <span class="n">out</span><span class="p">[</span><span class="s2">"failed"</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+</span><span data-line="263">                <span class="p">{</span><span class="s2">"job_id"</span><span class="p">:</span> <span class="n">job_id</span><span class="p">,</span> <span class="s2">"error"</span><span class="p">:</span> <span class="s2">"job record missing"</span><span class="p">,</span> <span class="s2">"error_kind"</span><span class="p">:</span> <span class="n">MISSING</span><span class="p">}</span>
+</span><span data-line="264">            <span class="p">)</span>
+</span><span data-line="265">        <span class="k">elif</span> <span class="n">job</span><span class="o">.</span><span class="n">status</span> <span class="o">==</span> <span class="n">_jobs</span><span class="o">.</span><span class="n">SUCCEEDED</span><span class="p">:</span>
+</span><span data-line="266">            <span class="n">out</span><span class="p">[</span><span class="s2">"succeeded"</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">({</span><span class="s2">"job_id"</span><span class="p">:</span> <span class="n">job_id</span><span class="p">,</span> <span class="s2">"result"</span><span class="p">:</span> <span class="n">job</span><span class="o">.</span><span class="n">result</span><span class="p">})</span>
+</span><span data-line="267">        <span class="k">elif</span> <span class="n">job</span><span class="o">.</span><span class="n">status</span> <span class="o">==</span> <span class="n">_jobs</span><span class="o">.</span><span class="n">FAILED</span><span class="p">:</span>
+</span><span data-line="268">            <span class="n">out</span><span class="p">[</span><span class="s2">"failed"</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+</span><span data-line="269">                <span class="p">{</span><span class="s2">"job_id"</span><span class="p">:</span> <span class="n">job_id</span><span class="p">,</span> <span class="s2">"error"</span><span class="p">:</span> <span class="n">job</span><span class="o">.</span><span class="n">error</span><span class="p">,</span> <span class="s2">"error_kind"</span><span class="p">:</span> <span class="n">job</span><span class="o">.</span><span class="n">error_kind</span><span class="p">}</span>
+</span><span data-line="270">            <span class="p">)</span>
+</span><span data-line="271">        <span class="k">elif</span> <span class="n">job</span><span class="o">.</span><span class="n">status</span> <span class="o">==</span> <span class="n">_jobs</span><span class="o">.</span><span class="n">CANCELLED</span><span class="p">:</span>
+</span><span data-line="272">            <span class="n">out</span><span class="p">[</span><span class="s2">"cancelled"</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">({</span><span class="s2">"job_id"</span><span class="p">:</span> <span class="n">job_id</span><span class="p">})</span>
+</span><span data-line="273">        <span class="k">else</span><span class="p">:</span>
+</span><span data-line="274">            <span class="n">out</span><span class="p">[</span><span class="s2">"pending"</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">({</span><span class="s2">"job_id"</span><span class="p">:</span> <span class="n">job_id</span><span class="p">,</span> <span class="s2">"status"</span><span class="p">:</span> <span class="n">job</span><span class="o">.</span><span class="n">status</span><span class="p">})</span>
+</span><span data-line="275">    <span class="k">return</span> <span class="n">out</span></div>
 
-</span><span data-line="265">
-</span><span data-line="266">
+</span><span data-line="276">
+</span><span data-line="277">
 <div class="viewcode-block" id="cancel_batch">
 <a class="viewcode-back" href="../../_autosummary/nw.batches.html#nw.batches.cancel_batch">[docs]</a>
-</span><span data-line="267"><span class="k">def</span><span class="w"> </span><span class="nf">cancel_batch</span><span class="p">(</span>
-</span><span data-line="268">    <span class="n">project</span><span class="p">,</span> <span class="n">batch_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">config</span><span class="p">:</span> <span class="n">JobsConfig</span> <span class="o">=</span> <span class="n">DEFAULT_CONFIG</span>
-</span><span data-line="269"><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
-</span><span data-line="270"><span class="w">    </span><span class="sd">"""Cancel every non-terminal member, then return :func:`status`. Idempotent."""</span>
-</span><span data-line="271">    <span class="n">record</span> <span class="o">=</span> <span class="n">get_batch</span><span class="p">(</span><span class="n">project</span><span class="p">,</span> <span class="n">batch_id</span><span class="p">,</span> <span class="n">config</span><span class="o">=</span><span class="n">config</span><span class="p">)</span>
-</span><span data-line="272">    <span class="k">if</span> <span class="n">record</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-</span><span data-line="273">        <span class="k">return</span> <span class="kc">None</span>
-</span><span data-line="274">    <span class="k">for</span> <span class="n">job_id</span> <span class="ow">in</span> <span class="n">record</span><span class="o">.</span><span class="n">job_ids</span><span class="p">:</span>
-</span><span data-line="275">        <span class="n">_jobs</span><span class="o">.</span><span class="n">cancel_job</span><span class="p">(</span><span class="n">project</span><span class="p">,</span> <span class="n">job_id</span><span class="p">,</span> <span class="n">config</span><span class="o">=</span><span class="n">config</span><span class="p">)</span>  <span class="c1"># no-op once finished</span>
-</span><span data-line="276">    <span class="k">return</span> <span class="n">status</span><span class="p">(</span><span class="n">project</span><span class="p">,</span> <span class="n">batch_id</span><span class="p">,</span> <span class="n">config</span><span class="o">=</span><span class="n">config</span><span class="p">)</span></div>
+</span><span data-line="278"><span class="k">def</span><span class="w"> </span><span class="nf">cancel_batch</span><span class="p">(</span>
+</span><span data-line="279">    <span class="n">project</span><span class="p">,</span> <span class="n">batch_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">config</span><span class="p">:</span> <span class="n">JobsConfig</span> <span class="o">=</span> <span class="n">DEFAULT_CONFIG</span>
+</span><span data-line="280"><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
+</span><span data-line="281"><span class="w">    </span><span class="sd">"""Cancel every non-terminal member, then return :func:`status`. Idempotent."""</span>
+</span><span data-line="282">    <span class="n">record</span> <span class="o">=</span> <span class="n">get_batch</span><span class="p">(</span><span class="n">project</span><span class="p">,</span> <span class="n">batch_id</span><span class="p">,</span> <span class="n">config</span><span class="o">=</span><span class="n">config</span><span class="p">)</span>
+</span><span data-line="283">    <span class="k">if</span> <span class="n">record</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+</span><span data-line="284">        <span class="k">return</span> <span class="kc">None</span>
+</span><span data-line="285">    <span class="k">for</span> <span class="n">job_id</span> <span class="ow">in</span> <span class="n">record</span><span class="o">.</span><span class="n">job_ids</span><span class="p">:</span>
+</span><span data-line="286">        <span class="n">_jobs</span><span class="o">.</span><span class="n">cancel_job</span><span class="p">(</span><span class="n">project</span><span class="p">,</span> <span class="n">job_id</span><span class="p">,</span> <span class="n">config</span><span class="o">=</span><span class="n">config</span><span class="p">)</span>  <span class="c1"># no-op once finished</span>
+</span><span data-line="287">    <span class="k">return</span> <span class="n">status</span><span class="p">(</span><span class="n">project</span><span class="p">,</span> <span class="n">batch_id</span><span class="p">,</span> <span class="n">config</span><span class="o">=</span><span class="n">config</span><span class="p">)</span></div>
 
-</span><span data-line="277">
-</span><span data-line="278">
-</span><span data-line="279"><span class="c1"># ---------------------------------------------------------------------------</span>
-</span><span data-line="280"><span class="c1"># Internals</span>
-</span><span data-line="281"><span class="c1"># ---------------------------------------------------------------------------</span>
-</span><span data-line="282">
-</span><span data-line="283">
-</span><span data-line="284"><span class="n">ITEM_KEYS</span> <span class="o">=</span> <span class="nb">frozenset</span><span class="p">({</span><span class="s2">"kind"</span><span class="p">,</span> <span class="s2">"params"</span><span class="p">,</span> <span class="s2">"label"</span><span class="p">,</span> <span class="s2">"idempotency_key"</span><span class="p">})</span>
-</span><span data-line="285">
-</span><span data-line="286">
-</span><span data-line="287"><span class="k">def</span><span class="w"> </span><span class="nf">_item_specs</span><span class="p">(</span>
-</span><span data-line="288">    <span class="n">items</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]],</span>
-</span><span data-line="289">    <span class="n">default_kind</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span>
-</span><span data-line="290">    <span class="o">*</span><span class="p">,</span>
-</span><span data-line="291">    <span class="n">dispatch</span><span class="p">:</span> <span class="n">Mapping</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-</span><span data-line="292"><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">dict</span><span class="p">]:</span>
-</span><span data-line="293"><span class="w">    </span><span class="sd">"""Normalize and validate items as ``enqueue`` keyword dicts, all up front."""</span>
-</span><span data-line="294">    <span class="n">specs</span> <span class="o">=</span> <span class="p">[]</span>
-</span><span data-line="295">    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">item</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">items</span><span class="p">):</span>
-</span><span data-line="296">        <span class="n">unknown</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">item</span><span class="p">)</span> <span class="o">-</span> <span class="n">ITEM_KEYS</span>
-</span><span data-line="297">        <span class="k">if</span> <span class="n">unknown</span><span class="p">:</span>
-</span><span data-line="298">            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"batch item </span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2"> has unknown keys </span><span class="si">{</span><span class="nb">sorted</span><span class="p">(</span><span class="n">unknown</span><span class="p">)</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
-</span><span data-line="299">        <span class="n">spec</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"kind"</span><span class="p">:</span> <span class="n">default_kind</span><span class="p">,</span> <span class="o">**</span><span class="n">item</span><span class="p">}</span>
-</span><span data-line="300">        <span class="k">if</span> <span class="ow">not</span> <span class="n">spec</span><span class="p">[</span><span class="s2">"kind"</span><span class="p">]</span> <span class="ow">or</span> <span class="s2">"params"</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">spec</span><span class="p">:</span>
-</span><span data-line="301">            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-</span><span data-line="302">                <span class="sa">f</span><span class="s2">"batch item </span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2"> needs a 'kind' (or a batch-level kind=) and 'params'"</span>
-</span><span data-line="303">            <span class="p">)</span>
-</span><span data-line="304">        <span class="k">if</span> <span class="n">dispatch</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">spec</span><span class="p">[</span><span class="s2">"kind"</span><span class="p">]</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">dispatch</span><span class="p">:</span>
-</span><span data-line="305">            <span class="k">raise</span> <span class="ne">KeyError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"batch item </span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2">: kind </span><span class="si">{</span><span class="n">spec</span><span class="p">[</span><span class="s1">'kind'</span><span class="p">]</span><span class="si">!r}</span><span class="s2"> is not in dispatch"</span><span class="p">)</span>
-</span><span data-line="306">        <span class="n">_jobs</span><span class="o">.</span><span class="n">check_job_spec</span><span class="p">(</span><span class="n">spec</span><span class="p">[</span><span class="s2">"params"</span><span class="p">])</span>
-</span><span data-line="307">        <span class="n">specs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">spec</span><span class="p">)</span>
-</span><span data-line="308">    <span class="k">if</span> <span class="ow">not</span> <span class="n">specs</span><span class="p">:</span>
-</span><span data-line="309">        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"a batch needs at least one item"</span><span class="p">)</span>
-</span><span data-line="310">    <span class="k">return</span> <span class="n">specs</span>
-</span><span data-line="311">
-</span><span data-line="312">
-</span><span data-line="313"><span class="k">def</span><span class="w"> </span><span class="nf">_batch_id</span><span class="p">(</span><span class="n">job_ids</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
-</span><span data-line="314">    <span class="n">digest</span> <span class="o">=</span> <span class="n">hashlib</span><span class="o">.</span><span class="n">sha256</span><span class="p">(</span><span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">job_ids</span><span class="p">)</span><span class="o">.</span><span class="n">encode</span><span class="p">())</span><span class="o">.</span><span class="n">hexdigest</span><span class="p">()</span>
-</span><span data-line="315">    <span class="k">return</span> <span class="n">_BATCH_ID_PREFIX</span> <span class="o">+</span> <span class="n">digest</span><span class="p">[:</span><span class="n">_BATCH_ID_HEX_LEN</span><span class="p">]</span>
-</span><span data-line="316">
-</span><span data-line="317">
-</span><span data-line="318"><span class="k">def</span><span class="w"> </span><span class="nf">_store</span><span class="p">(</span><span class="n">project_root</span><span class="p">,</span> <span class="n">config</span><span class="p">:</span> <span class="n">JobsConfig</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">create</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">):</span>
-</span><span data-line="319">    <span class="n">base</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">project_root</span><span class="p">)</span> <span class="o">/</span> <span class="n">config</span><span class="o">.</span><span class="n">jobs_dirname</span> <span class="o">/</span> <span class="n">BATCHES_DIRNAME</span>
-</span><span data-line="320">    <span class="k">if</span> <span class="n">create</span><span class="p">:</span>
-</span><span data-line="321">        <span class="n">base</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">parents</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-</span><span data-line="322">    <span class="k">return</span> <span class="n">_jobs</span><span class="o">.</span><span class="n">AtomicJsonFiles</span><span class="p">(</span><span class="n">base</span><span class="p">)</span>
+</span><span data-line="288">
+</span><span data-line="289">
+</span><span data-line="290"><span class="c1"># ---------------------------------------------------------------------------</span>
+</span><span data-line="291"><span class="c1"># Internals</span>
+</span><span data-line="292"><span class="c1"># ---------------------------------------------------------------------------</span>
+</span><span data-line="293">
+</span><span data-line="294">
+</span><span data-line="295"><span class="n">ITEM_KEYS</span> <span class="o">=</span> <span class="nb">frozenset</span><span class="p">({</span><span class="s2">"kind"</span><span class="p">,</span> <span class="s2">"params"</span><span class="p">,</span> <span class="s2">"label"</span><span class="p">,</span> <span class="s2">"idempotency_key"</span><span class="p">})</span>
+</span><span data-line="296">
+</span><span data-line="297">
+</span><span data-line="298"><span class="k">def</span><span class="w"> </span><span class="nf">_item_specs</span><span class="p">(</span>
+</span><span data-line="299">    <span class="n">items</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]],</span>
+</span><span data-line="300">    <span class="n">default_kind</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span>
+</span><span data-line="301">    <span class="o">*</span><span class="p">,</span>
+</span><span data-line="302">    <span class="n">dispatch</span><span class="p">:</span> <span class="n">Mapping</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span data-line="303"><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">dict</span><span class="p">]:</span>
+</span><span data-line="304"><span class="w">    </span><span class="sd">"""Normalize and validate items as ``enqueue`` keyword dicts, all up front."""</span>
+</span><span data-line="305">    <span class="n">specs</span> <span class="o">=</span> <span class="p">[]</span>
+</span><span data-line="306">    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">item</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">items</span><span class="p">):</span>
+</span><span data-line="307">        <span class="n">unknown</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">item</span><span class="p">)</span> <span class="o">-</span> <span class="n">ITEM_KEYS</span>
+</span><span data-line="308">        <span class="k">if</span> <span class="n">unknown</span><span class="p">:</span>
+</span><span data-line="309">            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"batch item </span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2"> has unknown keys </span><span class="si">{</span><span class="nb">sorted</span><span class="p">(</span><span class="n">unknown</span><span class="p">)</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+</span><span data-line="310">        <span class="n">spec</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"kind"</span><span class="p">:</span> <span class="n">default_kind</span><span class="p">,</span> <span class="o">**</span><span class="n">item</span><span class="p">}</span>
+</span><span data-line="311">        <span class="k">if</span> <span class="ow">not</span> <span class="n">spec</span><span class="p">[</span><span class="s2">"kind"</span><span class="p">]</span> <span class="ow">or</span> <span class="s2">"params"</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">spec</span><span class="p">:</span>
+</span><span data-line="312">            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+</span><span data-line="313">                <span class="sa">f</span><span class="s2">"batch item </span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2"> needs a 'kind' (or a batch-level kind=) and 'params'"</span>
+</span><span data-line="314">            <span class="p">)</span>
+</span><span data-line="315">        <span class="k">if</span> <span class="n">dispatch</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">spec</span><span class="p">[</span><span class="s2">"kind"</span><span class="p">]</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">dispatch</span><span class="p">:</span>
+</span><span data-line="316">            <span class="k">raise</span> <span class="ne">KeyError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"batch item </span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2">: kind </span><span class="si">{</span><span class="n">spec</span><span class="p">[</span><span class="s1">'kind'</span><span class="p">]</span><span class="si">!r}</span><span class="s2"> is not in dispatch"</span><span class="p">)</span>
+</span><span data-line="317">        <span class="n">_jobs</span><span class="o">.</span><span class="n">check_job_spec</span><span class="p">(</span><span class="n">spec</span><span class="p">[</span><span class="s2">"params"</span><span class="p">])</span>
+</span><span data-line="318">        <span class="n">specs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">spec</span><span class="p">)</span>
+</span><span data-line="319">    <span class="k">if</span> <span class="ow">not</span> <span class="n">specs</span><span class="p">:</span>
+</span><span data-line="320">        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"a batch needs at least one item"</span><span class="p">)</span>
+</span><span data-line="321">    <span class="k">return</span> <span class="n">specs</span>
+</span><span data-line="322">
 </span><span data-line="323">
-</span><span data-line="324">
-</span><span data-line="325"><span class="k">def</span><span class="w"> </span><span class="nf">_record_from</span><span class="p">(</span><span class="n">data</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">BatchRecord</span><span class="p">:</span>
-</span><span data-line="326">    <span class="k">return</span> <span class="n">BatchRecord</span><span class="p">(</span><span class="o">**</span><span class="p">{</span><span class="o">**</span><span class="n">data</span><span class="p">,</span> <span class="s2">"job_ids"</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="s2">"job_ids"</span><span class="p">])})</span>
-</span><span data-line="327">
-</span><span data-line="328">
-</span><span data-line="329"><span class="k">def</span><span class="w"> </span><span class="nf">_members</span><span class="p">(</span><span class="n">project</span><span class="p">,</span> <span class="n">record</span><span class="p">:</span> <span class="n">BatchRecord</span><span class="p">,</span> <span class="n">config</span><span class="p">:</span> <span class="n">JobsConfig</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">:</span>
-</span><span data-line="330">    <span class="k">return</span> <span class="p">[</span><span class="n">_jobs</span><span class="o">.</span><span class="n">get_job</span><span class="p">(</span><span class="n">project</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="n">config</span><span class="o">=</span><span class="n">config</span><span class="p">)</span> <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="n">record</span><span class="o">.</span><span class="n">job_ids</span><span class="p">]</span>
-</span><span data-line="331">
-</span><span data-line="332">
-</span><span data-line="333"><span class="k">def</span><span class="w"> </span><span class="nf">_is_settled</span><span class="p">(</span><span class="n">job</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
-</span><span data-line="334">    <span class="k">return</span> <span class="n">job</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">job</span><span class="o">.</span><span class="n">status</span> <span class="ow">in</span> <span class="n">_jobs</span><span class="o">.</span><span class="n">TERMINAL_STATUSES</span>
+</span><span data-line="324"><span class="k">def</span><span class="w"> </span><span class="nf">_spec_job_ids</span><span class="p">(</span><span class="n">project</span><span class="p">,</span> <span class="n">specs</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">dict</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+</span><span data-line="325"><span class="w">    </span><span class="sd">"""The job id each spec resolves to, in order."""</span>
+</span><span data-line="326">    <span class="k">return</span> <span class="p">[</span>
+</span><span data-line="327">        <span class="n">_jobs</span><span class="o">.</span><span class="n">job_id_for</span><span class="p">(</span>
+</span><span data-line="328">            <span class="n">project</span><span class="p">,</span>
+</span><span data-line="329">            <span class="n">spec</span><span class="p">[</span><span class="s2">"kind"</span><span class="p">],</span>
+</span><span data-line="330">            <span class="n">spec</span><span class="p">[</span><span class="s2">"params"</span><span class="p">],</span>
+</span><span data-line="331">            <span class="n">idempotency_key</span><span class="o">=</span><span class="n">spec</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"idempotency_key"</span><span class="p">),</span>
+</span><span data-line="332">        <span class="p">)</span>
+</span><span data-line="333">        <span class="k">for</span> <span class="n">spec</span> <span class="ow">in</span> <span class="n">specs</span>
+</span><span data-line="334">    <span class="p">]</span>
 </span><span data-line="335">
 </span><span data-line="336">
-</span><span data-line="337"><span class="k">def</span><span class="w"> </span><span class="nf">_aggregate</span><span class="p">(</span><span class="n">record</span><span class="p">:</span> <span class="n">BatchRecord</span><span class="p">,</span> <span class="n">members</span><span class="p">:</span> <span class="nb">list</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
-</span><span data-line="338">    <span class="n">counts</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
-</span><span data-line="339">    <span class="k">for</span> <span class="n">job</span> <span class="ow">in</span> <span class="n">members</span><span class="p">:</span>
-</span><span data-line="340">        <span class="n">key</span> <span class="o">=</span> <span class="n">MISSING</span> <span class="k">if</span> <span class="n">job</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">job</span><span class="o">.</span><span class="n">status</span>
-</span><span data-line="341">        <span class="n">counts</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">counts</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span>
-</span><span data-line="342">    <span class="n">settled</span> <span class="o">=</span> <span class="n">_jobs</span><span class="o">.</span><span class="n">TERMINAL_STATUSES</span> <span class="o">|</span> <span class="p">{</span><span class="n">MISSING</span><span class="p">}</span>
-</span><span data-line="343">    <span class="n">present</span> <span class="o">=</span> <span class="p">[</span><span class="n">j</span> <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="n">members</span> <span class="k">if</span> <span class="n">j</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">]</span>
-</span><span data-line="344">    <span class="n">estimates</span> <span class="o">=</span> <span class="p">[</span><span class="n">j</span><span class="o">.</span><span class="n">cost</span><span class="o">.</span><span class="n">estimated_usd</span> <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="n">present</span><span class="p">]</span>
-</span><span data-line="345">    <span class="n">actuals</span> <span class="o">=</span> <span class="p">[</span><span class="n">j</span><span class="o">.</span><span class="n">cost</span><span class="o">.</span><span class="n">actual_usd</span> <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="n">present</span> <span class="k">if</span> <span class="n">j</span><span class="o">.</span><span class="n">cost</span><span class="o">.</span><span class="n">actual_usd</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">]</span>
-</span><span data-line="346">    <span class="n">bounds</span> <span class="o">=</span> <span class="p">[</span><span class="n">j</span><span class="o">.</span><span class="n">cost</span><span class="o">.</span><span class="n">actual_is_lower_bound</span> <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="n">present</span><span class="p">]</span>
-</span><span data-line="347">    <span class="k">return</span> <span class="p">{</span>
-</span><span data-line="348">        <span class="s2">"batch_id"</span><span class="p">:</span> <span class="n">record</span><span class="o">.</span><span class="n">batch_id</span><span class="p">,</span>
-</span><span data-line="349">        <span class="s2">"label"</span><span class="p">:</span> <span class="n">record</span><span class="o">.</span><span class="n">label</span><span class="p">,</span>
-</span><span data-line="350">        <span class="s2">"total"</span><span class="p">:</span> <span class="nb">len</span><span class="p">(</span><span class="n">members</span><span class="p">),</span>
-</span><span data-line="351">        <span class="s2">"counts"</span><span class="p">:</span> <span class="n">counts</span><span class="p">,</span>
-</span><span data-line="352">        <span class="s2">"done"</span><span class="p">:</span> <span class="nb">all</span><span class="p">(</span><span class="n">k</span> <span class="ow">in</span> <span class="n">settled</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">counts</span><span class="p">),</span>
-</span><span data-line="353">        <span class="s2">"timed_out"</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
-</span><span data-line="354">        <span class="s2">"cost"</span><span class="p">:</span> <span class="p">{</span>
-</span><span data-line="355">            <span class="s2">"estimated_usd"</span><span class="p">:</span> <span class="p">(</span>
-</span><span data-line="356">                <span class="kc">None</span>
-</span><span data-line="357">                <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">present</span><span class="p">)</span> <span class="o">&lt;</span> <span class="nb">len</span><span class="p">(</span><span class="n">members</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">any</span><span class="p">(</span><span class="n">e</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">for</span> <span class="n">e</span> <span class="ow">in</span> <span class="n">estimates</span><span class="p">)</span>
-</span><span data-line="358">                <span class="k">else</span> <span class="nb">sum</span><span class="p">(</span><span class="n">estimates</span><span class="p">)</span>
-</span><span data-line="359">            <span class="p">),</span>
-</span><span data-line="360">            <span class="s2">"actual_usd"</span><span class="p">:</span> <span class="nb">sum</span><span class="p">(</span><span class="n">actuals</span><span class="p">)</span> <span class="k">if</span> <span class="n">actuals</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
-</span><span data-line="361">            <span class="s2">"actual_is_lower_bound"</span><span class="p">:</span> <span class="p">(</span>
-</span><span data-line="362">                <span class="kc">True</span>
-</span><span data-line="363">                <span class="k">if</span> <span class="nb">any</span><span class="p">(</span><span class="n">b</span> <span class="ow">is</span> <span class="kc">True</span> <span class="k">for</span> <span class="n">b</span> <span class="ow">in</span> <span class="n">bounds</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">len</span><span class="p">(</span><span class="n">present</span><span class="p">)</span> <span class="o">&lt;</span> <span class="nb">len</span><span class="p">(</span><span class="n">members</span><span class="p">)</span>
-</span><span data-line="364">                <span class="k">else</span> <span class="kc">False</span>
-</span><span data-line="365">                <span class="k">if</span> <span class="n">bounds</span> <span class="ow">and</span> <span class="nb">all</span><span class="p">(</span><span class="n">b</span> <span class="ow">is</span> <span class="kc">False</span> <span class="k">for</span> <span class="n">b</span> <span class="ow">in</span> <span class="n">bounds</span><span class="p">)</span>
-</span><span data-line="366">                <span class="k">else</span> <span class="kc">None</span>
-</span><span data-line="367">            <span class="p">),</span>
-</span><span data-line="368">        <span class="p">},</span>
-</span><span data-line="369">    <span class="p">}</span>
+</span><span data-line="337"><span class="k">def</span><span class="w"> </span><span class="nf">_batch_id</span><span class="p">(</span><span class="n">job_ids</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+</span><span data-line="338">    <span class="n">digest</span> <span class="o">=</span> <span class="n">hashlib</span><span class="o">.</span><span class="n">sha256</span><span class="p">(</span><span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">job_ids</span><span class="p">)</span><span class="o">.</span><span class="n">encode</span><span class="p">())</span><span class="o">.</span><span class="n">hexdigest</span><span class="p">()</span>
+</span><span data-line="339">    <span class="k">return</span> <span class="n">_BATCH_ID_PREFIX</span> <span class="o">+</span> <span class="n">digest</span><span class="p">[:</span><span class="n">_BATCH_ID_HEX_LEN</span><span class="p">]</span>
+</span><span data-line="340">
+</span><span data-line="341">
+</span><span data-line="342"><span class="k">def</span><span class="w"> </span><span class="nf">_store</span><span class="p">(</span><span class="n">project_root</span><span class="p">,</span> <span class="n">config</span><span class="p">:</span> <span class="n">JobsConfig</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">create</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">):</span>
+</span><span data-line="343">    <span class="n">base</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">project_root</span><span class="p">)</span> <span class="o">/</span> <span class="n">config</span><span class="o">.</span><span class="n">jobs_dirname</span> <span class="o">/</span> <span class="n">BATCHES_DIRNAME</span>
+</span><span data-line="344">    <span class="k">if</span> <span class="n">create</span><span class="p">:</span>
+</span><span data-line="345">        <span class="n">base</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">parents</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</span><span data-line="346">    <span class="k">return</span> <span class="n">_jobs</span><span class="o">.</span><span class="n">AtomicJsonFiles</span><span class="p">(</span><span class="n">base</span><span class="p">)</span>
+</span><span data-line="347">
+</span><span data-line="348">
+</span><span data-line="349"><span class="k">def</span><span class="w"> </span><span class="nf">_record_from</span><span class="p">(</span><span class="n">data</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">BatchRecord</span><span class="p">:</span>
+</span><span data-line="350">    <span class="k">return</span> <span class="n">BatchRecord</span><span class="p">(</span><span class="o">**</span><span class="p">{</span><span class="o">**</span><span class="n">data</span><span class="p">,</span> <span class="s2">"job_ids"</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="s2">"job_ids"</span><span class="p">])})</span>
+</span><span data-line="351">
+</span><span data-line="352">
+</span><span data-line="353"><span class="k">def</span><span class="w"> </span><span class="nf">_members</span><span class="p">(</span><span class="n">project</span><span class="p">,</span> <span class="n">record</span><span class="p">:</span> <span class="n">BatchRecord</span><span class="p">,</span> <span class="n">config</span><span class="p">:</span> <span class="n">JobsConfig</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">:</span>
+</span><span data-line="354">    <span class="k">return</span> <span class="p">[</span><span class="n">_jobs</span><span class="o">.</span><span class="n">get_job</span><span class="p">(</span><span class="n">project</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="n">config</span><span class="o">=</span><span class="n">config</span><span class="p">)</span> <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="n">record</span><span class="o">.</span><span class="n">job_ids</span><span class="p">]</span>
+</span><span data-line="355">
+</span><span data-line="356">
+</span><span data-line="357"><span class="k">def</span><span class="w"> </span><span class="nf">_is_settled</span><span class="p">(</span><span class="n">job</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+</span><span data-line="358">    <span class="k">return</span> <span class="n">job</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">job</span><span class="o">.</span><span class="n">status</span> <span class="ow">in</span> <span class="n">_jobs</span><span class="o">.</span><span class="n">TERMINAL_STATUSES</span>
+</span><span data-line="359">
+</span><span data-line="360">
+</span><span data-line="361"><span class="k">def</span><span class="w"> </span><span class="nf">_aggregate</span><span class="p">(</span><span class="n">record</span><span class="p">:</span> <span class="n">BatchRecord</span><span class="p">,</span> <span class="n">members</span><span class="p">:</span> <span class="nb">list</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+</span><span data-line="362">    <span class="n">counts</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+</span><span data-line="363">    <span class="k">for</span> <span class="n">job</span> <span class="ow">in</span> <span class="n">members</span><span class="p">:</span>
+</span><span data-line="364">        <span class="n">key</span> <span class="o">=</span> <span class="n">MISSING</span> <span class="k">if</span> <span class="n">job</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">job</span><span class="o">.</span><span class="n">status</span>
+</span><span data-line="365">        <span class="n">counts</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">counts</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span>
+</span><span data-line="366">    <span class="n">settled</span> <span class="o">=</span> <span class="n">_jobs</span><span class="o">.</span><span class="n">TERMINAL_STATUSES</span> <span class="o">|</span> <span class="p">{</span><span class="n">MISSING</span><span class="p">}</span>
+</span><span data-line="367">    <span class="n">present</span> <span class="o">=</span> <span class="p">[</span><span class="n">j</span> <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="n">members</span> <span class="k">if</span> <span class="n">j</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">]</span>
+</span><span data-line="368">    <span class="n">estimates</span> <span class="o">=</span> <span class="p">[</span><span class="n">j</span><span class="o">.</span><span class="n">cost</span><span class="o">.</span><span class="n">estimated_usd</span> <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="n">present</span><span class="p">]</span>
+</span><span data-line="369">    <span class="n">actuals</span> <span class="o">=</span> <span class="p">[</span><span class="n">j</span><span class="o">.</span><span class="n">cost</span><span class="o">.</span><span class="n">actual_usd</span> <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="n">present</span> <span class="k">if</span> <span class="n">j</span><span class="o">.</span><span class="n">cost</span><span class="o">.</span><span class="n">actual_usd</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">]</span>
+</span><span data-line="370">    <span class="n">bounds</span> <span class="o">=</span> <span class="p">[</span><span class="n">j</span><span class="o">.</span><span class="n">cost</span><span class="o">.</span><span class="n">actual_is_lower_bound</span> <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="n">present</span><span class="p">]</span>
+</span><span data-line="371">    <span class="k">return</span> <span class="p">{</span>
+</span><span data-line="372">        <span class="s2">"batch_id"</span><span class="p">:</span> <span class="n">record</span><span class="o">.</span><span class="n">batch_id</span><span class="p">,</span>
+</span><span data-line="373">        <span class="s2">"label"</span><span class="p">:</span> <span class="n">record</span><span class="o">.</span><span class="n">label</span><span class="p">,</span>
+</span><span data-line="374">        <span class="s2">"total"</span><span class="p">:</span> <span class="nb">len</span><span class="p">(</span><span class="n">members</span><span class="p">),</span>
+</span><span data-line="375">        <span class="s2">"counts"</span><span class="p">:</span> <span class="n">counts</span><span class="p">,</span>
+</span><span data-line="376">        <span class="s2">"done"</span><span class="p">:</span> <span class="nb">all</span><span class="p">(</span><span class="n">k</span> <span class="ow">in</span> <span class="n">settled</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">counts</span><span class="p">),</span>
+</span><span data-line="377">        <span class="s2">"timed_out"</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
+</span><span data-line="378">        <span class="s2">"cost"</span><span class="p">:</span> <span class="p">{</span>
+</span><span data-line="379">            <span class="s2">"estimated_usd"</span><span class="p">:</span> <span class="p">(</span>
+</span><span data-line="380">                <span class="kc">None</span>
+</span><span data-line="381">                <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">present</span><span class="p">)</span> <span class="o">&lt;</span> <span class="nb">len</span><span class="p">(</span><span class="n">members</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">any</span><span class="p">(</span><span class="n">e</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">for</span> <span class="n">e</span> <span class="ow">in</span> <span class="n">estimates</span><span class="p">)</span>
+</span><span data-line="382">                <span class="k">else</span> <span class="nb">sum</span><span class="p">(</span><span class="n">estimates</span><span class="p">)</span>
+</span><span data-line="383">            <span class="p">),</span>
+</span><span data-line="384">            <span class="s2">"actual_usd"</span><span class="p">:</span> <span class="nb">sum</span><span class="p">(</span><span class="n">actuals</span><span class="p">)</span> <span class="k">if</span> <span class="n">actuals</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
+</span><span data-line="385">            <span class="s2">"actual_is_lower_bound"</span><span class="p">:</span> <span class="p">(</span>
+</span><span data-line="386">                <span class="kc">True</span>
+</span><span data-line="387">                <span class="k">if</span> <span class="nb">any</span><span class="p">(</span><span class="n">b</span> <span class="ow">is</span> <span class="kc">True</span> <span class="k">for</span> <span class="n">b</span> <span class="ow">in</span> <span class="n">bounds</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">len</span><span class="p">(</span><span class="n">present</span><span class="p">)</span> <span class="o">&lt;</span> <span class="nb">len</span><span class="p">(</span><span class="n">members</span><span class="p">)</span>
+</span><span data-line="388">                <span class="k">else</span> <span class="kc">False</span>
+</span><span data-line="389">                <span class="k">if</span> <span class="n">bounds</span> <span class="ow">and</span> <span class="nb">all</span><span class="p">(</span><span class="n">b</span> <span class="ow">is</span> <span class="kc">False</span> <span class="k">for</span> <span class="n">b</span> <span class="ow">in</span> <span class="n">bounds</span><span class="p">)</span>
+</span><span data-line="390">                <span class="k">else</span> <span class="kc">None</span>
+</span><span data-line="391">            <span class="p">),</span>
+</span><span data-line="392">        <span class="p">},</span>
+</span><span data-line="393">    <span class="p">}</span>
 </span></pre></div>
         </article><button class="back-to-top" type="button">
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
@@ -575,7 +599,7 @@ data-aria-dark="Switch to auto color mode">
     </div>
   </div>
 </footer>
-      <script src="../../_static/documentation_options.js?v=a01ea66b"></script>
+      <script src="../../_static/documentation_options.js?v=04662272"></script>
       <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
       <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
