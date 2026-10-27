@@ -1949,19 +1949,19 @@ def test_the_exit_marker_is_written_only_after_the_beat_has_finished(
         let_finish.wait(timeout=5)
         beat_done.set()
 
-    mark = jobs._mark_worker_exited
+    mark = jobs._mark_worker_exited_locked  # the managed backend's marker (nw#149)
     ours = jobs.job_id_for(project, "op", VIDEO_PARAMS)
 
-    def recording_mark(rt, job_id, run_token):
+    def recording_mark(index, job_id, run_token):
         # Only this test's job: a worker an earlier test left running exits
         # through the same patched function.
         if job_id == ours:
             beat_alive_at_marker.append(not beat_done.is_set())
             let_finish.set()
-        return mark(rt, job_id, run_token)
+        return mark(index, job_id, run_token)
 
     monkeypatch.setattr(jobs, "_beat_while_running", fake_beat)
-    monkeypatch.setattr(jobs, "_mark_worker_exited", recording_mark)
+    monkeypatch.setattr(jobs, "_mark_worker_exited_locked", recording_mark)
     job = jobs.enqueue(project, "op", VIDEO_PARAMS, dispatch={"op": _blocking_stub(release)})
     _poll_until(project, job.job_id, lambda j: j.status == jobs.SUCCEEDED)
     _wait_until_thread_exits(jobs._runtime(project), job.job_id)
@@ -2127,7 +2127,7 @@ def test_a_base_exception_from_a_context_hook_also_fails_the_job(project):
 def test_learning_reads_the_record_in_the_same_critical_section_as_the_pop(project):
     rt = jobs._runtime(project)
     mw = rt.middleware
-    mw.claim_locked("k")
+    mw.claim_locked("k", run_token="t")
     seen = []
 
     class Index(dict):
@@ -2137,7 +2137,8 @@ def test_learning_reads_the_record_in_the_same_critical_section_as_the_pop(proje
 
     mw._index = Index()
     mw.after_compute("k", None)
-    assert seen == [(True, False)]  # popped, and still holding the lock when it read
+    # every read (the sample's, then the exit marker's): popped, lock still held
+    assert seen and all(read == (True, False) for read in seen)
 
 
 # ---------------------------------------------------------------------------
@@ -2742,3 +2743,88 @@ def test_a_claimant_whose_lease_expired_cannot_release_the_one_that_took_over(
         record = jobs._index_get_locked(rt, "k")
     assert record["announce_claim"]["by"] == second  # still the taker-over's
     assert record["terminal_announced"] is False  # the late claimant recorded nothing
+
+
+# ---------------------------------------------------------------------------
+# The exit marker lands after au's terminal write (nw#149)
+# ---------------------------------------------------------------------------
+
+
+def test_the_managed_exit_marker_is_written_after_aus_terminal_result(
+    project, monkeypatch
+):
+    """Marked from the middleware, the run's outcome is already in au's store,
+    so a replica freed by the marker never relaunches over a pending write."""
+    ours = jobs.job_id_for(project, "op", VIDEO_PARAMS)
+    au_status_at_marker: list = []
+    mark = jobs._mark_worker_exited_locked
+
+    def recording(index, job_id, run_token):
+        if job_id == ours:
+            au_status_at_marker.append(jobs._runtime(project).au_store[job_id].status)
+        return mark(index, job_id, run_token)
+
+    monkeypatch.setattr(jobs, "_mark_worker_exited_locked", recording)
+    release = threading.Event()
+    release.set()
+    job = jobs.enqueue(project, "op", VIDEO_PARAMS, dispatch={"op": _blocking_stub(release)})
+    _poll_until(project, job.job_id, lambda j: j.status == jobs.SUCCEEDED)
+    _wait_until_thread_exits(jobs._runtime(project), job.job_id)
+    assert au_status_at_marker == [ComputationStatus.COMPLETED]
+    assert _running_record(project, job.job_id)["worker_exited_at"]
+
+
+def test_a_backend_without_the_middleware_still_gets_the_workers_marker(project):
+    from au import ThreadBackend
+
+    rt = jobs._runtime(project)
+    bare = ThreadBackend(store=rt.au_store, middleware=[])
+    release = threading.Event()
+    release.set()
+    job = jobs.enqueue(
+        project, "op", VIDEO_PARAMS, dispatch={"op": _blocking_stub(release)}, backend=bare
+    )
+    _poll_until(
+        project,
+        job.job_id,
+        lambda j: (_running_record(project, j.job_id) or {}).get("worker_exited_at"),
+    )
+    assert _running_record(project, job.job_id)["worker_exited_at"]
+
+
+def test_a_failed_runs_exit_marker_is_written_after_aus_failure(project, monkeypatch):
+    """The ``on_error`` path marks too, and after au has the FAILED result."""
+    ours = jobs.job_id_for(project, "op", VIDEO_PARAMS)
+    au_status_at_marker: list = []
+    mark = jobs._mark_worker_exited_locked
+
+    def recording(index, job_id, run_token):
+        if job_id == ours:
+            au_status_at_marker.append(jobs._runtime(project).au_store[job_id].status)
+        return mark(index, job_id, run_token)
+
+    def boom(project, params):
+        raise RuntimeError("render failed")
+
+    monkeypatch.setattr(jobs, "_mark_worker_exited_locked", recording)
+    job = jobs.enqueue(project, "op", VIDEO_PARAMS, dispatch={"op": boom})
+    _poll_until(project, job.job_id, lambda j: j.status == jobs.FAILED)
+    _wait_until_thread_exits(jobs._runtime(project), job.job_id)
+    assert au_status_at_marker == [ComputationStatus.FAILED]
+
+
+def test_a_run_never_learns_from_the_record_of_a_run_that_replaced_it(project):
+    """A replica may relaunch a finished key between au's terminal write and
+    this run's ``after_compute``; the sample must not come from the new record."""
+    rt = jobs._runtime(project)
+    mw = rt.middleware
+    key = "k"
+    with rt.lock:
+        mw.claim_locked(key, run_token="old")
+        jobs._index_set_locked(
+            rt,
+            key,
+            {"job_id": key, "run_token": "new", "eta_candidates": [["x|y|z", "exact"]]},
+        )
+    mw.after_compute(key, None)
+    assert jobs._durations_get(rt.durations, "x|y|z") == []  # the new run's key learned nothing

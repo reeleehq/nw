@@ -43,8 +43,9 @@ Design decisions (from the ``nw.jobs``-on-``au`` design report,
   ``ThreadBackend`` thread later clobbers the store with COMPLETED. The key
   stays live until that thread has exited, in this process or any replica
   sharing the store: each run carries a ``run_token``, its heartbeat stamps
-  only its own record, and its worker writes ``worker_exited_at`` on the way
-  out (nw#124, nw#141).
+  only its own record, and ``worker_exited_at`` is written once the run's
+  outcome is in au's store — by the managed backend's middleware, or by the
+  worker on any other backend (nw#124, nw#141, nw#149).
 - **A job's end is announced** to :func:`register_terminal_hook` hooks, so a
   host records a completion in one place instead of after every door (nw#151).
 - **ETA is learned from observed wall-time**, per ``(model, operation, dur_bucket)``
@@ -537,6 +538,11 @@ def enqueue(
             # "queued" record behind that no worker will ever pick up (nw#117).
             # The hook runs here, on the request thread, under ``rt.lock``.
             unentered = capture_context() if capture_context is not None else None
+            the_backend = backend if backend is not None else rt.backend
+            # Only a backend that will release them gets the liveness claim and
+            # the worker-side announcement.
+            backend_middleware = getattr(the_backend, "middleware", ())
+            managed = rt.middleware in backend_middleware
             bound = _bind_worker(
                 project,
                 kind,
@@ -549,11 +555,10 @@ def enqueue(
                 extra_ctx=unentered,
                 secrets=as_secrets(secrets),
                 run_token=run_token,
+                # The managed backend's middleware marks the exit after au's
+                # terminal write (nw#149); any other backend, the worker does.
+                mark_exit=not managed,
             )
-            the_backend = backend if backend is not None else rt.backend
-            # Only a backend that will release them gets the liveness claim and
-            # the worker-side announcement.
-            backend_middleware = getattr(the_backend, "middleware", ())
             if existing is not None:
                 # The fourth door: nothing read this run terminal yet (a custom
                 # backend nobody polled, or a waiter re-enqueueing ahead of the
@@ -569,8 +574,8 @@ def enqueue(
             try:
                 # Index first: a failed write then leaves the previous run whole.
                 _index_set_locked(rt, job_id, record)
-                if rt.middleware in backend_middleware:
-                    rt.middleware.claim_locked(job_id)
+                if managed:
+                    rt.middleware.claim_locked(job_id, run_token=run_token)
                 if rt.announcer in backend_middleware:
                     rt.announcer.launch_locked(job_id, project)
                     registered = True
@@ -1052,6 +1057,7 @@ class DurationLearningMiddleware(Middleware):
         self._lock = lock
         self._config = config
         self._start: dict[str, float] = {}
+        self._tokens: dict[str, str] = {}  # key -> run_token, from claim to end
 
     def before_compute(
         self, func: Callable, args: tuple, kwargs: dict, key: str
@@ -1075,44 +1081,68 @@ class DurationLearningMiddleware(Middleware):
         # and a gap before the index read let the old run learn from the NEW
         # record's ETA keys / units / cached flag (nw#128).
         with self._lock:
-            start = self._start.pop(key, None)
-            if start is None:
-                return
-            elapsed = now - start
-            record = self._index.get(key)
-            if not record or record.get("cached"):
-                return  # cache-hit (or unknown) → do NOT learn
-            candidates = [tuple(c[:2]) for c in record.get("eta_candidates") or []]
-            units = record.get("units")
-            has_own_key = any(conf != _COARSE for _, conf in candidates)
-            for key, confidence in candidates:
-                if confidence != _COARSE:
-                    self._record_sample_locked(key, elapsed)
-                elif units is not None:
-                    self._record_sample_locked(key, elapsed / units)
-                elif not has_own_key:
-                    # The coarse key is this job's only key (no model/operation,
-                    # e.g. an explicit ``output_kind="compute"``): it is the
-                    # job's own history, as it always was.
-                    self._record_sample_locked(key, elapsed)
-                # else: unknown multiplicity and an own key to learn in —
-                # never write the shared per-unit bucket (nw#67).
+            try:
+                start = self._start.pop(key, None)
+                if start is None:
+                    return
+                elapsed = now - start
+                record = self._index.get(key)
+                if not record or record.get("cached"):
+                    return  # cache-hit (or unknown) → do NOT learn
+                if record.get("run_token") != self._tokens.get(key):
+                    # Another replica relaunched the key once au had this run's
+                    # outcome: the record is the new run's, not this one's (nw#149).
+                    return
+                candidates = [tuple(c[:2]) for c in record.get("eta_candidates") or []]
+                units = record.get("units")
+                has_own_key = any(conf != _COARSE for _, conf in candidates)
+                for eta_key, confidence in candidates:
+                    if confidence != _COARSE:
+                        self._record_sample_locked(eta_key, elapsed)
+                    elif units is not None:
+                        self._record_sample_locked(eta_key, elapsed / units)
+                    elif not has_own_key:
+                        # The coarse key is this job's only key (no model/operation,
+                        # e.g. an explicit ``output_kind="compute"``): it is the
+                        # job's own history, as it always was.
+                        self._record_sample_locked(eta_key, elapsed)
+                    # else: unknown multiplicity and an own key to learn in —
+                    # never write the shared per-unit bucket (nw#67).
+            finally:
+                # Same section: the key is freed and its run marked exited
+                # together, after au's terminal write (nw#149).
+                self._mark_exit_locked(key)
 
     def on_error(self, key: str, error: Exception) -> None:
         with self._lock:
+            self._mark_exit_locked(key)
             self._start.pop(key, None)
 
-    def claim_locked(self, key: str) -> None:
+    def claim_locked(self, key: str, *, run_token: str) -> None:
         """Mark ``key`` live before its worker thread has started (caller holds
         the lock). ``before_compute`` re-stamps the time; ``after_compute`` /
         ``on_error`` release it, :meth:`release_locked` undoes it if the launch
         itself fails. Without it a cancel plus a re-enqueue inside the window
-        before the thread registers launched a second worker (nw#128)."""
+        before the thread registers launched a second worker (nw#128).
+
+        ``run_token`` is the run whose ``worker_exited_at`` the end hooks stamp:
+        they run after au's terminal write, so a cancelled key is not freed for
+        another replica before the old run's outcome has landed (nw#149)."""
         self._start[key] = time.monotonic()
+        self._tokens[key] = run_token
 
     def release_locked(self, key: str) -> None:
         """Undo :meth:`claim_locked` when the launch itself failed."""
         self._start.pop(key, None)
+        self._tokens.pop(key, None)
+
+    def _mark_exit_locked(self, key: str) -> None:
+        if key not in self._tokens:
+            return
+        try:
+            _mark_worker_exited_locked(self._index, key, self._tokens.pop(key))
+        except Exception:  # noqa: BLE001 — reporting must not break the worker
+            pass
 
     def is_running(self, key: str) -> bool:
         with self._lock:
@@ -1660,6 +1690,7 @@ def _bind_worker(
     extra_ctx=None,
     secrets=None,
     run_token,
+    mark_exit=True,
 ):
     """Bind the render callable into a zero-arg worker body that (a) re-establishes
     request context (fal credentials + project + any caller-supplied context), (b)
@@ -1674,7 +1705,10 @@ def _bind_worker(
 
     ``run_token`` is the token :func:`enqueue` wrote on this run's record: the
     heartbeat and the exit marker touch the record only while it still carries
-    it, so a stale worker never stamps a run that replaced its own."""
+    it, so a stale worker never stamps a run that replaced its own. With
+    ``mark_exit`` the worker writes the exit marker itself, as it leaves; the
+    managed backend passes ``False`` and marks it from its middleware instead,
+    after au's terminal write (nw#149)."""
     captured_fal_key = _capture_fal_credentials()
 
     def should_cancel() -> bool:
@@ -1714,7 +1748,8 @@ def _bind_worker(
             ) from None
         finally:
             # After ``_run`` has joined the beat, so no stamp lands after it.
-            _mark_worker_exited(rt, job_id, run_token)
+            if mark_exit:
+                _mark_worker_exited(rt, job_id, run_token)
 
     def _run():
         # ``started_at`` is stamped by the backend's ``before_compute`` hook, which
@@ -2106,7 +2141,7 @@ def _beat_while_running(rt, job_id, run_token, config, stop: threading.Event) ->
         try:
             with rt.lock:
                 _index_update_if_run_locked(
-                    rt, job_id, run_token, heartbeat_at=now_iso()
+                    rt.index, job_id, run_token, heartbeat_at=now_iso()
                 )
         except Exception:  # noqa: BLE001 — reporting must not break the render
             pass
@@ -2118,11 +2153,13 @@ def _mark_worker_exited(rt, job_id, run_token) -> None:
     stamp leaves a cancelled key held only until its heartbeat goes stale."""
     try:
         with rt.lock:
-            _index_update_if_run_locked(
-                rt, job_id, run_token, worker_exited_at=now_iso()
-            )
+            _mark_worker_exited_locked(rt.index, job_id, run_token)
     except Exception:  # noqa: BLE001 — reporting must not break the render
         pass
+
+
+def _mark_worker_exited_locked(index, job_id, run_token) -> None:
+    _index_update_if_run_locked(index, job_id, run_token, worker_exited_at=now_iso())
 
 
 def _worker_may_still_run_locked(rt, record, config) -> bool:
@@ -2132,8 +2169,9 @@ def _worker_may_still_run_locked(rt, record, config) -> bool:
     read terminal while its worker runs (cancel is cooperative), and its worker
     proves it is alive with a fresh heartbeat until it writes
     ``worker_exited_at``. The exit marker matters because a heartbeat stays
-    fresh ``heartbeat_stale_s`` after the thread is gone. Left open: a worker
-    between its exit marker and au's terminal write.
+    fresh ``heartbeat_stale_s`` after the thread is gone. On the managed
+    backend the marker follows au's terminal write (nw#149); a backend without
+    the middleware still has the gap between the worker's marker and that write.
     """
     if rt.middleware._is_running_locked(record["job_id"]):
         return True
@@ -2423,15 +2461,16 @@ def _index_update_locked(rt, job_id, **fields) -> None:
     rt.index[job_id] = record
 
 
-def _index_update_if_run_locked(rt, job_id, run_token, **fields) -> None:
+def _index_update_if_run_locked(index, job_id, run_token, **fields) -> None:
     """Merge ``fields`` into ``job_id``'s record only while it carries
     ``run_token``, in one read. Lets a run's own threads stamp its record
-    without touching a run that replaced it."""
-    record = _index_get_locked(rt, job_id)
+    without touching a run that replaced it. Takes the index mapping, so the
+    middleware (which holds the index, not the runtime) uses it too."""
+    record = index.get(job_id)
     if record is None or record.get("run_token") != run_token:
         return
     record.update(fields)
-    _index_set_locked(rt, job_id, record)
+    index[job_id] = record
 
 
 def _default_idempotency_key(project, kind, params) -> str:
