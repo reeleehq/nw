@@ -1383,8 +1383,9 @@ class AtomicJsonFiles(MutableMapping):
     Readers need no lock, on Windows too (nw#170): there a reader holding the
     file open makes ``os.replace`` / ``os.unlink`` of it fail with
     ``PermissionError`` until it closes, so a write retries those briefly
-    (``retry_on``, ``attempts``, doubling from ``backoff_s``). A read is
-    milliseconds; the retries outlast it.
+    (``retry_on``, ``attempts``, doubling from ``backoff_s``: ~0.6 s in all by
+    default). A read is milliseconds; the retries outlast it, and they cost
+    nothing unless a write is actually refused.
     """
 
     def __init__(
@@ -1392,8 +1393,8 @@ class AtomicJsonFiles(MutableMapping):
         rootdir: str | Path,
         *,
         retry_on: tuple[type[BaseException], ...] | None = None,
-        attempts: int = 6,
-        backoff_s: float = 0.005,
+        attempts: int = 7,
+        backoff_s: float = 0.01,
     ) -> None:
         self._rootdir = Path(rootdir)
         self._rootdir.mkdir(parents=True, exist_ok=True)

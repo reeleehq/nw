@@ -6,6 +6,7 @@ progress/cost/eta/cancel machinery is exercised without spending money.
 """
 
 import contextlib
+import dataclasses
 from pathlib import Path
 import contextvars
 import logging
@@ -3202,3 +3203,51 @@ def test_the_pct_floor_only_rises_and_only_for_its_own_run(project):
         assert jobs._index_get_locked(rt, "j")["pct_floor"] == 60
         jobs._raise_pct_floor_locked(rt, "j", "t", 70)
         assert jobs._index_get_locked(rt, "j")["pct_floor"] == 70
+
+
+@pytest.mark.skipif(os.name == "nt", reason="Windows retries by default")
+def test_by_default_a_refused_write_is_not_retried_off_windows(tmp_path, monkeypatch):
+    store = jobs.AtomicJsonFiles(tmp_path)
+    monkeypatch.setattr(jobs.os, "replace", _flaky(os.replace, 1))
+    with pytest.raises(PermissionError):
+        store["k"] = {"v": 1}
+
+
+def _reading_at(monkeypatch, pct):
+    """Make every projection report a RUNNING job at ``pct``."""
+    real = jobs._project_job
+    monkeypatch.setattr(
+        jobs, "_project_job",
+        lambda *a, **k: dataclasses.replace(real(*a, **k), status=jobs.RUNNING, pct=pct),
+    )
+
+
+def _running(rt, job_id, **fields):
+    record = {"job_id": job_id, "kind": "op", "label": "op", "run_token": "t",
+              "started_at": jobs.now_iso(), "heartbeat_at": jobs.now_iso(),
+              "pct_floor": None, **fields}
+    with rt.lock:
+        jobs._index_set_locked(rt, job_id, record)
+    rt.au_store[job_id] = ComputationResult(None, ComputationStatus.RUNNING)
+    return dict(record)
+
+
+def test_a_reader_behind_another_never_lowers_the_floor(project, monkeypatch):
+    rt = jobs._runtime(project)
+    snapshot = _running(rt, "j")  # read before the other reader raised it
+    with rt.lock:
+        jobs._index_update_locked(rt, "j", pct_floor=80)
+    _reading_at(monkeypatch, 40)
+    jobs._read_job(rt, snapshot, rt.config, project=project)
+    with rt.lock:
+        assert jobs._index_get_locked(rt, "j")["pct_floor"] == 80
+
+
+def test_a_snapshot_of_a_replaced_run_never_sets_the_new_runs_floor(project, monkeypatch):
+    rt = jobs._runtime(project)
+    snapshot = _running(rt, "j", run_token="old")
+    _running(rt, "j", run_token="new")  # re-enqueued after the snapshot
+    _reading_at(monkeypatch, 50)
+    jobs._read_job(rt, snapshot, rt.config, project=project)
+    with rt.lock:
+        assert jobs._index_get_locked(rt, "j")["pct_floor"] is None
