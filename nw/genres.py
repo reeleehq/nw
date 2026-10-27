@@ -47,7 +47,7 @@ import math
 import numbers
 import re
 from collections.abc import Mapping
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from pathlib import Path
 from types import MappingProxyType
 from typing import TYPE_CHECKING, Any, Callable, Optional, Union
@@ -1141,6 +1141,13 @@ class GenreOp:
     through its money approval — or not offer it. ``False`` (the default) is a claim the
     genre makes: nothing this op calls bills anyone.
 
+    ``invalidates`` names the genre's ``read`` ops whose answer this op can change, so a
+    client holding several reads re-reads only those after it (reelee#750).
+    :func:`register_genre_ops` checks every name is a read op of the genre and resolves
+    an undeclared one (``None``): every read op for an op that changes anything, none
+    for a read. Undeclared is never wrong, only wasteful; a narrower list is a claim the
+    genre makes, as ``spends`` is.
+
     >>> def _rename(project, *, title: str, loud: bool = False) -> dict:
     ...     '''Rename the project.'''
     ...     return {"title": title.upper() if loud else title}
@@ -1172,6 +1179,7 @@ class GenreOp:
     host_params: tuple[str, ...] = ()
     max_upload_bytes: Optional[int] = None
     spends: bool = False
+    invalidates: Optional[tuple[str, ...]] = None
 
     def __post_init__(self):
         if not isinstance(self.name, str) or not _OP_NAME_PATTERN.match(self.name):
@@ -1201,6 +1209,20 @@ class GenreOp:
             raise TypeError(
                 f"genre op {self.name!r}: spends must be a bool, got {self.spends!r}"
             )
+        if self.invalidates is not None:
+            if isinstance(self.invalidates, str) or not all(
+                isinstance(n, str) for n in self.invalidates
+            ):
+                raise TypeError(
+                    f"genre op {self.name!r}: invalidates must be op names, "
+                    f"got {self.invalidates!r}"
+                )
+            object.__setattr__(self, "invalidates", tuple(self.invalidates))
+            if self.effect == "read" and self.invalidates:
+                raise ValueError(
+                    f"genre op {self.name!r}: a read op changes nothing, so it "
+                    f"invalidates nothing (got {list(self.invalidates)})"
+                )
         if self.max_upload_bytes is not None and (
             not isinstance(self.max_upload_bytes, int)
             or isinstance(self.max_upload_bytes, bool)
@@ -1289,6 +1311,7 @@ class GenreOp:
             "host_params": list(self.host_params),
             "max_upload_bytes": self.max_upload_bytes,
             "spends": self.spends,
+            "invalidates": None if self.invalidates is None else list(self.invalidates),
         }
 
 
@@ -1328,8 +1351,27 @@ def register_genre_ops(genre_slug: str, ops) -> tuple:
     duplicates = sorted({n for n in names if names.count(n) > 1})
     if duplicates:
         raise ValueError(f"genre {genre_slug!r}: duplicate op names {duplicates}")
+    ops = _resolve_invalidates(genre_slug, ops)
     genre_ops_registry.register(genre_slug, ops)
     return ops
+
+
+def _resolve_invalidates(genre_slug: str, ops: tuple) -> tuple:
+    """``ops`` with every ``invalidates`` checked against the genre's read ops and an
+    undeclared one resolved (see :class:`GenreOp`)."""
+    reads = tuple(op.name for op in ops if op.effect == "read")
+    resolved = []
+    for op in ops:
+        if op.invalidates is None:
+            op = replace(op, invalidates=() if op.effect == "read" else reads)
+        unknown = sorted(set(op.invalidates) - set(reads))
+        if unknown:
+            raise ValueError(
+                f"genre {genre_slug!r}: op {op.name!r} invalidates {unknown}, "
+                f"which are not read ops of the genre"
+            )
+        resolved.append(op)
+    return tuple(resolved)
 
 
 def genre_ops(genre_slug: str) -> tuple:
