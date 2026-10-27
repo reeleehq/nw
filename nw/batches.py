@@ -200,7 +200,7 @@ def wait(
 ) -> dict | None:
     """Block until the batch is done or ``timeout`` seconds pass (a hard cap).
 
-    ``timeout`` must be >= 0. Wakes on job finish/cancel via :func:`nw.jobs.notify_change` (managed
+    ``timeout`` must be >= 0. Wakes on job finish/cancel via the project's :class:`nw.jobs.JobNotifier` (managed
     backend only; a custom ``backend=`` falls back to the ``poll_s`` re-read).
 
     Returns the :func:`status` aggregate with ``timed_out`` True when the cap hit
@@ -214,7 +214,7 @@ def wait(
     deadline = time.monotonic() + timeout
     members: dict[str, Any] = {}  # job_id -> job (None = missing)
     while True:
-        seen = _jobs.change_count()
+        seen = _jobs.change_count(project, config=config)
         for job_id in record.job_ids:  # settled jobs are never re-read
             if job_id not in members or not _is_settled(members[job_id]):
                 members[job_id] = _jobs.get_job(project, job_id, config=config)
@@ -224,7 +224,7 @@ def wait(
         remaining = deadline - time.monotonic()
         if remaining <= 0:
             return {**agg, "timed_out": True}
-        _jobs.wait_for_change(seen, min(poll_s, remaining))
+        _jobs.wait_for_change(project, seen, min(poll_s, remaining), config=config)
 
 
 def output(

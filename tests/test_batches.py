@@ -176,3 +176,15 @@ def test_bad_items_are_refused(project):
         batches.enqueue_batch(project, [], kind="x")
     with pytest.raises(ValueError):
         batches.enqueue_batch(project, [{"params": {}}])  # no kind
+
+
+def test_notifier_is_per_project_and_wakes_after_the_terminal_write(tmp_path):
+    a = Project.init(tmp_path / "a", title="A")
+    b = Project.init(tmp_path / "b", title="B")
+    release = threading.Event()
+    job = jobs.enqueue(a, "x", {"n": 1}, dispatch={"x": _stub(release)})
+    seen_a, seen_b = jobs.change_count(a), jobs.change_count(b)
+    release.set()
+    jobs.wait_for_change(a, seen_a, 5)
+    assert jobs.get_job(a, job.job_id).status in jobs.TERMINAL_STATUSES  # not woken early
+    assert jobs.change_count(b) == seen_b  # another project's runtime never moved

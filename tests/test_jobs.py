@@ -1782,13 +1782,15 @@ def test_reenqueue_over_a_cancelled_job_whose_thread_still_runs_is_deduped(proje
     final = _poll_until(project, job.job_id, lambda j: j.status == jobs.CANCELLED)
     assert final.status == jobs.CANCELLED  # the old run's result did not revive it
     assert len(calls) == 1  # no second worker was launched over it
-    assert cancel_seen == [True]  # the old render still sees its own cancel
 
-    # Once the thread has exited the key is free again.
+    # Once the thread has exited the key is free again. (``cancelled`` is read
+    # the moment cancel is requested, so wait for the worker before asserting
+    # what it saw.)
     deadline = time.time() + 5
     while jobs._runtime(project, jobs.DEFAULT_CONFIG).middleware.is_running(job.job_id):
         assert time.time() < deadline
         time.sleep(0.01)
+    assert cancel_seen == [True]  # the old render still sees its own cancel
     rerun = jobs.enqueue(project, "op", VIDEO_PARAMS, dispatch=dispatch)
     done = _poll_until(project, rerun.job_id, lambda j: j.status == jobs.SUCCEEDED)
     assert done.status == jobs.SUCCEEDED
