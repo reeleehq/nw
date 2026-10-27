@@ -2335,10 +2335,12 @@ def announced(project):
     class Seen(list):
         done = None
         projects = None
+        jobs = None
 
     seen = Seen()
     seen.done = threading.Event()
     seen.projects = []
+    seen.jobs = []
     root = Path(project.root).resolve()
 
     def hook(hook_project, job):
@@ -2346,6 +2348,7 @@ def announced(project):
             return
         seen.append((job.job_id, job.status))
         seen.projects.append(hook_project)
+        seen.jobs.append(job)
         seen.done.set()
 
     jobs.register_terminal_hook("test", hook)
@@ -2444,6 +2447,11 @@ def test_a_rerun_of_the_key_is_announced_again(project, announced):
     jobs.enqueue(project, "op", VIDEO_PARAMS, dispatch=dispatch)
     assert announced.done.wait(5)
     assert announced == [(job.job_id, jobs.SUCCEEDED)] * 2
+    # one job, two runs: a host dedupes per (job_id, run_token), never job_id (nw#153)
+    first, second = announced.jobs
+    assert first.run_id == second.run_id == job.job_id
+    assert None is not first.run_token != second.run_token is not None
+    assert jobs.to_dict(second)["run_token"] == second.run_token
 
 
 def test_a_record_from_before_announcing_is_never_announced(project, announced):
@@ -2622,6 +2630,7 @@ def test_the_enqueue_door_announces_the_old_run_even_after_the_new_one_was(
         jobs._index_set_locked(rt, "k", record)
     jobs._fire_terminal_hooks(rt, project, old, run_token="T1", claim="door")
     assert announced == [("k", jobs.SUCCEEDED)]
+    assert announced.jobs[0].run_token == "T1"  # the run announced, not the new one
     with rt.lock:
         assert jobs._index_get_locked(rt, "k") == record  # T2's record untouched
 
