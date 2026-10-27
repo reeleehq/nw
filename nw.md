@@ -1,4 +1,4 @@
-> built 2026-10-27 15:23 UTC from 08493d6 (main) · nw 0.0.96. Details: build_info.json
+> built 2026-10-27 15:28 UTC from 08493d6 (main) · nw 0.0.96. Details: build_info.json
 
 # index.html.md
 
@@ -10540,7 +10540,7 @@ produce different URLs. The local file paths are byte-stable.
 
 # About this build
 
-This documentation was built on **2026-10-27 15:23 UTC** from commit <a href="https://github.com/reeleehq/nw/commit/08493d63b96ff4799ae6e1ab4c3264588b6dbed9"><code>08493d6</code></a> on branch <code>main</code>, for **nw 0.0.96** (from <code>pyproject.toml</code>).
+This documentation was built on **2026-10-27 15:28 UTC** from commit <a href="https://github.com/reeleehq/nw/commit/08493d63b96ff4799ae6e1ab4c3264588b6dbed9"><code>08493d6</code></a> on branch <code>main</code>, for **nw 0.0.96** (from <code>pyproject.toml</code>).
 
 #### NOTE
 Nothing suggests a mismatch: the tree was clean at the commit above, and the documented version is the one on PyPI.
@@ -10560,9 +10560,9 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 |              |                                                                                            |
 |--------------|--------------------------------------------------------------------------------------------|
 | Repository   | <code>reeleehq/nw</code>                                                                   |
-| Run          | <a href="https://github.com/reeleehq/nw/actions/runs/40520743354">40520743354</a>          |
+| Run          | <a href="https://github.com/reeleehq/nw/actions/runs/40525507065">40525507065</a>          |
 | Ref          | <code>refs/heads/main</code>                                                               |
-| Event commit | <code>b346fc62a1520f80cc00e3ff054cf6cc3365bc9b</code> (in the history of the built commit) |
+| Event commit | <code>253750f230ccfa0edadd983848deabece9f8ebb1</code> (in the history of the built commit) |
 
 ## Tools
 
