@@ -885,7 +885,8 @@ def _archive_old_runs(rt, records, config) -> list:
     moved = {
         r["job_id"]
         for r in records
-        if _ended_before(r, cutoff) and _archive_quietly(rt, r["job_id"], cutoff, config)
+        if _ended_before(r, cutoff)
+        and _archive_quietly(rt, r["job_id"], cutoff, config)
     }
     return [r for r in records if r["job_id"] not in moved] if moved else records
 
@@ -897,7 +898,9 @@ def _archive_quietly(rt, job_id, cutoff: datetime, config) -> bool:
     try:
         return _archive_if_settled(rt, job_id, cutoff, config)
     except Exception:  # noqa: BLE001 — the poll matters more than the sweep
-        _logger.warning("could not archive job %s; it stays in the index", job_id, exc_info=True)
+        _logger.warning(
+            "could not archive job %s; it stays in the index", job_id, exc_info=True
+        )
         return False
 
 
