@@ -49,11 +49,12 @@ kept, because a rename is not a change of look.
 
 ### Functions
 
-| [`is_rewritten`](#nw.rewrite.is_rewritten)(project, marker)                    | Whether the rewrite named `marker` has completed on this project.                                                                     |
-|---------------------------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------|
-| [`is_value_row`](#nw.rewrite.is_value_row)(ann)                                | The default `where`: every annotation except nw's verifying traces.                                                                   |
-| [`mark_rewritten`](#nw.rewrite.mark_rewritten)(project, marker)                  | Record `marker` as done without scanning: for a project created already in today's vocabulary, so opening it never pays for the scan. |
-| [`rewrite_values`](#nw.rewrite.rewrite_values)(project, fn, \*[, marker, where]) | Apply `fn(body) -> body` to every stored annotation body; return how many changed.                                                    |
+| [`is_rewritten`](#nw.rewrite.is_rewritten)(project, marker)                    | Whether the rewrite named `marker` has completed on this project.                                                                                                                 |
+|---------------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| [`is_value_row`](#nw.rewrite.is_value_row)(ann)                                | The default `where`: every annotation except nw's verifying traces.                                                                                                               |
+| [`mark_rewritten`](#nw.rewrite.mark_rewritten)(project, marker)                  | Record `marker` as done without scanning: for a project created already in today's vocabulary, so opening it never pays for the scan.                                             |
+| [`rewrite_values`](#nw.rewrite.rewrite_values)(project, fn, \*[, marker, where]) | Apply `fn(body) -> body` to every stored annotation body; return how many changed.                                                                                                |
+| [`unmark_rewritten`](#nw.rewrite.unmark_rewritten)(project, marker)                | Forget that `marker` ran, so the next [`rewrite_values()`](#nw.rewrite.rewrite_values) with it scans again (a test simulating a project made before the rename). |
 
 ### nw.rewrite.LOCK_NAME *= 'rewrite-values'*
 
@@ -123,3 +124,14 @@ mid-rewrite leaves that trace stale (conservative, never wrong-fresh).
 
 * **Return type:**
   [`int`](https://docs.python.org/3/builtins/functions.html#int)
+
+### nw.rewrite.unmark_rewritten(project, marker)
+
+Forget that `marker` ran, so the next [`rewrite_values()`](#nw.rewrite.rewrite_values) with it scans
+again (a test simulating a project made before the rename). Idempotent: an
+absent marker is not an error and writes nothing. A present one is removed
+under [`LOCK_NAME`](#nw.rewrite.LOCK_NAME), so a rewrite about to write it cannot undo the
+removal; its value is never read, so a corrupt marker can be cleared too.
+
+* **Return type:**
+  [`None`](https://docs.python.org/3/builtins/constants.html#None)

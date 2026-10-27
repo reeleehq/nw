@@ -1,4 +1,4 @@
-> built 2026-10-27 06:47 UTC from ec6d82b (main) · nw 0.0.85. Details: build_info.json
+> built 2026-10-27 09:07 UTC from 74b1af3 (main) · nw 0.0.86. Details: build_info.json
 
 # index.html.md
 
@@ -3166,84 +3166,85 @@ are recorded as linked artifacts), see
 
 ### Functions
 
-| [`parse_ref`](_autosummary/nw.html.md#nw.parse_ref)(text)                                   | The ordinal in a spoken reference, or `None` if it isn't one.                                                                         |
-|----------------------------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------|
-| [`format_ref`](_autosummary/nw.html.md#nw.format_ref)(n)                                     | The one spelling we print.                                                                                                            |
-| [`genre_catalog`](_autosummary/nw.html.md#nw.genre_catalog)()                                   | Every registered genre as a JSON-able catalog entry (sorted by slug).                                                                 |
-| [`describe_genre`](_autosummary/nw.html.md#nw.describe_genre)(slug)                              | One genre's catalog entry (raises [`KeyError`](https://docs.python.org/3/builtins/exceptions.html#KeyError) if the slug is unknown).  |
-| [`recommend_genre`](_autosummary/nw.html.md#nw.recommend_genre)(kind)                             | The slug of the genre whose `intake_kinds` contains `kind` (first in slug order), or `None` when `kind` is falsy / unmatched.         |
-| [`resolve_defaults`](_autosummary/nw.html.md#nw.resolve_defaults)(genre[, template])               | Resolve a genre (+ optional template) to the params for a new project.                                                                |
-| [`register_genre_resolver`](_autosummary/nw.html.md#nw.register_genre_resolver)(slug, resolver)           | Register a resolver for a genre slug; returns it for inline use.                                                                      |
-| [`resolve_genre`](_autosummary/nw.html.md#nw.resolve_genre)(genre[, template])                  | Resolve a genre (+ optional template) to the standard creation envelope.                                                              |
-| [`register_genre_initializer`](_autosummary/nw.html.md#nw.register_genre_initializer)(slug, initializer)     | Register an initializer for a genre slug; returns it for inline use.                                                                  |
-| [`initialize_genre`](_autosummary/nw.html.md#nw.initialize_genre)(genre, project, \*[, ...])       | Seed a freshly-created `project` for `genre` (+ optional `template`).                                                                 |
-| [`register_genre_project_factory`](_autosummary/nw.html.md#nw.register_genre_project_factory)(slug, factory)     | Register a project factory for a genre slug; returns it for inline use.                                                               |
-| [`has_genre_project_factory`](_autosummary/nw.html.md#nw.has_genre_project_factory)(slug)                   | True iff a plugged-in project factory is registered for `slug`.                                                                       |
-| [`can_place_genre_project`](_autosummary/nw.html.md#nw.can_place_genre_project)(slug)                     | True iff `slug`'s registered factory accepts host **placement**.                                                                      |
-| [`create_genre_project`](_autosummary/nw.html.md#nw.create_genre_project)(genre, caller, ...[, ...])   | Create + seed a new project for a PLUGGED-IN `genre` in `caller`'s space.                                                             |
-| [`register_genre_ops`](_autosummary/nw.html.md#nw.register_genre_ops)(genre_slug, ops)               | Register the operations a genre offers on its projects; returns them as a tuple.                                                      |
-| [`genre_ops`](_autosummary/nw.html.md#nw.genre_ops)(genre_slug)                             | The ops registered for `genre_slug`, in registration order (`()` if none).                                                            |
-| [`genre_op`](_autosummary/nw.html.md#nw.genre_op)(genre_slug, name)                        | The op `name` of `genre_slug`; [`UnknownGenreOpError`](_autosummary/nw.html.md#nw.UnknownGenreOpError) naming the known.                 |
-| [`genre_ops_catalogue`](_autosummary/nw.html.md#nw.genre_ops_catalogue)(genre_slug)                   | The pure-JSON catalogue of `genre_slug`'s ops (`[]` for a genre with none).                                                           |
-| [`register_genre_limits`](_autosummary/nw.html.md#nw.register_genre_limits)(genre_slug, limits)         | Register the numeric limits a genre's operations enforce; returns them as a dict.                                                     |
-| [`genre_limits`](_autosummary/nw.html.md#nw.genre_limits)(genre_slug)                          | The limits registered for `genre_slug` (`{}` if none); a copy.                                                                        |
-| [`genre_status_of`](_autosummary/nw.html.md#nw.genre_status_of)(project, \*[, max_bytes, ...])    | `project.genre_status()` made safe to serve: a JSON dict, or `None`.                                                                  |
-| [`is_rewritten`](_autosummary/nw.html.md#nw.is_rewritten)(project, marker)                     | Whether the rewrite named `marker` has completed on this project.                                                                     |
-| [`mark_rewritten`](_autosummary/nw.html.md#nw.mark_rewritten)(project, marker)                   | Record `marker` as done without scanning: for a project created already in today's vocabulary, so opening it never pays for the scan. |
-| [`rewrite_values`](_autosummary/nw.html.md#nw.rewrite_values)(project, fn, \*[, marker, where])  | Apply `fn(body) -> body` to every stored annotation body; return how many changed.                                                    |
-| [`adopt_tenant_id`](_autosummary/nw.html.md#nw.adopt_tenant_id)(project, \*[, dry_run])           | Pin a legacy project's historical tenant into `project.json` (nw#112).                                                                |
-| [`as_project_storage`](_autosummary/nw.html.md#nw.as_project_storage)(project)                       | The [`ProjectStorage`](_autosummary/nw.html.md#nw.ProjectStorage) for a path, a storage, or an `nw.Project`.                        |
-| [`register_project_storage`](_autosummary/nw.html.md#nw.register_project_storage)(name, resolver)          | Register a resolver that recognises a genre's project folders.                                                                        |
-| [`annotations_at_tier`](_autosummary/nw.html.md#nw.annotations_at_tier)(project_root, tier)           | Return every annotation at the given tier across all of the project's stores.                                                         |
-| [`apply_to_projects`](_autosummary/nw.html.md#nw.apply_to_projects)(roots, fn, \*[, parallel])      | Apply `fn` to each project at `roots` and collect the results.                                                                        |
-| [`clone_project`](_autosummary/nw.html.md#nw.clone_project)(src_root, dst_root, \*[, ...])      | Clone an nw project to a new root.                                                                                                    |
-| [`backfill_traces`](_autosummary/nw.html.md#nw.backfill_traces)(project_root, \*[, execute])      | Bless a pre-trace project so the verifying-trace rule can read it (nw#58).                                                            |
-| [`collect_orphan_traces`](_autosummary/nw.html.md#nw.collect_orphan_traces)(project_root)               | Drop verifying traces whose target annotation no longer exists.                                                                       |
-| [`compose_report`](_autosummary/nw.html.md#nw.compose_report)(project, \*[, ...])                | Per-shot reports + final-compose inspection in one call.                                                                              |
-| [`derived_from`](_autosummary/nw.html.md#nw.derived_from)(project_root, annotation_id)         | Return the annotations this one was directly derived from.                                                                            |
-| [`descendants_of`](_autosummary/nw.html.md#nw.descendants_of)(project_root, ancestor_id)         | Return every annotation whose provenance chain leads back to `ancestor_id`.                                                           |
-| [`execute_render`](_autosummary/nw.html.md#nw.execute_render)(prep, plan, \*[, on_event, ...])   | Execute a Plan, materialize the result as `shot_dir/output.mp4`.                                                                      |
-| [`get_genre`](_autosummary/nw.html.md#nw.get_genre)(slug)                                   | Look up a genre by slug; raises [`KeyError`](https://docs.python.org/3/builtins/exceptions.html#KeyError) with the known slugs.       |
-| [`get_strategy`](_autosummary/nw.html.md#nw.get_strategy)(name)                                | Look up a strategy by name; raises if unknown.                                                                                        |
-| [`get_transform`](_autosummary/nw.html.md#nw.get_transform)(name)                               | Look up a Transform instance by name; raises with the known names.                                                                    |
-| [`is_migrated`](_autosummary/nw.html.md#nw.is_migrated)(project_root)                         | True iff this project has been migrated to the lacing graph.                                                                          |
-| [`iter_all_annotations`](_autosummary/nw.html.md#nw.iter_all_annotations)(project_root)                | Walk every annotation in every store under a project (any backend).                                                                   |
-| [`list_genres`](_autosummary/nw.html.md#nw.list_genres)()                                     | Return all registered genre slugs (sorted).                                                                                           |
-| [`list_strategies`](_autosummary/nw.html.md#nw.list_strategies)()                                 | Return all registered strategy names (sorted).                                                                                        |
-| [`list_transforms`](_autosummary/nw.html.md#nw.list_transforms)()                                 | Return all registered Transform names (sorted).                                                                                       |
-| [`migrate_to_graph`](_autosummary/nw.html.md#nw.migrate_to_graph)(project_root, \*[, backup, ...]) | Migrate `project_root`'s project.json into the lacing graph.                                                                          |
-| [`open_project_stores`](_autosummary/nw.html.md#nw.open_project_stores)(project_root)                 | Yield an iterator of open stores, one per scope, honouring the backend.                                                               |
-| [`plan_render_shot`](_autosummary/nw.html.md#nw.plan_render_shot)(prep, \*[, quality, ...])        | Build a `falaw.Plan` for rendering a prepared shot.                                                                                   |
-| [`cost_records`](_autosummary/nw.html.md#nw.cost_records)(plan)                                | The JSON-able per-call cost rows nw persists in a decision payload.                                                                   |
-| [`current_quote`](_autosummary/nw.html.md#nw.current_quote)(plan, \*[, pricers])                | Re-quote `plan` at today's rates and report the result honestly.                                                                      |
-| [`plan_from_cost_records`](_autosummary/nw.html.md#nw.plan_from_cost_records)(records)                   | Rebuild a re-quotable `falaw.Plan` from [`cost_records()`](_autosummary/nw.html.md#nw.cost_records) rows.                         |
-| [`quote_from_cost_records`](_autosummary/nw.html.md#nw.quote_from_cost_records)(records, \*[, pricers])   | Today's price for the calls stored in a decision payload.                                                                             |
-| [`quote_render_decision`](_autosummary/nw.html.md#nw.quote_render_decision)(payload, \*[, pricers])     | Today's price for a `render_shot` decision payload.                                                                                   |
-| [`unquotable`](_autosummary/nw.html.md#nw.unquotable)(reason)                                | A quote for something that could not be re-quoted at all.                                                                             |
-| [`prepare_shot`](_autosummary/nw.html.md#nw.prepare_shot)(project, shot_id, \*[, upload])      | Resolve all local inputs for rendering a shot.                                                                                        |
-| [`register_genre`](_autosummary/nw.html.md#nw.register_genre)(genre)                             | Register a [`Genre`](_autosummary/nw.html.md#nw.Genre) under its `slug`; returns it for inline use.                        |
-| [`register_strategy`](_autosummary/nw.html.md#nw.register_strategy)(name, impl)                     | Register a strategy.                                                                                                                  |
-| [`register_transform`](_autosummary/nw.html.md#nw.register_transform)(name[, impl, tags])            | Register a Transform under `name`.                                                                                                    |
-| [`transform_catalog`](_autosummary/nw.html.md#nw.transform_catalog)()                               | Every registered Transform as a JSON-able capability entry (sorted by name).                                                          |
-| [`stamp_transform_identity`](_autosummary/nw.html.md#nw.stamp_transform_identity)(plan, transform)         | Fold `transform.impl_version` into every call's cache identity.                                                                       |
-| [`work_item_instance_id`](_autosummary/nw.html.md#nw.work_item_instance_id)(transform_name, ...)        | The instance id of one fan-out unit: UUIDv5 of `(transform_name, mapping_key)`.                                                       |
-| [`fan_out_plan`](_autosummary/nw.html.md#nw.fan_out_plan)(transform, project, items, \*, ...)  | Plan one Transform across `items` — each unit an ordinary `plan()` call.                                                              |
-| [`fan_out_execute`](_autosummary/nw.html.md#nw.fan_out_execute)(transform, project, fan_out, \*)  | Execute a planned fan-out, one ordinary `transform.execute` per unit.                                                                 |
-| [`as_secrets`](_autosummary/nw.html.md#nw.as_secrets)(secrets)                               | Coerce a caller-supplied mapping to [`Secrets`](_autosummary/nw.html.md#nw.Secrets); empty → `None`.                         |
-| [`redact`](_autosummary/nw.html.md#nw.redact)(text, secrets)                             | `text` with every secret value replaced by `<redacted:name>`.                                                                         |
-| [`redact_exception`](_autosummary/nw.html.md#nw.redact_exception)(error, secrets)                  | The exception to re-raise so that nothing it *renders* carries a secret.                                                              |
-| [`using_secrets`](_autosummary/nw.html.md#nw.using_secrets)(secrets)                            | Bind the secrets nw itself knows how to use, for the duration of a block.                                                             |
-| [`shot_report`](_autosummary/nw.html.md#nw.shot_report)(project, shot_id, \*[, ...])          | Inspect `shots/<shot_id>/output.mp4` and return a typed report.                                                                       |
-| [`menu`](_autosummary/nw.html.md#nw.menu)(\*[, cost])                                  | Every registered check, name-ordered — what a user chooses from.                                                                      |
-| [`plan_checks`](_autosummary/nw.html.md#nw.plan_checks)(selection)                            | Order the selection into waves that may each run concurrently.                                                                        |
-| [`register_check`](_autosummary/nw.html.md#nw.register_check)([check])                           | Add a check to the menu, as a call or as a decorator.                                                                                 |
-| [`suggest`](_autosummary/nw.html.md#nw.suggest)(request, \*[, include_paid])              | Checks whose `example_requests` look like what the user just asked for.                                                               |
-| [`validate`](_autosummary/nw.html.md#nw.validate)(target, \*[, checks, max_workers, ...])  | Run `checks` against `target` and report.                                                                                             |
-| [`all_stale`](_autosummary/nw.html.md#nw.all_stale)(project_root)                           | Every annotation that is currently stale, regardless of cause.                                                                        |
-| [`stale_after`](_autosummary/nw.html.md#nw.stale_after)(project_root, changed_id)             | Return every annotation that `changed_id` actually invalidated.                                                                       |
-| [`stale_verdicts`](_autosummary/nw.html.md#nw.stale_verdicts)(project_root, changed_id)          | Classify every annotation downstream of `changed_id`.                                                                                 |
-| [`stale_verdicts_all`](_autosummary/nw.html.md#nw.stale_verdicts_all)(project_root)                  | Classify every derived annotation in the project — the snapshot form.                                                                 |
-| [`summarize_all`](_autosummary/nw.html.md#nw.summarize_all)(roots)                              | Convenience: return a [`ProjectSummary`](_autosummary/nw.html.md#nw.ProjectSummary) for each project.                               |
+| [`parse_ref`](_autosummary/nw.html.md#nw.parse_ref)(text)                                   | The ordinal in a spoken reference, or `None` if it isn't one.                                                                                                                     |
+|----------------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| [`format_ref`](_autosummary/nw.html.md#nw.format_ref)(n)                                     | The one spelling we print.                                                                                                                                                        |
+| [`genre_catalog`](_autosummary/nw.html.md#nw.genre_catalog)()                                   | Every registered genre as a JSON-able catalog entry (sorted by slug).                                                                                                             |
+| [`describe_genre`](_autosummary/nw.html.md#nw.describe_genre)(slug)                              | One genre's catalog entry (raises [`KeyError`](https://docs.python.org/3/builtins/exceptions.html#KeyError) if the slug is unknown).                                              |
+| [`recommend_genre`](_autosummary/nw.html.md#nw.recommend_genre)(kind)                             | The slug of the genre whose `intake_kinds` contains `kind` (first in slug order), or `None` when `kind` is falsy / unmatched.                                                     |
+| [`resolve_defaults`](_autosummary/nw.html.md#nw.resolve_defaults)(genre[, template])               | Resolve a genre (+ optional template) to the params for a new project.                                                                                                            |
+| [`register_genre_resolver`](_autosummary/nw.html.md#nw.register_genre_resolver)(slug, resolver)           | Register a resolver for a genre slug; returns it for inline use.                                                                                                                  |
+| [`resolve_genre`](_autosummary/nw.html.md#nw.resolve_genre)(genre[, template])                  | Resolve a genre (+ optional template) to the standard creation envelope.                                                                                                          |
+| [`register_genre_initializer`](_autosummary/nw.html.md#nw.register_genre_initializer)(slug, initializer)     | Register an initializer for a genre slug; returns it for inline use.                                                                                                              |
+| [`initialize_genre`](_autosummary/nw.html.md#nw.initialize_genre)(genre, project, \*[, ...])       | Seed a freshly-created `project` for `genre` (+ optional `template`).                                                                                                             |
+| [`register_genre_project_factory`](_autosummary/nw.html.md#nw.register_genre_project_factory)(slug, factory)     | Register a project factory for a genre slug; returns it for inline use.                                                                                                           |
+| [`has_genre_project_factory`](_autosummary/nw.html.md#nw.has_genre_project_factory)(slug)                   | True iff a plugged-in project factory is registered for `slug`.                                                                                                                   |
+| [`can_place_genre_project`](_autosummary/nw.html.md#nw.can_place_genre_project)(slug)                     | True iff `slug`'s registered factory accepts host **placement**.                                                                                                                  |
+| [`create_genre_project`](_autosummary/nw.html.md#nw.create_genre_project)(genre, caller, ...[, ...])   | Create + seed a new project for a PLUGGED-IN `genre` in `caller`'s space.                                                                                                         |
+| [`register_genre_ops`](_autosummary/nw.html.md#nw.register_genre_ops)(genre_slug, ops)               | Register the operations a genre offers on its projects; returns them as a tuple.                                                                                                  |
+| [`genre_ops`](_autosummary/nw.html.md#nw.genre_ops)(genre_slug)                             | The ops registered for `genre_slug`, in registration order (`()` if none).                                                                                                        |
+| [`genre_op`](_autosummary/nw.html.md#nw.genre_op)(genre_slug, name)                        | The op `name` of `genre_slug`; [`UnknownGenreOpError`](_autosummary/nw.html.md#nw.UnknownGenreOpError) naming the known.                                                             |
+| [`genre_ops_catalogue`](_autosummary/nw.html.md#nw.genre_ops_catalogue)(genre_slug)                   | The pure-JSON catalogue of `genre_slug`'s ops (`[]` for a genre with none).                                                                                                       |
+| [`register_genre_limits`](_autosummary/nw.html.md#nw.register_genre_limits)(genre_slug, limits)         | Register the numeric limits a genre's operations enforce; returns them as a dict.                                                                                                 |
+| [`genre_limits`](_autosummary/nw.html.md#nw.genre_limits)(genre_slug)                          | The limits registered for `genre_slug` (`{}` if none); a copy.                                                                                                                    |
+| [`genre_status_of`](_autosummary/nw.html.md#nw.genre_status_of)(project, \*[, max_bytes, ...])    | `project.genre_status()` made safe to serve: a JSON dict, or `None`.                                                                                                              |
+| [`is_rewritten`](_autosummary/nw.html.md#nw.is_rewritten)(project, marker)                     | Whether the rewrite named `marker` has completed on this project.                                                                                                                 |
+| [`mark_rewritten`](_autosummary/nw.html.md#nw.mark_rewritten)(project, marker)                   | Record `marker` as done without scanning: for a project created already in today's vocabulary, so opening it never pays for the scan.                                             |
+| [`rewrite_values`](_autosummary/nw.html.md#nw.rewrite_values)(project, fn, \*[, marker, where])  | Apply `fn(body) -> body` to every stored annotation body; return how many changed.                                                                                                |
+| [`unmark_rewritten`](_autosummary/nw.html.md#nw.unmark_rewritten)(project, marker)                 | Forget that `marker` ran, so the next [`rewrite_values()`](_autosummary/nw.html.md#nw.rewrite_values) with it scans again (a test simulating a project made before the rename). |
+| [`adopt_tenant_id`](_autosummary/nw.html.md#nw.adopt_tenant_id)(project, \*[, dry_run])           | Pin a legacy project's historical tenant into `project.json` (nw#112).                                                                                                            |
+| [`as_project_storage`](_autosummary/nw.html.md#nw.as_project_storage)(project)                       | The [`ProjectStorage`](_autosummary/nw.html.md#nw.ProjectStorage) for a path, a storage, or an `nw.Project`.                                                                    |
+| [`register_project_storage`](_autosummary/nw.html.md#nw.register_project_storage)(name, resolver)          | Register a resolver that recognises a genre's project folders.                                                                                                                    |
+| [`annotations_at_tier`](_autosummary/nw.html.md#nw.annotations_at_tier)(project_root, tier)           | Return every annotation at the given tier across all of the project's stores.                                                                                                     |
+| [`apply_to_projects`](_autosummary/nw.html.md#nw.apply_to_projects)(roots, fn, \*[, parallel])      | Apply `fn` to each project at `roots` and collect the results.                                                                                                                    |
+| [`clone_project`](_autosummary/nw.html.md#nw.clone_project)(src_root, dst_root, \*[, ...])      | Clone an nw project to a new root.                                                                                                                                                |
+| [`backfill_traces`](_autosummary/nw.html.md#nw.backfill_traces)(project_root, \*[, execute])      | Bless a pre-trace project so the verifying-trace rule can read it (nw#58).                                                                                                        |
+| [`collect_orphan_traces`](_autosummary/nw.html.md#nw.collect_orphan_traces)(project_root)               | Drop verifying traces whose target annotation no longer exists.                                                                                                                   |
+| [`compose_report`](_autosummary/nw.html.md#nw.compose_report)(project, \*[, ...])                | Per-shot reports + final-compose inspection in one call.                                                                                                                          |
+| [`derived_from`](_autosummary/nw.html.md#nw.derived_from)(project_root, annotation_id)         | Return the annotations this one was directly derived from.                                                                                                                        |
+| [`descendants_of`](_autosummary/nw.html.md#nw.descendants_of)(project_root, ancestor_id)         | Return every annotation whose provenance chain leads back to `ancestor_id`.                                                                                                       |
+| [`execute_render`](_autosummary/nw.html.md#nw.execute_render)(prep, plan, \*[, on_event, ...])   | Execute a Plan, materialize the result as `shot_dir/output.mp4`.                                                                                                                  |
+| [`get_genre`](_autosummary/nw.html.md#nw.get_genre)(slug)                                   | Look up a genre by slug; raises [`KeyError`](https://docs.python.org/3/builtins/exceptions.html#KeyError) with the known slugs.                                                   |
+| [`get_strategy`](_autosummary/nw.html.md#nw.get_strategy)(name)                                | Look up a strategy by name; raises if unknown.                                                                                                                                    |
+| [`get_transform`](_autosummary/nw.html.md#nw.get_transform)(name)                               | Look up a Transform instance by name; raises with the known names.                                                                                                                |
+| [`is_migrated`](_autosummary/nw.html.md#nw.is_migrated)(project_root)                         | True iff this project has been migrated to the lacing graph.                                                                                                                      |
+| [`iter_all_annotations`](_autosummary/nw.html.md#nw.iter_all_annotations)(project_root)                | Walk every annotation in every store under a project (any backend).                                                                                                               |
+| [`list_genres`](_autosummary/nw.html.md#nw.list_genres)()                                     | Return all registered genre slugs (sorted).                                                                                                                                       |
+| [`list_strategies`](_autosummary/nw.html.md#nw.list_strategies)()                                 | Return all registered strategy names (sorted).                                                                                                                                    |
+| [`list_transforms`](_autosummary/nw.html.md#nw.list_transforms)()                                 | Return all registered Transform names (sorted).                                                                                                                                   |
+| [`migrate_to_graph`](_autosummary/nw.html.md#nw.migrate_to_graph)(project_root, \*[, backup, ...]) | Migrate `project_root`'s project.json into the lacing graph.                                                                                                                      |
+| [`open_project_stores`](_autosummary/nw.html.md#nw.open_project_stores)(project_root)                 | Yield an iterator of open stores, one per scope, honouring the backend.                                                                                                           |
+| [`plan_render_shot`](_autosummary/nw.html.md#nw.plan_render_shot)(prep, \*[, quality, ...])        | Build a `falaw.Plan` for rendering a prepared shot.                                                                                                                               |
+| [`cost_records`](_autosummary/nw.html.md#nw.cost_records)(plan)                                | The JSON-able per-call cost rows nw persists in a decision payload.                                                                                                               |
+| [`current_quote`](_autosummary/nw.html.md#nw.current_quote)(plan, \*[, pricers])                | Re-quote `plan` at today's rates and report the result honestly.                                                                                                                  |
+| [`plan_from_cost_records`](_autosummary/nw.html.md#nw.plan_from_cost_records)(records)                   | Rebuild a re-quotable `falaw.Plan` from [`cost_records()`](_autosummary/nw.html.md#nw.cost_records) rows.                                                                     |
+| [`quote_from_cost_records`](_autosummary/nw.html.md#nw.quote_from_cost_records)(records, \*[, pricers])   | Today's price for the calls stored in a decision payload.                                                                                                                         |
+| [`quote_render_decision`](_autosummary/nw.html.md#nw.quote_render_decision)(payload, \*[, pricers])     | Today's price for a `render_shot` decision payload.                                                                                                                               |
+| [`unquotable`](_autosummary/nw.html.md#nw.unquotable)(reason)                                | A quote for something that could not be re-quoted at all.                                                                                                                         |
+| [`prepare_shot`](_autosummary/nw.html.md#nw.prepare_shot)(project, shot_id, \*[, upload])      | Resolve all local inputs for rendering a shot.                                                                                                                                    |
+| [`register_genre`](_autosummary/nw.html.md#nw.register_genre)(genre)                             | Register a [`Genre`](_autosummary/nw.html.md#nw.Genre) under its `slug`; returns it for inline use.                                                                    |
+| [`register_strategy`](_autosummary/nw.html.md#nw.register_strategy)(name, impl)                     | Register a strategy.                                                                                                                                                              |
+| [`register_transform`](_autosummary/nw.html.md#nw.register_transform)(name[, impl, tags])            | Register a Transform under `name`.                                                                                                                                                |
+| [`transform_catalog`](_autosummary/nw.html.md#nw.transform_catalog)()                               | Every registered Transform as a JSON-able capability entry (sorted by name).                                                                                                      |
+| [`stamp_transform_identity`](_autosummary/nw.html.md#nw.stamp_transform_identity)(plan, transform)         | Fold `transform.impl_version` into every call's cache identity.                                                                                                                   |
+| [`work_item_instance_id`](_autosummary/nw.html.md#nw.work_item_instance_id)(transform_name, ...)        | The instance id of one fan-out unit: UUIDv5 of `(transform_name, mapping_key)`.                                                                                                   |
+| [`fan_out_plan`](_autosummary/nw.html.md#nw.fan_out_plan)(transform, project, items, \*, ...)  | Plan one Transform across `items` — each unit an ordinary `plan()` call.                                                                                                          |
+| [`fan_out_execute`](_autosummary/nw.html.md#nw.fan_out_execute)(transform, project, fan_out, \*)  | Execute a planned fan-out, one ordinary `transform.execute` per unit.                                                                                                             |
+| [`as_secrets`](_autosummary/nw.html.md#nw.as_secrets)(secrets)                               | Coerce a caller-supplied mapping to [`Secrets`](_autosummary/nw.html.md#nw.Secrets); empty → `None`.                                                                     |
+| [`redact`](_autosummary/nw.html.md#nw.redact)(text, secrets)                             | `text` with every secret value replaced by `<redacted:name>`.                                                                                                                     |
+| [`redact_exception`](_autosummary/nw.html.md#nw.redact_exception)(error, secrets)                  | The exception to re-raise so that nothing it *renders* carries a secret.                                                                                                          |
+| [`using_secrets`](_autosummary/nw.html.md#nw.using_secrets)(secrets)                            | Bind the secrets nw itself knows how to use, for the duration of a block.                                                                                                         |
+| [`shot_report`](_autosummary/nw.html.md#nw.shot_report)(project, shot_id, \*[, ...])          | Inspect `shots/<shot_id>/output.mp4` and return a typed report.                                                                                                                   |
+| [`menu`](_autosummary/nw.html.md#nw.menu)(\*[, cost])                                  | Every registered check, name-ordered — what a user chooses from.                                                                                                                  |
+| [`plan_checks`](_autosummary/nw.html.md#nw.plan_checks)(selection)                            | Order the selection into waves that may each run concurrently.                                                                                                                    |
+| [`register_check`](_autosummary/nw.html.md#nw.register_check)([check])                           | Add a check to the menu, as a call or as a decorator.                                                                                                                             |
+| [`suggest`](_autosummary/nw.html.md#nw.suggest)(request, \*[, include_paid])              | Checks whose `example_requests` look like what the user just asked for.                                                                                                           |
+| [`validate`](_autosummary/nw.html.md#nw.validate)(target, \*[, checks, max_workers, ...])  | Run `checks` against `target` and report.                                                                                                                                         |
+| [`all_stale`](_autosummary/nw.html.md#nw.all_stale)(project_root)                           | Every annotation that is currently stale, regardless of cause.                                                                                                                    |
+| [`stale_after`](_autosummary/nw.html.md#nw.stale_after)(project_root, changed_id)             | Return every annotation that `changed_id` actually invalidated.                                                                                                                   |
+| [`stale_verdicts`](_autosummary/nw.html.md#nw.stale_verdicts)(project_root, changed_id)          | Classify every annotation downstream of `changed_id`.                                                                                                                             |
+| [`stale_verdicts_all`](_autosummary/nw.html.md#nw.stale_verdicts_all)(project_root)                  | Classify every derived annotation in the project — the snapshot form.                                                                                                             |
+| [`summarize_all`](_autosummary/nw.html.md#nw.summarize_all)(roots)                              | Convenience: return a [`ProjectSummary`](_autosummary/nw.html.md#nw.ProjectSummary) for each project.                                                                           |
 
 ### Classes
 
@@ -6565,6 +6566,17 @@ list is JSON-serializable as returned.
 * **Return type:**
   [`list`](https://docs.python.org/3/builtins/stdtypes.html#list)[[`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)]
 
+### nw.unmark_rewritten(project, marker)
+
+Forget that `marker` ran, so the next [`rewrite_values()`](_autosummary/nw.html.md#nw.rewrite_values) with it scans
+again (a test simulating a project made before the rename). Idempotent: an
+absent marker is not an error and writes nothing. A present one is removed
+under `LOCK_NAME`, so a rewrite about to write it cannot undo the
+removal; its value is never read, so a corrupt marker can be cleared too.
+
+* **Return type:**
+  [`None`](https://docs.python.org/3/builtins/constants.html#None)
+
 ### nw.unquotable(reason)
 
 A quote for something that could not be re-quoted at all.
@@ -8917,11 +8929,12 @@ kept, because a rename is not a change of look.
 
 ### Functions
 
-| [`is_rewritten`](_autosummary/nw.rewrite.html.md#nw.rewrite.is_rewritten)(project, marker)                    | Whether the rewrite named `marker` has completed on this project.                                                                     |
-|---------------------------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------|
-| [`is_value_row`](_autosummary/nw.rewrite.html.md#nw.rewrite.is_value_row)(ann)                                | The default `where`: every annotation except nw's verifying traces.                                                                   |
-| [`mark_rewritten`](_autosummary/nw.rewrite.html.md#nw.rewrite.mark_rewritten)(project, marker)                  | Record `marker` as done without scanning: for a project created already in today's vocabulary, so opening it never pays for the scan. |
-| [`rewrite_values`](_autosummary/nw.rewrite.html.md#nw.rewrite.rewrite_values)(project, fn, \*[, marker, where]) | Apply `fn(body) -> body` to every stored annotation body; return how many changed.                                                    |
+| [`is_rewritten`](_autosummary/nw.rewrite.html.md#nw.rewrite.is_rewritten)(project, marker)                    | Whether the rewrite named `marker` has completed on this project.                                                                                                                 |
+|---------------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| [`is_value_row`](_autosummary/nw.rewrite.html.md#nw.rewrite.is_value_row)(ann)                                | The default `where`: every annotation except nw's verifying traces.                                                                                                               |
+| [`mark_rewritten`](_autosummary/nw.rewrite.html.md#nw.rewrite.mark_rewritten)(project, marker)                  | Record `marker` as done without scanning: for a project created already in today's vocabulary, so opening it never pays for the scan.                                             |
+| [`rewrite_values`](_autosummary/nw.rewrite.html.md#nw.rewrite.rewrite_values)(project, fn, \*[, marker, where]) | Apply `fn(body) -> body` to every stored annotation body; return how many changed.                                                                                                |
+| [`unmark_rewritten`](_autosummary/nw.rewrite.html.md#nw.rewrite.unmark_rewritten)(project, marker)                | Forget that `marker` ran, so the next [`rewrite_values()`](_autosummary/nw.rewrite.html.md#nw.rewrite.rewrite_values) with it scans again (a test simulating a project made before the rename). |
 
 ### nw.rewrite.LOCK_NAME *= 'rewrite-values'*
 
@@ -8991,6 +9004,17 @@ mid-rewrite leaves that trace stale (conservative, never wrong-fresh).
 
 * **Return type:**
   [`int`](https://docs.python.org/3/builtins/functions.html#int)
+
+### nw.rewrite.unmark_rewritten(project, marker)
+
+Forget that `marker` ran, so the next [`rewrite_values()`](_autosummary/nw.rewrite.html.md#nw.rewrite.rewrite_values) with it scans
+again (a test simulating a project made before the rename). Idempotent: an
+absent marker is not an error and writes nothing. A present one is removed
+under [`LOCK_NAME`](_autosummary/nw.rewrite.html.md#nw.rewrite.LOCK_NAME), so a rewrite about to write it cannot undo the
+removal; its value is never read, so a corrupt marker can be cleared too.
+
+* **Return type:**
+  [`None`](https://docs.python.org/3/builtins/constants.html#None)
 
 
 # _autosummary/nw.schema.html.md
@@ -9671,7 +9695,8 @@ A `dol` `MutableMapping` keyed by project-relative POSIX path
 (`"project.json"`, `"characters/<name>/card.json"`,
 `"shots/<id>/shot.json"`, the `".nw/migrated_to_graph"` sentinel).
 Values are Python objects; on disk they are `indent=2` JSON. Parent
-directories are created on write; a missing key raises `KeyError`.
+directories are created on write; a missing key raises `KeyError`; a
+delete removes the file (never to the OS trash, dol’s default).
 
 * **Return type:**
   [`MutableMapping`](https://docs.python.org/3/library/typing.html#typing.MutableMapping)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str), [`Any`](https://docs.python.org/3/library/typing.html#typing.Any)]
@@ -10344,7 +10369,7 @@ produce different URLs. The local file paths are byte-stable.
 
 # About this build
 
-This documentation was built on **2026-10-27 06:47 UTC** from commit <a href="https://github.com/reeleehq/nw/commit/ec6d82bb920e3b6baf27c9b7c6cc8ed0e7b08620"><code>ec6d82b</code></a> on branch <code>main</code>, for **nw 0.0.85** (from <code>pyproject.toml</code>).
+This documentation was built on **2026-10-27 09:07 UTC** from commit <a href="https://github.com/reeleehq/nw/commit/74b1af31d3458f8c26e0546c668d17da7225b0a9"><code>74b1af3</code></a> on branch <code>main</code>, for **nw 0.0.86** (from <code>pyproject.toml</code>).
 
 #### NOTE
 Nothing suggests a mismatch: the tree was clean at the commit above, and the documented version is the one on PyPI.
@@ -10353,9 +10378,9 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 
 |                     |                                                                                                                                                    |
 |---------------------|----------------------------------------------------------------------------------------------------------------------------------------------------|
-| Commit              | <a href="https://github.com/reeleehq/nw/commit/ec6d82bb920e3b6baf27c9b7c6cc8ed0e7b08620"><code>ec6d82bb920e3b6baf27c9b7c6cc8ed0e7b08620</code></a> |
+| Commit              | <a href="https://github.com/reeleehq/nw/commit/74b1af31d3458f8c26e0546c668d17da7225b0a9"><code>74b1af31d3458f8c26e0546c668d17da7225b0a9</code></a> |
 | Branch              | <code>main</code>                                                                                                                                  |
-| Tags at this commit | <code>0.0.85</code>                                                                                                                                |
+| Tags at this commit | <code>0.0.86</code>                                                                                                                                |
 | Working tree        | clean                                                                                                                                              |
 | Remote              | <code>https://github.com/reeleehq/nw</code>                                                                                                        |
 
@@ -10364,9 +10389,9 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 |              |                                                                                            |
 |--------------|--------------------------------------------------------------------------------------------|
 | Repository   | <code>reeleehq/nw</code>                                                                   |
-| Run          | <a href="https://github.com/reeleehq/nw/actions/runs/40462892404">40462892404</a>          |
+| Run          | <a href="https://github.com/reeleehq/nw/actions/runs/40477609511">40477609511</a>          |
 | Ref          | <code>refs/heads/main</code>                                                               |
-| Event commit | <code>25702bf05974dfa116975ff8805972a46eb49ba1</code> (in the history of the built commit) |
+| Event commit | <code>b5839f80b910424b5a94c411aef9717c9d56325a</code> (in the history of the built commit) |
 
 ## Tools
 
@@ -10391,13 +10416,13 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 
 ## Package on PyPI
 
-Latest release: <a href="https://pypi.org/project/nw/0.0.85/">0.0.85</a>, the same as the documented version.
+Latest release: <a href="https://pypi.org/project/nw/0.0.86/">0.0.86</a>, the same as the documented version.
 
 ## Reproduce
 
 ```bash
 git clone https://github.com/reeleehq/nw && cd nw
-git checkout ec6d82bb920e3b6baf27c9b7c6cc8ed0e7b08620
+git checkout 74b1af31d3458f8c26e0546c668d17da7225b0a9
 pip install "epythet==0.2.22"
 epythet quickstart . --ignore tests/ scrap/ examples/
 ```

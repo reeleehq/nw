@@ -132,6 +132,7 @@ data-aria-dark="Switch to auto color mode">
 <li><a class="reference internal" href="#nw.rewrite.is_value_row"><code class="docutils literal notranslate"><span class="pre">is_value_row()</span></code></a></li>
 <li><a class="reference internal" href="#nw.rewrite.mark_rewritten"><code class="docutils literal notranslate"><span class="pre">mark_rewritten()</span></code></a></li>
 <li><a class="reference internal" href="#nw.rewrite.rewrite_values"><code class="docutils literal notranslate"><span class="pre">rewrite_values()</span></code></a></li>
+<li><a class="reference internal" href="#nw.rewrite.unmark_rewritten"><code class="docutils literal notranslate"><span class="pre">unmark_rewritten()</span></code></a></li>
 </ul>
 </div><div id="ethical-ad-placement" data-ea-publisher="readthedocs"></div></div>
   </aside>
@@ -234,6 +235,9 @@ kept, because a rename is not a change of look.</p>
 <tr class="row-even"><td><p><a class="reference internal" href="#nw.rewrite.rewrite_values" title="nw.rewrite.rewrite_values"><code class="xref py py-obj docutils literal notranslate"><span class="pre">rewrite_values</span></code></a>(project, fn, *[, marker, where])</p></td>
 <td><p>Apply <code class="docutils literal notranslate"><span class="pre">fn(body)</span> <span class="pre">-&gt;</span> <span class="pre">body</span></code> to every stored annotation body; return how many changed.</p></td>
 </tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#nw.rewrite.unmark_rewritten" title="nw.rewrite.unmark_rewritten"><code class="xref py py-obj docutils literal notranslate"><span class="pre">unmark_rewritten</span></code></a>(project, marker)</p></td>
+<td><p>Forget that <code class="docutils literal notranslate"><span class="pre">marker</span></code> ran, so the next <a class="reference internal" href="#nw.rewrite.rewrite_values" title="nw.rewrite.rewrite_values"><code class="xref py py-func docutils literal notranslate"><span class="pre">rewrite_values()</span></code></a> with it scans again (a test simulating a project made before the rename).</p></td>
+</tr>
 </tbody>
 </table>
 </div>
@@ -325,6 +329,21 @@ mid-rewrite leaves that trace stale (conservative, never wrong-fresh).</p>
 </dl>
 </dd></dl>
 
+<dl class="py function">
+<dt class="sig sig-object py" id="nw.rewrite.unmark_rewritten">
+<span class="sig-prename descclassname"><span class="pre">nw.rewrite.</span></span><span class="sig-name descname"><span class="pre">unmark_rewritten</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">project</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">marker</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/nw/rewrite.html#unmark_rewritten"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nw.rewrite.unmark_rewritten" title="Link to this definition">#</a></dt>
+<dd><p>Forget that <code class="docutils literal notranslate"><span class="pre">marker</span></code> ran, so the next <a class="reference internal" href="#nw.rewrite.rewrite_values" title="nw.rewrite.rewrite_values"><code class="xref py py-func docutils literal notranslate"><span class="pre">rewrite_values()</span></code></a> with it scans
+again (a test simulating a project made before the rename). Idempotent: an
+absent marker is not an error and writes nothing. A present one is removed
+under <a class="reference internal" href="#nw.rewrite.LOCK_NAME" title="nw.rewrite.LOCK_NAME"><code class="xref py py-data docutils literal notranslate"><span class="pre">LOCK_NAME</span></code></a>, so a rewrite about to write it cannot undo the
+removal; its value is never read, so a corrupt marker can be cleared too.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><span class="highlight sphinx_autodoc_typehints-value"><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></a></span></span></p>
+</dd>
+</dl>
+</dd></dl>
+
 </section>
 
         </article><button class="back-to-top" type="button">
@@ -367,7 +386,7 @@ mid-rewrite leaves that trace stale (conservative, never wrong-fresh).</p>
     </div>
   </div>
 </footer>
-      <script src="../_static/documentation_options.js?v=04662272"></script>
+      <script src="../_static/documentation_options.js?v=339ea818"></script>
       <script src="../_static/doctools.js?v=fd6eb6e6"></script>
       <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script src="../_static/clipboard.min.js?v=a7894cd8"></script>

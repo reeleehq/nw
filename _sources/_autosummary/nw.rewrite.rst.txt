@@ -20,4 +20,5 @@ nw.rewrite
       is_value_row
       mark_rewritten
       rewrite_values
+      unmark_rewritten
    

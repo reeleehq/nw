@@ -292,78 +292,101 @@ data-aria-dark="Switch to auto color mode">
 
 </span><span data-line="124">
 </span><span data-line="125">
-</span><span data-line="126"><span class="k">def</span><span class="w"> </span><span class="nf">_marker_key</span><span class="p">(</span><span class="n">marker</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
-</span><span data-line="127">    <span class="k">if</span> <span class="ow">not</span> <span class="n">MARKER_PATTERN</span><span class="o">.</span><span class="n">fullmatch</span><span class="p">(</span><span class="n">marker</span><span class="p">):</span>
-</span><span data-line="128">        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-</span><span data-line="129">            <span class="sa">f</span><span class="s2">"marker must match </span><span class="si">{</span><span class="n">MARKER_PATTERN</span><span class="o">.</span><span class="n">pattern</span><span class="si">!r}</span><span class="s2">, got </span><span class="si">{</span><span class="n">marker</span><span class="si">!r}</span><span class="s2">"</span>
-</span><span data-line="130">        <span class="p">)</span>
-</span><span data-line="131">    <span class="k">return</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">MARKER_PREFIX</span><span class="si">}{</span><span class="n">marker</span><span class="si">}</span><span class="s2">.json"</span>
-</span><span data-line="132">
-</span><span data-line="133">
-</span><span data-line="134"><span class="k">def</span><span class="w"> </span><span class="nf">_rewritten</span><span class="p">(</span><span class="n">ann</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">fn</span><span class="p">,</span> <span class="n">where</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
-</span><span data-line="135"><span class="w">    </span><span class="sd">"""``ann`` with ``fn`` applied to a private copy of its body, or ``None`` if</span>
-</span><span data-line="136"><span class="sd">    ``where`` skips it or the body comes back equal."""</span>
-</span><span data-line="137">    <span class="k">if</span> <span class="ow">not</span> <span class="n">where</span><span class="p">(</span><span class="n">ann</span><span class="p">):</span>
-</span><span data-line="138">        <span class="k">return</span> <span class="kc">None</span>
-</span><span data-line="139">    <span class="n">new_body</span> <span class="o">=</span> <span class="n">fn</span><span class="p">(</span><span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">ann</span><span class="o">.</span><span class="n">body</span><span class="p">))</span>
-</span><span data-line="140">    <span class="k">return</span> <span class="kc">None</span> <span class="k">if</span> <span class="n">new_body</span> <span class="o">==</span> <span class="n">ann</span><span class="o">.</span><span class="n">body</span> <span class="k">else</span> <span class="n">ann</span><span class="o">.</span><span class="n">model_copy</span><span class="p">(</span><span class="n">update</span><span class="o">=</span><span class="p">{</span><span class="s2">"body"</span><span class="p">:</span> <span class="n">new_body</span><span class="p">})</span>
-</span><span data-line="141">
-</span><span data-line="142">
-</span><span data-line="143"><span class="k">def</span><span class="w"> </span><span class="nf">_rewrite</span><span class="p">(</span><span class="n">storage</span><span class="p">,</span> <span class="n">fn</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">Any</span><span class="p">],</span> <span class="n">Any</span><span class="p">],</span> <span class="n">where</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
-</span><span data-line="144">    <span class="n">plan</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span>
-</span><span data-line="145">        <span class="n">UUID</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span>
-</span><span data-line="146">    <span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>  <span class="c1"># id -&gt; (old annotation, rewritten annotation)</span>
-</span><span data-line="147">    <span class="k">with</span> <span class="n">storage</span><span class="o">.</span><span class="n">open_stores</span><span class="p">()</span> <span class="k">as</span> <span class="n">stores</span><span class="p">:</span>
-</span><span data-line="148">        <span class="k">for</span> <span class="n">store</span> <span class="ow">in</span> <span class="n">stores</span><span class="p">:</span>
-</span><span data-line="149">            <span class="k">for</span> <span class="n">ann</span> <span class="ow">in</span> <span class="n">store</span><span class="o">.</span><span class="n">all</span><span class="p">():</span>
-</span><span data-line="150">                <span class="n">new</span> <span class="o">=</span> <span class="n">_rewritten</span><span class="p">(</span><span class="n">ann</span><span class="p">,</span> <span class="n">fn</span><span class="p">,</span> <span class="n">where</span><span class="p">)</span>
-</span><span data-line="151">                <span class="k">if</span> <span class="n">new</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-</span><span data-line="152">                    <span class="n">plan</span><span class="p">[</span><span class="n">ann</span><span class="o">.</span><span class="n">id</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">ann</span><span class="p">,</span> <span class="n">new</span><span class="p">)</span>
-</span><span data-line="153">    <span class="k">if</span> <span class="ow">not</span> <span class="n">plan</span><span class="p">:</span>
-</span><span data-line="154">        <span class="k">return</span> <span class="mi">0</span>
-</span><span data-line="155">    <span class="k">with</span> <span class="n">storage</span><span class="o">.</span><span class="n">open_stores</span><span class="p">()</span> <span class="k">as</span> <span class="n">stores</span><span class="p">:</span>
-</span><span data-line="156">        <span class="k">for</span> <span class="n">store</span> <span class="ow">in</span> <span class="n">stores</span><span class="p">:</span>
-</span><span data-line="157">            <span class="k">for</span> <span class="n">ann</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="n">store</span><span class="o">.</span><span class="n">all</span><span class="p">()):</span>
-</span><span data-line="158">                <span class="n">restamped</span> <span class="o">=</span> <span class="n">_restamped_trace</span><span class="p">(</span><span class="n">ann</span><span class="p">,</span> <span class="n">plan</span><span class="p">)</span>
-</span><span data-line="159">                <span class="k">if</span> <span class="n">restamped</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-</span><span data-line="160">                    <span class="n">store</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">restamped</span><span class="p">)</span>
-</span><span data-line="161">    <span class="n">written</span> <span class="o">=</span> <span class="mi">0</span>
-</span><span data-line="162">    <span class="k">with</span> <span class="n">storage</span><span class="o">.</span><span class="n">open_stores</span><span class="p">()</span> <span class="k">as</span> <span class="n">stores</span><span class="p">:</span>
-</span><span data-line="163">        <span class="k">for</span> <span class="n">store</span> <span class="ow">in</span> <span class="n">stores</span><span class="p">:</span>
-</span><span data-line="164">            <span class="k">for</span> <span class="n">ann</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="n">store</span><span class="o">.</span><span class="n">all</span><span class="p">()):</span>
-</span><span data-line="165">                <span class="n">new</span> <span class="o">=</span> <span class="n">_rewritten</span><span class="p">(</span><span class="n">ann</span><span class="p">,</span> <span class="n">fn</span><span class="p">,</span> <span class="n">where</span><span class="p">)</span>
-</span><span data-line="166">                <span class="k">if</span> <span class="n">new</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-</span><span data-line="167">                    <span class="n">store</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">new</span><span class="p">)</span>
-</span><span data-line="168">                    <span class="n">written</span> <span class="o">+=</span> <span class="mi">1</span>
-</span><span data-line="169">    <span class="k">return</span> <span class="n">written</span>
-</span><span data-line="170">
-</span><span data-line="171">
-</span><span data-line="172"><span class="k">def</span><span class="w"> </span><span class="nf">_restamped_trace</span><span class="p">(</span><span class="n">ann</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">plan</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="n">UUID</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="n">Any</span><span class="p">]])</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
-</span><span data-line="173"><span class="w">    </span><span class="sd">"""``ann`` (a verifying trace) with each upstream digest of a rewritten annotation</span>
-</span><span data-line="174"><span class="sd">    moved from the old body's digest to the new one's; ``None`` when nothing moves."""</span>
-</span><span data-line="175">    <span class="k">if</span> <span class="n">ann</span><span class="o">.</span><span class="n">body_schema_uri</span> <span class="o">!=</span> <span class="n">VERIFYING_TRACE_BODY_SCHEMA_URI</span><span class="p">:</span>
-</span><span data-line="176">        <span class="k">return</span> <span class="kc">None</span>
-</span><span data-line="177">    <span class="n">body</span> <span class="o">=</span> <span class="n">ann</span><span class="o">.</span><span class="n">body</span>
-</span><span data-line="178">    <span class="n">scheme</span> <span class="o">=</span> <span class="n">body</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"digest_scheme"</span><span class="p">)</span>
-</span><span data-line="179">    <span class="n">upstream</span> <span class="o">=</span> <span class="p">[]</span>
-</span><span data-line="180">    <span class="n">moved</span> <span class="o">=</span> <span class="kc">False</span>
-</span><span data-line="181">    <span class="k">for</span> <span class="n">entry</span> <span class="ow">in</span> <span class="n">body</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"upstream"</span><span class="p">)</span> <span class="ow">or</span> <span class="p">():</span>
-</span><span data-line="182">        <span class="k">try</span><span class="p">:</span>
-</span><span data-line="183">            <span class="n">old</span><span class="p">,</span> <span class="n">new</span> <span class="o">=</span> <span class="n">plan</span><span class="p">[</span><span class="n">UUID</span><span class="p">(</span><span class="n">entry</span><span class="p">[</span><span class="s2">"annotation_id"</span><span class="p">])]</span>
-</span><span data-line="184">            <span class="k">if</span> <span class="n">entry</span><span class="p">[</span><span class="s2">"value_digest"</span><span class="p">]</span> <span class="o">==</span> <span class="n">annotation_value_digest</span><span class="p">(</span><span class="n">old</span><span class="p">,</span> <span class="n">scheme</span><span class="o">=</span><span class="n">scheme</span><span class="p">):</span>
-</span><span data-line="185">                <span class="n">entry</span> <span class="o">=</span> <span class="p">{</span>
-</span><span data-line="186">                    <span class="o">**</span><span class="n">entry</span><span class="p">,</span>
-</span><span data-line="187">                    <span class="s2">"value_digest"</span><span class="p">:</span> <span class="n">annotation_value_digest</span><span class="p">(</span><span class="n">new</span><span class="p">,</span> <span class="n">scheme</span><span class="o">=</span><span class="n">scheme</span><span class="p">),</span>
-</span><span data-line="188">                <span class="p">}</span>
-</span><span data-line="189">                <span class="n">moved</span> <span class="o">=</span> <span class="kc">True</span>
-</span><span data-line="190">        <span class="k">except</span> <span class="p">(</span><span class="ne">KeyError</span><span class="p">,</span> <span class="ne">ValueError</span><span class="p">,</span> <span class="ne">TypeError</span><span class="p">):</span>
-</span><span data-line="191">            <span class="k">pass</span>
-</span><span data-line="192">        <span class="n">upstream</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">entry</span><span class="p">)</span>
-</span><span data-line="193">    <span class="k">return</span> <span class="p">(</span>
-</span><span data-line="194">        <span class="n">ann</span><span class="o">.</span><span class="n">model_copy</span><span class="p">(</span><span class="n">update</span><span class="o">=</span><span class="p">{</span><span class="s2">"body"</span><span class="p">:</span> <span class="p">{</span><span class="o">**</span><span class="n">body</span><span class="p">,</span> <span class="s2">"upstream"</span><span class="p">:</span> <span class="n">upstream</span><span class="p">}})</span>
-</span><span data-line="195">        <span class="k">if</span> <span class="n">moved</span>
-</span><span data-line="196">        <span class="k">else</span> <span class="kc">None</span>
-</span><span data-line="197">    <span class="p">)</span>
+<div class="viewcode-block" id="unmark_rewritten">
+<a class="viewcode-back" href="../../_autosummary/nw.rewrite.html#nw.unmark_rewritten">[docs]</a>
+</span><span data-line="126"><span class="k">def</span><span class="w"> </span><span class="nf">unmark_rewritten</span><span class="p">(</span><span class="n">project</span><span class="p">:</span> <span class="n">ProjectLike</span><span class="p">,</span> <span class="n">marker</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+</span><span data-line="127"><span class="w">    </span><span class="sd">"""Forget that ``marker`` ran, so the next :func:`rewrite_values` with it scans</span>
+</span><span data-line="128"><span class="sd">    again (a test simulating a project made before the rename). Idempotent: an</span>
+</span><span data-line="129"><span class="sd">    absent marker is not an error and writes nothing. A present one is removed</span>
+</span><span data-line="130"><span class="sd">    under :data:`LOCK_NAME`, so a rewrite about to write it cannot undo the</span>
+</span><span data-line="131"><span class="sd">    removal; its value is never read, so a corrupt marker can be cleared too."""</span>
+</span><span data-line="132">    <span class="n">key</span> <span class="o">=</span> <span class="n">_marker_key</span><span class="p">(</span><span class="n">marker</span><span class="p">)</span>
+</span><span data-line="133">    <span class="n">storage</span> <span class="o">=</span> <span class="n">as_project_storage</span><span class="p">(</span><span class="n">project</span><span class="p">)</span>
+</span><span data-line="134">    <span class="k">if</span> <span class="n">key</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">storage</span><span class="o">.</span><span class="n">docs</span><span class="p">:</span>
+</span><span data-line="135">        <span class="k">return</span>
+</span><span data-line="136">    <span class="k">with</span> <span class="n">project_lock</span><span class="p">(</span><span class="n">storage</span><span class="p">,</span> <span class="n">LOCK_NAME</span><span class="p">):</span>
+</span><span data-line="137">        <span class="k">try</span><span class="p">:</span>
+</span><span data-line="138">            <span class="k">del</span> <span class="n">storage</span><span class="o">.</span><span class="n">docs</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
+</span><span data-line="139">        <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+</span><span data-line="140">            <span class="c1"># dol reports any failed file delete as ``KeyError``; only a marker</span>
+</span><span data-line="141">            <span class="c1"># another unmark already removed may pass.</span>
+</span><span data-line="142">            <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">storage</span><span class="o">.</span><span class="n">docs</span><span class="p">:</span>
+</span><span data-line="143">                <span class="k">raise</span></div>
+
+</span><span data-line="144">
+</span><span data-line="145">
+</span><span data-line="146"><span class="k">def</span><span class="w"> </span><span class="nf">_marker_key</span><span class="p">(</span><span class="n">marker</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+</span><span data-line="147">    <span class="k">if</span> <span class="ow">not</span> <span class="n">MARKER_PATTERN</span><span class="o">.</span><span class="n">fullmatch</span><span class="p">(</span><span class="n">marker</span><span class="p">):</span>
+</span><span data-line="148">        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+</span><span data-line="149">            <span class="sa">f</span><span class="s2">"marker must match </span><span class="si">{</span><span class="n">MARKER_PATTERN</span><span class="o">.</span><span class="n">pattern</span><span class="si">!r}</span><span class="s2">, got </span><span class="si">{</span><span class="n">marker</span><span class="si">!r}</span><span class="s2">"</span>
+</span><span data-line="150">        <span class="p">)</span>
+</span><span data-line="151">    <span class="k">return</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">MARKER_PREFIX</span><span class="si">}{</span><span class="n">marker</span><span class="si">}</span><span class="s2">.json"</span>
+</span><span data-line="152">
+</span><span data-line="153">
+</span><span data-line="154"><span class="k">def</span><span class="w"> </span><span class="nf">_rewritten</span><span class="p">(</span><span class="n">ann</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">fn</span><span class="p">,</span> <span class="n">where</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
+</span><span data-line="155"><span class="w">    </span><span class="sd">"""``ann`` with ``fn`` applied to a private copy of its body, or ``None`` if</span>
+</span><span data-line="156"><span class="sd">    ``where`` skips it or the body comes back equal."""</span>
+</span><span data-line="157">    <span class="k">if</span> <span class="ow">not</span> <span class="n">where</span><span class="p">(</span><span class="n">ann</span><span class="p">):</span>
+</span><span data-line="158">        <span class="k">return</span> <span class="kc">None</span>
+</span><span data-line="159">    <span class="n">new_body</span> <span class="o">=</span> <span class="n">fn</span><span class="p">(</span><span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">ann</span><span class="o">.</span><span class="n">body</span><span class="p">))</span>
+</span><span data-line="160">    <span class="k">return</span> <span class="kc">None</span> <span class="k">if</span> <span class="n">new_body</span> <span class="o">==</span> <span class="n">ann</span><span class="o">.</span><span class="n">body</span> <span class="k">else</span> <span class="n">ann</span><span class="o">.</span><span class="n">model_copy</span><span class="p">(</span><span class="n">update</span><span class="o">=</span><span class="p">{</span><span class="s2">"body"</span><span class="p">:</span> <span class="n">new_body</span><span class="p">})</span>
+</span><span data-line="161">
+</span><span data-line="162">
+</span><span data-line="163"><span class="k">def</span><span class="w"> </span><span class="nf">_rewrite</span><span class="p">(</span><span class="n">storage</span><span class="p">,</span> <span class="n">fn</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">Any</span><span class="p">],</span> <span class="n">Any</span><span class="p">],</span> <span class="n">where</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+</span><span data-line="164">    <span class="n">plan</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span>
+</span><span data-line="165">        <span class="n">UUID</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span>
+</span><span data-line="166">    <span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>  <span class="c1"># id -&gt; (old annotation, rewritten annotation)</span>
+</span><span data-line="167">    <span class="k">with</span> <span class="n">storage</span><span class="o">.</span><span class="n">open_stores</span><span class="p">()</span> <span class="k">as</span> <span class="n">stores</span><span class="p">:</span>
+</span><span data-line="168">        <span class="k">for</span> <span class="n">store</span> <span class="ow">in</span> <span class="n">stores</span><span class="p">:</span>
+</span><span data-line="169">            <span class="k">for</span> <span class="n">ann</span> <span class="ow">in</span> <span class="n">store</span><span class="o">.</span><span class="n">all</span><span class="p">():</span>
+</span><span data-line="170">                <span class="n">new</span> <span class="o">=</span> <span class="n">_rewritten</span><span class="p">(</span><span class="n">ann</span><span class="p">,</span> <span class="n">fn</span><span class="p">,</span> <span class="n">where</span><span class="p">)</span>
+</span><span data-line="171">                <span class="k">if</span> <span class="n">new</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+</span><span data-line="172">                    <span class="n">plan</span><span class="p">[</span><span class="n">ann</span><span class="o">.</span><span class="n">id</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">ann</span><span class="p">,</span> <span class="n">new</span><span class="p">)</span>
+</span><span data-line="173">    <span class="k">if</span> <span class="ow">not</span> <span class="n">plan</span><span class="p">:</span>
+</span><span data-line="174">        <span class="k">return</span> <span class="mi">0</span>
+</span><span data-line="175">    <span class="k">with</span> <span class="n">storage</span><span class="o">.</span><span class="n">open_stores</span><span class="p">()</span> <span class="k">as</span> <span class="n">stores</span><span class="p">:</span>
+</span><span data-line="176">        <span class="k">for</span> <span class="n">store</span> <span class="ow">in</span> <span class="n">stores</span><span class="p">:</span>
+</span><span data-line="177">            <span class="k">for</span> <span class="n">ann</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="n">store</span><span class="o">.</span><span class="n">all</span><span class="p">()):</span>
+</span><span data-line="178">                <span class="n">restamped</span> <span class="o">=</span> <span class="n">_restamped_trace</span><span class="p">(</span><span class="n">ann</span><span class="p">,</span> <span class="n">plan</span><span class="p">)</span>
+</span><span data-line="179">                <span class="k">if</span> <span class="n">restamped</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+</span><span data-line="180">                    <span class="n">store</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">restamped</span><span class="p">)</span>
+</span><span data-line="181">    <span class="n">written</span> <span class="o">=</span> <span class="mi">0</span>
+</span><span data-line="182">    <span class="k">with</span> <span class="n">storage</span><span class="o">.</span><span class="n">open_stores</span><span class="p">()</span> <span class="k">as</span> <span class="n">stores</span><span class="p">:</span>
+</span><span data-line="183">        <span class="k">for</span> <span class="n">store</span> <span class="ow">in</span> <span class="n">stores</span><span class="p">:</span>
+</span><span data-line="184">            <span class="k">for</span> <span class="n">ann</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="n">store</span><span class="o">.</span><span class="n">all</span><span class="p">()):</span>
+</span><span data-line="185">                <span class="n">new</span> <span class="o">=</span> <span class="n">_rewritten</span><span class="p">(</span><span class="n">ann</span><span class="p">,</span> <span class="n">fn</span><span class="p">,</span> <span class="n">where</span><span class="p">)</span>
+</span><span data-line="186">                <span class="k">if</span> <span class="n">new</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+</span><span data-line="187">                    <span class="n">store</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">new</span><span class="p">)</span>
+</span><span data-line="188">                    <span class="n">written</span> <span class="o">+=</span> <span class="mi">1</span>
+</span><span data-line="189">    <span class="k">return</span> <span class="n">written</span>
+</span><span data-line="190">
+</span><span data-line="191">
+</span><span data-line="192"><span class="k">def</span><span class="w"> </span><span class="nf">_restamped_trace</span><span class="p">(</span><span class="n">ann</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">plan</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="n">UUID</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="n">Any</span><span class="p">]])</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
+</span><span data-line="193"><span class="w">    </span><span class="sd">"""``ann`` (a verifying trace) with each upstream digest of a rewritten annotation</span>
+</span><span data-line="194"><span class="sd">    moved from the old body's digest to the new one's; ``None`` when nothing moves."""</span>
+</span><span data-line="195">    <span class="k">if</span> <span class="n">ann</span><span class="o">.</span><span class="n">body_schema_uri</span> <span class="o">!=</span> <span class="n">VERIFYING_TRACE_BODY_SCHEMA_URI</span><span class="p">:</span>
+</span><span data-line="196">        <span class="k">return</span> <span class="kc">None</span>
+</span><span data-line="197">    <span class="n">body</span> <span class="o">=</span> <span class="n">ann</span><span class="o">.</span><span class="n">body</span>
+</span><span data-line="198">    <span class="n">scheme</span> <span class="o">=</span> <span class="n">body</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"digest_scheme"</span><span class="p">)</span>
+</span><span data-line="199">    <span class="n">upstream</span> <span class="o">=</span> <span class="p">[]</span>
+</span><span data-line="200">    <span class="n">moved</span> <span class="o">=</span> <span class="kc">False</span>
+</span><span data-line="201">    <span class="k">for</span> <span class="n">entry</span> <span class="ow">in</span> <span class="n">body</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"upstream"</span><span class="p">)</span> <span class="ow">or</span> <span class="p">():</span>
+</span><span data-line="202">        <span class="k">try</span><span class="p">:</span>
+</span><span data-line="203">            <span class="n">old</span><span class="p">,</span> <span class="n">new</span> <span class="o">=</span> <span class="n">plan</span><span class="p">[</span><span class="n">UUID</span><span class="p">(</span><span class="n">entry</span><span class="p">[</span><span class="s2">"annotation_id"</span><span class="p">])]</span>
+</span><span data-line="204">            <span class="k">if</span> <span class="n">entry</span><span class="p">[</span><span class="s2">"value_digest"</span><span class="p">]</span> <span class="o">==</span> <span class="n">annotation_value_digest</span><span class="p">(</span><span class="n">old</span><span class="p">,</span> <span class="n">scheme</span><span class="o">=</span><span class="n">scheme</span><span class="p">):</span>
+</span><span data-line="205">                <span class="n">entry</span> <span class="o">=</span> <span class="p">{</span>
+</span><span data-line="206">                    <span class="o">**</span><span class="n">entry</span><span class="p">,</span>
+</span><span data-line="207">                    <span class="s2">"value_digest"</span><span class="p">:</span> <span class="n">annotation_value_digest</span><span class="p">(</span><span class="n">new</span><span class="p">,</span> <span class="n">scheme</span><span class="o">=</span><span class="n">scheme</span><span class="p">),</span>
+</span><span data-line="208">                <span class="p">}</span>
+</span><span data-line="209">                <span class="n">moved</span> <span class="o">=</span> <span class="kc">True</span>
+</span><span data-line="210">        <span class="k">except</span> <span class="p">(</span><span class="ne">KeyError</span><span class="p">,</span> <span class="ne">ValueError</span><span class="p">,</span> <span class="ne">TypeError</span><span class="p">):</span>
+</span><span data-line="211">            <span class="k">pass</span>
+</span><span data-line="212">        <span class="n">upstream</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">entry</span><span class="p">)</span>
+</span><span data-line="213">    <span class="k">return</span> <span class="p">(</span>
+</span><span data-line="214">        <span class="n">ann</span><span class="o">.</span><span class="n">model_copy</span><span class="p">(</span><span class="n">update</span><span class="o">=</span><span class="p">{</span><span class="s2">"body"</span><span class="p">:</span> <span class="p">{</span><span class="o">**</span><span class="n">body</span><span class="p">,</span> <span class="s2">"upstream"</span><span class="p">:</span> <span class="n">upstream</span><span class="p">}})</span>
+</span><span data-line="215">        <span class="k">if</span> <span class="n">moved</span>
+</span><span data-line="216">        <span class="k">else</span> <span class="kc">None</span>
+</span><span data-line="217">    <span class="p">)</span>
 </span></pre></div>
         </article><button class="back-to-top" type="button">
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
@@ -391,7 +414,7 @@ data-aria-dark="Switch to auto color mode">
     </div>
   </div>
 </footer>
-      <script src="../../_static/documentation_options.js?v=04662272"></script>
+      <script src="../../_static/documentation_options.js?v=339ea818"></script>
       <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
       <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>

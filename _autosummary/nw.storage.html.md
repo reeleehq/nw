@@ -191,7 +191,8 @@ A `dol` `MutableMapping` keyed by project-relative POSIX path
 (`"project.json"`, `"characters/<name>/card.json"`,
 `"shots/<id>/shot.json"`, the `".nw/migrated_to_graph"` sentinel).
 Values are Python objects; on disk they are `indent=2` JSON. Parent
-directories are created on write; a missing key raises `KeyError`.
+directories are created on write; a missing key raises `KeyError`; a
+delete removes the file (never to the OS trash, dol’s default).
 
 * **Return type:**
   [`MutableMapping`](https://docs.python.org/3/library/typing.html#typing.MutableMapping)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str), [`Any`](https://docs.python.org/3/library/typing.html#typing.Any)]
