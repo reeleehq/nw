@@ -190,11 +190,18 @@ class JobsConfig:
     the scan, and every poll, stays bounded by recent work instead of growing
     with the project's whole history. :func:`get_job` and :func:`cancel_job`
     still answer for an archived id. ``None`` keeps every run in the index."""
-    index_sweep_interval_s: float = 3600.0
+    never_started_after_s: float | None = None
+    """A run still queued this long after it was created (never started: au
+    PENDING or no au entry, no ``started_at``), with no worker here or beating
+    anywhere, is failed as ``NEVER_STARTED_REASON`` by the archive sweep
+    (nw#174), so an orphaned record (nw#117) ends instead of lingering.
+    ``None`` (default): a queued run is never failed for waiting, since a
+    custom backend's queue can be long, and a run that starts after being
+    failed writes RUNNING over FAILED after its failure was announced."""
+    index_sweep_interval_s: float | None = 3600.0
     """How often (per process and project) :func:`list_jobs` looks for runs to
-    archive. A run too old to list but not yet over (an unannounced run, an
-    orphaned queued record) costs a lock round-trip per look, so the look is
-    throttled rather than repeated on every poll."""
+    archive, so the look is not repeated on every poll. ``None``: never; the
+    host schedules :func:`archive_finished_runs` instead (nw#174)."""
     jobs_dirname: str = ".nw/jobs"
     """Sub-path under ``project.root`` for the job stores (nw's ``.nw/`` convention)."""
 
@@ -857,7 +864,7 @@ def list_jobs(
     """
     rt = _runtime(project, config)
     records = [r for r in (_index_snapshot(rt, k) for k in list(rt.index)) if r]
-    records = _archive_old_runs(rt, records, config)
+    records = _archive_old_runs(rt, records, config, project=project)
     records.sort(key=lambda r: r.get("created_at") or "", reverse=True)
 
     jobs: list[Job] = []
@@ -870,25 +877,115 @@ def list_jobs(
     return jobs
 
 
-def _archive_old_runs(rt, records, config) -> list:
+def archive_finished_runs(project, *, config: JobsConfig = DEFAULT_CONFIG) -> list[str]:
+    """Move every run that ended more than ``config.index_retention_s`` ago
+    from the live index to the archive, now; return their ids (nw#174).
+
+    The same move :func:`list_jobs` makes on its throttled scan, for a host to
+    schedule off the request path, e.g. a big project's first sweep after an
+    upgrade (seconds at 10k runs). With ``index_sweep_interval_s=None`` it is
+    the only sweep: ``list_jobs`` then never writes to archive.
+
+    An old run that is not over yet is settled first (:func:`_settle_straggler`):
+    a run nobody announced is read, which reaps a dead worker and announces
+    the end, and, only when ``never_started_after_s`` is set, a run queued
+    that long with no worker anywhere is failed as never started. They then
+    leave on a later sweep, so no record costs a lock on every sweep forever.
+    Best-effort per run, like ``list_jobs``'s.
+    """
+    rt = _runtime(project, config)
+    records = [r for r in (_index_snapshot(rt, k) for k in list(rt.index)) if r]
+    return sorted(_sweep(rt, records, config, project=project))
+
+
+def _archive_old_runs(rt, records, config, *, project) -> list:
     """``records`` minus the runs this call moved from the index to
-    ``rt.archive`` (nw#169): those that ended before ``index_retention_s`` ago.
+    ``rt.archive`` (nw#169), at most once per ``index_sweep_interval_s`` per
+    runtime, and never when that is ``None`` (the host sweeps, nw#174).
 
     The age is judged on the scan's snapshots, so a project with nothing old
-    pays nothing beyond the scan it was doing anyway; each candidate is then
-    re-read and moved under ``rt.lock`` (:func:`_archive_if_settled`).
+    pays nothing beyond the scan it was doing anyway (:func:`_sweep`).
     """
-    if config.index_retention_s is None or time.monotonic() < rt.next_sweep:
+    interval = config.index_sweep_interval_s
+    if interval is None or time.monotonic() < rt.next_sweep:
         return records
-    rt.next_sweep = time.monotonic() + config.index_sweep_interval_s
-    cutoff = _utcnow_plus(-config.index_retention_s)
-    moved = {
-        r["job_id"]
-        for r in records
-        if _ended_before(r, cutoff)
-        and _archive_quietly(rt, r["job_id"], cutoff, config)
-    }
+    rt.next_sweep = time.monotonic() + interval
+    moved = _sweep(rt, records, config, project=project)
     return [r for r in records if r["job_id"] not in moved] if moved else records
+
+
+def _sweep(rt, records, config, *, project) -> set[str]:
+    """Settle, then archive, each of ``records`` that ended before
+    ``index_retention_s`` ago, and settle each run queued longer than
+    ``never_started_after_s``; return the ids moved. Each candidate is
+    re-read and moved under ``rt.lock`` (:func:`_archive_if_settled`)."""
+    retention, patience = config.index_retention_s, config.never_started_after_s
+    cutoff = _utcnow_plus(-retention) if retention is not None else None
+    start_by = _utcnow_plus(-patience) if patience is not None else None
+    moved = set()
+    for record in records:
+        old = cutoff is not None and _ended_before(record, cutoff)
+        stuck = start_by is not None and _never_started_by(record, start_by)
+        if old or stuck:
+            _settle_straggler(rt, record, config, project=project, stuck=stuck)
+        if old and _archive_quietly(rt, record["job_id"], cutoff, config):
+            moved.add(record["job_id"])
+    return moved
+
+
+def _never_started_by(record, start_by: datetime) -> bool:
+    """Whether ``record``'s run was created before ``start_by`` and has
+    neither started nor ended."""
+    created = _parse_iso(record.get("created_at"))
+    return (
+        record.get("started_at") is None
+        and record.get("finished_at") is None
+        and created is not None
+        and created < start_by
+    )
+
+
+NEVER_STARTED_REASON = "never started — resumable"
+"""A queued run older than ``never_started_after_s`` with no worker anywhere."""
+
+
+def _settle_straggler(rt, record, config, *, project, stuck: bool) -> None:
+    """Bring an old run that is not over to an end it can be archived from
+    (nw#174), best-effort. A ``stuck`` run (queued past
+    ``never_started_after_s``) is failed as :data:`NEVER_STARTED_REASON`
+    when nothing is alive behind it. Then a run nobody announced (one past
+    every ``list_jobs`` limit, so nothing read it) is read, which reaps a dead
+    running worker and announces a terminal run
+    (:func:`register_terminal_hook`)."""
+    try:
+        if stuck:
+            _fail_never_started(rt, record, config)
+        if record.get("terminal_announced") is False:
+            _read_job(rt, record, config, project=project)
+    except Exception:  # noqa: BLE001 — housekeeping never fails the caller
+        _logger.warning("could not settle old job %s", record["job_id"], exc_info=True)
+
+
+def _fail_never_started(rt, record, config) -> None:
+    """Fail ``record``'s queued run, deciding under ``rt.lock`` on a fresh read
+    as the reaper does (:func:`_maybe_reap`): the same run, still never
+    started (no ``started_at`` / ``finished_at``, au PENDING, which is also
+    what a missing au entry reads as), no worker alive here or beating
+    anywhere."""
+    job_id = record["job_id"]
+    with rt.lock:
+        fresh = _index_get_locked(rt, job_id)
+        if (
+            fresh is None
+            or fresh.get("run_token") != record.get("run_token")
+            or fresh.get("started_at") is not None
+            or fresh.get("finished_at") is not None
+            or rt.middleware.is_running_locked(job_id)
+            or _heartbeat_is_fresh(fresh, config)
+            or rt.au_store[job_id].status is not ComputationStatus.PENDING
+        ):
+            return
+        _fail_locked(rt, job_id, NEVER_STARTED_REASON)
 
 
 def _archive_quietly(rt, job_id, cutoff: datetime, config) -> bool:
@@ -2318,22 +2415,29 @@ def _maybe_reap(rt, record, au_result, config) -> ComputationResult:
         current = rt.au_store[job_id]
         if current.status in _AU_TERMINAL:
             return current  # the worker finished after all
-        _index_update_locked(
-            rt,
-            job_id,
-            finished_at=now_iso(),
-            error=REAPED_REASON,
-            error_kind=ERROR_KIND_CRASHED,
-        )
-        # Under the lock too: a relaunch happens only under it, so FAILED can
-        # never land on a run that replaced the one reaped.
-        rt.au_store[job_id] = ComputationResult(
-            None,
-            ComputationStatus.FAILED,
-            error=Exception(REAPED_REASON),
-            terminal_reason=REAPED_REASON,
-        )
-        return rt.au_store[job_id]
+        # Under the lock, both writes: a relaunch happens only under it, so
+        # FAILED can never land on a run that replaced the one reaped.
+        return _fail_locked(rt, job_id, REAPED_REASON)
+
+
+def _fail_locked(rt, job_id, reason: str) -> ComputationResult:
+    """End ``job_id``'s run as FAILED for ``reason`` (caller holds ``rt.lock``
+    and has decided): the index's error first, then au's FAILED, the order a
+    worker uses, so a reader that sees FAILED also sees the error."""
+    _index_update_locked(
+        rt,
+        job_id,
+        finished_at=now_iso(),
+        error=reason,
+        error_kind=ERROR_KIND_CRASHED,
+    )
+    rt.au_store[job_id] = ComputationResult(
+        None,
+        ComputationStatus.FAILED,
+        error=Exception(reason),
+        terminal_reason=reason,
+    )
+    return rt.au_store[job_id]
 
 
 def _shows_life(record, config) -> bool:
