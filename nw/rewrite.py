@@ -42,9 +42,13 @@ from collections.abc import Callable, Mapping
 from typing import Any
 from uuid import UUID
 
-from lacing.digest import annotation_value_digest, value_digest_matches
 
-from .bodies.verifying_trace import VERIFYING_TRACE_BODY_SCHEMA_URI
+from .bodies.verifying_trace import (
+    VERIFYING_TRACE_BODY_SCHEMA_URI,
+    digest_vouches,
+    recorded_exclusions,
+    upstream_entry,
+)
 from .storage import ProjectLike, as_project_storage, project_lock
 
 _logger = logging.getLogger(__name__)
@@ -201,13 +205,17 @@ def _restamped_trace(ann: Any, plan: Mapping[UUID, tuple[Any, Any]]) -> Any:
     for entry in body.get("upstream") or ():
         try:
             old, new = plan[UUID(entry["annotation_id"])]
-            # A digest recorded before the old body's schema gained a Derived
-            # marker still vouches for it (nw#179): it moves too.
-            if value_digest_matches(old, entry["value_digest"], scheme=scheme):
-                entry = {
-                    **entry,
-                    "value_digest": annotation_value_digest(new, scheme=scheme),
-                }
+            # Any digest that still vouches for the old body moves, including
+            # one recorded before a Derived marker or under fewer of them
+            # (nw#179, nw#180); it is re-recorded with today's exclusions.
+            if digest_vouches(
+                old,
+                entry["value_digest"],
+                scheme=scheme,
+                excluded=recorded_exclusions(entry),
+            ):
+                kept = {k: v for k, v in entry.items() if k != "excluded_paths"}
+                entry = {**kept, **upstream_entry(new, scheme=scheme)}
                 moved = True
         except (KeyError, ValueError, TypeError):
             pass

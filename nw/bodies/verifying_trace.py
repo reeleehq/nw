@@ -57,7 +57,13 @@ from uuid import UUID
 from pydantic import BaseModel, Field
 
 from lacing import Annotation, MediaRef, Provenance, RationalTime, TimeInterval
-from lacing.digest import VALUE_DIGEST_SCHEME, annotation_value_digest
+from lacing.digest import (
+    VALUE_DIGEST_SCHEME,
+    VALUE_DIGEST_SCHEMES,
+    annotation_value_digest,
+    registered_derived_paths,
+    value_digest_matches,
+)
 from lacing.model import AssetId, partition_provenance_refs
 from lacing.schema import register_body_schema
 
@@ -67,9 +73,18 @@ VERIFYING_TRACE_TIER = "verifying-trace"
 
 
 class UpstreamDigestV1(BaseModel):
-    """One ``(upstream annotation, its value digest)`` pair."""
+    """One ``(upstream annotation, its value digest)`` pair.
 
-    model_config = {"frozen": True, "extra": "forbid"}
+    Reading ignores fields it does not know (nw#180): an nw older than a
+    trace's writer then still verifies it with what it understands, instead
+    of dropping the whole trace and reading its child stale. That is safe
+    only under the rule this format keeps: **a field that changes what a
+    digest means bumps ``digest_scheme``** (an unknown scheme is stale), so
+    an ignored field can only be one that refines verification, like
+    ``excluded_paths``.
+    """
+
+    model_config = {"frozen": True, "extra": "ignore"}
 
     annotation_id: str = Field(
         ..., description="UUID (as a string) of the upstream annotation."
@@ -79,6 +94,16 @@ class UpstreamDigestV1(BaseModel):
         description=(
             "``lacing.annotation_value_digest`` of that annotation as it was "
             "when the described output was written."
+        ),
+    )
+    excluded_paths: Optional[tuple[tuple[Optional[str], ...], ...]] = Field(
+        None,
+        description=(
+            "The ``lacing.Derived`` paths ``value_digest`` left out (the "
+            "upstream body schema's markers when the trace was written), "
+            "sorted. Omitted when none, so a trace over unmarked schemas reads "
+            "exactly as before. Lets a verifier recompute the digest under "
+            "exactly these after the schema gains another marker (nw#180)."
         ),
     )
 
@@ -94,7 +119,7 @@ class VerifyingTraceBodyV1(BaseModel):
     digests that mean different things.
     """
 
-    model_config = {"frozen": True, "extra": "forbid"}
+    model_config = {"frozen": True, "extra": "ignore"}  # see UpstreamDigestV1
 
     for_annotation_id: str = Field(
         ..., description="UUID (as a string) of the annotation this trace describes."
@@ -128,6 +153,74 @@ class VerifyingTraceBodyV1(BaseModel):
 
 
 register_body_schema(VERIFYING_TRACE_BODY_SCHEMA_URI, VerifyingTraceBodyV1)
+
+
+def upstream_entry(parent: Annotation, *, scheme: str) -> dict:
+    """The ``value_digest`` (and ``excluded_paths``, when there are any) to
+    record for ``parent`` under ``scheme``: computed under exactly the
+    ``Derived`` paths recorded beside it, so the two cannot disagree even if
+    the schema registry changes mid-call (nw#180). JSON-ready, so the trace
+    builder and ``nw.rewrite`` record entries the same way."""
+    excluded = (
+        frozenset()  # v1 digests the whole body: it leaves nothing out
+        if scheme == VALUE_DIGEST_SCHEMES[0]
+        else registered_derived_paths(parent.body_schema_uri)
+    )
+    digest = annotation_value_digest(
+        parent, scheme=scheme, resolve_derived=lambda _uri: excluded
+    )
+    entry: dict = {"value_digest": digest}
+    if excluded:
+        entry["excluded_paths"] = [list(p) for p in sorted(excluded, key=_path_key)]
+    return entry
+
+
+def _path_key(path) -> list:
+    """Sort key for a derived path, whose elements may be ``None``."""
+    return [(e is None, e or "") for e in path]
+
+
+def recorded_exclusions(entry) -> Optional[frozenset]:
+    """The ``excluded_paths`` an upstream entry (model or JSON dict) recorded,
+    as a set of tuples; ``None`` when it recorded none (an older trace, or
+    an unmarked schema)."""
+    paths = (
+        entry.get("excluded_paths")
+        if isinstance(entry, dict)
+        else getattr(entry, "excluded_paths", None)
+    )
+    return None if paths is None else frozenset(tuple(p) for p in paths)
+
+
+def digest_vouches(
+    parent: Annotation,
+    recorded: str,
+    *,
+    scheme: str,
+    excluded: Optional[frozenset] = None,
+) -> bool:
+    """Whether ``recorded`` (a digest a trace stored under ``scheme``, with the
+    ``excluded`` paths it left out) still describes ``parent``'s value.
+
+    - Recorded exclusions ``D'`` that are a strict subset of today's markers
+      ``D``: recompute under exactly ``D'`` (nw#180; ``D' == D`` is today's
+      digest, which the fallback checks). Equal means the bodies agree
+      outside ``D'``, hence outside ``D``, which is all today's digest counts.
+      A ``D'`` with a path that is no longer marked is never used: that field
+      counts now, and the producer did not digest it.
+    - Otherwise, or on a miss: ``lacing.value_digest_matches``, today's digest
+      plus what a producer that knew no markers would have recorded (nw#179).
+
+    Neither is a wrong hit; what is left (a marker removed) is a spurious miss.
+    """
+    if excluded is not None and excluded < registered_derived_paths(
+        parent.body_schema_uri
+    ):
+        if recorded == annotation_value_digest(
+            parent, scheme=scheme, resolve_derived=lambda _uri: excluded
+        ):
+            return True
+    return value_digest_matches(parent, recorded, scheme=scheme)
 
 
 def build_verifying_trace(
@@ -170,14 +263,14 @@ def build_verifying_trace(
         if parent is None:
             return None
         try:
-            digest = annotation_value_digest(parent)
+            entry = upstream_entry(parent, scheme=VALUE_DIGEST_SCHEME)
         except Exception:
             # A body that cannot be digested (e.g. lacing's
             # NonStringBodyKeyError on a non-JSON key) is broken data at the
             # producer. Recording nothing keeps the consumer conservative;
             # recording a partial trace would not.
             return None
-        entries.append(UpstreamDigestV1(annotation_id=str(pid), value_digest=digest))
+        entries.append(UpstreamDigestV1(annotation_id=str(pid), **entry))
 
     body = VerifyingTraceBodyV1(
         for_annotation_id=str(for_annotation_id),
@@ -190,7 +283,9 @@ def build_verifying_trace(
         tier=VERIFYING_TRACE_TIER,
         reference=MediaRef(asset_id=asset_id, interval=TimeInterval.from_seconds(0, 0)),
         body=body.model_dump(
-            mode="json", exclude=set() if asset_parents else {"upstream_assets"}
+            mode="json",
+            exclude=set() if asset_parents else {"upstream_assets"},
+            exclude_none=True,  # an entry with no excluded_paths omits it
         ),
         body_schema_uri=VERIFYING_TRACE_BODY_SCHEMA_URI,
         provenance=Provenance(
