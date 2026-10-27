@@ -80,6 +80,7 @@ import logging
 import math
 import numbers
 import os
+import reprlib
 import statistics
 import tempfile
 import threading
@@ -328,6 +329,12 @@ class Job:
     raised (:func:`error_detail_of`), so a client acts on it without parsing
     ``error``. ``None`` otherwise."""
     run_id: str | None = None
+    """The job's correlation id, stamped on its events: the ``job_id``, the same
+    for every run of the key."""
+    run_token: str | None = None
+    """This *run's* identity: a re-run of the key gets a new one (nw#153), so a
+    host that dedupes terminal announcements keys on ``(job_id, run_token)``.
+    ``None`` for a record written before runs had tokens."""
     last_event_id: str | None = None
 
 
@@ -701,8 +708,29 @@ def _caller_estimated_usd(params) -> float | None:
 
     Reported, never trusted: when a plan is supplied this number loses to the
     re-quote, and nw cannot see where it came from.
+
+    A figure :func:`checked_usd` refuses (NaN, negative, a bool, a string) is
+    **unknown**, not an error (nw#155): a host's own ``estimated_usd=`` raises
+    because the host can fix it, but this one comes from a client, and raising
+    would break clients that send junk today. Unknown requires approval, so
+    junk loses the free pass instead of buying one (``nan >= threshold`` is
+    ``False``), and it never reaches the job's ``cost``. The warning is logged
+    once per process (later ones at debug level): a client that always sends
+    junk polls ``estimate`` on every change.
     """
-    return params.get("estimated_usd") if isinstance(params, Mapping) else None
+    global _warned_bad_caller_usd
+    value = params.get("estimated_usd") if isinstance(params, Mapping) else None
+    try:
+        return checked_usd(value)
+    except ValueError as exc:
+        level = logging.DEBUG if _warned_bad_caller_usd else logging.WARNING
+        _warned_bad_caller_usd = True
+        _logger.log(level, "params['estimated_usd'] is unknown: %s", exc)
+        return None
+
+
+_warned_bad_caller_usd = False
+"""Whether :func:`_caller_estimated_usd` has warned yet (it warns once)."""
 
 
 def checked_usd(value: Any) -> float | None:
@@ -713,21 +741,22 @@ def checked_usd(value: Any) -> float | None:
 
     ``None`` (unknown) or a finite, non-negative real. A bool is refused (it is
     an ``int``), and so is NaN: ``nan >= threshold`` is ``False``, so a NaN
-    price would pass every approval gate as cheap.
+    price would pass every approval gate as cheap. So is an ``int`` too large
+    for a ``float``, as ``ValueError`` rather than ``OverflowError``, so a
+    caller that tolerates a bad price catches one exception type.
     """
     if value is None:
         return None
-    if (
-        isinstance(value, bool)
-        or not isinstance(value, numbers.Real)
-        or not math.isfinite(value)
-        or value < 0
-    ):
+    usd = math.nan  # refused unless it is a real nw can hold as a float
+    if isinstance(value, numbers.Real) and not isinstance(value, bool):
+        with suppress(OverflowError):  # an int too large for a float
+            usd = float(value)
+    if not math.isfinite(usd) or usd < 0:
         raise ValueError(
             "estimated_usd must be None or a finite, non-negative number, "
-            f"got {type(value).__name__} {value!r}"
+            f"got {type(value).__name__} {reprlib.repr(value)}"
         )
-    return float(value)
+    return usd
 
 
 def _estimate(
@@ -974,6 +1003,7 @@ def to_dict(job: Job) -> dict:
         "status": job.status,
         "cached": job.cached,
         "run_id": job.run_id,
+        "run_token": job.run_token,
         "idempotency_key": job.idempotency_key,
         "params": job.params,
         "created_at": job.created_at,
@@ -1369,10 +1399,11 @@ def register_terminal_hook(
     - **Once, across replicas** sharing a jobs root on a lockable filesystem:
       the claim is a lease written on the run's record under the index lock
       (``JobsConfig.terminal_hook_lease_s``), so a run is announced by one
-      thread of one replica at a time. A host still dedupes for the two cases
-      that defeat it: a claimant that dies after a hook returned but before
-      recording it (the run is re-announced once its lease expires), and a
-      filesystem that refuses locks (nw logs a warning).
+      thread of one replica at a time. A host still dedupes, on
+      ``(job.job_id, job.run_token)`` since a re-run shares the ``job_id``, for
+      the two cases that defeat it: a claimant that dies after a hook returned
+      but before recording it (the run is re-announced once its lease
+      expires), and a filesystem that refuses locks (nw logs a warning).
 
     Runs recorded before this existed are never announced. Remove one with
     ``del terminal_hooks[name]``.
@@ -2315,6 +2346,7 @@ def _project_job(rt, record, au_result, config) -> Job:
         error_kind=error_kind,
         error_detail=error_detail,
         run_id=record["job_id"],
+        run_token=record.get("run_token"),
         last_event_id=record.get("last_event_id"),
     )
 
