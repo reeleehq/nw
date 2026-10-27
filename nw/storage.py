@@ -122,13 +122,17 @@ def project_lock(storage: ProjectStorage, name: str) -> Iterator[None]:
 
     The store is opened read-only so that taking a lock never writes (a
     read-write open ensures tiers, which contends with a live writer); only a
-    project with no graph yet falls back to the creating open. A
+    project with no graph yet, or one on an older store schema (which the
+    read-only open refuses rather than migrates), falls back to the creating,
+    migrating open, as :class:`~nw.graph.ProjectGraph` reads do. A
     :class:`MappingStorage` locks per store instance (``MemoryStore``
     semantics), not per mapping: two storages over one mapping do not exclude.
     """
+    from lacing.store.sqlite import SchemaMismatchError
+
     try:
         store = storage.open_graph_readonly()
-    except FileNotFoundError:
+    except (FileNotFoundError, SchemaMismatchError):
         store = storage.open_graph()
     try:
         with store.lock(name):
