@@ -21,6 +21,7 @@ nw.storage
       asset_id_of
       tenant_id_of
       json_docs
+      open_graph_for_read
       register_project_storage
    
    .. rubric:: Classes

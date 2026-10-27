@@ -54,6 +54,7 @@ True
 | [`asset_id_of`](#nw.storage.asset_id_of)(root, spec)                   | The asset id anchoring a project's annotations.                                                                |
 | [`tenant_id_of`](#nw.storage.tenant_id_of)(root, spec)                  | The id a shared (Postgres) backend keys this project's graph on.                                               |
 | [`json_docs`](#nw.storage.json_docs)(root)                           | The folder-backed store for a project's JSON documents.                                                        |
+| [`open_graph_for_read`](#nw.storage.open_graph_for_read)(storage)              | Open `storage`'s graph for a read without writing; `None` if there is none.                                    |
 | [`register_project_storage`](#nw.storage.register_project_storage)(name, resolver)  | Register a resolver that recognises a genre's project folders.                                                 |
 
 ### Classes
@@ -196,6 +197,39 @@ delete removes the file (never to the OS trash, dol’s default).
 
 * **Return type:**
   [`MutableMapping`](https://docs.python.org/3/library/typing.html#typing.MutableMapping)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str), [`Any`](https://docs.python.org/3/library/typing.html#typing.Any)]
+
+### nw.storage.open_graph_for_read(storage)
+
+Open `storage`’s graph for a read without writing; `None` if there is none.
+
+A read-write open ensures tiers, which writes on every open, so a read
+contended with any live writer. Measured with a writer holding `BEGIN
+IMMEDIATE`, a read of one project’s genre envelope took **5.4 s** and then
+raised — and because callers of `resolved_genre` catch per project, what
+a user saw was a listing that stalled for five seconds per contended
+project and then quietly lost that project’s metadata. So this opens
+read-only, with two fallbacks, each preserving a guarantee the read-write
+open makes:
+
+- \*\*No graph on disk returns 
+
+  ```
+  ``
+  ```
+
+  None\`\`\*\*, and the caller decides: a reader
+  returns its empty answer (creating a store to discover it has no
+  sections is the write this exists to avoid), a lock creates the graph.
+- **A store on an older schema gets the read-write open**, which migrates
+  it: the read-only open refuses (`SchemaMismatchError`) rather than
+  migrates, and passing that up would strand every pre-D5 project until
+  something wrote to it (nw#139). So the rare case pays the lock and the
+  common case does not.
+
+The caller owns the returned store and closes it (`close_quietly()`).
+
+* **Return type:**
+  [`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[`IntervalAnnotationStore`]
 
 ### nw.storage.project_storages *: Registry* *= <Registry nw.project_storages>*
 

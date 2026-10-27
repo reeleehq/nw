@@ -1,4 +1,4 @@
-> built 2026-10-27 09:07 UTC from 74b1af3 (main) · nw 0.0.86. Details: build_info.json
+> built 2026-10-27 09:56 UTC from 92ba86e (main) · nw 0.0.87. Details: build_info.json
 
 # index.html.md
 
@@ -9558,6 +9558,7 @@ True
 | [`asset_id_of`](_autosummary/nw.storage.html.md#nw.storage.asset_id_of)(root, spec)                   | The asset id anchoring a project's annotations.                                                                |
 | [`tenant_id_of`](_autosummary/nw.storage.html.md#nw.storage.tenant_id_of)(root, spec)                  | The id a shared (Postgres) backend keys this project's graph on.                                               |
 | [`json_docs`](_autosummary/nw.storage.html.md#nw.storage.json_docs)(root)                           | The folder-backed store for a project's JSON documents.                                                        |
+| [`open_graph_for_read`](_autosummary/nw.storage.html.md#nw.storage.open_graph_for_read)(storage)              | Open `storage`'s graph for a read without writing; `None` if there is none.                                    |
 | [`register_project_storage`](_autosummary/nw.storage.html.md#nw.storage.register_project_storage)(name, resolver)  | Register a resolver that recognises a genre's project folders.                                                 |
 
 ### Classes
@@ -9700,6 +9701,39 @@ delete removes the file (never to the OS trash, dol’s default).
 
 * **Return type:**
   [`MutableMapping`](https://docs.python.org/3/library/typing.html#typing.MutableMapping)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str), [`Any`](https://docs.python.org/3/library/typing.html#typing.Any)]
+
+### nw.storage.open_graph_for_read(storage)
+
+Open `storage`’s graph for a read without writing; `None` if there is none.
+
+A read-write open ensures tiers, which writes on every open, so a read
+contended with any live writer. Measured with a writer holding `BEGIN
+IMMEDIATE`, a read of one project’s genre envelope took **5.4 s** and then
+raised — and because callers of `resolved_genre` catch per project, what
+a user saw was a listing that stalled for five seconds per contended
+project and then quietly lost that project’s metadata. So this opens
+read-only, with two fallbacks, each preserving a guarantee the read-write
+open makes:
+
+- \*\*No graph on disk returns 
+
+  ```
+  ``
+  ```
+
+  None\`\`\*\*, and the caller decides: a reader
+  returns its empty answer (creating a store to discover it has no
+  sections is the write this exists to avoid), a lock creates the graph.
+- **A store on an older schema gets the read-write open**, which migrates
+  it: the read-only open refuses (`SchemaMismatchError`) rather than
+  migrates, and passing that up would strand every pre-D5 project until
+  something wrote to it (nw#139). So the rare case pays the lock and the
+  common case does not.
+
+The caller owns the returned store and closes it (`close_quietly()`).
+
+* **Return type:**
+  [`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[`IntervalAnnotationStore`]
 
 ### nw.storage.project_storages *: Registry* *= <Registry nw.project_storages>*
 
@@ -10369,7 +10403,7 @@ produce different URLs. The local file paths are byte-stable.
 
 # About this build
 
-This documentation was built on **2026-10-27 09:07 UTC** from commit <a href="https://github.com/reeleehq/nw/commit/74b1af31d3458f8c26e0546c668d17da7225b0a9"><code>74b1af3</code></a> on branch <code>main</code>, for **nw 0.0.86** (from <code>pyproject.toml</code>).
+This documentation was built on **2026-10-27 09:56 UTC** from commit <a href="https://github.com/reeleehq/nw/commit/92ba86ee520dd9119071e4eaae838433cdd347db"><code>92ba86e</code></a> on branch <code>main</code>, for **nw 0.0.87** (from <code>pyproject.toml</code>).
 
 #### NOTE
 Nothing suggests a mismatch: the tree was clean at the commit above, and the documented version is the one on PyPI.
@@ -10378,9 +10412,9 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 
 |                     |                                                                                                                                                    |
 |---------------------|----------------------------------------------------------------------------------------------------------------------------------------------------|
-| Commit              | <a href="https://github.com/reeleehq/nw/commit/74b1af31d3458f8c26e0546c668d17da7225b0a9"><code>74b1af31d3458f8c26e0546c668d17da7225b0a9</code></a> |
+| Commit              | <a href="https://github.com/reeleehq/nw/commit/92ba86ee520dd9119071e4eaae838433cdd347db"><code>92ba86ee520dd9119071e4eaae838433cdd347db</code></a> |
 | Branch              | <code>main</code>                                                                                                                                  |
-| Tags at this commit | <code>0.0.86</code>                                                                                                                                |
+| Tags at this commit | <code>0.0.87</code>                                                                                                                                |
 | Working tree        | clean                                                                                                                                              |
 | Remote              | <code>https://github.com/reeleehq/nw</code>                                                                                                        |
 
@@ -10389,9 +10423,9 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 |              |                                                                                            |
 |--------------|--------------------------------------------------------------------------------------------|
 | Repository   | <code>reeleehq/nw</code>                                                                   |
-| Run          | <a href="https://github.com/reeleehq/nw/actions/runs/40477609511">40477609511</a>          |
+| Run          | <a href="https://github.com/reeleehq/nw/actions/runs/40484159837">40484159837</a>          |
 | Ref          | <code>refs/heads/main</code>                                                               |
-| Event commit | <code>b5839f80b910424b5a94c411aef9717c9d56325a</code> (in the history of the built commit) |
+| Event commit | <code>82547e2b5fa3a2c110f008738708295d5acc3361</code> (in the history of the built commit) |
 
 ## Tools
 
@@ -10416,13 +10450,13 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 
 ## Package on PyPI
 
-Latest release: <a href="https://pypi.org/project/nw/0.0.86/">0.0.86</a>, the same as the documented version.
+Latest release: <a href="https://pypi.org/project/nw/0.0.87/">0.0.87</a>, the same as the documented version.
 
 ## Reproduce
 
 ```bash
 git clone https://github.com/reeleehq/nw && cd nw
-git checkout 74b1af31d3458f8c26e0546c668d17da7225b0a9
+git checkout 92ba86ee520dd9119071e4eaae838433cdd347db
 pip install "epythet==0.2.22"
 epythet quickstart . --ignore tests/ scrap/ examples/
 ```
