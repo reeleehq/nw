@@ -144,11 +144,13 @@ def test_cancel_batch_cancels_nonterminal_members(project):
     b = batches.enqueue_batch(
         project, _items(2), kind="x", dispatch={"x": _stub(release)}
     )
-    st = batches.cancel_batch(project, b.batch_id)
+    batches.cancel_batch(project, b.batch_id)
+    # Cancel is cooperative: a job whose worker is still alive reads
+    # ``cancelling`` until that thread exits, so let the workers go first.
+    release.set()
+    st = batches.wait(project, b.batch_id, 5)
     assert st["done"] and st["counts"] == {"cancelled": 2}
     assert len(batches.output(project, b.batch_id)["cancelled"]) == 2
-    release.set()
-    time.sleep(0.1)
 
 
 def test_unknown_batch_is_none(project):
