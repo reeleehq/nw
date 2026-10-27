@@ -489,7 +489,9 @@ def enqueue(
             try:
                 # Index first: a failed write then leaves the previous run whole.
                 _index_set_locked(rt, job_id, record)
-                if rt.middleware in getattr(the_backend, "middleware", ()):  # only a backend that will release it
+                if rt.middleware in getattr(
+                    the_backend, "middleware", ()
+                ):  # only a backend that will release it
                     rt.middleware.claim_locked(job_id)
                 if existing is not None:
                     # A re-run of a terminal key: the previous run's au result
@@ -1314,7 +1316,9 @@ def _bind_worker(
             # re-enqueued or reaped. Re-raised as an ordinary failure, from ANY
             # step of the run (the render, a context hook, the heartbeat
             # start, the terminal reconcile), with the redacted text (nw#128).
-            raise JobAborted(f"{type(e).__name__}: {redact_exception(e, secrets)}") from None
+            raise JobAborted(
+                f"{type(e).__name__}: {redact_exception(e, secrets)}"
+            ) from None
 
     def _run():
         # ``started_at`` is stamped by the backend's ``before_compute`` hook, which
