@@ -238,18 +238,21 @@ ignore_paths = [
 # probing), so CI must have it — its absence is why every run since 0.0.5
 # (June 2025) failed and nw stopped publishing.
 #
-# Linux installs the static ffmpeg/ffprobe build from BtbN/FFmpeg-Builds' GitHub
-# release (one ~150 MB download, seconds on a GitHub runner) instead of apt: apt
-# pulls ~99 packages from the runner's Azure mirror, which intermittently serves
-# them at ~50 KB/s and held the job for 20+ minutes (nw#140). The n8.1 branch asset
-# keeps its name across BtbN's daily rebuilds; apt (without recommends) is the
-# fallback when the download fails.
+# Linux takes BtbN/FFmpeg-Builds' static ffmpeg+ffprobe (a pinned month-end
+# release, sha256-checked, seconds on a runner) instead of apt, whose Azure mirror
+# intermittently crawls through its ~99 packages for 20+ minutes (nw#140).
 [tool.wads.ops.ffmpeg]
 description = "Multimedia framework for video/audio processing"
 url = "https://ffmpeg.org/"
-check.linux = "which ffmpeg"
+check.linux = "which ffmpeg && which ffprobe"
 check.macos = "which ffmpeg"
-install.linux = [
-    "(curl -fsSL --retry 3 --retry-all-errors --retry-delay 5 --connect-timeout 20 --max-time 300 -o /tmp/ffmpeg-static.tar.xz https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-n8.1-latest-linux64-gpl-8.1.tar.xz && sudo tar -xJf /tmp/ffmpeg-static.tar.xz -C /usr/local/bin --no-same-owner --strip-components=2 --wildcards '*/bin/ffmpeg' '*/bin/ffprobe') || (sudo apt-get update && sudo apt-get install -y --no-install-recommends ffmpeg)",
-]
+install.linux = ["""\
+    (curl -fsSL --retry 2 --retry-all-errors --retry-delay 5 --connect-timeout 20 --max-time 120 \
+      -o /tmp/ffmpeg-static.tar.xz \
+      https://github.com/BtbN/FFmpeg-Builds/releases/download/autobuild-2026-09-30-13-08/ffmpeg-n8.1.3-9-g29e619e767-linux64-gpl-8.1.tar.xz \
+    && echo "97ce978979194b5cf7e06a5e68020dbdaa7a4f3294c5452b6a1bc347100dbb79  /tmp/ffmpeg-static.tar.xz" | sha256sum -c - \
+    && sudo tar -xJf /tmp/ffmpeg-static.tar.xz -C /usr/local/bin --no-same-owner --strip-components=2 --wildcards '*/bin/ffmpeg' '*/bin/ffprobe') \
+    || (echo "::warning::static ffmpeg download failed; installing from apt (slow, nw#140)" \
+      && sudo apt-get update && sudo apt-get install -y --no-install-recommends ffmpeg)\
+"""]
 install.macos = "brew install ffmpeg"
