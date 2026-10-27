@@ -64,3 +64,31 @@ def test_lock_is_released_when_the_block_raises(tmp_path):
         pass
     with nw.Project(proj.root).lock("meta"):
         pass
+
+
+def test_lock_opens_a_graph_on_an_older_store_schema(tmp_path):
+    """The read-only open refuses an older lacing schema; the lock falls back to
+    the migrating open instead of raising (nw#139), as ``ProjectGraph`` reads do."""
+    import sqlite3
+
+    from lacing import RationalTime, TimeInterval
+    from lacing.store.sqlite import SCHEMA_VERSION
+
+    from nw.bodies import SectionBodyV1
+    from nw.migrate import project_graph_db_path
+
+    proj = _project(tmp_path)
+    proj.graph.upsert_section(
+        SectionBodyV1(section_id="s", label="seed"),
+        interval=TimeInterval(RationalTime(0), RationalTime(4)),
+    )
+    db_path = project_graph_db_path(proj.root)
+    with sqlite3.connect(db_path) as conn:
+        conn.execute("UPDATE meta SET value = '1' WHERE key = 'schema_version'")
+    with nw.Project(proj.root).lock("meta"):
+        pass
+    with sqlite3.connect(db_path) as conn:
+        (stamped,) = conn.execute(
+            "SELECT value FROM meta WHERE key = 'schema_version'"
+        ).fetchone()
+    assert int(stamped) == SCHEMA_VERSION
