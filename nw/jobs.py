@@ -43,8 +43,9 @@ Design decisions (from the ``nw.jobs``-on-``au`` design report,
   ``ThreadBackend`` thread later clobbers the store with COMPLETED. The key
   stays live until that thread has exited, in this process or any replica
   sharing the store: each run carries a ``run_token``, its heartbeat stamps
-  only its own record, and its worker writes ``worker_exited_at`` on the way
-  out (nw#124, nw#141).
+  only its own record, and ``worker_exited_at`` is written once the run's
+  outcome is in au's store — by the managed backend's middleware, or by the
+  worker on any other backend (nw#124, nw#141, nw#149).
 - **A job's end is announced** to :func:`register_terminal_hook` hooks, so a
   host records a completion in one place instead of after every door (nw#151).
 - **ETA is learned from observed wall-time**, per ``(model, operation, dur_bucket)``
@@ -1088,6 +1089,10 @@ class DurationLearningMiddleware(Middleware):
                 record = self._index.get(key)
                 if not record or record.get("cached"):
                     return  # cache-hit (or unknown) → do NOT learn
+                if record.get("run_token") != self._tokens.get(key):
+                    # Another replica relaunched the key once au had this run's
+                    # outcome: the record is the new run's, not this one's (nw#149).
+                    return
                 candidates = [tuple(c[:2]) for c in record.get("eta_candidates") or []]
                 units = record.get("units")
                 has_own_key = any(conf != _COARSE for _, conf in candidates)
@@ -1113,7 +1118,7 @@ class DurationLearningMiddleware(Middleware):
             self._mark_exit_locked(key)
             self._start.pop(key, None)
 
-    def claim_locked(self, key: str, *, run_token) -> None:
+    def claim_locked(self, key: str, *, run_token: str) -> None:
         """Mark ``key`` live before its worker thread has started (caller holds
         the lock). ``before_compute`` re-stamps the time; ``after_compute`` /
         ``on_error`` release it, :meth:`release_locked` undoes it if the launch
@@ -2164,8 +2169,9 @@ def _worker_may_still_run_locked(rt, record, config) -> bool:
     read terminal while its worker runs (cancel is cooperative), and its worker
     proves it is alive with a fresh heartbeat until it writes
     ``worker_exited_at``. The exit marker matters because a heartbeat stays
-    fresh ``heartbeat_stale_s`` after the thread is gone. Left open: a worker
-    between its exit marker and au's terminal write.
+    fresh ``heartbeat_stale_s`` after the thread is gone. On the managed
+    backend the marker follows au's terminal write (nw#149); a backend without
+    the middleware still has the gap between the worker's marker and that write.
     """
     if rt.middleware._is_running_locked(record["job_id"]):
         return True

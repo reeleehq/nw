@@ -2790,3 +2790,41 @@ def test_a_backend_without_the_middleware_still_gets_the_workers_marker(project)
         lambda j: (_running_record(project, j.job_id) or {}).get("worker_exited_at"),
     )
     assert _running_record(project, job.job_id)["worker_exited_at"]
+
+
+def test_a_failed_runs_exit_marker_is_written_after_aus_failure(project, monkeypatch):
+    """The ``on_error`` path marks too, and after au has the FAILED result."""
+    ours = jobs.job_id_for(project, "op", VIDEO_PARAMS)
+    au_status_at_marker: list = []
+    mark = jobs._mark_worker_exited_locked
+
+    def recording(index, job_id, run_token):
+        if job_id == ours:
+            au_status_at_marker.append(jobs._runtime(project).au_store[job_id].status)
+        return mark(index, job_id, run_token)
+
+    def boom(project, params):
+        raise RuntimeError("render failed")
+
+    monkeypatch.setattr(jobs, "_mark_worker_exited_locked", recording)
+    job = jobs.enqueue(project, "op", VIDEO_PARAMS, dispatch={"op": boom})
+    _poll_until(project, job.job_id, lambda j: j.status == jobs.FAILED)
+    _wait_until_thread_exits(jobs._runtime(project), job.job_id)
+    assert au_status_at_marker == [ComputationStatus.FAILED]
+
+
+def test_a_run_never_learns_from_the_record_of_a_run_that_replaced_it(project):
+    """A replica may relaunch a finished key between au's terminal write and
+    this run's ``after_compute``; the sample must not come from the new record."""
+    rt = jobs._runtime(project)
+    mw = rt.middleware
+    key = "k"
+    with rt.lock:
+        mw.claim_locked(key, run_token="old")
+        jobs._index_set_locked(
+            rt,
+            key,
+            {"job_id": key, "run_token": "new", "eta_candidates": [["x|y|z", "exact"]]},
+        )
+    mw.after_compute(key, None)
+    assert jobs._durations_get(rt.durations, "x|y|z") == []  # the new run's key learned nothing
