@@ -1875,3 +1875,113 @@ def test_failing_index_write_on_rerun_leaves_the_previous_run_whole(project, mon
         jobs.enqueue(project, "op", VIDEO_PARAMS, dispatch=dispatch, idempotency_key="k")
     monkeypatch.undo()
     assert jobs.get_job(project, "k").status == jobs.SUCCEEDED
+
+
+# ---------------------------------------------------------------------------
+# `_start` is exact in-process (nw#128): BaseException, pre-registration, learning
+# ---------------------------------------------------------------------------
+
+
+class _Abort(BaseException):
+    """Not an ``Exception``: au's worker does not catch it."""
+
+
+def test_a_render_raising_a_base_exception_fails_the_job_and_frees_the_key(project):
+    calls = []
+
+    def stub(project, params):
+        calls.append(1)
+        raise _Abort("stop")
+
+    dispatch = {"op": stub}
+    job = jobs.enqueue(project, "op", VIDEO_PARAMS, dispatch=dispatch)
+    failed = _poll_until(project, job.job_id, lambda j: j.status == jobs.FAILED)
+    assert failed.status == jobs.FAILED and "_Abort" in failed.error
+    assert failed.error_kind == "crashed"
+    _wait_worker_exit(project, job.job_id)
+    assert not jobs._runtime(project).middleware.is_running(job.job_id)
+    again = jobs.enqueue(project, "op", VIDEO_PARAMS, dispatch=dispatch)  # not deduped
+    _poll_until(project, again.job_id, lambda j: j.status == jobs.FAILED)
+    assert len(calls) == 2
+
+
+def test_cancel_then_reenqueue_before_the_worker_registers_launches_one_worker(project):
+    rt = jobs._runtime(project)
+    gate, calls = threading.Event(), []
+    real = rt.middleware.before_compute
+
+    def held(func, args, kwargs, key):  # the worker thread is "not yet registered"
+        gate.wait(timeout=5)
+        return real(func, args, kwargs, key)
+
+    rt.middleware.before_compute = held
+    release = threading.Event()
+    dispatch = {"op": _blocking_stub(release, calls=calls)}
+    job = jobs.enqueue(project, "op", VIDEO_PARAMS, dispatch=dispatch)
+    jobs.cancel_job(project, job.job_id)
+    jobs.enqueue(project, "op", VIDEO_PARAMS, dispatch=dispatch)  # must dedup
+    gate.set()
+    release.set()
+    _poll_until(project, job.job_id, lambda j: j.status in jobs.TERMINAL_STATUSES)
+    _wait_worker_exit(project, job.job_id)
+    assert len(calls) == 1
+
+
+def test_a_failed_launch_releases_the_claim(project):
+    rt = jobs._runtime(project)
+    real = rt.backend
+
+    class Boom:
+        middleware = real.middleware  # carries ours, so the key is claimed
+
+        def launch(self, *a, **k):
+            raise RuntimeError("no")
+
+    rt.backend = Boom()
+    with pytest.raises(RuntimeError):
+        jobs.enqueue(project, "op", VIDEO_PARAMS, dispatch={"op": lambda p, q: 1})
+    key = jobs._default_idempotency_key(project, "op", VIDEO_PARAMS)
+    assert not rt.middleware.is_running(key)
+
+
+def test_a_backend_without_our_middleware_is_never_claimed(project):
+    """A per-call ``backend=`` will never call ``after_compute``, so a claim for it
+    would read the key as running forever."""
+    from au import ThreadBackend
+
+    mine = ThreadBackend(store=jobs._runtime(project).au_store)  # no nw middleware
+    job = jobs.enqueue(
+        project, "op", VIDEO_PARAMS, dispatch={"op": lambda p, q: {"ok": 1}}, backend=mine
+    )
+    assert not jobs._runtime(project).middleware.is_running(job.job_id)
+
+
+def test_a_base_exception_from_a_context_hook_also_fails_the_job(project):
+    @contextlib.contextmanager
+    def hook():
+        raise _Abort("enter")
+        yield
+
+    job = jobs.enqueue(
+        project, "op", VIDEO_PARAMS, dispatch={"op": lambda p, q: 1}, capture_context=hook
+    )
+    failed = _poll_until(project, job.job_id, lambda j: j.status == jobs.FAILED)
+    assert failed.status == jobs.FAILED
+    _wait_worker_exit(project, job.job_id)
+    assert not jobs._runtime(project).middleware.is_running(job.job_id)
+
+
+def test_learning_reads_the_record_in_the_same_critical_section_as_the_pop(project):
+    rt = jobs._runtime(project)
+    mw = rt.middleware
+    mw.claim_locked("k")
+    seen = []
+
+    class Index(dict):
+        def get(self, key, default=None):
+            seen.append((mw._lock.locked(), "k" in mw._start))
+            return super().get(key, default)
+
+    mw._index = Index()
+    mw.after_compute("k", None)
+    assert seen == [(True, False)]  # popped, and still holding the lock when it read
