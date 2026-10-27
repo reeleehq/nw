@@ -1194,6 +1194,108 @@ def test_a_stale_heartbeat_still_reaps(project):
     assert jobs.REAPED_REASON in str(out.error)
 
 
+def _stale_running_record(rt, job_id):
+    """A RUNNING job whose worker last beat an hour ago; returns the snapshot a
+    reader would take of it."""
+    hour_ago = jobs._iso(jobs._utcnow_plus(-3600))
+    record = {"job_id": job_id, "kind": "op", "label": "op", "run_token": "t",
+              "started_at": hour_ago, "heartbeat_at": hour_ago}
+    with rt.lock:
+        jobs._index_set_locked(rt, job_id, dict(record))
+    rt.au_store[job_id] = ComputationResult(None, ComputationStatus.RUNNING)
+    return record
+
+
+def _replica_beats(project, job_id):
+    jobs._reset_runtimes()  # replica 2: same store, its own runtime and lock
+    rt2 = jobs._runtime(project)
+    with rt2.lock:
+        jobs._index_update_locked(rt2, job_id, heartbeat_at=jobs.now_iso())
+
+
+def _replica_reenqueues(project, job_id):
+    jobs._reset_runtimes()
+    rt2 = jobs._runtime(project)
+    with rt2.lock:
+        jobs._index_update_locked(rt2, job_id, run_token="new", started_at=jobs.now_iso())
+
+
+def _worker_finishes(project, job_id):
+    rt = jobs._runtime(project)
+    rt.au_store[job_id] = ComputationResult({"ok": True}, ComputationStatus.COMPLETED)
+
+
+@pytest.mark.parametrize(
+    "meanwhile, expected",
+    [
+        (_replica_beats, ComputationStatus.RUNNING),
+        (_replica_reenqueues, ComputationStatus.RUNNING),
+        (_worker_finishes, ComputationStatus.COMPLETED),
+    ],
+    ids=["heartbeat", "re-enqueue", "finished"],
+)
+def test_the_reaper_decides_on_the_record_as_it_is_now(project, meanwhile, expected):
+    """What lands between a reader's snapshot and its reap saves the job (nw#159):
+    a replica's heartbeat, a re-enqueue, or the worker's own au write. The
+    snapshot alone says dead."""
+    config = JobsConfig(stale_running_s=0.0, heartbeat_stale_s=60.0)
+    rt = jobs._runtime(project)
+    snapshot = _stale_running_record(rt, "j")
+    meanwhile(project, "j")
+
+    out = jobs._maybe_reap(rt, snapshot, ComputationResult(None, ComputationStatus.RUNNING), config)
+
+    assert out.status is expected
+    assert rt.au_store["j"].status is expected
+    with rt.lock:
+        assert jobs._index_get_locked(rt, "j").get("error") is None
+
+
+def test_the_reaper_still_reaps_a_record_that_is_dead_now(project):
+    """The negative control for the test above: nothing landed, so it reaps,
+    and the index carries the error before au says FAILED."""
+    config = JobsConfig(stale_running_s=0.0, heartbeat_stale_s=60.0)
+    rt = jobs._runtime(project)
+    snapshot = _stale_running_record(rt, "j")
+
+    out = jobs._maybe_reap(rt, snapshot, ComputationResult(None, ComputationStatus.RUNNING), config)
+
+    assert out.status is ComputationStatus.FAILED
+    with rt.lock:
+        assert jobs._index_get_locked(rt, "j")["error"] == jobs.REAPED_REASON
+
+
+def test_a_beating_job_is_read_without_the_index_lock(project):
+    """A healthy running job's read never queues behind another replica holding
+    the lock (nw#158): its own heartbeat settles it before any lock."""
+    config = JobsConfig(stale_running_s=0.0, heartbeat_stale_s=60.0)
+    rt = jobs._runtime(project)
+    record = {**_stale_running_record(rt, "j"), "heartbeat_at": jobs.now_iso()}
+    held, release = threading.Event(), threading.Event()
+
+    def hold():
+        with rt.lock:
+            held.set()
+            release.wait(10)
+
+    holder = threading.Thread(target=hold)
+    holder.start()
+    assert held.wait(5)
+    try:
+        seen = []
+        running = ComputationResult(None, ComputationStatus.RUNNING)
+        reader = threading.Thread(
+            target=lambda: seen.append(jobs._maybe_reap(rt, record, running, config))
+        )
+        reader.start()
+        reader.join(5)
+        assert seen, "reading a beating job waited for the index lock"
+    finally:
+        release.set()
+        holder.join()
+    assert seen[0].status is ComputationStatus.RUNNING
+
+
 def test_a_record_with_no_heartbeat_keeps_the_old_behaviour(project):
     """Absence is not liveness.
 

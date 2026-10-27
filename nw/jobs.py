@@ -2070,29 +2070,40 @@ def _read_job(rt, record, config, *, project) -> Job:
     return job
 
 
+_AU_TERMINAL = frozenset(
+    {ComputationStatus.COMPLETED, ComputationStatus.FAILED, ComputationStatus.CANCELLED}
+)
+
+
 def _maybe_reap(rt, record, au_result, config) -> ComputationResult:
-    """Reap a RUNNING record whose worker is gone (no live thread + stale start)."""
-    if au_result.status is not ComputationStatus.RUNNING:
+    """Reap a RUNNING record whose worker is gone (no live thread + stale start).
+
+    A record that itself shows life (:func:`_shows_life`) is left alone without
+    taking the lock, so polling a healthy running job never queues behind
+    another replica (nw#158). Otherwise the reap is decided under ``rt.lock``
+    on a fresh read of the record, not on the caller's snapshot (nw#159): the
+    lock is cross-process (nw#148), so a heartbeat any replica stamped after
+    the snapshot, or a re-enqueue (a new ``run_token``), saves the job, and
+    au's status is re-read so a worker that finished meanwhile is reported,
+    not reaped. The index is written inside that section and au's FAILED
+    after it, the order a worker uses, so a reader that sees FAILED also sees
+    the error. au owns its store and its write stays outside the lock; the
+    window that leaves is au's own (nw#149).
+    """
+    if au_result.status is not ComputationStatus.RUNNING or _shows_life(record, config):
         return au_result
     job_id = record["job_id"]
-    if rt.middleware.is_running(job_id):
-        return au_result  # a live worker in this process is on it
-    if _heartbeat_is_fresh(record, config):
-        return au_result  # a live worker in SOME process is on it
-    started = _parse_iso(record.get("started_at") or record.get("created_at"))
-    if (
-        started is not None
-        and (_utcnow() - started).total_seconds() < config.stale_running_s
-    ):
-        return au_result
-    reaped = ComputationResult(
-        None,
-        ComputationStatus.FAILED,
-        error=Exception(REAPED_REASON),
-        terminal_reason=REAPED_REASON,
-    )
-    rt.au_store[job_id] = reaped
     with rt.lock:
+        fresh = _index_get_locked(rt, job_id) or record
+        if (
+            fresh.get("run_token") != record.get("run_token")
+            or _shows_life(fresh, config)
+            or rt.middleware._is_running_locked(job_id)  # a live worker in this process
+        ):
+            return au_result
+        current = rt.au_store[job_id]
+        if current.status in _AU_TERMINAL:
+            return current  # the worker finished after all
         _index_update_locked(
             rt,
             job_id,
@@ -2100,7 +2111,26 @@ def _maybe_reap(rt, record, au_result, config) -> ComputationResult:
             error=REAPED_REASON,
             error_kind=ERROR_KIND_CRASHED,
         )
+    rt.au_store[job_id] = ComputationResult(
+        None,
+        ComputationStatus.FAILED,
+        error=Exception(REAPED_REASON),
+        terminal_reason=REAPED_REASON,
+    )
     return rt.au_store[job_id]
+
+
+def _shows_life(record, config) -> bool:
+    """Whether ``record`` itself says its worker may be alive: a fresh
+    heartbeat (from any process), or a start younger than ``stale_running_s``.
+    Either only ever prevents a reap."""
+    if _heartbeat_is_fresh(record, config):
+        return True
+    started = _parse_iso(record.get("started_at") or record.get("created_at"))
+    return (
+        started is not None
+        and (_utcnow() - started).total_seconds() < config.stale_running_s
+    )
 
 
 def _heartbeat_is_fresh(record, config) -> bool:
