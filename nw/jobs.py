@@ -522,7 +522,7 @@ def enqueue(
                 "kind": kind,
                 "label": label,
                 "idempotency_key": idempotency_key,
-                "params": params,
+                "params": _finite_json(params),
                 "created_at": now_iso(),
                 "started_at": None,
                 "finished_at": None,
@@ -731,26 +731,32 @@ def _caller_estimated_usd(params) -> float | None:
     because the host can fix it, but this one comes from a client, and raising
     would break clients that send junk today. Unknown requires approval, so
     junk loses the free pass instead of buying one (``nan >= threshold`` is
-    ``False``), and it never reaches the job's ``cost``. The warning is logged
-    once per process (later ones at debug level): a client that always sends
-    junk polls ``estimate`` on every change.
+    ``False``), and it never reaches the job's ``cost``.
     """
-    global _warned_bad_caller_usd
     value = params.get("estimated_usd") if isinstance(params, Mapping) else None
+    return _usable_usd(value, what="params['estimated_usd']")
+
+
+def _usable_usd(value: Any, *, what: str) -> float | None:
+    """:func:`checked_usd` for a figure nw takes from someone it cannot make
+    fix it (a client, a render's event): a refused value is **unknown**
+    (``None``) instead of an error. Warned once per ``what`` per process,
+    later at debug level, because the same sender repeats it on every call.
+    """
     try:
-        return checked_usd(value)
+        return checked_usd(value, name=what)
     except ValueError as exc:
-        level = logging.DEBUG if _warned_bad_caller_usd else logging.WARNING
-        _warned_bad_caller_usd = True
-        _logger.log(level, "params['estimated_usd'] is unknown: %s", exc)
+        level = logging.DEBUG if what in _warned_unusable_usd else logging.WARNING
+        _warned_unusable_usd.add(what)
+        _logger.log(level, "%s; treated as unknown", exc)
         return None
 
 
-_warned_bad_caller_usd = False
-"""Whether :func:`_caller_estimated_usd` has warned yet (it warns once)."""
+_warned_unusable_usd: set[str] = set()
+"""The ``what`` names :func:`_usable_usd` has already warned about."""
 
 
-def checked_usd(value: Any) -> float | None:
+def checked_usd(value: Any, *, name: str = "estimated_usd") -> float | None:
     """``value`` as a ``float`` if it is a price nw can gate on, else ``ValueError``.
 
     A ``float`` so that what is stored is JSON (a numpy scalar or a
@@ -760,7 +766,8 @@ def checked_usd(value: Any) -> float | None:
     an ``int``), and so is NaN: ``nan >= threshold`` is ``False``, so a NaN
     price would pass every approval gate as cheap. So is an ``int`` too large
     for a ``float``, as ``ValueError`` rather than ``OverflowError``, so a
-    caller that tolerates a bad price catches one exception type.
+    caller that tolerates a bad price catches one exception type. ``name``
+    is the figure the error message names.
     """
     if value is None:
         return None
@@ -770,7 +777,7 @@ def checked_usd(value: Any) -> float | None:
             usd = float(value)
     if not math.isfinite(usd) or usd < 0:
         raise ValueError(
-            "estimated_usd must be None or a finite, non-negative number, "
+            f"{name} must be None or a finite, non-negative number, "
             f"got {type(value).__name__} {reprlib.repr(value)}"
         )
     return usd
@@ -1321,6 +1328,27 @@ def predict_total_s(
 # ---------------------------------------------------------------------------
 
 
+def _finite_json(value: Any) -> Any:
+    """``value`` with every non-finite float (NaN, ±inf) replaced by ``None``.
+
+    JSON has no such numbers: Python's ``json`` writes a bare ``NaN`` token
+    that strict parsers (a browser's ``JSON.parse``) reject, so one NaN in a
+    client's ``params`` or a render's progress made the job unservable
+    (nw#166). Mappings and sequences are walked; anything else is returned
+    as is (tuples come back as lists, as JSON would make them).
+
+    >>> _finite_json({"a": float("nan"), "b": [1.5, float("inf")], "c": "x"})
+    {'a': None, 'b': [1.5, None], 'c': 'x'}
+    """
+    if isinstance(value, float):
+        return value if math.isfinite(value) else None
+    if isinstance(value, Mapping):
+        return {k: _finite_json(v) for k, v in value.items()}
+    if isinstance(value, (list, tuple)):
+        return [_finite_json(v) for v in value]
+    return value
+
+
 class AtomicJsonFiles(MutableMapping):
     """A ``{key: json-value}`` directory store whose writes are **atomic**.
 
@@ -1366,7 +1394,11 @@ class AtomicJsonFiles(MutableMapping):
 
     def __setitem__(self, key: str, value) -> None:
         path = self._path(key)
-        data = json.dumps(value).encode("utf-8")  # serialize BEFORE touching disk
+        try:  # serialize BEFORE touching disk
+            data = json.dumps(value, allow_nan=False)
+        except ValueError:  # NaN/inf: JSON has none, so store them as null
+            data = json.dumps(_finite_json(value), allow_nan=False)
+        data = data.encode("utf-8")
         fd, tmp = tempfile.mkstemp(dir=self._rootdir, prefix=f".{key}.", suffix=".tmp")
         try:
             with os.fdopen(fd, "wb") as f:
@@ -2105,25 +2137,30 @@ def _mirror_event_into_index(rt, job_id, ev) -> None:
                 if src in fields:
                     progress[dst] = fields[src]
                     break
-        cost_sources = {
+        usd_sources = {
             "estimated_usd": ("estimated_usd",),
             "actual_usd": ("actual_usd", "cost_usd"),
             "cache_hit_savings_usd": ("cache_hit_savings_usd",),
-            # The unknown-cost flag travels with the figure it qualifies, or
-            # the figure arrives alone and reads as exact.
-            "actual_is_lower_bound": ("has_unknown_costs",),
         }
         if cost.get("estimate_source") == ESTIMATE_FROM_HOST:
             # The host priced this job server-side; the render's own guess
             # must not replace the figure it was approved at (nw#144).
-            del cost_sources["estimated_usd"]
-        for dst, sources in cost_sources.items():
+            del usd_sources["estimated_usd"]
+        for dst, sources in usd_sources.items():
             for src in sources:
-                if src in fields and fields[src] is not None:
-                    cost[dst] = fields[src]
+                # A render is server code, but "None means unknown" holds for
+                # its figures too: a NaN would poison every sum (nw#166). An
+                # unusable one is skipped, so the field keeps what it had.
+                value = _usable_usd(fields.get(src), what=f"a render event's {src!r}")
+                if value is not None:
+                    cost[dst] = value
                     if dst == "estimated_usd":
                         cost["estimate_source"] = ESTIMATE_FROM_RENDER
                     break
+        # The unknown-cost flag travels with the figure it qualifies, or the
+        # figure arrives alone and reads as exact.
+        if fields.get("has_unknown_costs") is not None:
+            cost["actual_is_lower_bound"] = fields["has_unknown_costs"]
 
         updates["progress"] = progress
         updates["cost"] = cost
@@ -2151,10 +2188,14 @@ def _reconcile_terminal(rt, job_id, result) -> None:
         updates: dict[str, Any] = {"finished_at": now_iso()}
         if isinstance(result, Mapping):
             cost = dict(record.get("cost") or {})
-            if result.get("cost_usd_actual") is not None:
-                cost["actual_usd"] = result["cost_usd_actual"]
-            if result.get("cache_hit_savings_usd") is not None:
-                cost["cache_hit_savings_usd"] = result["cache_hit_savings_usd"]
+            for dst, src in (
+                ("actual_usd", "cost_usd_actual"),
+                ("cache_hit_savings_usd", "cache_hit_savings_usd"),
+            ):
+                # The run's final figures, checked like its events' (nw#166).
+                value = _usable_usd(result.get(src), what=f"a render result's {src!r}")
+                if value is not None:
+                    cost[dst] = value
             if result.get("has_unknown_costs") is not None:
                 cost["actual_is_lower_bound"] = bool(result["has_unknown_costs"])
             updates["cost"] = cost
@@ -2412,7 +2453,8 @@ def _project_job(rt, record, au_result, config) -> Job:
     artifact_ref = record.get("artifact_ref")
     if status == SUCCEEDED:
         if isinstance(au_result.value, Mapping):
-            result_payload = dict(au_result.value)
+            # au's store keeps a NaN as is; served, it would break strict JSON.
+            result_payload = _finite_json(au_result.value)
             if artifact_ref is None:
                 artifact_ref = result_payload.get(
                     "animatic_artifact_id"
