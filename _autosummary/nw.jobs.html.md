@@ -42,7 +42,11 @@ Design decisions (from the `nw.jobs`-on-`au` design report,
   record terminal *and* sets a durable should-cancel flag; the `cancel_requested`
   flag is the authority for cancellation intent, so a job reads
   `cancelling` → `cancelled` regardless of whether the still-running
-  `ThreadBackend` thread later clobbers the store with COMPLETED.
+  `ThreadBackend` thread later clobbers the store with COMPLETED. The key
+  stays live until that thread has exited, in this process or any replica
+  sharing the store: each run carries a `run_token`, its heartbeat stamps
+  only its own record, and its worker writes `worker_exited_at` on the way
+  out (nw#124, nw#141).
 - **ETA is learned from observed wall-time**, per `(model, operation, dur_bucket)`
   with back-off, median (not mean), honest “estimating…” before enough
   history, and **cache-hits excluded from learning**.

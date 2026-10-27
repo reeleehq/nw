@@ -265,7 +265,11 @@ that key is live returns the existing job instead of launching a duplicate.</p><
 record terminal <em>and</em> sets a durable should-cancel flag; the <code class="docutils literal notranslate"><span class="pre">cancel_requested</span></code>
 flag is the authority for cancellation intent, so a job reads
 <code class="docutils literal notranslate"><span class="pre">cancelling</span></code> → <code class="docutils literal notranslate"><span class="pre">cancelled</span></code> regardless of whether the still-running
-<code class="docutils literal notranslate"><span class="pre">ThreadBackend</span></code> thread later clobbers the store with COMPLETED.</p></li>
+<code class="docutils literal notranslate"><span class="pre">ThreadBackend</span></code> thread later clobbers the store with COMPLETED. The key
+stays live until that thread has exited, in this process or any replica
+sharing the store: each run carries a <code class="docutils literal notranslate"><span class="pre">run_token</span></code>, its heartbeat stamps
+only its own record, and its worker writes <code class="docutils literal notranslate"><span class="pre">worker_exited_at</span></code> on the way
+out (nw#124, nw#141).</p></li>
 <li><p><strong>ETA is learned from observed wall-time</strong>, per <code class="docutils literal notranslate"><span class="pre">(model,</span> <span class="pre">operation,</span> <span class="pre">dur_bucket)</span></code>
 with back-off, median (not mean), honest “estimating…” before enough
 history, and <strong>cache-hits excluded from learning</strong>.</p></li>
@@ -1143,7 +1147,7 @@ and trusting the index’s copy reports finished jobs as queued.</p>
     </div>
   </div>
 </footer>
-      <script src="../_static/documentation_options.js?v=97e62c01"></script>
+      <script src="../_static/documentation_options.js?v=7ffc8fc3"></script>
       <script src="../_static/doctools.js?v=fd6eb6e6"></script>
       <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script src="../_static/clipboard.min.js?v=a7894cd8"></script>

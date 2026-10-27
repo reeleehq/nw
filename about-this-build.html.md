@@ -2,7 +2,7 @@
 
 # About this build
 
-This documentation was built on **2026-10-27 09:56 UTC** from commit <a href="https://github.com/reeleehq/nw/commit/92ba86ee520dd9119071e4eaae838433cdd347db"><code>92ba86e</code></a> on branch <code>main</code>, for **nw 0.0.87** (from <code>pyproject.toml</code>).
+This documentation was built on **2026-10-27 10:55 UTC** from commit <a href="https://github.com/reeleehq/nw/commit/ff5002c166f7b6a309ba34445fa01561c57db5c9"><code>ff5002c</code></a> on branch <code>main</code>, for **nw 0.0.88** (from <code>pyproject.toml</code>).
 
 #### NOTE
 Nothing suggests a mismatch: the tree was clean at the commit above, and the documented version is the one on PyPI.
@@ -11,9 +11,9 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 
 |                     |                                                                                                                                                    |
 |---------------------|----------------------------------------------------------------------------------------------------------------------------------------------------|
-| Commit              | <a href="https://github.com/reeleehq/nw/commit/92ba86ee520dd9119071e4eaae838433cdd347db"><code>92ba86ee520dd9119071e4eaae838433cdd347db</code></a> |
+| Commit              | <a href="https://github.com/reeleehq/nw/commit/ff5002c166f7b6a309ba34445fa01561c57db5c9"><code>ff5002c166f7b6a309ba34445fa01561c57db5c9</code></a> |
 | Branch              | <code>main</code>                                                                                                                                  |
-| Tags at this commit | <code>0.0.87</code>                                                                                                                                |
+| Tags at this commit | <code>0.0.88</code>                                                                                                                                |
 | Working tree        | clean                                                                                                                                              |
 | Remote              | <code>https://github.com/reeleehq/nw</code>                                                                                                        |
 
@@ -22,9 +22,9 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 |              |                                                                                            |
 |--------------|--------------------------------------------------------------------------------------------|
 | Repository   | <code>reeleehq/nw</code>                                                                   |
-| Run          | <a href="https://github.com/reeleehq/nw/actions/runs/40484159837">40484159837</a>          |
+| Run          | <a href="https://github.com/reeleehq/nw/actions/runs/40490970225">40490970225</a>          |
 | Ref          | <code>refs/heads/main</code>                                                               |
-| Event commit | <code>82547e2b5fa3a2c110f008738708295d5acc3361</code> (in the history of the built commit) |
+| Event commit | <code>88fb924f1d6b2224162a93239a63a0d6ebd1995a</code> (in the history of the built commit) |
 
 ## Tools
 
@@ -49,13 +49,13 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 
 ## Package on PyPI
 
-Latest release: <a href="https://pypi.org/project/nw/0.0.87/">0.0.87</a>, the same as the documented version.
+Latest release: <a href="https://pypi.org/project/nw/0.0.88/">0.0.88</a>, the same as the documented version.
 
 ## Reproduce
 
 ```bash
 git clone https://github.com/reeleehq/nw && cd nw
-git checkout 92ba86ee520dd9119071e4eaae838433cdd347db
+git checkout ff5002c166f7b6a309ba34445fa01561c57db5c9
 pip install "epythet==0.2.22"
 epythet quickstart . --ignore tests/ scrap/ examples/
 ```
