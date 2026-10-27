@@ -17,7 +17,16 @@ half-registered genre behind::
     >>> require_fields(GenreOp, {"name": "x", "teleport": True})
     Traceback (most recent call last):
       ...
-    nw.plugins.NwTooOldError: the installed nw's GenreOp takes no keyword 'teleport'; upgrade nw
+    nw.compat.NwTooOldError: the installed nw's GenreOp takes no keyword 'teleport'; upgrade nw
+
+``require_fields`` itself is new, so a plugin that may meet an nw from before
+it guards the import too; past that, the plugin's nw floor only needs to
+cover the nw that added ``require_fields``::
+
+    try:
+        from nw import require_fields
+    except ImportError as e:  # an nw from before nw#164
+        raise ImportError("myplugin needs a newer nw; install myplugin[nw]") from e
 """
 
 from __future__ import annotations
@@ -42,12 +51,17 @@ def require_fields(
 
     The error names nw, the class, each missing keyword and ``remedy`` (say
     which extra or floor carries the right nw). A class whose constructor
-    takes ``**kwargs`` accepts everything.
+    takes ``**kwargs`` accepts everything; a positional-only parameter is not
+    a keyword, so it does not count. A bare ``str`` is refused with
+    ``TypeError``: iterated, it would blame nw for lacking each letter.
     """
-    params = inspect.signature(cls).parameters
-    if any(p.kind is inspect.Parameter.VAR_KEYWORD for p in params.values()):
+    if isinstance(fields, str):
+        raise TypeError(f"fields must be names, not one string: {fields!r}")
+    params = inspect.signature(cls).parameters.values()
+    if any(p.kind is p.VAR_KEYWORD for p in params):
         return
-    missing = sorted(set(fields) - params.keys())
+    keywords = {p.name for p in params if p.kind in (p.POSITIONAL_OR_KEYWORD, p.KEYWORD_ONLY)}
+    missing = sorted(set(fields) - keywords)
     if missing:
         names = ", ".join(repr(m) for m in missing)
         plural = "s" if len(missing) > 1 else ""

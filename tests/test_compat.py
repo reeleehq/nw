@@ -1,10 +1,9 @@
-"""Tests for nw.plugins: a plugin's keywords checked against the installed nw (nw#164)."""
+"""Tests for nw.compat: a plugin's keywords checked against the installed nw (nw#164)."""
 
 from dataclasses import dataclass
 
 import pytest
 
-import nw
 from nw import GenreOp, NwTooOldError, require_fields
 
 
@@ -28,10 +27,19 @@ def test_the_remedy_is_the_callers_to_name():
         require_fields(GenreOp, ["teleport"], remedy="install muvid's 'mcp' extra")
 
 
-def test_it_asks_the_class_not_a_version(monkeypatch):
-    """An editable checkout records a stale version: the check must not care."""
-    monkeypatch.setattr(nw, "__version__", "0.0.1", raising=False)
-    require_fields(GenreOp, ["invalidates"])
+def test_one_string_is_a_caller_mistake_not_an_old_nw():
+    with pytest.raises(TypeError, match="not one string"):
+        require_fields(GenreOp, "invalidates")
+
+
+def test_a_positional_only_parameter_is_not_a_keyword():
+    class C:
+        def __init__(self, a, /, b):
+            pass
+
+    require_fields(C, ["b"])
+    with pytest.raises(NwTooOldError, match="takes no keyword 'a'"):
+        require_fields(C, ["a"])
 
 
 def test_a_constructor_taking_any_keyword_accepts_everything():

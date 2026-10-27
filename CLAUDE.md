@@ -92,7 +92,7 @@ it. Layering: `lacing → nw → falaw.Plan → backends` — nothing above
 
 **Genre status** (`nw.Project.genre_status()`, nw#133) — the hook a genre overrides to say where a project stands (default `None`); hosts call `nw.genre_status_of(project)`, which returns a checked JSON dict or `None` (raises, NaN, over `max_bytes`, or naming the project root all read as `None`).
 
-**Plugin compatibility** (`nw/plugins.py`, nw#164) — a plugin built against a newer nw calls `nw.require_fields(cls, fields, *, remedy=)` before it registers anything: it raises `nw.NwTooOldError` (an `ImportError`) naming nw, the class, each keyword the installed nw lacks and the remedy, instead of a bare `TypeError`. It asks the class's signature, never a version (an editable checkout's version is stale).
+**Plugin compatibility** (`nw/compat.py`, nw#164) — a plugin built against a newer nw calls `nw.require_fields(cls, fields, *, remedy=)` before it registers anything: it raises `nw.NwTooOldError` (an `ImportError`) naming nw, the class, each keyword the installed nw lacks and the remedy, instead of a bare `TypeError`. It asks the class's signature, never a version (an editable checkout's version is stale).
 
 **Rewriting stored values** (`nw/rewrite.py`, nw#132) — `nw.rewrite_values(project, fn, *, marker=None)` changes annotation bodies (`fn(body) -> body`) without making dependents stale: one atomic `store.update` per row, under the project lock, verifying traces re-stamped with the new value digest (an already-stale trace stays stale), and a success-only marker in `storage.docs` (`is_rewritten` / `mark_rewritten` / `unmark_rewritten`; never spell its key). Use it for any vocabulary rename or slug change; never hand-roll remove-then-add.
 
