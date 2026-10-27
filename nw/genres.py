@@ -47,7 +47,7 @@ import math
 import numbers
 import re
 from collections.abc import Mapping
-from dataclasses import dataclass, field, replace
+from dataclasses import dataclass, field
 from pathlib import Path
 from types import MappingProxyType
 from typing import TYPE_CHECKING, Any, Callable, Optional, Union
@@ -1141,12 +1141,14 @@ class GenreOp:
     through its money approval — or not offer it. ``False`` (the default) is a claim the
     genre makes: nothing this op calls bills anyone.
 
-    ``invalidates`` names the genre's ``read`` ops whose answer this op can change, so a
-    client holding several reads re-reads only those after it (reelee#750).
-    :func:`register_genre_ops` checks every name is a read op of the genre and resolves
-    an undeclared one (``None``): every read op for an op that changes anything, none
-    for a read. Undeclared is never wrong, only wasteful; a narrower list is a claim the
-    genre makes, as ``spends`` is.
+    ``invalidates`` names the genre's ``read`` ops whose answer this op can make stale,
+    so a client holding several reads knows which to refresh after it (reelee#750); for
+    a ``runs="job"`` op, once the job has ended. Stale is not "re-run now": a read that
+    itself ``runs="job"`` is refreshed when the person asks. :func:`register_genre_ops`
+    checks every name is a read op of the genre. ``None`` (the default) declares
+    nothing, and the catalogue says so (``null``), so a client tells "the genre named
+    no reads" from "the genre has not said" and keeps its own rule for the latter. A
+    read op invalidates nothing.
 
     >>> def _rename(project, *, title: str, loud: bool = False) -> dict:
     ...     '''Rename the project.'''
@@ -1210,14 +1212,21 @@ class GenreOp:
                 f"genre op {self.name!r}: spends must be a bool, got {self.spends!r}"
             )
         if self.invalidates is not None:
-            if isinstance(self.invalidates, str) or not all(
-                isinstance(n, str) for n in self.invalidates
-            ):
+            if isinstance(self.invalidates, (str, bytes, Mapping, set, frozenset)):
                 raise TypeError(
-                    f"genre op {self.name!r}: invalidates must be op names, "
-                    f"got {self.invalidates!r}"
+                    f"genre op {self.name!r}: invalidates must be an ordered sequence "
+                    f"of op names, got {type(self.invalidates).__name__}"
                 )
-            object.__setattr__(self, "invalidates", tuple(self.invalidates))
+            names = tuple(self.invalidates)  # once: a generator is consumed here
+            if not all(isinstance(n, str) for n in names):
+                raise TypeError(
+                    f"genre op {self.name!r}: invalidates must be op names, got {names!r}"
+                )
+            if len(set(names)) != len(names):
+                raise ValueError(
+                    f"genre op {self.name!r}: invalidates names an op twice: {list(names)}"
+                )
+            object.__setattr__(self, "invalidates", names)
             if self.effect == "read" and self.invalidates:
                 raise ValueError(
                     f"genre op {self.name!r}: a read op changes nothing, so it "
@@ -1351,27 +1360,21 @@ def register_genre_ops(genre_slug: str, ops) -> tuple:
     duplicates = sorted({n for n in names if names.count(n) > 1})
     if duplicates:
         raise ValueError(f"genre {genre_slug!r}: duplicate op names {duplicates}")
-    ops = _resolve_invalidates(genre_slug, ops)
+    _check_invalidates(genre_slug, ops)
     genre_ops_registry.register(genre_slug, ops)
     return ops
 
 
-def _resolve_invalidates(genre_slug: str, ops: tuple) -> tuple:
-    """``ops`` with every ``invalidates`` checked against the genre's read ops and an
-    undeclared one resolved (see :class:`GenreOp`)."""
-    reads = tuple(op.name for op in ops if op.effect == "read")
-    resolved = []
+def _check_invalidates(genre_slug: str, ops: tuple) -> None:
+    """Refuse an ``invalidates`` naming anything but the genre's read ops."""
+    reads = {op.name for op in ops if op.effect == "read"}
     for op in ops:
-        if op.invalidates is None:
-            op = replace(op, invalidates=() if op.effect == "read" else reads)
-        unknown = sorted(set(op.invalidates) - set(reads))
+        unknown = sorted(set(op.invalidates or ()) - reads)
         if unknown:
             raise ValueError(
                 f"genre {genre_slug!r}: op {op.name!r} invalidates {unknown}, "
                 f"which are not read ops of the genre"
             )
-        resolved.append(op)
-    return tuple(resolved)
 
 
 def genre_ops(genre_slug: str) -> tuple:

@@ -287,18 +287,16 @@ def test_genre_limits_must_be_finite_numbers_and_nonempty(limits, error):
 # --- which reads a write makes stale (reelee#750) ------------------------------
 
 
-def test_invalidates_is_declared_checked_and_resolved(clean_ops):
+def test_invalidates_is_declared_checked_and_exported(clean_ops):
     status = nw.GenreOp("status", _status, title="Status", effect="read")
     grid = nw.GenreOp("beat_grid", _status, title="Grid", effect="read")
     set_grid = nw.GenreOp("set_grid", _status, title="Set grid", invalidates=["beat_grid"])
-    cut = nw.GenreOp("cut", _cut, title="Cut")  # undeclared: every read
-    ops = {op.name: op for op in nw.register_genre_ops("_inv_demo", [status, grid, set_grid, cut])}
-    assert ops["set_grid"].invalidates == ("beat_grid",)
-    assert ops["cut"].invalidates == ("status", "beat_grid")
-    assert ops["status"].invalidates == ()
+    cut = nw.GenreOp("cut", _cut, title="Cut")  # undeclared
+    nw.register_genre_ops("_inv_demo", [status, grid, set_grid, cut])
     catalogue = {row["name"]: row for row in nw.genre_ops_catalogue("_inv_demo")}
     assert catalogue["set_grid"]["invalidates"] == ["beat_grid"]
-    assert catalogue["cut"]["invalidates"] == ["status", "beat_grid"]
+    assert catalogue["cut"]["invalidates"] is None  # "not said", told apart from "none"
+    assert catalogue["status"]["invalidates"] is None
     json.dumps(catalogue)  # pure JSON
 
 
@@ -315,11 +313,19 @@ def test_invalidates_names_only_read_ops_of_the_genre(clean_ops):
     ({"effect": "read", "invalidates": ["status"]}, ValueError),
     ({"invalidates": "status"}, TypeError),
     ({"invalidates": [3]}, TypeError),
+    ({"invalidates": {"status", "beat_grid"}}, TypeError),  # unordered: exports would churn
+    ({"invalidates": {"status": 1}}, TypeError),
+    ({"invalidates": ["status", "status"]}, ValueError),
 ])
 def test_bad_invalidates_refused_at_construction(kwargs, error):
     with pytest.raises(error, match="invalidates"):
         nw.GenreOp("x", _status, title="X", **kwargs)
 
 
-def test_an_unregistered_op_does_not_claim_its_invalidations():
+def test_an_undeclared_op_does_not_claim_its_invalidations():
     assert nw.GenreOp("cut", _cut, title="Cut").to_dict()["invalidates"] is None
+
+
+def test_a_generator_of_names_is_kept_not_consumed():
+    op = nw.GenreOp("x", _status, title="X", invalidates=(n for n in ["status", "beat_grid"]))
+    assert op.invalidates == ("status", "beat_grid")
