@@ -1815,6 +1815,153 @@ def test_reenqueue_over_a_cancelled_job_whose_thread_still_runs_is_deduped(proje
     assert len(calls) == 2
 
 
+def _wait_until_thread_exits(rt, job_id, *, timeout=5.0):
+    deadline = time.time() + timeout
+    while rt.middleware.is_running(job_id):
+        assert time.time() < deadline
+        time.sleep(0.01)
+
+
+def test_reenqueue_from_another_replica_over_a_cancelled_running_job_is_deduped(project):
+    """nw#141: replica 2 cannot see replica 1's thread (``is_running`` is
+    process-local), so the cancelled job's fresh heartbeat and missing exit
+    marker are what keep the key live until that thread exits."""
+    release = threading.Event()
+    calls: list[str] = []
+    dispatch = {"op": _blocking_stub(release, calls=calls)}
+    job = jobs.enqueue(project, "op", VIDEO_PARAMS, dispatch=dispatch)
+    _poll_until(
+        project,
+        job.job_id,
+        lambda j: (_running_record(project, j.job_id) or {}).get("heartbeat_at"),
+    )
+    jobs.cancel_job(project, job.job_id)
+    replica_1 = jobs._runtime(project)
+    token = _running_record(project, job.job_id)["run_token"]
+
+    jobs._reset_runtimes()  # replica 2: the same store, none of replica 1's threads
+    jobs.enqueue(project, "op", VIDEO_PARAMS, dispatch=dispatch)
+    assert _running_record(project, job.job_id)["run_token"] == token  # not relaunched
+
+    release.set()
+    _wait_until_thread_exits(replica_1, job.job_id)
+    assert _running_record(project, job.job_id)["worker_exited_at"]
+    rerun = jobs.enqueue(project, "op", VIDEO_PARAMS, dispatch=dispatch)
+    assert _running_record(project, job.job_id)["run_token"] != token
+    done = _poll_until(project, rerun.job_id, lambda j: j.status == jobs.SUCCEEDED)
+    assert done.status == jobs.SUCCEEDED
+    assert len(calls) == 2
+
+
+@pytest.mark.parametrize(
+    "edit, relaunched",
+    [
+        ({}, False),  # cancelled, fresh beat, no exit marker: a worker elsewhere
+        ({"worker_exited_at": "now"}, True),  # its worker said it is gone
+        ({"heartbeat_at": "stale"}, True),  # its worker stopped beating
+        ({"cancel_requested": False}, True),  # au says terminal: not a cancel
+    ],
+)
+def test_a_cancelled_record_is_live_only_while_its_worker_may_run(
+    project, edit, relaunched
+):
+    """The hand-written "replica 2" view of nw#141's gate, case by case."""
+    release = threading.Event()
+    release.set()
+    dispatch = {"op": _blocking_stub(release)}
+    job = jobs.enqueue(project, "op", VIDEO_PARAMS, dispatch=dispatch)
+    _poll_until(project, job.job_id, lambda j: j.status == jobs.SUCCEEDED)
+    _wait_until_thread_exits(jobs._runtime(project), job.job_id)
+
+    stamp = {"now": jobs._now_iso(), "stale": jobs._iso(jobs._utcnow_plus(-3600))}
+    fields = {
+        "cancel_requested": True,
+        "heartbeat_at": jobs._now_iso(),
+        "worker_exited_at": None,
+        "run_token": "replica-1",
+        **{k: stamp.get(v, v) for k, v in edit.items()},
+    }
+    rt = jobs._runtime(project)
+    with rt.lock:
+        jobs._index_update_locked(rt, job.job_id, **fields)
+    rt.au_store[job.job_id] = ComputationResult(None, ComputationStatus.CANCELLED)
+    jobs._reset_runtimes()
+
+    jobs.enqueue(project, "op", VIDEO_PARAMS, dispatch=dispatch)
+    token = _running_record(project, job.job_id)["run_token"]
+    assert (token != "replica-1") is relaunched
+
+
+def test_a_superseded_run_never_stamps_the_record_that_replaced_it(project):
+    """The beat and the exit marker touch the record only while it carries
+    their run's token, so a stale worker cannot keep a newer run "alive"."""
+    rt = jobs._runtime(project)
+    with rt.lock:
+        jobs._index_set_locked(rt, "j", {"job_id": "j", "run_token": "B"})
+
+    class _OneBeat:
+        def __init__(self):
+            self.beats = 0
+
+        def is_set(self):
+            self.beats += 1
+            return self.beats > 1
+
+        def wait(self, _timeout):
+            pass
+
+    jobs._beat_while_running(rt, "j", "A", jobs.DEFAULT_CONFIG, _OneBeat())
+    jobs._mark_worker_exited(rt, "j", "A")
+    assert "heartbeat_at" not in _running_record(project, "j")
+    assert "worker_exited_at" not in _running_record(project, "j")
+
+    jobs._beat_while_running(rt, "j", "B", jobs.DEFAULT_CONFIG, _OneBeat())
+    jobs._mark_worker_exited(rt, "j", "B")
+    record = _running_record(project, "j")
+    assert record["heartbeat_at"] and record["worker_exited_at"]
+
+
+def test_the_exit_marker_is_written_only_after_the_beat_has_finished(
+    project, monkeypatch
+):
+    """nw#141: a beat still waiting on the lock when the marker lands would
+    stamp the record after its worker said it is gone, so ``_run`` joins the
+    beat first. Deterministic: the fake beat holds after ``stop`` until either
+    ``beat.join()`` or the marker lets it go, so which comes first decides."""
+    release = threading.Event()  # the render starts once the fake is armed
+    let_finish = threading.Event()
+    beat_done = threading.Event()
+    beat_alive_at_marker: list[bool] = []
+
+    def fake_beat(rt, job_id, run_token, config, stop):
+        me = threading.current_thread()
+        join = me.join
+
+        def join_releasing(*args, **kwargs):
+            let_finish.set()
+            return join(*args, **kwargs)
+
+        me.join = join_releasing
+        release.set()
+        stop.wait(timeout=5)
+        let_finish.wait(timeout=5)
+        beat_done.set()
+
+    mark = jobs._mark_worker_exited
+
+    def recording_mark(rt, job_id, run_token):
+        beat_alive_at_marker.append(not beat_done.is_set())
+        let_finish.set()
+        return mark(rt, job_id, run_token)
+
+    monkeypatch.setattr(jobs, "_beat_while_running", fake_beat)
+    monkeypatch.setattr(jobs, "_mark_worker_exited", recording_mark)
+    job = jobs.enqueue(project, "op", VIDEO_PARAMS, dispatch={"op": _blocking_stub(release)})
+    _poll_until(project, job.job_id, lambda j: j.status == jobs.SUCCEEDED)
+    _wait_until_thread_exits(jobs._runtime(project), job.job_id)
+    assert beat_alive_at_marker == [False]
+
+
 def test_failed_relaunch_of_a_terminal_key_keeps_the_previous_run(project):
     """A re-run whose launch fails must not erase the finished run it replaced."""
     release = threading.Event()

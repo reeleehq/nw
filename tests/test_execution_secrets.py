@@ -546,6 +546,7 @@ def test_the_rebuilt_exception_does_not_chain_to_the_dirty_original(project):
         rt=rt,
         config=jobs.DEFAULT_CONFIG,
         secrets=Secrets(elevenlabs=SENTINEL),
+        run_token="direct-run",
     )
     with pytest.raises(RuntimeError) as info:
         run()
