@@ -1174,9 +1174,9 @@ class DurationLearningMiddleware(Middleware):
 
     def is_running(self, key: str) -> bool:
         with self._lock:
-            return self._is_running_locked(key)
+            return self.is_running_locked(key)
 
-    def _is_running_locked(self, key: str) -> bool:
+    def is_running_locked(self, key: str) -> bool:
         """:meth:`is_running` for a caller already holding the runtime lock
         (it is this middleware's lock too, and not reentrant)."""
         return key in self._start
@@ -2091,11 +2091,7 @@ def _read_job(rt, record, config, *, project) -> Job:
     run_token = record.get("run_token")  # the run this read starts from
     au_result = rt.au_store[job_id]
     au_result = _maybe_reap(rt, record, au_result, config)
-    if au_result.status in (
-        ComputationStatus.COMPLETED,
-        ComputationStatus.FAILED,
-        ComputationStatus.CANCELLED,
-    ):
+    if au_result.status in _AU_TERMINAL:
         record = _index_snapshot(rt, job_id) or record
     job = _project_job(rt, record, au_result, config)
     if job.status in (RUNNING, CANCELLING) and job.pct is not None:
@@ -2108,29 +2104,41 @@ def _read_job(rt, record, config, *, project) -> Job:
     return job
 
 
+_AU_TERMINAL = frozenset(
+    {ComputationStatus.COMPLETED, ComputationStatus.FAILED, ComputationStatus.CANCELLED}
+)
+
+
 def _maybe_reap(rt, record, au_result, config) -> ComputationResult:
-    """Reap a RUNNING record whose worker is gone (no live thread + stale start)."""
-    if au_result.status is not ComputationStatus.RUNNING:
+    """Reap a RUNNING record whose worker is gone (no live thread + stale start).
+
+    A record that itself shows life (:func:`_shows_life`) is left alone without
+    taking the lock, so polling a healthy running job never queues behind
+    another replica (nw#158). Otherwise the reap is decided under ``rt.lock``
+    on a fresh read of the record, not on the caller's snapshot (nw#159): the
+    lock is cross-process (nw#148), so a heartbeat any replica stamped after
+    the snapshot, or a re-enqueue (a new ``run_token``), saves the job, and
+    au's status is re-read so a worker that finished meanwhile is reported,
+    not reaped. The index is written before au's FAILED, the order a worker
+    uses, so a reader that sees FAILED also sees the error; both inside the
+    lock, so a re-enqueue cannot slip in between. What remains is a worker's own au write racing FAILED: au's window
+    (nw#149). A record missing from the index has no fresher fact than the
+    snapshot, so it is decided on the snapshot.
+    """
+    if au_result.status is not ComputationStatus.RUNNING or _shows_life(record, config):
         return au_result
     job_id = record["job_id"]
-    if rt.middleware.is_running(job_id):
-        return au_result  # a live worker in this process is on it
-    if _heartbeat_is_fresh(record, config):
-        return au_result  # a live worker in SOME process is on it
-    started = _parse_iso(record.get("started_at") or record.get("created_at"))
-    if (
-        started is not None
-        and (_utcnow() - started).total_seconds() < config.stale_running_s
-    ):
-        return au_result
-    reaped = ComputationResult(
-        None,
-        ComputationStatus.FAILED,
-        error=Exception(REAPED_REASON),
-        terminal_reason=REAPED_REASON,
-    )
-    rt.au_store[job_id] = reaped
     with rt.lock:
+        fresh = _index_get_locked(rt, job_id) or record
+        if (
+            fresh.get("run_token") != record.get("run_token")
+            or _shows_life(fresh, config)
+            or rt.middleware.is_running_locked(job_id)  # a live worker in this process
+        ):
+            return au_result
+        current = rt.au_store[job_id]
+        if current.status in _AU_TERMINAL:
+            return current  # the worker finished after all
         _index_update_locked(
             rt,
             job_id,
@@ -2138,7 +2146,28 @@ def _maybe_reap(rt, record, au_result, config) -> ComputationResult:
             error=REAPED_REASON,
             error_kind=ERROR_KIND_CRASHED,
         )
-    return rt.au_store[job_id]
+        # Under the lock too: a relaunch happens only under it, so FAILED can
+        # never land on a run that replaced the one reaped.
+        rt.au_store[job_id] = ComputationResult(
+            None,
+            ComputationStatus.FAILED,
+            error=Exception(REAPED_REASON),
+            terminal_reason=REAPED_REASON,
+        )
+        return rt.au_store[job_id]
+
+
+def _shows_life(record, config) -> bool:
+    """Whether ``record`` itself says its worker may be alive: a fresh
+    heartbeat (from any process), or a start younger than ``stale_running_s``.
+    Either only ever prevents a reap."""
+    if _heartbeat_is_fresh(record, config):
+        return True
+    started = _parse_iso(record.get("started_at") or record.get("created_at"))
+    return (
+        started is not None
+        and (_utcnow() - started).total_seconds() < config.stale_running_s
+    )
 
 
 def _heartbeat_is_fresh(record, config) -> bool:
@@ -2211,7 +2240,7 @@ def _worker_may_still_run_locked(rt, record, config) -> bool:
     backend the marker follows au's terminal write (nw#149); a backend without
     the middleware still has the gap between the worker's marker and that write.
     """
-    if rt.middleware._is_running_locked(record["job_id"]):
+    if rt.middleware.is_running_locked(record["job_id"]):
         return True
     return (
         bool(record.get("cancel_requested"))
@@ -2430,11 +2459,7 @@ def _normalize_status(au_status: ComputationStatus, *, cancel_requested: bool) -
     the index's job, not the au store's).
     """
     if cancel_requested:
-        if au_status in (
-            ComputationStatus.COMPLETED,
-            ComputationStatus.FAILED,
-            ComputationStatus.CANCELLED,
-        ):
+        if au_status in _AU_TERMINAL:
             return CANCELLED
         return CANCELLING
     if au_status is ComputationStatus.COMPLETED:
