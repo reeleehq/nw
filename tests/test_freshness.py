@@ -465,6 +465,27 @@ def test_a_trace_recorded_before_a_derived_marker_existed_still_verifies(
     assert _ids(nw.all_stale(proj.root)) == {child.id}
 
 
+def test_the_pre_marker_fallback_runs_only_when_todays_digest_misses(
+    tmp_path, monkeypatch, derived_field_schema
+):
+    """nw#182: nearly every trace matches today's digest, so the costlier
+    pre-marker candidates are computed only on a miss."""
+    import nw.freshness as freshness
+
+    proj = nw.Project.init(tmp_path / "p")
+    parent = _parent_with_derived_field(proj)
+    _derived(proj, (parent.id,), body={"url": "x"})
+    calls = []
+    real = freshness.value_digest_matches
+    monkeypatch.setattr(
+        freshness, "value_digest_matches", lambda *a, **k: calls.append(1) or real(*a, **k)
+    )
+    assert nw.all_stale(proj.root) == [] and calls == []  # today's digest matched
+
+    _rewrite_in_place(proj, parent, body={"artifact_id": "b", "asset_id": "1"})
+    assert len(nw.all_stale(proj.root)) == 1 and calls == [1]  # a miss consults it
+
+
 def test_rewriting_a_parent_keeps_a_pre_marker_child_fresh(tmp_path, derived_field_schema):
     """``rewrite_values`` re-stamps a trace whose digest predates the parent's
     ``Derived`` marker too, or the rewrite would turn the child stale (nw#179)."""
@@ -509,7 +530,7 @@ def test_an_undigestible_upstream_is_stale(tmp_path, monkeypatch):
     def _boom(_ann, **_):
         raise TypeError("body has a non-str key")
 
-    monkeypatch.setattr(freshness, "accepted_value_digests", _boom)
+    monkeypatch.setattr(freshness, "annotation_value_digest", _boom)
     assert _ids(nw.stale_after(proj.root, a_id)) == {b.id, c.id}
     assert _reason_for(proj, a_id, b.id) == REASON_UPSTREAM_CHANGED
 

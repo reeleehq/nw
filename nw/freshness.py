@@ -109,7 +109,8 @@ from uuid import UUID
 from lacing import Annotation
 from lacing.digest import (
     VALUE_DIGEST_SCHEMES,
-    accepted_value_digests,
+    annotation_value_digest,
+    value_digest_matches,
 )
 
 from .bodies.verifying_trace import (
@@ -159,7 +160,7 @@ def is_verifiable_digest_scheme(scheme: str) -> bool:
     traces stale. Only a scheme lacing does not know is unverifiable. Note
     that a scheme whose digest depends on registered body schemas (v2) needs
     the verifier to register the same ``Derived`` markers as the producer, or
-    the producer none (see ``accepted_of`` in the verdict walk, nw#179).
+    the producer none (see ``vouches`` in the verdict walk, nw#179).
     """
     return scheme in VALUE_DIGEST_SCHEMES
 
@@ -262,29 +263,43 @@ def _verdicts_for(
     by_id: dict[UUID, Annotation] = {a.id: a for a in annotations}
     traces = _traces_by_target(annotations)
 
-    accepted: dict[tuple[UUID, str], frozenset[str]] = {}
+    primary: dict[tuple[UUID, str], Optional[str]] = {}
+    fallback: dict[tuple[UUID, str, str], bool] = {}
 
-    def accepted_of(ann: Annotation, scheme: str) -> frozenset[str]:
-        """Memoized set of value digests under ``scheme`` that vouch for
-        ``ann``'s current value (nw#179): today's, plus what a producer would
-        have recorded before the body schema gained a ``Derived`` marker (or
-        without registering it). Either drops nothing the verifier counts, so
-        accepting it is never a wrong hit. A verifier registering *fewer*
-        markers than the producer gets a spurious miss, and so does a schema
-        that already had one marker gaining a second (nw#180). Empty when the
-        body cannot be digested."""
+    def vouches(ann: Annotation, recorded: str, scheme: str) -> bool:
+        """Whether ``recorded`` (a digest a trace stored under ``scheme``) still
+        describes ``ann``'s value.
+
+        Today's digest first, memoized per ``(ann, scheme)``: nearly every
+        trace matches it. Only on a miss, ``lacing.value_digest_matches``
+        (lazy, memoized per recorded digest) also accepts what a producer
+        would have recorded before the body schema gained a ``Derived``
+        marker, or without registering it (nw#179, nw#182). Either drops
+        nothing the verifier counts, so accepting it is never a wrong hit. A
+        verifier registering *fewer* markers than the producer gets a spurious
+        miss, and so does a schema that already had one marker gaining a
+        second (nw#180). ``False`` when the body cannot be digested."""
         key = (ann.id, scheme)
-        if key not in accepted:
+        if key not in primary:
             try:
-                accepted[key] = accepted_value_digests(ann, scheme=scheme)
+                primary[key] = annotation_value_digest(ann, scheme=scheme)
             except Exception:
                 # A body outside the JSON contract (lacing raises
                 # NonStringBodyKeyError) cannot be compared. Catching is the
                 # load-bearing part — a read-only freshness query must not
-                # crash on one broken row. Empty contains no recorded digest,
-                # so the caller reads it as "changed".
-                accepted[key] = frozenset()
-        return accepted[key]
+                # crash on one broken row; the caller reads it as "changed".
+                primary[key] = None
+        if primary[key] is None:
+            return False
+        if recorded == primary[key]:
+            return True
+        miss = (ann.id, scheme, recorded)
+        if miss not in fallback:
+            try:
+                fallback[miss] = value_digest_matches(ann, recorded, scheme=scheme)
+            except Exception:  # same contract as above
+                fallback[miss] = False
+        return fallback[miss]
 
     verdicts: dict[UUID, FreshnessVerdict] = {}
     resolving: set[UUID] = set()
@@ -352,10 +367,10 @@ def _verdicts_for(
                     return FreshnessVerdict(ann, True, REASON_PROVENANCE_CYCLE, pid)
                 if resolve(pid).is_stale:
                     return FreshnessVerdict(ann, True, REASON_UPSTREAM_STALE, pid)
-            # ``accepted_of`` is empty for a body lacing refuses to digest, so
-            # the undigestible case falls to "changed" by construction rather
-            # than by a separate branch that no test could distinguish.
-            if recorded[pid] not in accepted_of(parent, trace.digest_scheme):
+            # ``vouches`` is False for a body lacing refuses to digest, so the
+            # undigestible case falls to "changed" by construction rather than
+            # by a separate branch that no test could distinguish.
+            if not vouches(parent, recorded[pid], trace.digest_scheme):
                 return FreshnessVerdict(ann, True, REASON_UPSTREAM_CHANGED, pid)
         return FreshnessVerdict(ann, False, REASON_FRESH)
 
