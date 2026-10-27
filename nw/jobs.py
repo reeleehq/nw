@@ -190,11 +190,10 @@ class JobsConfig:
     the scan, and every poll, stays bounded by recent work instead of growing
     with the project's whole history. :func:`get_job` and :func:`cancel_job`
     still answer for an archived id. ``None`` keeps every run in the index."""
-    index_sweep_interval_s: float = 3600.0
+    index_sweep_interval_s: float | None = 3600.0
     """How often (per process and project) :func:`list_jobs` looks for runs to
-    archive. A run too old to list but not yet over (an unannounced run, an
-    orphaned queued record) costs a lock round-trip per look, so the look is
-    throttled rather than repeated on every poll."""
+    archive, so the look is not repeated on every poll. ``None``: never; the
+    host schedules :func:`archive_finished_runs` instead (nw#174)."""
     jobs_dirname: str = ".nw/jobs"
     """Sub-path under ``project.root`` for the job stores (nw's ``.nw/`` convention)."""
 
@@ -857,7 +856,7 @@ def list_jobs(
     """
     rt = _runtime(project, config)
     records = [r for r in (_index_snapshot(rt, k) for k in list(rt.index)) if r]
-    records = _archive_old_runs(rt, records, config)
+    records = _archive_old_runs(rt, records, config, project=project)
     records.sort(key=lambda r: r.get("created_at") or "", reverse=True)
 
     jobs: list[Job] = []
@@ -870,25 +869,109 @@ def list_jobs(
     return jobs
 
 
-def _archive_old_runs(rt, records, config) -> list:
+def archive_finished_runs(project, *, config: JobsConfig = DEFAULT_CONFIG) -> list[str]:
+    """Move every run that ended more than ``config.index_retention_s`` ago
+    from the live index to the archive, now; return their ids (nw#174).
+
+    The same move :func:`list_jobs` makes on its throttled scan, for a host to
+    schedule off the request path, e.g. a big project's first sweep after an
+    upgrade (seconds at 10k runs). With ``index_sweep_interval_s=None`` it is
+    the only sweep: ``list_jobs`` then never writes to archive.
+
+    An old run that is not over yet is settled first (:func:`_settle_straggler`):
+    a terminal run nobody announced is read, which announces it, and a run
+    still queued with no worker anywhere is failed as never started. Both
+    then leave on a later sweep, so no record costs a lock on every sweep
+    forever. Best-effort per run, like ``list_jobs``'s.
+    """
+    rt = _runtime(project, config)
+    records = [r for r in (_index_snapshot(rt, k) for k in list(rt.index)) if r]
+    return sorted(_sweep(rt, records, config, project=project))
+
+
+def _archive_old_runs(rt, records, config, *, project) -> list:
     """``records`` minus the runs this call moved from the index to
-    ``rt.archive`` (nw#169): those that ended before ``index_retention_s`` ago.
+    ``rt.archive`` (nw#169), at most once per ``index_sweep_interval_s`` per
+    runtime, and never when that is ``None`` (the host sweeps, nw#174).
 
     The age is judged on the scan's snapshots, so a project with nothing old
-    pays nothing beyond the scan it was doing anyway; each candidate is then
-    re-read and moved under ``rt.lock`` (:func:`_archive_if_settled`).
+    pays nothing beyond the scan it was doing anyway (:func:`_sweep`).
     """
-    if config.index_retention_s is None or time.monotonic() < rt.next_sweep:
+    interval = config.index_sweep_interval_s
+    if interval is None or time.monotonic() < rt.next_sweep:
         return records
-    rt.next_sweep = time.monotonic() + config.index_sweep_interval_s
-    cutoff = _utcnow_plus(-config.index_retention_s)
-    moved = {
-        r["job_id"]
-        for r in records
-        if _ended_before(r, cutoff)
-        and _archive_quietly(rt, r["job_id"], cutoff, config)
-    }
+    rt.next_sweep = time.monotonic() + interval
+    moved = _sweep(rt, records, config, project=project)
     return [r for r in records if r["job_id"] not in moved] if moved else records
+
+
+def _sweep(rt, records, config, *, project) -> set[str]:
+    """Settle, then archive, each of ``records`` that ended before
+    ``index_retention_s`` ago; return the ids moved. Each candidate is
+    re-read and moved under ``rt.lock`` (:func:`_archive_if_settled`)."""
+    if config.index_retention_s is None:
+        return set()
+    cutoff = _utcnow_plus(-config.index_retention_s)
+    moved = set()
+    for record in records:
+        if not _ended_before(record, cutoff):
+            continue
+        _settle_straggler(rt, record, config, project=project)
+        if _archive_quietly(rt, record["job_id"], cutoff, config):
+            moved.add(record["job_id"])
+    return moved
+
+
+NEVER_STARTED_REASON = "never started — resumable"
+"""A queued run older than the index retention with no worker anywhere."""
+
+
+def _settle_straggler(rt, record, config, *, project) -> None:
+    """Bring an old run that is not over to an end it can be archived from
+    (nw#174), best-effort. A run still queued (au PENDING, or au has no entry)
+    with no worker here or beating anywhere has had ``index_retention_s`` to
+    start and is failed as :data:`NEVER_STARTED_REASON`; a terminal run nobody
+    announced (one past every ``list_jobs`` limit) is read, which announces it
+    (:func:`register_terminal_hook`)."""
+    job_id = record["job_id"]
+    try:
+        status = rt.au_store[job_id].status
+        if status is ComputationStatus.PENDING:
+            _fail_never_started(rt, record, config)
+        elif status in _AU_TERMINAL and record.get("terminal_announced") is False:
+            _read_job(rt, record, config, project=project)
+    except Exception:  # noqa: BLE001 — housekeeping never fails the caller
+        _logger.warning("could not settle old job %s", job_id, exc_info=True)
+
+
+def _fail_never_started(rt, record, config) -> None:
+    """Fail ``record``'s queued run, deciding under ``rt.lock`` on a fresh read
+    as the reaper does (:func:`_maybe_reap`): the same run, still PENDING, no
+    worker alive here or beating anywhere. Then read, so it is announced."""
+    job_id = record["job_id"]
+    with rt.lock:
+        fresh = _index_get_locked(rt, job_id)
+        if (
+            fresh is None
+            or fresh.get("run_token") != record.get("run_token")
+            or rt.middleware.is_running_locked(job_id)
+            or _heartbeat_is_fresh(fresh, config)
+            or rt.au_store[job_id].status is not ComputationStatus.PENDING
+        ):
+            return
+        _index_update_locked(
+            rt,
+            job_id,
+            finished_at=now_iso(),
+            error=NEVER_STARTED_REASON,
+            error_kind=ERROR_KIND_CRASHED,
+        )
+        rt.au_store[job_id] = ComputationResult(
+            None,
+            ComputationStatus.FAILED,
+            error=Exception(NEVER_STARTED_REASON),
+            terminal_reason=NEVER_STARTED_REASON,
+        )
 
 
 def _archive_quietly(rt, job_id, cutoff: datetime, config) -> bool:

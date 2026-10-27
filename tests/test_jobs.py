@@ -2617,13 +2617,12 @@ def test_an_old_finished_run_moves_to_the_archive_and_still_answers(project):
 @pytest.mark.parametrize(
     "fields, au_status",
     [
-        ({"terminal_announced": False}, ComputationStatus.COMPLETED),
         ({"announce_claim": {"by": "x", "until": "2999-01-01T00:00:00Z"}},
          ComputationStatus.COMPLETED),
         ({"heartbeat_at": "2999-01-01T00:00:00Z"}, ComputationStatus.CANCELLED),
         ({}, ComputationStatus.RUNNING),
     ],
-    ids=["unannounced", "lease", "worker-beating", "au-running"],
+    ids=["lease", "worker-beating", "au-running"],
 )
 def test_an_old_run_that_is_not_over_stays_in_the_index(project, fields, au_status):
     rt = jobs._runtime(project)
@@ -2659,6 +2658,45 @@ def test_archiving_is_throttled_and_never_fails_the_poll(project, monkeypatch):
     rt.next_sweep = 0.0  # the interval has passed
     jobs.list_jobs(project)
     assert "old" in rt.archive and "old" not in rt.index
+
+
+def test_a_host_can_sweep_on_its_own_schedule(project):
+    """nw#174: ``archive_finished_runs`` archives now, whatever the throttle,
+    and with ``index_sweep_interval_s=None`` it is the only sweep."""
+    config = JobsConfig(index_sweep_interval_s=None)
+    rt = jobs._runtime(project, config)
+    _ended_run(rt, "old", days_ago=40)
+    _ended_run(rt, "recent", days_ago=1)
+    jobs.list_jobs(project, config=config)
+    assert "old" in rt.index  # list_jobs no longer writes
+    assert jobs.archive_finished_runs(project, config=config) == ["old"]
+    assert "old" in rt.archive and "recent" in rt.index
+    assert jobs.archive_finished_runs(project, config=config) == []
+
+
+def test_an_old_unannounced_run_is_announced_then_archived(project, announced):
+    """A finished run past every list limit was never read, so never announced,
+    and could never be archived: the sweep reads it (announcing it) first."""
+    rt = jobs._runtime(project)
+    _ended_run(rt, "old", days_ago=40, terminal_announced=False)
+    assert jobs.archive_finished_runs(project) == ["old"]
+    assert announced == [("old", jobs.SUCCEEDED)]
+
+
+def test_an_old_run_that_never_started_is_failed_and_announced(project, announced):
+    """A run still queued after the whole retention period, with no worker
+    anywhere, is failed as never started (and announced), instead of costing
+    a lock on every sweep forever. A recent queued run is left alone."""
+    rt = jobs._runtime(project)
+    _ended_run(rt, "stuck", days_ago=40, au_status=ComputationStatus.PENDING,
+               finished_at=None, terminal_announced=False)
+    _ended_run(rt, "queued", days_ago=1, au_status=ComputationStatus.PENDING,
+               finished_at=None, terminal_announced=False)
+    assert jobs.archive_finished_runs(project) == []  # it ended just now
+    stuck = jobs.get_job(project, "stuck")
+    assert stuck.status == jobs.FAILED and stuck.error == jobs.NEVER_STARTED_REASON
+    assert announced == [("stuck", jobs.FAILED)]
+    assert jobs.get_job(project, "queued").status == jobs.QUEUED
 
 
 def test_retention_none_keeps_every_run(project):
