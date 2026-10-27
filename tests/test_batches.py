@@ -111,7 +111,11 @@ def test_missing_member_never_reads_as_exact_cost(project):
     )
     batches.wait(project, b.batch_id, 5)
     rt = jobs._runtime(project)
-    del rt.index[b.job_ids[1]]
+    # Under the lock: ``wait`` wakes on the notifier, before the worker's
+    # end-of-job announcement read-modify-writes the record (nw#151); an
+    # unlocked delete can land inside it and be written back.
+    with rt.lock:
+        del rt.index[b.job_ids[1]]
     st = batches.status(project, b.batch_id)
     assert st["counts"] == {"succeeded": 1, "missing": 1} and st["done"]
     assert st["cost"]["actual_is_lower_bound"] is True
