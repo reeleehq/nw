@@ -60,7 +60,9 @@ Design decisions (from the ``nw.jobs``-on-``au`` design report,
   move, and a stale figure under-quotes the run (nw#74). Descriptive only:
   ``cost_basis`` stays out of ``plan_hash``, so the idempotency key above is
   byte-identical to what it was before repricing existed, and a resumed render
-  still dedups onto work already paid for.
+  still dedups onto work already paid for. A host that prices server-side
+  passes ``enqueue(..., estimated_usd=)`` instead: recorded as the job's
+  estimate, and outside ``params`` so it never enters the job id (nw#144).
 
 All tunables are keyword-configurable via :class:`JobsConfig`; defaults live at
 the top of this module — no magic numbers below.
@@ -308,6 +310,10 @@ class Job:
     last_event_id: str | None = None
 
 
+_UNSET = object()
+"""``enqueue(estimated_usd=)`` not given: distinct from ``None`` (unknown)."""
+
+
 @dataclass(frozen=True)
 class _Prediction:
     p50: float
@@ -332,6 +338,7 @@ def enqueue(
     label: str | None = None,
     capture_context: Callable[[], AbstractContextManager[Any]] | None = None,
     secrets: Mapping[str, str] | None = None,
+    estimated_usd: float | None | object = _UNSET,
     config: JobsConfig = DEFAULT_CONFIG,
 ) -> Job:
     """Enqueue a billable render as a background job. Returns a :class:`Job`
@@ -400,6 +407,13 @@ def enqueue(
             wins over an ambient one. The explicit counterpart of
             ``capture_context``: what that hook re-binds ambiently, this
             threads by hand.
+        estimated_usd: the price the **host** computed for this job, recorded
+            as its ``cost.estimated_usd`` in place of nw's own (the plan
+            re-quote, else ``params["estimated_usd"]``, which a client may
+            have chosen). ``None`` records *unknown*. Not part of ``params``,
+            so it never enters the job id: a price that drifts with the graph
+            does not split dedup, and a dedup onto a live job keeps that
+            job's figure (nw#144). Omitted, nothing changes.
         config: tunables (see :class:`JobsConfig`).
 
     Raises:
@@ -469,7 +483,7 @@ def enqueue(
                 # Same gate, same rule: a supplied plan is re-quoted at today's
                 # rates and its answer wins, so the tray never shows a frozen
                 # figure as this job's price (nw#74).
-                "cost": {"estimated_usd": _estimated_usd(params)},
+                "cost": {"estimated_usd": _estimated_usd(params, host_usd=estimated_usd)},
                 "artifact_ref": None,
                 "result": None,
                 "error": None,
@@ -540,7 +554,12 @@ def enqueue(
 
 
 def estimate(
-    project, kind: str, params: dict, *, config: JobsConfig = DEFAULT_CONFIG
+    project,
+    kind: str,
+    params: dict,
+    *,
+    estimated_usd: float | None | object = _UNSET,
+    config: JobsConfig = DEFAULT_CONFIG,
 ) -> dict:
     """Dry-run cost gate **without enqueueing**.
 
@@ -569,12 +588,16 @@ def estimate(
     reported beside today's number rather than discarded, so a surface can
     show the movement.
 
+    ``estimated_usd`` is a host's own price, gated on exactly as
+    :func:`enqueue` records it (``None`` = unknown); the quote is still
+    reported beside it.
+
     Raises ``ValueError`` on a malformed ``params["units"]``, exactly as
     :func:`enqueue` does, so the gate never approves what enqueue refuses.
     """
     _eta_units(params)
     quote = _quote_params(params)
-    estimated = _estimated_usd(params, quote=quote)
+    estimated = _estimated_usd(params, quote=quote, host_usd=estimated_usd)
     has_unknown = estimated is None
     threshold = config.approval_threshold_usd
     requires_approval = has_unknown or (
@@ -606,13 +629,18 @@ def _caller_estimated_usd(params) -> float | None:
     return params.get("estimated_usd") if isinstance(params, Mapping) else None
 
 
-def _estimated_usd(params, *, quote: "PlanQuote | None" = None) -> float | None:
-    """This job's price today: the re-quoted plan, else the caller's figure.
+def _estimated_usd(
+    params, *, quote: "PlanQuote | None" = None, host_usd: Any = _UNSET
+) -> float | None:
+    """This job's price today: the host's own figure when it gave one
+    (``host_usd``, nw#144), else the re-quoted plan, else the caller's figure.
 
     ``None`` means unknown — never free, and never the stale number that came
     in with the plan. Pass ``quote`` to reuse one already computed for these
     same ``params``; it is re-derived when omitted.
     """
+    if host_usd is not _UNSET:
+        return host_usd
     quote = quote if quote is not None else _quote_params(params)
     if quote is not None:
         return quote.total_usd

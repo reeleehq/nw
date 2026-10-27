@@ -2132,3 +2132,55 @@ def test_learning_reads_the_record_in_the_same_critical_section_as_the_pop(proje
     mw._index = Index()
     mw.after_compute("k", None)
     assert seen == [(True, False)]  # popped, and still holding the lock when it read
+
+
+# ---------------------------------------------------------------------------
+# A host's server-side estimate, kept out of the job id (nw#144)
+# ---------------------------------------------------------------------------
+
+
+def _parked(project):
+    """A dispatch whose render waits, so the record is read before it ends."""
+    release = threading.Event()
+    return release, {"op": _blocking_stub(release)}
+
+
+def test_a_host_estimate_is_recorded_and_wins_over_the_clients(project):
+    release, dispatch = _parked(project)
+    params = {**VIDEO_PARAMS, "estimated_usd": 0.01}  # what a client chose
+    job = jobs.enqueue(project, "op", params, dispatch=dispatch, estimated_usd=2.5)
+    assert job.cost.estimated_usd == 2.5
+    assert jobs.get_job(project, job.job_id).cost.estimated_usd == 2.5
+    release.set()
+
+
+def test_a_host_estimate_never_enters_the_job_id(project):
+    release, dispatch = _parked(project)
+    base = jobs.job_id_for(project, "op", VIDEO_PARAMS)
+    first = jobs.enqueue(project, "op", VIDEO_PARAMS, dispatch=dispatch, estimated_usd=1.0)
+    again = jobs.enqueue(project, "op", VIDEO_PARAMS, dispatch=dispatch, estimated_usd=9.0)
+    assert first.job_id == again.job_id == base  # a drifted price still dedups
+    assert again.cost.estimated_usd == 1.0  # onto the live job, with its figure
+    release.set()
+
+
+def test_an_explicit_none_records_unknown_not_the_clients_figure(project):
+    release, dispatch = _parked(project)
+    params = {**VIDEO_PARAMS, "estimated_usd": 0.01}
+    job = jobs.enqueue(project, "op", params, dispatch=dispatch, estimated_usd=None)
+    assert job.cost.estimated_usd is None
+    release.set()
+
+
+def test_omitting_it_keeps_the_old_estimate(project):
+    release, dispatch = _parked(project)
+    job = jobs.enqueue(project, "op", {**VIDEO_PARAMS, "estimated_usd": 0.3}, dispatch=dispatch)
+    assert job.cost.estimated_usd == 0.3
+    release.set()
+
+
+def test_estimate_gates_on_the_host_figure(project):
+    out = jobs.estimate(project, "op", {"estimated_usd": 0.01}, estimated_usd=500.0)
+    assert out["estimated_usd"] == 500.0 and out["requires_approval"] is True
+    unknown = jobs.estimate(project, "op", {"estimated_usd": 0.01}, estimated_usd=None)
+    assert unknown["has_unknown_costs"] is True

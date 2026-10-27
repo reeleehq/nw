@@ -25,7 +25,8 @@ member jobs on read* and never stored, so a batch cannot drift from its jobs:
   idempotent and a no-op on a finished job).
 
 Items are mappings ``{"kind": ..., "params": {...}}`` (optionally ``label``,
-``idempotency_key``); a batch-level ``kind=`` is the default for items that omit
+``idempotency_key``, and ``estimated_usd`` — a host's own price for that
+member, kept out of its job id, nw#144); a batch-level ``kind=`` is the default for items that omit
 one. Item identity should be semantic (see :mod:`nw.transforms.fanout`'s
 ``mapping_key``): the default idempotency key hashes ``params``.
 
@@ -154,7 +155,13 @@ def estimate_batch(
     single item that alone requires approval does too.
     """
     per_item = [
-        _jobs.estimate(project, spec["kind"], spec["params"], config=config)
+        _jobs.estimate(
+            project,
+            spec["kind"],
+            spec["params"],
+            config=config,
+            **{k: spec[k] for k in ("estimated_usd",) if k in spec},
+        )
         for spec in _item_specs(items, kind)
     ]
     has_unknown = any(e["has_unknown_costs"] for e in per_item)
@@ -292,7 +299,8 @@ def cancel_batch(
 # ---------------------------------------------------------------------------
 
 
-ITEM_KEYS = frozenset({"kind", "params", "label", "idempotency_key"})
+ITEM_KEYS = frozenset({"kind", "params", "label", "idempotency_key", "estimated_usd"})
+"""A batch item's keys: :func:`nw.jobs.enqueue`'s per-job arguments."""
 
 
 def _item_specs(

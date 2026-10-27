@@ -238,3 +238,17 @@ def test_an_enqueue_that_changes_the_job_is_refused(project):
         batches.enqueue_batch(project, _items(1), kind="x", dispatch=d, enqueue=rewriting_door)
     # the record would point at the wrong job, so none is written
     assert list(batches._store(project.root, jobs.DEFAULT_CONFIG)) == []
+
+
+def test_a_members_host_estimate_is_recorded_and_gated_but_not_hashed(project):
+    """nw#144: a batch item's ``estimated_usd`` is that member's server-side price."""
+    release = threading.Event()
+    plain = _items(2)
+    priced = [{**item, "estimated_usd": 3.0} for item in plain]
+    gate = batches.estimate_batch(project, priced, kind="x")
+    assert gate["estimated_usd"] == pytest.approx(6.0)
+    b = batches.enqueue_batch(project, priced, kind="x", dispatch={"x": _stub(release)})
+    unpriced_ids = batches._spec_job_ids(project, batches._item_specs(plain, "x"))
+    assert list(b.job_ids) == unpriced_ids  # the price is not in any job id
+    assert all(jobs.get_job(project, j).cost.estimated_usd == 3.0 for j in b.job_ids)
+    release.set()
