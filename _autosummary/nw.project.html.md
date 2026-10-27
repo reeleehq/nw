@@ -20,6 +20,16 @@ The facade is deliberately small. It exposes:
 
 It does NOT do rendering — that’s [`nw.workflow`](nw.workflow.html.md#module-nw.workflow) (Phase 1b.2).
 
+### Module Attributes
+
+| [`DEFAULT_GENRE_STATUS_MAX_BYTES`](#nw.project.DEFAULT_GENRE_STATUS_MAX_BYTES)   | Serialized size above which a genre status is refused as "large content".   |
+|-----------------------------------------------------------------------------------|-----------------------------------------------------------------------------|
+
+### Functions
+
+| [`genre_status_of`](#nw.project.genre_status_of)(project, \*[, max_bytes, ...])   | `project.genre_status()` made safe to serve: a JSON dict, or `None`.   |
+|---------------------------------------------------------------------------------------------------|------------------------------------------------------------------------|
+
 ### Classes
 
 | [`CharacterImage`](#nw.project.CharacterImage)(path, \*[, from_ref, ...])   | One image associated with a character.   |
@@ -39,6 +49,10 @@ Returned by [`Project.list_character_images()`](#nw.project.Project.list_charact
 - `from_selected`: under `characters/<name>/selected/` — curator-picked.
 - `is_anchor`: this is the file the character card currently points at as
   the “use this image” anchor (lipsync seed, etc.).
+
+### nw.project.DEFAULT_GENRE_STATUS_MAX_BYTES *= 65536*
+
+Serialized size above which a genre status is refused as “large content”.
 
 ### *class* nw.project.Project(root, , storage=None, auto_migrate=True)
 
@@ -60,6 +74,20 @@ way to lose them.
 
 * **Return type:**
   [`CharacterRef`](nw.schema.html.md#nw.schema.CharacterRef)
+
+#### genre_status()
+
+Where this project stands, in the genre’s own terms. Override me.
+
+The hook a host (reelee’s `project_status`) asks to add a genre’s
+answer to its generic one (nw#133). The default is `None`: “this genre
+says nothing”. An override returns **JSON-serializable data only**, with
+no absolute paths or server-side layout and never large content inlined.
+Callers go through [`genre_status_of()`](#nw.project.genre_status_of), which enforces that and
+treats a raising hook as “no genre status”.
+
+* **Return type:**
+  [`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[[`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)]
 
 #### *classmethod* init(root, , title='', song=None, force=False, storage=None)
 
@@ -254,3 +282,21 @@ rest as project.json metadata.
 
 * **Return type:**
   [`None`](https://docs.python.org/3/builtins/constants.html#None)
+
+### nw.project.genre_status_of(project, , max_bytes=65536, refuse_root=True)
+
+`project.genre_status()` made safe to serve: a JSON dict, or `None`.
+
+`None` when the project has no hook, the hook returns `None`, raises
+(logged, never propagated: a broken genre must not take a generic status
+down), or returns something that is not a JSON object (NaN/inf, non-string
+keys coerced aside, circular, over `max_bytes` serialized). What comes back
+is the *deserialized* JSON, so the caller gets exactly what was checked, not
+the hook’s live object.
+
+`refuse_root` is a best-effort guard for the contract’s “no absolute paths”:
+any string naming the project root (or its resolved form) is refused. It is
+not a path detector; the contract is still the hook author’s to keep.
+
+* **Return type:**
+  [`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[[`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)]

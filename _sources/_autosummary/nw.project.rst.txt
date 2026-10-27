@@ -4,6 +4,18 @@ nw.project
 .. automodule:: nw.project
 
    
+   .. rubric:: Module Attributes
+
+   .. autosummary::
+   
+      DEFAULT_GENRE_STATUS_MAX_BYTES
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      genre_status_of
+   
    .. rubric:: Classes
 
    .. autosummary::

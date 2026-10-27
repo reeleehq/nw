@@ -1,4 +1,4 @@
-> built 2026-10-27 00:53 UTC from e41beca (main) · nw 0.0.80. Details: build_info.json
+> built 2026-10-27 01:38 UTC from 9d369f1 (main) · nw 0.0.81. Details: build_info.json
 
 # index.html.md
 
@@ -3175,6 +3175,7 @@ are recorded as linked artifacts), see
 | [`genre_ops_catalogue`](_autosummary/nw.html.md#nw.genre_ops_catalogue)(genre_slug)                   | The pure-JSON catalogue of `genre_slug`'s ops (`[]` for a genre with none).                                                          |
 | [`register_genre_limits`](_autosummary/nw.html.md#nw.register_genre_limits)(genre_slug, limits)         | Register the numeric limits a genre's operations enforce; returns them as a dict.                                                    |
 | [`genre_limits`](_autosummary/nw.html.md#nw.genre_limits)(genre_slug)                          | The limits registered for `genre_slug` (`{}` if none); a copy.                                                                       |
+| [`genre_status_of`](_autosummary/nw.html.md#nw.genre_status_of)(project, \*[, max_bytes, ...])    | `project.genre_status()` made safe to serve: a JSON dict, or `None`.                                                                 |
 | [`adopt_tenant_id`](_autosummary/nw.html.md#nw.adopt_tenant_id)(project, \*[, dry_run])           | Pin a legacy project's historical tenant into `project.json` (nw#112).                                                               |
 | [`as_project_storage`](_autosummary/nw.html.md#nw.as_project_storage)(project)                       | The [`ProjectStorage`](_autosummary/nw.html.md#nw.ProjectStorage) for a path, a storage, or an `nw.Project`.                       |
 | [`register_project_storage`](_autosummary/nw.html.md#nw.register_project_storage)(name, resolver)          | Register a resolver that recognises a genre's project folders.                                                                       |
@@ -4151,6 +4152,20 @@ way to lose them.
 
 * **Return type:**
   [`CharacterRef`](_autosummary/nw.schema.html.md#nw.schema.CharacterRef)
+
+#### genre_status()
+
+Where this project stands, in the genre’s own terms. Override me.
+
+The hook a host (reelee’s `project_status`) asks to add a genre’s
+answer to its generic one (nw#133). The default is `None`: “this genre
+says nothing”. An override returns **JSON-serializable data only**, with
+no absolute paths or server-side layout and never large content inlined.
+Callers go through [`genre_status_of()`](_autosummary/nw.html.md#nw.genre_status_of), which enforces that and
+treats a raising hook as “no genre status”.
+
+* **Return type:**
+  [`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[[`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)]
 
 #### *classmethod* init(root, , title='', song=None, force=False, storage=None)
 
@@ -5689,6 +5704,24 @@ tool builder.
 
 * **Return type:**
   [`list`](https://docs.python.org/3/builtins/stdtypes.html#list)
+
+### nw.genre_status_of(project, , max_bytes=65536, refuse_root=True)
+
+`project.genre_status()` made safe to serve: a JSON dict, or `None`.
+
+`None` when the project has no hook, the hook returns `None`, raises
+(logged, never propagated: a broken genre must not take a generic status
+down), or returns something that is not a JSON object (NaN/inf, non-string
+keys coerced aside, circular, over `max_bytes` serialized). What comes back
+is the *deserialized* JSON, so the caller gets exactly what was checked, not
+the hook’s live object.
+
+`refuse_root` is a best-effort guard for the contract’s “no absolute paths”:
+any string naming the project root (or its resolved form) is refused. It is
+not a path detector; the contract is still the hook author’s to keep.
+
+* **Return type:**
+  [`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[[`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)]
 
 ### nw.get_genre(slug)
 
@@ -8179,6 +8212,16 @@ The facade is deliberately small. It exposes:
 
 It does NOT do rendering — that’s [`nw.workflow`](_autosummary/nw.workflow.html.md#module-nw.workflow) (Phase 1b.2).
 
+### Module Attributes
+
+| [`DEFAULT_GENRE_STATUS_MAX_BYTES`](_autosummary/nw.project.html.md#nw.project.DEFAULT_GENRE_STATUS_MAX_BYTES)   | Serialized size above which a genre status is refused as "large content".   |
+|-----------------------------------------------------------------------------------|-----------------------------------------------------------------------------|
+
+### Functions
+
+| [`genre_status_of`](_autosummary/nw.project.html.md#nw.project.genre_status_of)(project, \*[, max_bytes, ...])   | `project.genre_status()` made safe to serve: a JSON dict, or `None`.   |
+|---------------------------------------------------------------------------------------------------|------------------------------------------------------------------------|
+
 ### Classes
 
 | [`CharacterImage`](_autosummary/nw.project.html.md#nw.project.CharacterImage)(path, \*[, from_ref, ...])   | One image associated with a character.   |
@@ -8198,6 +8241,10 @@ Returned by [`Project.list_character_images()`](_autosummary/nw.project.html.md#
 - `from_selected`: under `characters/<name>/selected/` — curator-picked.
 - `is_anchor`: this is the file the character card currently points at as
   the “use this image” anchor (lipsync seed, etc.).
+
+### nw.project.DEFAULT_GENRE_STATUS_MAX_BYTES *= 65536*
+
+Serialized size above which a genre status is refused as “large content”.
 
 ### *class* nw.project.Project(root, , storage=None, auto_migrate=True)
 
@@ -8219,6 +8266,20 @@ way to lose them.
 
 * **Return type:**
   [`CharacterRef`](_autosummary/nw.schema.html.md#nw.schema.CharacterRef)
+
+#### genre_status()
+
+Where this project stands, in the genre’s own terms. Override me.
+
+The hook a host (reelee’s `project_status`) asks to add a genre’s
+answer to its generic one (nw#133). The default is `None`: “this genre
+says nothing”. An override returns **JSON-serializable data only**, with
+no absolute paths or server-side layout and never large content inlined.
+Callers go through [`genre_status_of()`](_autosummary/nw.project.html.md#nw.project.genre_status_of), which enforces that and
+treats a raising hook as “no genre status”.
+
+* **Return type:**
+  [`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[[`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)]
 
 #### *classmethod* init(root, , title='', song=None, force=False, storage=None)
 
@@ -8413,6 +8474,24 @@ rest as project.json metadata.
 
 * **Return type:**
   [`None`](https://docs.python.org/3/builtins/constants.html#None)
+
+### nw.project.genre_status_of(project, , max_bytes=65536, refuse_root=True)
+
+`project.genre_status()` made safe to serve: a JSON dict, or `None`.
+
+`None` when the project has no hook, the hook returns `None`, raises
+(logged, never propagated: a broken genre must not take a generic status
+down), or returns something that is not a JSON object (NaN/inf, non-string
+keys coerced aside, circular, over `max_bytes` serialized). What comes back
+is the *deserialized* JSON, so the caller gets exactly what was checked, not
+the hook’s live object.
+
+`refuse_root` is a best-effort guard for the contract’s “no absolute paths”:
+any string naming the project root (or its resolved form) is refused. It is
+not a path detector; the contract is still the hook author’s to keep.
+
+* **Return type:**
+  [`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[[`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)]
 
 
 # _autosummary/nw.renderers.composite_lipsync.html.md
@@ -10050,7 +10129,7 @@ produce different URLs. The local file paths are byte-stable.
 
 # About this build
 
-This documentation was built on **2026-10-27 00:53 UTC** from commit <a href="https://github.com/reeleehq/nw/commit/e41becab9b311c22d16082391aaea2c0acf0fdcf"><code>e41beca</code></a> on branch <code>main</code>, for **nw 0.0.80** (from <code>pyproject.toml</code>).
+This documentation was built on **2026-10-27 01:38 UTC** from commit <a href="https://github.com/reeleehq/nw/commit/9d369f1617c35b2d3d5de633af62c1338970c478"><code>9d369f1</code></a> on branch <code>main</code>, for **nw 0.0.81** (from <code>pyproject.toml</code>).
 
 #### NOTE
 Nothing suggests a mismatch: the tree was clean at the commit above, and the documented version is the one on PyPI.
@@ -10059,9 +10138,9 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 
 |                     |                                                                                                                                                    |
 |---------------------|----------------------------------------------------------------------------------------------------------------------------------------------------|
-| Commit              | <a href="https://github.com/reeleehq/nw/commit/e41becab9b311c22d16082391aaea2c0acf0fdcf"><code>e41becab9b311c22d16082391aaea2c0acf0fdcf</code></a> |
+| Commit              | <a href="https://github.com/reeleehq/nw/commit/9d369f1617c35b2d3d5de633af62c1338970c478"><code>9d369f1617c35b2d3d5de633af62c1338970c478</code></a> |
 | Branch              | <code>main</code>                                                                                                                                  |
-| Tags at this commit | <code>0.0.80</code>                                                                                                                                |
+| Tags at this commit | <code>0.0.81</code>                                                                                                                                |
 | Working tree        | clean                                                                                                                                              |
 | Remote              | <code>https://github.com/reeleehq/nw</code>                                                                                                        |
 
@@ -10070,9 +10149,9 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 |              |                                                                                            |
 |--------------|--------------------------------------------------------------------------------------------|
 | Repository   | <code>reeleehq/nw</code>                                                                   |
-| Run          | <a href="https://github.com/reeleehq/nw/actions/runs/40428920334">40428920334</a>          |
+| Run          | <a href="https://github.com/reeleehq/nw/actions/runs/40430592941">40430592941</a>          |
 | Ref          | <code>refs/heads/main</code>                                                               |
-| Event commit | <code>38f96af94876c9501b88fb103d804f10d9366b33</code> (in the history of the built commit) |
+| Event commit | <code>e208a70de3d31050cc5500094510650af3027d32</code> (in the history of the built commit) |
 
 ## Tools
 
@@ -10097,13 +10176,13 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 
 ## Package on PyPI
 
-Latest release: <a href="https://pypi.org/project/nw/0.0.80/">0.0.80</a>, the same as the documented version.
+Latest release: <a href="https://pypi.org/project/nw/0.0.81/">0.0.81</a>, the same as the documented version.
 
 ## Reproduce
 
 ```bash
 git clone https://github.com/reeleehq/nw && cd nw
-git checkout e41becab9b311c22d16082391aaea2c0acf0fdcf
+git checkout 9d369f1617c35b2d3d5de633af62c1338970c478
 pip install "epythet==0.2.22"
 epythet quickstart . --ignore tests/ scrap/ examples/
 ```

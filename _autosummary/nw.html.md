@@ -70,6 +70,7 @@ are recorded as linked artifacts), see
 | [`genre_ops_catalogue`](#nw.genre_ops_catalogue)(genre_slug)                   | The pure-JSON catalogue of `genre_slug`'s ops (`[]` for a genre with none).                                                          |
 | [`register_genre_limits`](#nw.register_genre_limits)(genre_slug, limits)         | Register the numeric limits a genre's operations enforce; returns them as a dict.                                                    |
 | [`genre_limits`](#nw.genre_limits)(genre_slug)                          | The limits registered for `genre_slug` (`{}` if none); a copy.                                                                       |
+| [`genre_status_of`](#nw.genre_status_of)(project, \*[, max_bytes, ...])    | `project.genre_status()` made safe to serve: a JSON dict, or `None`.                                                                 |
 | [`adopt_tenant_id`](#nw.adopt_tenant_id)(project, \*[, dry_run])           | Pin a legacy project's historical tenant into `project.json` (nw#112).                                                               |
 | [`as_project_storage`](#nw.as_project_storage)(project)                       | The [`ProjectStorage`](#nw.ProjectStorage) for a path, a storage, or an `nw.Project`.                       |
 | [`register_project_storage`](#nw.register_project_storage)(name, resolver)          | Register a resolver that recognises a genre's project folders.                                                                       |
@@ -1046,6 +1047,20 @@ way to lose them.
 
 * **Return type:**
   [`CharacterRef`](nw.schema.html.md#nw.schema.CharacterRef)
+
+#### genre_status()
+
+Where this project stands, in the genre’s own terms. Override me.
+
+The hook a host (reelee’s `project_status`) asks to add a genre’s
+answer to its generic one (nw#133). The default is `None`: “this genre
+says nothing”. An override returns **JSON-serializable data only**, with
+no absolute paths or server-side layout and never large content inlined.
+Callers go through [`genre_status_of()`](#nw.genre_status_of), which enforces that and
+treats a raising hook as “no genre status”.
+
+* **Return type:**
+  [`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[[`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)]
 
 #### *classmethod* init(root, , title='', song=None, force=False, storage=None)
 
@@ -2584,6 +2599,24 @@ tool builder.
 
 * **Return type:**
   [`list`](https://docs.python.org/3/builtins/stdtypes.html#list)
+
+### nw.genre_status_of(project, , max_bytes=65536, refuse_root=True)
+
+`project.genre_status()` made safe to serve: a JSON dict, or `None`.
+
+`None` when the project has no hook, the hook returns `None`, raises
+(logged, never propagated: a broken genre must not take a generic status
+down), or returns something that is not a JSON object (NaN/inf, non-string
+keys coerced aside, circular, over `max_bytes` serialized). What comes back
+is the *deserialized* JSON, so the caller gets exactly what was checked, not
+the hook’s live object.
+
+`refuse_root` is a best-effort guard for the contract’s “no absolute paths”:
+any string naming the project root (or its resolved form) is refused. It is
+not a path detector; the contract is still the hook author’s to keep.
+
+* **Return type:**
+  [`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[[`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)]
 
 ### nw.get_genre(slug)
 

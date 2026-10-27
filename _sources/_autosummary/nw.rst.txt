@@ -28,6 +28,7 @@
       genre_ops_catalogue
       register_genre_limits
       genre_limits
+      genre_status_of
       adopt_tenant_id
       as_project_storage
       register_project_storage
