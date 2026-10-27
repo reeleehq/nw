@@ -1381,349 +1381,394 @@ data-aria-dark="Switch to auto color mode">
 </span><span data-line="1141"><span class="sd">    through its money approval — or not offer it. ``False`` (the default) is a claim the</span>
 </span><span data-line="1142"><span class="sd">    genre makes: nothing this op calls bills anyone.</span>
 </span><span data-line="1143">
-</span><span data-line="1144"><span class="sd">    &gt;&gt;&gt; def _rename(project, *, title: str, loud: bool = False) -&gt; dict:</span>
-</span><span data-line="1145"><span class="sd">    ...     '''Rename the project.'''</span>
-</span><span data-line="1146"><span class="sd">    ...     return {"title": title.upper() if loud else title}</span>
-</span><span data-line="1147"><span class="sd">    &gt;&gt;&gt; op = GenreOp("rename", _rename, title="Rename it")</span>
-</span><span data-line="1148"><span class="sd">    &gt;&gt;&gt; op.description, op.effect, op.runs</span>
-</span><span data-line="1149"><span class="sd">    ('Rename the project.', 'write', 'now')</span>
-</span><span data-line="1150"><span class="sd">    &gt;&gt;&gt; sorted(op.params_schema["properties"]), op.params_schema["required"]</span>
-</span><span data-line="1151"><span class="sd">    (['loud', 'title'], ['title'])</span>
-</span><span data-line="1152"><span class="sd">    &gt;&gt;&gt; op.run(None, {"title": "x", "loud": True})</span>
-</span><span data-line="1153"><span class="sd">    {'title': 'X'}</span>
-</span><span data-line="1154">
-</span><span data-line="1155"><span class="sd">    An op taking an upload, whose ``path`` only the host may give:</span>
-</span><span data-line="1156">
-</span><span data-line="1157"><span class="sd">    &gt;&gt;&gt; def _ingest(project, *, path: str, name: str = "") -&gt; dict:</span>
-</span><span data-line="1158"><span class="sd">    ...     return {"path": path, "name": name}</span>
-</span><span data-line="1159"><span class="sd">    &gt;&gt;&gt; up = GenreOp("ingest", _ingest, title="Add a file", host_params=("path",))</span>
-</span><span data-line="1160"><span class="sd">    &gt;&gt;&gt; list(up.params_schema["properties"]), up.to_dict()["host_params"]</span>
-</span><span data-line="1161"><span class="sd">    (['name'], ['path'])</span>
-</span><span data-line="1162"><span class="sd">    &gt;&gt;&gt; up.run(None, {"name": "a"}, host={"path": "/tmp/upload"})</span>
-</span><span data-line="1163"><span class="sd">    {'path': '/tmp/upload', 'name': 'a'}</span>
-</span><span data-line="1164"><span class="sd">    """</span>
+</span><span data-line="1144"><span class="sd">    ``invalidates`` names the genre's ``read`` ops whose answer this op can make stale,</span>
+</span><span data-line="1145"><span class="sd">    so a client holding several reads knows which to refresh after it (reelee#750); for</span>
+</span><span data-line="1146"><span class="sd">    a ``runs="job"`` op, once the job has ended. Stale is not "re-run now": a read that</span>
+</span><span data-line="1147"><span class="sd">    itself ``runs="job"`` is refreshed when the person asks. :func:`register_genre_ops`</span>
+</span><span data-line="1148"><span class="sd">    checks every name is a read op of the genre. ``None`` (the default) declares</span>
+</span><span data-line="1149"><span class="sd">    nothing, and the catalogue says so (``null``), so a client tells "the genre named</span>
+</span><span data-line="1150"><span class="sd">    no reads" from "the genre has not said" and keeps its own rule for the latter. A</span>
+</span><span data-line="1151"><span class="sd">    read op invalidates nothing.</span>
+</span><span data-line="1152">
+</span><span data-line="1153"><span class="sd">    &gt;&gt;&gt; def _rename(project, *, title: str, loud: bool = False) -&gt; dict:</span>
+</span><span data-line="1154"><span class="sd">    ...     '''Rename the project.'''</span>
+</span><span data-line="1155"><span class="sd">    ...     return {"title": title.upper() if loud else title}</span>
+</span><span data-line="1156"><span class="sd">    &gt;&gt;&gt; op = GenreOp("rename", _rename, title="Rename it")</span>
+</span><span data-line="1157"><span class="sd">    &gt;&gt;&gt; op.description, op.effect, op.runs</span>
+</span><span data-line="1158"><span class="sd">    ('Rename the project.', 'write', 'now')</span>
+</span><span data-line="1159"><span class="sd">    &gt;&gt;&gt; sorted(op.params_schema["properties"]), op.params_schema["required"]</span>
+</span><span data-line="1160"><span class="sd">    (['loud', 'title'], ['title'])</span>
+</span><span data-line="1161"><span class="sd">    &gt;&gt;&gt; op.run(None, {"title": "x", "loud": True})</span>
+</span><span data-line="1162"><span class="sd">    {'title': 'X'}</span>
+</span><span data-line="1163">
+</span><span data-line="1164"><span class="sd">    An op taking an upload, whose ``path`` only the host may give:</span>
 </span><span data-line="1165">
-</span><span data-line="1166">    <span class="n">name</span><span class="p">:</span> <span class="nb">str</span>
-</span><span data-line="1167">    <span class="n">fn</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="nb">dict</span><span class="p">]</span>
-</span><span data-line="1168">    <span class="n">title</span><span class="p">:</span> <span class="nb">str</span>
-</span><span data-line="1169">    <span class="n">description</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">""</span>
-</span><span data-line="1170">    <span class="n">effect</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"write"</span>
-</span><span data-line="1171">    <span class="n">runs</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"now"</span>
-</span><span data-line="1172">    <span class="n">host_params</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">=</span> <span class="p">()</span>
-</span><span data-line="1173">    <span class="n">max_upload_bytes</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
-</span><span data-line="1174">    <span class="n">spends</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
-</span><span data-line="1175">
-</span><span data-line="1176">    <span class="k">def</span><span class="w"> </span><span class="nf">__post_init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-</span><span data-line="1177">        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">_OP_NAME_PATTERN</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
-</span><span data-line="1178">            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-</span><span data-line="1179">                <span class="sa">f</span><span class="s2">"genre op name </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">!r}</span><span class="s2"> must be snake_case "</span>
-</span><span data-line="1180">                <span class="s2">"(lowercase letters, digits, underscores; starting with a letter)"</span>
-</span><span data-line="1181">            <span class="p">)</span>
-</span><span data-line="1182">        <span class="k">if</span> <span class="ow">not</span> <span class="nb">callable</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fn</span><span class="p">):</span>
-</span><span data-line="1183">            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"genre op </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">!r}</span><span class="s2">: fn must be callable"</span><span class="p">)</span>
-</span><span data-line="1184">        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">title</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="ow">or</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">title</span><span class="o">.</span><span class="n">strip</span><span class="p">():</span>
-</span><span data-line="1185">            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-</span><span data-line="1186">                <span class="sa">f</span><span class="s2">"genre op </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">!r}</span><span class="s2">: title must be a non-empty string"</span>
-</span><span data-line="1187">            <span class="p">)</span>
-</span><span data-line="1188">        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">effect</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">GENRE_OP_EFFECTS</span><span class="p">:</span>
-</span><span data-line="1189">            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-</span><span data-line="1190">                <span class="sa">f</span><span class="s2">"genre op </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">!r}</span><span class="s2">: effect </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">effect</span><span class="si">!r}</span><span class="s2"> not in "</span>
-</span><span data-line="1191">                <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">GENRE_OP_EFFECTS</span><span class="si">}</span><span class="s2">"</span>
-</span><span data-line="1192">            <span class="p">)</span>
-</span><span data-line="1193">        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">runs</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">GENRE_OP_RUNS</span><span class="p">:</span>
-</span><span data-line="1194">            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-</span><span data-line="1195">                <span class="sa">f</span><span class="s2">"genre op </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">!r}</span><span class="s2">: runs </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">runs</span><span class="si">!r}</span><span class="s2"> not in </span><span class="si">{</span><span class="n">GENRE_OP_RUNS</span><span class="si">}</span><span class="s2">"</span>
-</span><span data-line="1196">            <span class="p">)</span>
-</span><span data-line="1197">        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">description</span><span class="p">:</span>
-</span><span data-line="1198">            <span class="nb">object</span><span class="o">.</span><span class="fm">__setattr__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">"description"</span><span class="p">,</span> <span class="n">inspect</span><span class="o">.</span><span class="n">getdoc</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fn</span><span class="p">)</span> <span class="ow">or</span> <span class="s2">""</span><span class="p">)</span>
-</span><span data-line="1199">        <span class="nb">object</span><span class="o">.</span><span class="fm">__setattr__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">"host_params"</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">host_params</span><span class="p">))</span>
-</span><span data-line="1200">        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">spends</span><span class="p">,</span> <span class="nb">bool</span><span class="p">):</span>
-</span><span data-line="1201">            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
-</span><span data-line="1202">                <span class="sa">f</span><span class="s2">"genre op </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">!r}</span><span class="s2">: spends must be a bool, got </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">spends</span><span class="si">!r}</span><span class="s2">"</span>
-</span><span data-line="1203">            <span class="p">)</span>
-</span><span data-line="1204">        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_upload_bytes</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="p">(</span>
-</span><span data-line="1205">            <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">max_upload_bytes</span><span class="p">,</span> <span class="nb">int</span><span class="p">)</span>
-</span><span data-line="1206">            <span class="ow">or</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">max_upload_bytes</span><span class="p">,</span> <span class="nb">bool</span><span class="p">)</span>
-</span><span data-line="1207">            <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_upload_bytes</span> <span class="o">&lt;=</span> <span class="mi">0</span>
-</span><span data-line="1208">        <span class="p">):</span>
-</span><span data-line="1209">            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-</span><span data-line="1210">                <span class="sa">f</span><span class="s2">"genre op </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">!r}</span><span class="s2">: max_upload_bytes must be a positive int "</span>
-</span><span data-line="1211">                <span class="sa">f</span><span class="s2">"or None, got </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">max_upload_bytes</span><span class="si">!r}</span><span class="s2">"</span>
-</span><span data-line="1212">            <span class="p">)</span>
-</span><span data-line="1213">        <span class="nb">object</span><span class="o">.</span><span class="fm">__setattr__</span><span class="p">(</span>
-</span><span data-line="1214">            <span class="bp">self</span><span class="p">,</span>
-</span><span data-line="1215">            <span class="s2">"_model"</span><span class="p">,</span>
-</span><span data-line="1216">            <span class="n">_op_params_model</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fn</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">host_params</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">host_params</span><span class="p">),</span>
-</span><span data-line="1217">        <span class="p">)</span>
-</span><span data-line="1218">
-</span><span data-line="1219">    <span class="nd">@property</span>
-</span><span data-line="1220">    <span class="k">def</span><span class="w"> </span><span class="nf">params_model</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-</span><span data-line="1221"><span class="w">        </span><span class="sd">"""The pydantic model of the op's parameters (``extra="forbid"``)."""</span>
-</span><span data-line="1222">        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model</span>
-</span><span data-line="1223">
-</span><span data-line="1224">    <span class="nd">@property</span>
-</span><span data-line="1225">    <span class="k">def</span><span class="w"> </span><span class="nf">params_schema</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
-</span><span data-line="1226"><span class="w">        </span><span class="sd">"""JSON Schema (an object, ``additionalProperties: false``) of the parameters."""</span>
-</span><span data-line="1227">        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">model_json_schema</span><span class="p">()</span>
-</span><span data-line="1228">
+</span><span data-line="1166"><span class="sd">    &gt;&gt;&gt; def _ingest(project, *, path: str, name: str = "") -&gt; dict:</span>
+</span><span data-line="1167"><span class="sd">    ...     return {"path": path, "name": name}</span>
+</span><span data-line="1168"><span class="sd">    &gt;&gt;&gt; up = GenreOp("ingest", _ingest, title="Add a file", host_params=("path",))</span>
+</span><span data-line="1169"><span class="sd">    &gt;&gt;&gt; list(up.params_schema["properties"]), up.to_dict()["host_params"]</span>
+</span><span data-line="1170"><span class="sd">    (['name'], ['path'])</span>
+</span><span data-line="1171"><span class="sd">    &gt;&gt;&gt; up.run(None, {"name": "a"}, host={"path": "/tmp/upload"})</span>
+</span><span data-line="1172"><span class="sd">    {'path': '/tmp/upload', 'name': 'a'}</span>
+</span><span data-line="1173"><span class="sd">    """</span>
+</span><span data-line="1174">
+</span><span data-line="1175">    <span class="n">name</span><span class="p">:</span> <span class="nb">str</span>
+</span><span data-line="1176">    <span class="n">fn</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="nb">dict</span><span class="p">]</span>
+</span><span data-line="1177">    <span class="n">title</span><span class="p">:</span> <span class="nb">str</span>
+</span><span data-line="1178">    <span class="n">description</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">""</span>
+</span><span data-line="1179">    <span class="n">effect</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"write"</span>
+</span><span data-line="1180">    <span class="n">runs</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"now"</span>
+</span><span data-line="1181">    <span class="n">host_params</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">=</span> <span class="p">()</span>
+</span><span data-line="1182">    <span class="n">max_upload_bytes</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+</span><span data-line="1183">    <span class="n">spends</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
+</span><span data-line="1184">    <span class="n">invalidates</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span>
+</span><span data-line="1185">
+</span><span data-line="1186">    <span class="k">def</span><span class="w"> </span><span class="nf">__post_init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+</span><span data-line="1187">        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">_OP_NAME_PATTERN</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
+</span><span data-line="1188">            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+</span><span data-line="1189">                <span class="sa">f</span><span class="s2">"genre op name </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">!r}</span><span class="s2"> must be snake_case "</span>
+</span><span data-line="1190">                <span class="s2">"(lowercase letters, digits, underscores; starting with a letter)"</span>
+</span><span data-line="1191">            <span class="p">)</span>
+</span><span data-line="1192">        <span class="k">if</span> <span class="ow">not</span> <span class="nb">callable</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fn</span><span class="p">):</span>
+</span><span data-line="1193">            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"genre op </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">!r}</span><span class="s2">: fn must be callable"</span><span class="p">)</span>
+</span><span data-line="1194">        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">title</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="ow">or</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">title</span><span class="o">.</span><span class="n">strip</span><span class="p">():</span>
+</span><span data-line="1195">            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+</span><span data-line="1196">                <span class="sa">f</span><span class="s2">"genre op </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">!r}</span><span class="s2">: title must be a non-empty string"</span>
+</span><span data-line="1197">            <span class="p">)</span>
+</span><span data-line="1198">        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">effect</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">GENRE_OP_EFFECTS</span><span class="p">:</span>
+</span><span data-line="1199">            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+</span><span data-line="1200">                <span class="sa">f</span><span class="s2">"genre op </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">!r}</span><span class="s2">: effect </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">effect</span><span class="si">!r}</span><span class="s2"> not in "</span>
+</span><span data-line="1201">                <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">GENRE_OP_EFFECTS</span><span class="si">}</span><span class="s2">"</span>
+</span><span data-line="1202">            <span class="p">)</span>
+</span><span data-line="1203">        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">runs</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">GENRE_OP_RUNS</span><span class="p">:</span>
+</span><span data-line="1204">            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+</span><span data-line="1205">                <span class="sa">f</span><span class="s2">"genre op </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">!r}</span><span class="s2">: runs </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">runs</span><span class="si">!r}</span><span class="s2"> not in </span><span class="si">{</span><span class="n">GENRE_OP_RUNS</span><span class="si">}</span><span class="s2">"</span>
+</span><span data-line="1206">            <span class="p">)</span>
+</span><span data-line="1207">        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">description</span><span class="p">:</span>
+</span><span data-line="1208">            <span class="nb">object</span><span class="o">.</span><span class="fm">__setattr__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">"description"</span><span class="p">,</span> <span class="n">inspect</span><span class="o">.</span><span class="n">getdoc</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fn</span><span class="p">)</span> <span class="ow">or</span> <span class="s2">""</span><span class="p">)</span>
+</span><span data-line="1209">        <span class="nb">object</span><span class="o">.</span><span class="fm">__setattr__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">"host_params"</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">host_params</span><span class="p">))</span>
+</span><span data-line="1210">        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">spends</span><span class="p">,</span> <span class="nb">bool</span><span class="p">):</span>
+</span><span data-line="1211">            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
+</span><span data-line="1212">                <span class="sa">f</span><span class="s2">"genre op </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">!r}</span><span class="s2">: spends must be a bool, got </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">spends</span><span class="si">!r}</span><span class="s2">"</span>
+</span><span data-line="1213">            <span class="p">)</span>
+</span><span data-line="1214">        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">invalidates</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+</span><span data-line="1215">            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">invalidates</span><span class="p">,</span> <span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="nb">bytes</span><span class="p">,</span> <span class="n">Mapping</span><span class="p">,</span> <span class="nb">set</span><span class="p">,</span> <span class="nb">frozenset</span><span class="p">)):</span>
+</span><span data-line="1216">                <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
+</span><span data-line="1217">                    <span class="sa">f</span><span class="s2">"genre op </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">!r}</span><span class="s2">: invalidates must be an ordered sequence "</span>
+</span><span data-line="1218">                    <span class="sa">f</span><span class="s2">"of op names, got </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">invalidates</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">"</span>
+</span><span data-line="1219">                <span class="p">)</span>
+</span><span data-line="1220">            <span class="n">names</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">invalidates</span><span class="p">)</span>  <span class="c1"># once: a generator is consumed here</span>
+</span><span data-line="1221">            <span class="k">if</span> <span class="ow">not</span> <span class="nb">all</span><span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="n">names</span><span class="p">):</span>
+</span><span data-line="1222">                <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
+</span><span data-line="1223">                    <span class="sa">f</span><span class="s2">"genre op </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">!r}</span><span class="s2">: invalidates must be op names, got </span><span class="si">{</span><span class="n">names</span><span class="si">!r}</span><span class="s2">"</span>
+</span><span data-line="1224">                <span class="p">)</span>
+</span><span data-line="1225">            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">names</span><span class="p">))</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="n">names</span><span class="p">):</span>
+</span><span data-line="1226">                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+</span><span data-line="1227">                    <span class="sa">f</span><span class="s2">"genre op </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">!r}</span><span class="s2">: invalidates names an op twice: </span><span class="si">{</span><span class="nb">list</span><span class="p">(</span><span class="n">names</span><span class="p">)</span><span class="si">}</span><span class="s2">"</span>
+</span><span data-line="1228">                <span class="p">)</span>
+</span><span data-line="1229">            <span class="nb">object</span><span class="o">.</span><span class="fm">__setattr__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">"invalidates"</span><span class="p">,</span> <span class="n">names</span><span class="p">)</span>
+</span><span data-line="1230">            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">effect</span> <span class="o">==</span> <span class="s2">"read"</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">invalidates</span><span class="p">:</span>
+</span><span data-line="1231">                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+</span><span data-line="1232">                    <span class="sa">f</span><span class="s2">"genre op </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">!r}</span><span class="s2">: a read op changes nothing, so it "</span>
+</span><span data-line="1233">                    <span class="sa">f</span><span class="s2">"invalidates nothing (got </span><span class="si">{</span><span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">invalidates</span><span class="p">)</span><span class="si">}</span><span class="s2">)"</span>
+</span><span data-line="1234">                <span class="p">)</span>
+</span><span data-line="1235">        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_upload_bytes</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="p">(</span>
+</span><span data-line="1236">            <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">max_upload_bytes</span><span class="p">,</span> <span class="nb">int</span><span class="p">)</span>
+</span><span data-line="1237">            <span class="ow">or</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">max_upload_bytes</span><span class="p">,</span> <span class="nb">bool</span><span class="p">)</span>
+</span><span data-line="1238">            <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_upload_bytes</span> <span class="o">&lt;=</span> <span class="mi">0</span>
+</span><span data-line="1239">        <span class="p">):</span>
+</span><span data-line="1240">            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+</span><span data-line="1241">                <span class="sa">f</span><span class="s2">"genre op </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">!r}</span><span class="s2">: max_upload_bytes must be a positive int "</span>
+</span><span data-line="1242">                <span class="sa">f</span><span class="s2">"or None, got </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">max_upload_bytes</span><span class="si">!r}</span><span class="s2">"</span>
+</span><span data-line="1243">            <span class="p">)</span>
+</span><span data-line="1244">        <span class="nb">object</span><span class="o">.</span><span class="fm">__setattr__</span><span class="p">(</span>
+</span><span data-line="1245">            <span class="bp">self</span><span class="p">,</span>
+</span><span data-line="1246">            <span class="s2">"_model"</span><span class="p">,</span>
+</span><span data-line="1247">            <span class="n">_op_params_model</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fn</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">host_params</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">host_params</span><span class="p">),</span>
+</span><span data-line="1248">        <span class="p">)</span>
+</span><span data-line="1249">
+</span><span data-line="1250">    <span class="nd">@property</span>
+</span><span data-line="1251">    <span class="k">def</span><span class="w"> </span><span class="nf">params_model</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+</span><span data-line="1252"><span class="w">        </span><span class="sd">"""The pydantic model of the op's parameters (``extra="forbid"``)."""</span>
+</span><span data-line="1253">        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model</span>
+</span><span data-line="1254">
+</span><span data-line="1255">    <span class="nd">@property</span>
+</span><span data-line="1256">    <span class="k">def</span><span class="w"> </span><span class="nf">params_schema</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+</span><span data-line="1257"><span class="w">        </span><span class="sd">"""JSON Schema (an object, ``additionalProperties: false``) of the parameters."""</span>
+</span><span data-line="1258">        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">model_json_schema</span><span class="p">()</span>
+</span><span data-line="1259">
 <div class="viewcode-block" id="GenreOp.validate_params">
 <a class="viewcode-back" href="../../_autosummary/nw.html#nw.GenreOp.validate_params">[docs]</a>
-</span><span data-line="1229">    <span class="k">def</span><span class="w"> </span><span class="nf">validate_params</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Mapping</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
-</span><span data-line="1230"><span class="w">        </span><span class="sd">"""``params`` checked and coerced against :attr:`params_schema`.</span>
-</span><span data-line="1231">
-</span><span data-line="1232"><span class="sd">        Raises :class:`pydantic.ValidationError` (a :class:`ValueError`) on a missing,</span>
-</span><span data-line="1233"><span class="sd">        unknown or wrongly typed parameter. Only the parameters the caller passed are</span>
-</span><span data-line="1234"><span class="sd">        returned, so the op's own defaults stay the op's.</span>
-</span><span data-line="1235"><span class="sd">        """</span>
-</span><span data-line="1236">        <span class="n">validated</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">model_validate</span><span class="p">(</span><span class="nb">dict</span><span class="p">(</span><span class="n">params</span> <span class="ow">or</span> <span class="p">{}))</span>
-</span><span data-line="1237">        <span class="k">return</span> <span class="n">validated</span><span class="o">.</span><span class="n">model_dump</span><span class="p">(</span><span class="n">exclude_unset</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span></div>
+</span><span data-line="1260">    <span class="k">def</span><span class="w"> </span><span class="nf">validate_params</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Mapping</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+</span><span data-line="1261"><span class="w">        </span><span class="sd">"""``params`` checked and coerced against :attr:`params_schema`.</span>
+</span><span data-line="1262">
+</span><span data-line="1263"><span class="sd">        Raises :class:`pydantic.ValidationError` (a :class:`ValueError`) on a missing,</span>
+</span><span data-line="1264"><span class="sd">        unknown or wrongly typed parameter. Only the parameters the caller passed are</span>
+</span><span data-line="1265"><span class="sd">        returned, so the op's own defaults stay the op's.</span>
+</span><span data-line="1266"><span class="sd">        """</span>
+</span><span data-line="1267">        <span class="n">validated</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">model_validate</span><span class="p">(</span><span class="nb">dict</span><span class="p">(</span><span class="n">params</span> <span class="ow">or</span> <span class="p">{}))</span>
+</span><span data-line="1268">        <span class="k">return</span> <span class="n">validated</span><span class="o">.</span><span class="n">model_dump</span><span class="p">(</span><span class="n">exclude_unset</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span></div>
 
-</span><span data-line="1238">
+</span><span data-line="1269">
 <div class="viewcode-block" id="GenreOp.run">
 <a class="viewcode-back" href="../../_autosummary/nw.html#nw.GenreOp.run">[docs]</a>
-</span><span data-line="1239">    <span class="k">def</span><span class="w"> </span><span class="nf">run</span><span class="p">(</span>
-</span><span data-line="1240">        <span class="bp">self</span><span class="p">,</span>
-</span><span data-line="1241">        <span class="n">project</span><span class="p">,</span>
-</span><span data-line="1242">        <span class="n">params</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Mapping</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-</span><span data-line="1243">        <span class="o">*</span><span class="p">,</span>
-</span><span data-line="1244">        <span class="n">host</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Mapping</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-</span><span data-line="1245">    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
-</span><span data-line="1246"><span class="w">        </span><span class="sd">"""Run the op on ``project``: ``params`` (the CLIENT's, validated against</span>
-</span><span data-line="1247"><span class="sd">        :attr:`params_schema`) plus ``host`` (the host's, passed through as given).</span>
-</span><span data-line="1248">
-</span><span data-line="1249"><span class="sd">        ``host`` may carry only the op's declared :attr:`host_params`; anything else is</span>
-</span><span data-line="1250"><span class="sd">        a host bug and raises :class:`TypeError`, as does a required host parameter the</span>
-</span><span data-line="1251"><span class="sd">        host did not supply. A client parameter that is missing, unknown (a host</span>
-</span><span data-line="1252"><span class="sd">        parameter included) or mistyped raises :class:`pydantic.ValidationError`.</span>
-</span><span data-line="1253"><span class="sd">        """</span>
-</span><span data-line="1254">        <span class="n">client</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">validate_params</span><span class="p">(</span>
-</span><span data-line="1255">            <span class="n">params</span>
-</span><span data-line="1256">        <span class="p">)</span>  <span class="c1"># the client's mistakes are reported first</span>
-</span><span data-line="1257">        <span class="n">host</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">host</span> <span class="ow">or</span> <span class="p">{})</span>
-</span><span data-line="1258">        <span class="n">undeclared</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">host</span><span class="p">)</span> <span class="o">-</span> <span class="nb">set</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">host_params</span><span class="p">))</span>
-</span><span data-line="1259">        <span class="k">if</span> <span class="n">undeclared</span><span class="p">:</span>
-</span><span data-line="1260">            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
-</span><span data-line="1261">                <span class="sa">f</span><span class="s2">"genre op </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">!r}</span><span class="s2"> takes no host parameter(s) </span><span class="si">{</span><span class="n">undeclared</span><span class="si">}</span><span class="s2">; "</span>
-</span><span data-line="1262">                <span class="sa">f</span><span class="s2">"its host parameters are </span><span class="si">{</span><span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">host_params</span><span class="p">)</span><span class="si">}</span><span class="s2">"</span>
-</span><span data-line="1263">            <span class="p">)</span>
-</span><span data-line="1264">        <span class="n">missing</span> <span class="o">=</span> <span class="p">[</span><span class="n">h</span> <span class="k">for</span> <span class="n">h</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_required_host_params</span><span class="p">()</span> <span class="k">if</span> <span class="n">h</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">host</span><span class="p">]</span>
-</span><span data-line="1265">        <span class="k">if</span> <span class="n">missing</span><span class="p">:</span>
-</span><span data-line="1266">            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
-</span><span data-line="1267">                <span class="sa">f</span><span class="s2">"genre op </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">!r}</span><span class="s2"> needs host parameter(s) </span><span class="si">{</span><span class="n">missing</span><span class="si">}</span><span class="s2"> "</span>
-</span><span data-line="1268">                <span class="s2">"(the host supplies these — an upload's path, say)"</span>
-</span><span data-line="1269">            <span class="p">)</span>
-</span><span data-line="1270">        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">fn</span><span class="p">(</span><span class="n">project</span><span class="p">,</span> <span class="o">**</span><span class="n">client</span><span class="p">,</span> <span class="o">**</span><span class="n">host</span><span class="p">)</span></div>
-
-</span><span data-line="1271">
-</span><span data-line="1272">    <span class="k">def</span><span class="w"> </span><span class="nf">_required_host_params</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">:</span>
-</span><span data-line="1273">        <span class="n">sig</span> <span class="o">=</span> <span class="n">inspect</span><span class="o">.</span><span class="n">signature</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fn</span><span class="p">)</span>
-</span><span data-line="1274">        <span class="k">return</span> <span class="p">[</span>
-</span><span data-line="1275">            <span class="n">h</span>
-</span><span data-line="1276">            <span class="k">for</span> <span class="n">h</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">host_params</span>
-</span><span data-line="1277">            <span class="k">if</span> <span class="n">sig</span><span class="o">.</span><span class="n">parameters</span><span class="p">[</span><span class="n">h</span><span class="p">]</span><span class="o">.</span><span class="n">default</span> <span class="ow">is</span> <span class="n">inspect</span><span class="o">.</span><span class="n">Parameter</span><span class="o">.</span><span class="n">empty</span>
-</span><span data-line="1278">        <span class="p">]</span>
+</span><span data-line="1270">    <span class="k">def</span><span class="w"> </span><span class="nf">run</span><span class="p">(</span>
+</span><span data-line="1271">        <span class="bp">self</span><span class="p">,</span>
+</span><span data-line="1272">        <span class="n">project</span><span class="p">,</span>
+</span><span data-line="1273">        <span class="n">params</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Mapping</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span data-line="1274">        <span class="o">*</span><span class="p">,</span>
+</span><span data-line="1275">        <span class="n">host</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Mapping</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span data-line="1276">    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+</span><span data-line="1277"><span class="w">        </span><span class="sd">"""Run the op on ``project``: ``params`` (the CLIENT's, validated against</span>
+</span><span data-line="1278"><span class="sd">        :attr:`params_schema`) plus ``host`` (the host's, passed through as given).</span>
 </span><span data-line="1279">
+</span><span data-line="1280"><span class="sd">        ``host`` may carry only the op's declared :attr:`host_params`; anything else is</span>
+</span><span data-line="1281"><span class="sd">        a host bug and raises :class:`TypeError`, as does a required host parameter the</span>
+</span><span data-line="1282"><span class="sd">        host did not supply. A client parameter that is missing, unknown (a host</span>
+</span><span data-line="1283"><span class="sd">        parameter included) or mistyped raises :class:`pydantic.ValidationError`.</span>
+</span><span data-line="1284"><span class="sd">        """</span>
+</span><span data-line="1285">        <span class="n">client</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">validate_params</span><span class="p">(</span>
+</span><span data-line="1286">            <span class="n">params</span>
+</span><span data-line="1287">        <span class="p">)</span>  <span class="c1"># the client's mistakes are reported first</span>
+</span><span data-line="1288">        <span class="n">host</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">host</span> <span class="ow">or</span> <span class="p">{})</span>
+</span><span data-line="1289">        <span class="n">undeclared</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">host</span><span class="p">)</span> <span class="o">-</span> <span class="nb">set</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">host_params</span><span class="p">))</span>
+</span><span data-line="1290">        <span class="k">if</span> <span class="n">undeclared</span><span class="p">:</span>
+</span><span data-line="1291">            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
+</span><span data-line="1292">                <span class="sa">f</span><span class="s2">"genre op </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">!r}</span><span class="s2"> takes no host parameter(s) </span><span class="si">{</span><span class="n">undeclared</span><span class="si">}</span><span class="s2">; "</span>
+</span><span data-line="1293">                <span class="sa">f</span><span class="s2">"its host parameters are </span><span class="si">{</span><span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">host_params</span><span class="p">)</span><span class="si">}</span><span class="s2">"</span>
+</span><span data-line="1294">            <span class="p">)</span>
+</span><span data-line="1295">        <span class="n">missing</span> <span class="o">=</span> <span class="p">[</span><span class="n">h</span> <span class="k">for</span> <span class="n">h</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_required_host_params</span><span class="p">()</span> <span class="k">if</span> <span class="n">h</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">host</span><span class="p">]</span>
+</span><span data-line="1296">        <span class="k">if</span> <span class="n">missing</span><span class="p">:</span>
+</span><span data-line="1297">            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
+</span><span data-line="1298">                <span class="sa">f</span><span class="s2">"genre op </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">!r}</span><span class="s2"> needs host parameter(s) </span><span class="si">{</span><span class="n">missing</span><span class="si">}</span><span class="s2"> "</span>
+</span><span data-line="1299">                <span class="s2">"(the host supplies these — an upload's path, say)"</span>
+</span><span data-line="1300">            <span class="p">)</span>
+</span><span data-line="1301">        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">fn</span><span class="p">(</span><span class="n">project</span><span class="p">,</span> <span class="o">**</span><span class="n">client</span><span class="p">,</span> <span class="o">**</span><span class="n">host</span><span class="p">)</span></div>
+
+</span><span data-line="1302">
+</span><span data-line="1303">    <span class="k">def</span><span class="w"> </span><span class="nf">_required_host_params</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">:</span>
+</span><span data-line="1304">        <span class="n">sig</span> <span class="o">=</span> <span class="n">inspect</span><span class="o">.</span><span class="n">signature</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fn</span><span class="p">)</span>
+</span><span data-line="1305">        <span class="k">return</span> <span class="p">[</span>
+</span><span data-line="1306">            <span class="n">h</span>
+</span><span data-line="1307">            <span class="k">for</span> <span class="n">h</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">host_params</span>
+</span><span data-line="1308">            <span class="k">if</span> <span class="n">sig</span><span class="o">.</span><span class="n">parameters</span><span class="p">[</span><span class="n">h</span><span class="p">]</span><span class="o">.</span><span class="n">default</span> <span class="ow">is</span> <span class="n">inspect</span><span class="o">.</span><span class="n">Parameter</span><span class="o">.</span><span class="n">empty</span>
+</span><span data-line="1309">        <span class="p">]</span>
+</span><span data-line="1310">
 <div class="viewcode-block" id="GenreOp.to_dict">
 <a class="viewcode-back" href="../../_autosummary/nw.html#nw.GenreOp.to_dict">[docs]</a>
-</span><span data-line="1280">    <span class="k">def</span><span class="w"> </span><span class="nf">to_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
-</span><span data-line="1281"><span class="w">        </span><span class="sd">"""The op's JSON row: everything but the function."""</span>
-</span><span data-line="1282">        <span class="k">return</span> <span class="p">{</span>
-</span><span data-line="1283">            <span class="s2">"name"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
-</span><span data-line="1284">            <span class="s2">"title"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">title</span><span class="p">,</span>
-</span><span data-line="1285">            <span class="s2">"description"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">description</span><span class="p">,</span>
-</span><span data-line="1286">            <span class="s2">"effect"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">effect</span><span class="p">,</span>
-</span><span data-line="1287">            <span class="s2">"runs"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">runs</span><span class="p">,</span>
-</span><span data-line="1288">            <span class="s2">"params_schema"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">params_schema</span><span class="p">,</span>
-</span><span data-line="1289">            <span class="s2">"host_params"</span><span class="p">:</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">host_params</span><span class="p">),</span>
-</span><span data-line="1290">            <span class="s2">"max_upload_bytes"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_upload_bytes</span><span class="p">,</span>
-</span><span data-line="1291">            <span class="s2">"spends"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">spends</span><span class="p">,</span>
-</span><span data-line="1292">        <span class="p">}</span></div>
+</span><span data-line="1311">    <span class="k">def</span><span class="w"> </span><span class="nf">to_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+</span><span data-line="1312"><span class="w">        </span><span class="sd">"""The op's JSON row: everything but the function."""</span>
+</span><span data-line="1313">        <span class="k">return</span> <span class="p">{</span>
+</span><span data-line="1314">            <span class="s2">"name"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+</span><span data-line="1315">            <span class="s2">"title"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">title</span><span class="p">,</span>
+</span><span data-line="1316">            <span class="s2">"description"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">description</span><span class="p">,</span>
+</span><span data-line="1317">            <span class="s2">"effect"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">effect</span><span class="p">,</span>
+</span><span data-line="1318">            <span class="s2">"runs"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">runs</span><span class="p">,</span>
+</span><span data-line="1319">            <span class="s2">"params_schema"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">params_schema</span><span class="p">,</span>
+</span><span data-line="1320">            <span class="s2">"host_params"</span><span class="p">:</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">host_params</span><span class="p">),</span>
+</span><span data-line="1321">            <span class="s2">"max_upload_bytes"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_upload_bytes</span><span class="p">,</span>
+</span><span data-line="1322">            <span class="s2">"spends"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">spends</span><span class="p">,</span>
+</span><span data-line="1323">            <span class="s2">"invalidates"</span><span class="p">:</span> <span class="kc">None</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">invalidates</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">invalidates</span><span class="p">),</span>
+</span><span data-line="1324">        <span class="p">}</span></div>
 </div>
 
-</span><span data-line="1293">
-</span><span data-line="1294">
-</span><span data-line="1295"><span class="c1">#: Registry of per-genre operations, keyed by genre slug (the owning app registers).</span>
-</span><span data-line="1296"><span class="n">genre_ops_registry</span><span class="p">:</span> <span class="n">Registry</span> <span class="o">=</span> <span class="n">Registry</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">"nw.genre_ops"</span><span class="p">,</span> <span class="n">on_conflict</span><span class="o">=</span><span class="s2">"error"</span><span class="p">)</span>
-</span><span data-line="1297">
-</span><span data-line="1298">
+</span><span data-line="1325">
+</span><span data-line="1326">
+</span><span data-line="1327"><span class="c1">#: Registry of per-genre operations, keyed by genre slug (the owning app registers).</span>
+</span><span data-line="1328"><span class="n">genre_ops_registry</span><span class="p">:</span> <span class="n">Registry</span> <span class="o">=</span> <span class="n">Registry</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">"nw.genre_ops"</span><span class="p">,</span> <span class="n">on_conflict</span><span class="o">=</span><span class="s2">"error"</span><span class="p">)</span>
+</span><span data-line="1329">
+</span><span data-line="1330">
 <div class="viewcode-block" id="register_genre_ops">
 <a class="viewcode-back" href="../../_autosummary/nw.html#nw.register_genre_ops">[docs]</a>
-</span><span data-line="1299"><span class="k">def</span><span class="w"> </span><span class="nf">register_genre_ops</span><span class="p">(</span><span class="n">genre_slug</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">ops</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">:</span>
-</span><span data-line="1300"><span class="w">    </span><span class="sd">"""Register the operations a genre offers on its projects; returns them as a tuple.</span>
-</span><span data-line="1301">
-</span><span data-line="1302"><span class="sd">    Called once by the genre's **owning app**, beside its project factory, so a host can</span>
-</span><span data-line="1303"><span class="sd">    serve the genre's project operations via :func:`genre_ops` without importing the</span>
-</span><span data-line="1304"><span class="sd">    genre's package. Names must be unique within the genre. Registering the same genre</span>
-</span><span data-line="1305"><span class="sd">    twice raises (the registry refuses conflicts, as every nw genre registry does).</span>
-</span><span data-line="1306">
-</span><span data-line="1307"><span class="sd">    &gt;&gt;&gt; def _peek(project) -&gt; dict:</span>
-</span><span data-line="1308"><span class="sd">    ...     '''Say hello.'''</span>
-</span><span data-line="1309"><span class="sd">    ...     return {"hello": True}</span>
-</span><span data-line="1310"><span class="sd">    &gt;&gt;&gt; _ = register_genre_ops("_ops_demo", [GenreOp("peek", _peek, title="Peek",</span>
-</span><span data-line="1311"><span class="sd">    ...                                              effect="read")])</span>
-</span><span data-line="1312"><span class="sd">    &gt;&gt;&gt; [op.name for op in genre_ops("_ops_demo")]</span>
-</span><span data-line="1313"><span class="sd">    ['peek']</span>
-</span><span data-line="1314"><span class="sd">    &gt;&gt;&gt; genre_op("_ops_demo", "peek").run(None)</span>
-</span><span data-line="1315"><span class="sd">    {'hello': True}</span>
-</span><span data-line="1316"><span class="sd">    &gt;&gt;&gt; genre_ops("_nobody")</span>
-</span><span data-line="1317"><span class="sd">    ()</span>
-</span><span data-line="1318"><span class="sd">    &gt;&gt;&gt; del genre_ops_registry["_ops_demo"]</span>
-</span><span data-line="1319"><span class="sd">    """</span>
-</span><span data-line="1320">    <span class="n">_validate_slug</span><span class="p">(</span><span class="n">genre_slug</span><span class="p">,</span> <span class="n">what</span><span class="o">=</span><span class="s2">"genre ops"</span><span class="p">)</span>
-</span><span data-line="1321">    <span class="n">ops</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">ops</span><span class="p">)</span>
-</span><span data-line="1322">    <span class="k">for</span> <span class="n">op</span> <span class="ow">in</span> <span class="n">ops</span><span class="p">:</span>
-</span><span data-line="1323">        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">op</span><span class="p">,</span> <span class="n">GenreOp</span><span class="p">):</span>
-</span><span data-line="1324">            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
-</span><span data-line="1325">                <span class="sa">f</span><span class="s2">"register_genre_ops expects GenreOp rows, got </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">op</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">"</span>
-</span><span data-line="1326">            <span class="p">)</span>
-</span><span data-line="1327">    <span class="n">names</span> <span class="o">=</span> <span class="p">[</span><span class="n">op</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">op</span> <span class="ow">in</span> <span class="n">ops</span><span class="p">]</span>
-</span><span data-line="1328">    <span class="n">duplicates</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">({</span><span class="n">n</span> <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="n">names</span> <span class="k">if</span> <span class="n">names</span><span class="o">.</span><span class="n">count</span><span class="p">(</span><span class="n">n</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">})</span>
-</span><span data-line="1329">    <span class="k">if</span> <span class="n">duplicates</span><span class="p">:</span>
-</span><span data-line="1330">        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"genre </span><span class="si">{</span><span class="n">genre_slug</span><span class="si">!r}</span><span class="s2">: duplicate op names </span><span class="si">{</span><span class="n">duplicates</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
-</span><span data-line="1331">    <span class="n">genre_ops_registry</span><span class="o">.</span><span class="n">register</span><span class="p">(</span><span class="n">genre_slug</span><span class="p">,</span> <span class="n">ops</span><span class="p">)</span>
-</span><span data-line="1332">    <span class="k">return</span> <span class="n">ops</span></div>
-
+</span><span data-line="1331"><span class="k">def</span><span class="w"> </span><span class="nf">register_genre_ops</span><span class="p">(</span><span class="n">genre_slug</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">ops</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">:</span>
+</span><span data-line="1332"><span class="w">    </span><span class="sd">"""Register the operations a genre offers on its projects; returns them as a tuple.</span>
 </span><span data-line="1333">
-</span><span data-line="1334">
+</span><span data-line="1334"><span class="sd">    Called once by the genre's **owning app**, beside its project factory, so a host can</span>
+</span><span data-line="1335"><span class="sd">    serve the genre's project operations via :func:`genre_ops` without importing the</span>
+</span><span data-line="1336"><span class="sd">    genre's package. Names must be unique within the genre. Registering the same genre</span>
+</span><span data-line="1337"><span class="sd">    twice raises (the registry refuses conflicts, as every nw genre registry does).</span>
+</span><span data-line="1338">
+</span><span data-line="1339"><span class="sd">    &gt;&gt;&gt; def _peek(project) -&gt; dict:</span>
+</span><span data-line="1340"><span class="sd">    ...     '''Say hello.'''</span>
+</span><span data-line="1341"><span class="sd">    ...     return {"hello": True}</span>
+</span><span data-line="1342"><span class="sd">    &gt;&gt;&gt; _ = register_genre_ops("_ops_demo", [GenreOp("peek", _peek, title="Peek",</span>
+</span><span data-line="1343"><span class="sd">    ...                                              effect="read")])</span>
+</span><span data-line="1344"><span class="sd">    &gt;&gt;&gt; [op.name for op in genre_ops("_ops_demo")]</span>
+</span><span data-line="1345"><span class="sd">    ['peek']</span>
+</span><span data-line="1346"><span class="sd">    &gt;&gt;&gt; genre_op("_ops_demo", "peek").run(None)</span>
+</span><span data-line="1347"><span class="sd">    {'hello': True}</span>
+</span><span data-line="1348"><span class="sd">    &gt;&gt;&gt; genre_ops("_nobody")</span>
+</span><span data-line="1349"><span class="sd">    ()</span>
+</span><span data-line="1350"><span class="sd">    &gt;&gt;&gt; del genre_ops_registry["_ops_demo"]</span>
+</span><span data-line="1351"><span class="sd">    """</span>
+</span><span data-line="1352">    <span class="n">_validate_slug</span><span class="p">(</span><span class="n">genre_slug</span><span class="p">,</span> <span class="n">what</span><span class="o">=</span><span class="s2">"genre ops"</span><span class="p">)</span>
+</span><span data-line="1353">    <span class="n">ops</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">ops</span><span class="p">)</span>
+</span><span data-line="1354">    <span class="k">for</span> <span class="n">op</span> <span class="ow">in</span> <span class="n">ops</span><span class="p">:</span>
+</span><span data-line="1355">        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">op</span><span class="p">,</span> <span class="n">GenreOp</span><span class="p">):</span>
+</span><span data-line="1356">            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
+</span><span data-line="1357">                <span class="sa">f</span><span class="s2">"register_genre_ops expects GenreOp rows, got </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">op</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">"</span>
+</span><span data-line="1358">            <span class="p">)</span>
+</span><span data-line="1359">    <span class="n">names</span> <span class="o">=</span> <span class="p">[</span><span class="n">op</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">op</span> <span class="ow">in</span> <span class="n">ops</span><span class="p">]</span>
+</span><span data-line="1360">    <span class="n">duplicates</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">({</span><span class="n">n</span> <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="n">names</span> <span class="k">if</span> <span class="n">names</span><span class="o">.</span><span class="n">count</span><span class="p">(</span><span class="n">n</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">})</span>
+</span><span data-line="1361">    <span class="k">if</span> <span class="n">duplicates</span><span class="p">:</span>
+</span><span data-line="1362">        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"genre </span><span class="si">{</span><span class="n">genre_slug</span><span class="si">!r}</span><span class="s2">: duplicate op names </span><span class="si">{</span><span class="n">duplicates</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+</span><span data-line="1363">    <span class="n">_check_invalidates</span><span class="p">(</span><span class="n">genre_slug</span><span class="p">,</span> <span class="n">ops</span><span class="p">)</span>
+</span><span data-line="1364">    <span class="n">genre_ops_registry</span><span class="o">.</span><span class="n">register</span><span class="p">(</span><span class="n">genre_slug</span><span class="p">,</span> <span class="n">ops</span><span class="p">)</span>
+</span><span data-line="1365">    <span class="k">return</span> <span class="n">ops</span></div>
+
+</span><span data-line="1366">
+</span><span data-line="1367">
+</span><span data-line="1368"><span class="k">def</span><span class="w"> </span><span class="nf">_check_invalidates</span><span class="p">(</span><span class="n">genre_slug</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">ops</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+</span><span data-line="1369"><span class="w">    </span><span class="sd">"""Refuse an ``invalidates`` naming anything but the genre's read ops."""</span>
+</span><span data-line="1370">    <span class="n">reads</span> <span class="o">=</span> <span class="p">{</span><span class="n">op</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">op</span> <span class="ow">in</span> <span class="n">ops</span> <span class="k">if</span> <span class="n">op</span><span class="o">.</span><span class="n">effect</span> <span class="o">==</span> <span class="s2">"read"</span><span class="p">}</span>
+</span><span data-line="1371">    <span class="k">for</span> <span class="n">op</span> <span class="ow">in</span> <span class="n">ops</span><span class="p">:</span>
+</span><span data-line="1372">        <span class="n">unknown</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">op</span><span class="o">.</span><span class="n">invalidates</span> <span class="ow">or</span> <span class="p">())</span> <span class="o">-</span> <span class="n">reads</span><span class="p">)</span>
+</span><span data-line="1373">        <span class="k">if</span> <span class="n">unknown</span><span class="p">:</span>
+</span><span data-line="1374">            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+</span><span data-line="1375">                <span class="sa">f</span><span class="s2">"genre </span><span class="si">{</span><span class="n">genre_slug</span><span class="si">!r}</span><span class="s2">: op </span><span class="si">{</span><span class="n">op</span><span class="o">.</span><span class="n">name</span><span class="si">!r}</span><span class="s2"> invalidates </span><span class="si">{</span><span class="n">unknown</span><span class="si">}</span><span class="s2">, "</span>
+</span><span data-line="1376">                <span class="sa">f</span><span class="s2">"which are not read ops of the genre"</span>
+</span><span data-line="1377">            <span class="p">)</span>
+</span><span data-line="1378">
+</span><span data-line="1379">
 <div class="viewcode-block" id="genre_ops">
 <a class="viewcode-back" href="../../_autosummary/nw.html#nw.genre_ops">[docs]</a>
-</span><span data-line="1335"><span class="k">def</span><span class="w"> </span><span class="nf">genre_ops</span><span class="p">(</span><span class="n">genre_slug</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">:</span>
-</span><span data-line="1336"><span class="w">    </span><span class="sd">"""The ops registered for ``genre_slug``, in registration order (``()`` if none)."""</span>
-</span><span data-line="1337">    <span class="k">return</span> <span class="n">genre_ops_registry</span><span class="p">[</span><span class="n">genre_slug</span><span class="p">]</span> <span class="k">if</span> <span class="n">genre_slug</span> <span class="ow">in</span> <span class="n">genre_ops_registry</span> <span class="k">else</span> <span class="p">()</span></div>
-
-</span><span data-line="1338">
-</span><span data-line="1339">
-</span><span data-line="1340"><span class="c1">#: Registry of per-genre numeric limits, keyed by genre slug (the owning app registers).</span>
-</span><span data-line="1341"><span class="n">genre_limits_registry</span><span class="p">:</span> <span class="n">Registry</span> <span class="o">=</span> <span class="n">Registry</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">"nw.genre_limits"</span><span class="p">,</span> <span class="n">on_conflict</span><span class="o">=</span><span class="s2">"error"</span><span class="p">)</span>
-</span><span data-line="1342">
-</span><span data-line="1343">
-<div class="viewcode-block" id="register_genre_limits">
-<a class="viewcode-back" href="../../_autosummary/nw.html#nw.register_genre_limits">[docs]</a>
-</span><span data-line="1344"><span class="k">def</span><span class="w"> </span><span class="nf">register_genre_limits</span><span class="p">(</span><span class="n">genre_slug</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">limits</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">float</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
-</span><span data-line="1345"><span class="w">    </span><span class="sd">"""Register the numeric limits a genre's operations enforce; returns them as a dict.</span>
-</span><span data-line="1346">
-</span><span data-line="1347"><span class="sd">    Called once by the genre's **owning app**, beside :func:`register_genre_ops`. A</span>
-</span><span data-line="1348"><span class="sd">    frontend that validates the same bounds as the backend (a slider's range, a snap</span>
-</span><span data-line="1349"><span class="sd">    distance) reads them from here instead of mirroring them by hand. Values are plain</span>
-</span><span data-line="1350"><span class="sd">    numbers; names are the app's (``snake_case`` by convention, with the unit as a</span>
-</span><span data-line="1351"><span class="sd">    suffix: ``edge_s``). Bounds of an operation's own parameter belong in that op's</span>
-</span><span data-line="1352"><span class="sd">    ``params_schema`` (``minimum``/``maximum``); this is for limits with no parameter</span>
-</span><span data-line="1353"><span class="sd">    to attach to.</span>
-</span><span data-line="1354">
-</span><span data-line="1355"><span class="sd">    &gt;&gt;&gt; register_genre_limits("_limits_demo", {"edge_s": 0.25})</span>
-</span><span data-line="1356"><span class="sd">    {'edge_s': 0.25}</span>
-</span><span data-line="1357"><span class="sd">    &gt;&gt;&gt; genre_limits("_limits_demo")</span>
-</span><span data-line="1358"><span class="sd">    {'edge_s': 0.25}</span>
-</span><span data-line="1359"><span class="sd">    &gt;&gt;&gt; genre_limits("_nobody")</span>
-</span><span data-line="1360"><span class="sd">    {}</span>
-</span><span data-line="1361"><span class="sd">    &gt;&gt;&gt; del genre_limits_registry["_limits_demo"]</span>
-</span><span data-line="1362"><span class="sd">    """</span>
-</span><span data-line="1363">    <span class="n">_validate_slug</span><span class="p">(</span><span class="n">genre_slug</span><span class="p">,</span> <span class="n">what</span><span class="o">=</span><span class="s2">"genre limits"</span><span class="p">)</span>
-</span><span data-line="1364">    <span class="k">if</span> <span class="ow">not</span> <span class="n">limits</span><span class="p">:</span>
-</span><span data-line="1365">        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"genre </span><span class="si">{</span><span class="n">genre_slug</span><span class="si">!r}</span><span class="s2">: no limits to register"</span><span class="p">)</span>
-</span><span data-line="1366">    <span class="n">clean</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="p">{}</span>
-</span><span data-line="1367">    <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="nb">dict</span><span class="p">(</span><span class="n">limits</span><span class="p">)</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-</span><span data-line="1368">        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">name</span><span class="p">:</span>
-</span><span data-line="1369">            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-</span><span data-line="1370">                <span class="sa">f</span><span class="s2">"genre </span><span class="si">{</span><span class="n">genre_slug</span><span class="si">!r}</span><span class="s2">: limit names must be non-empty strings"</span>
-</span><span data-line="1371">            <span class="p">)</span>
-</span><span data-line="1372">        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="nb">bool</span><span class="p">)</span> <span class="ow">or</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">numbers</span><span class="o">.</span><span class="n">Real</span><span class="p">):</span>
-</span><span data-line="1373">            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
-</span><span data-line="1374">                <span class="sa">f</span><span class="s2">"genre </span><span class="si">{</span><span class="n">genre_slug</span><span class="si">!r}</span><span class="s2">: limit </span><span class="si">{</span><span class="n">name</span><span class="si">!r}</span><span class="s2"> must be a number, got </span><span class="si">{</span><span class="n">value</span><span class="si">!r}</span><span class="s2">"</span>
-</span><span data-line="1375">            <span class="p">)</span>
-</span><span data-line="1376">        <span class="k">if</span> <span class="ow">not</span> <span class="n">math</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">value</span><span class="p">):</span>  <span class="c1"># NaN / Infinity are not JSON</span>
-</span><span data-line="1377">            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"genre </span><span class="si">{</span><span class="n">genre_slug</span><span class="si">!r}</span><span class="s2">: limit </span><span class="si">{</span><span class="n">name</span><span class="si">!r}</span><span class="s2"> must be finite"</span><span class="p">)</span>
-</span><span data-line="1378">        <span class="n">clean</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
-</span><span data-line="1379">            <span class="nb">int</span><span class="p">(</span><span class="n">value</span><span class="p">)</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">numbers</span><span class="o">.</span><span class="n">Integral</span><span class="p">)</span> <span class="k">else</span> <span class="nb">float</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
-</span><span data-line="1380">        <span class="p">)</span>
-</span><span data-line="1381">    <span class="n">genre_limits_registry</span><span class="o">.</span><span class="n">register</span><span class="p">(</span><span class="n">genre_slug</span><span class="p">,</span> <span class="n">MappingProxyType</span><span class="p">(</span><span class="n">clean</span><span class="p">))</span>
-</span><span data-line="1382">    <span class="k">return</span> <span class="nb">dict</span><span class="p">(</span><span class="n">clean</span><span class="p">)</span></div>
+</span><span data-line="1380"><span class="k">def</span><span class="w"> </span><span class="nf">genre_ops</span><span class="p">(</span><span class="n">genre_slug</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">:</span>
+</span><span data-line="1381"><span class="w">    </span><span class="sd">"""The ops registered for ``genre_slug``, in registration order (``()`` if none)."""</span>
+</span><span data-line="1382">    <span class="k">return</span> <span class="n">genre_ops_registry</span><span class="p">[</span><span class="n">genre_slug</span><span class="p">]</span> <span class="k">if</span> <span class="n">genre_slug</span> <span class="ow">in</span> <span class="n">genre_ops_registry</span> <span class="k">else</span> <span class="p">()</span></div>
 
 </span><span data-line="1383">
 </span><span data-line="1384">
+</span><span data-line="1385"><span class="c1">#: Registry of per-genre numeric limits, keyed by genre slug (the owning app registers).</span>
+</span><span data-line="1386"><span class="n">genre_limits_registry</span><span class="p">:</span> <span class="n">Registry</span> <span class="o">=</span> <span class="n">Registry</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">"nw.genre_limits"</span><span class="p">,</span> <span class="n">on_conflict</span><span class="o">=</span><span class="s2">"error"</span><span class="p">)</span>
+</span><span data-line="1387">
+</span><span data-line="1388">
+<div class="viewcode-block" id="register_genre_limits">
+<a class="viewcode-back" href="../../_autosummary/nw.html#nw.register_genre_limits">[docs]</a>
+</span><span data-line="1389"><span class="k">def</span><span class="w"> </span><span class="nf">register_genre_limits</span><span class="p">(</span><span class="n">genre_slug</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">limits</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">float</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+</span><span data-line="1390"><span class="w">    </span><span class="sd">"""Register the numeric limits a genre's operations enforce; returns them as a dict.</span>
+</span><span data-line="1391">
+</span><span data-line="1392"><span class="sd">    Called once by the genre's **owning app**, beside :func:`register_genre_ops`. A</span>
+</span><span data-line="1393"><span class="sd">    frontend that validates the same bounds as the backend (a slider's range, a snap</span>
+</span><span data-line="1394"><span class="sd">    distance) reads them from here instead of mirroring them by hand. Values are plain</span>
+</span><span data-line="1395"><span class="sd">    numbers; names are the app's (``snake_case`` by convention, with the unit as a</span>
+</span><span data-line="1396"><span class="sd">    suffix: ``edge_s``). Bounds of an operation's own parameter belong in that op's</span>
+</span><span data-line="1397"><span class="sd">    ``params_schema`` (``minimum``/``maximum``); this is for limits with no parameter</span>
+</span><span data-line="1398"><span class="sd">    to attach to.</span>
+</span><span data-line="1399">
+</span><span data-line="1400"><span class="sd">    &gt;&gt;&gt; register_genre_limits("_limits_demo", {"edge_s": 0.25})</span>
+</span><span data-line="1401"><span class="sd">    {'edge_s': 0.25}</span>
+</span><span data-line="1402"><span class="sd">    &gt;&gt;&gt; genre_limits("_limits_demo")</span>
+</span><span data-line="1403"><span class="sd">    {'edge_s': 0.25}</span>
+</span><span data-line="1404"><span class="sd">    &gt;&gt;&gt; genre_limits("_nobody")</span>
+</span><span data-line="1405"><span class="sd">    {}</span>
+</span><span data-line="1406"><span class="sd">    &gt;&gt;&gt; del genre_limits_registry["_limits_demo"]</span>
+</span><span data-line="1407"><span class="sd">    """</span>
+</span><span data-line="1408">    <span class="n">_validate_slug</span><span class="p">(</span><span class="n">genre_slug</span><span class="p">,</span> <span class="n">what</span><span class="o">=</span><span class="s2">"genre limits"</span><span class="p">)</span>
+</span><span data-line="1409">    <span class="k">if</span> <span class="ow">not</span> <span class="n">limits</span><span class="p">:</span>
+</span><span data-line="1410">        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"genre </span><span class="si">{</span><span class="n">genre_slug</span><span class="si">!r}</span><span class="s2">: no limits to register"</span><span class="p">)</span>
+</span><span data-line="1411">    <span class="n">clean</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="p">{}</span>
+</span><span data-line="1412">    <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="nb">dict</span><span class="p">(</span><span class="n">limits</span><span class="p">)</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+</span><span data-line="1413">        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">name</span><span class="p">:</span>
+</span><span data-line="1414">            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+</span><span data-line="1415">                <span class="sa">f</span><span class="s2">"genre </span><span class="si">{</span><span class="n">genre_slug</span><span class="si">!r}</span><span class="s2">: limit names must be non-empty strings"</span>
+</span><span data-line="1416">            <span class="p">)</span>
+</span><span data-line="1417">        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="nb">bool</span><span class="p">)</span> <span class="ow">or</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">numbers</span><span class="o">.</span><span class="n">Real</span><span class="p">):</span>
+</span><span data-line="1418">            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
+</span><span data-line="1419">                <span class="sa">f</span><span class="s2">"genre </span><span class="si">{</span><span class="n">genre_slug</span><span class="si">!r}</span><span class="s2">: limit </span><span class="si">{</span><span class="n">name</span><span class="si">!r}</span><span class="s2"> must be a number, got </span><span class="si">{</span><span class="n">value</span><span class="si">!r}</span><span class="s2">"</span>
+</span><span data-line="1420">            <span class="p">)</span>
+</span><span data-line="1421">        <span class="k">if</span> <span class="ow">not</span> <span class="n">math</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">value</span><span class="p">):</span>  <span class="c1"># NaN / Infinity are not JSON</span>
+</span><span data-line="1422">            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"genre </span><span class="si">{</span><span class="n">genre_slug</span><span class="si">!r}</span><span class="s2">: limit </span><span class="si">{</span><span class="n">name</span><span class="si">!r}</span><span class="s2"> must be finite"</span><span class="p">)</span>
+</span><span data-line="1423">        <span class="n">clean</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+</span><span data-line="1424">            <span class="nb">int</span><span class="p">(</span><span class="n">value</span><span class="p">)</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">numbers</span><span class="o">.</span><span class="n">Integral</span><span class="p">)</span> <span class="k">else</span> <span class="nb">float</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+</span><span data-line="1425">        <span class="p">)</span>
+</span><span data-line="1426">    <span class="n">genre_limits_registry</span><span class="o">.</span><span class="n">register</span><span class="p">(</span><span class="n">genre_slug</span><span class="p">,</span> <span class="n">MappingProxyType</span><span class="p">(</span><span class="n">clean</span><span class="p">))</span>
+</span><span data-line="1427">    <span class="k">return</span> <span class="nb">dict</span><span class="p">(</span><span class="n">clean</span><span class="p">)</span></div>
+
+</span><span data-line="1428">
+</span><span data-line="1429">
 <div class="viewcode-block" id="genre_limits">
 <a class="viewcode-back" href="../../_autosummary/nw.html#nw.genre_limits">[docs]</a>
-</span><span data-line="1385"><span class="k">def</span><span class="w"> </span><span class="nf">genre_limits</span><span class="p">(</span><span class="n">genre_slug</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
-</span><span data-line="1386"><span class="w">    </span><span class="sd">"""The limits registered for ``genre_slug`` (``{}`` if none); a copy."""</span>
-</span><span data-line="1387">    <span class="k">return</span> <span class="p">(</span>
-</span><span data-line="1388">        <span class="nb">dict</span><span class="p">(</span><span class="n">genre_limits_registry</span><span class="p">[</span><span class="n">genre_slug</span><span class="p">])</span>
-</span><span data-line="1389">        <span class="k">if</span> <span class="n">genre_slug</span> <span class="ow">in</span> <span class="n">genre_limits_registry</span>
-</span><span data-line="1390">        <span class="k">else</span> <span class="p">{}</span>
-</span><span data-line="1391">    <span class="p">)</span></div>
+</span><span data-line="1430"><span class="k">def</span><span class="w"> </span><span class="nf">genre_limits</span><span class="p">(</span><span class="n">genre_slug</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+</span><span data-line="1431"><span class="w">    </span><span class="sd">"""The limits registered for ``genre_slug`` (``{}`` if none); a copy."""</span>
+</span><span data-line="1432">    <span class="k">return</span> <span class="p">(</span>
+</span><span data-line="1433">        <span class="nb">dict</span><span class="p">(</span><span class="n">genre_limits_registry</span><span class="p">[</span><span class="n">genre_slug</span><span class="p">])</span>
+</span><span data-line="1434">        <span class="k">if</span> <span class="n">genre_slug</span> <span class="ow">in</span> <span class="n">genre_limits_registry</span>
+</span><span data-line="1435">        <span class="k">else</span> <span class="p">{}</span>
+</span><span data-line="1436">    <span class="p">)</span></div>
 
-</span><span data-line="1392">
-</span><span data-line="1393">
+</span><span data-line="1437">
+</span><span data-line="1438">
 <div class="viewcode-block" id="genre_op">
 <a class="viewcode-back" href="../../_autosummary/nw.html#nw.genre_op">[docs]</a>
-</span><span data-line="1394"><span class="k">def</span><span class="w"> </span><span class="nf">genre_op</span><span class="p">(</span><span class="n">genre_slug</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">GenreOp</span><span class="p">:</span>
-</span><span data-line="1395"><span class="w">    </span><span class="sd">"""The op ``name`` of ``genre_slug``; :class:`UnknownGenreOpError` naming the known."""</span>
-</span><span data-line="1396">    <span class="k">for</span> <span class="n">op</span> <span class="ow">in</span> <span class="n">genre_ops</span><span class="p">(</span><span class="n">genre_slug</span><span class="p">):</span>
-</span><span data-line="1397">        <span class="k">if</span> <span class="n">op</span><span class="o">.</span><span class="n">name</span> <span class="o">==</span> <span class="n">name</span><span class="p">:</span>
-</span><span data-line="1398">            <span class="k">return</span> <span class="n">op</span>
-</span><span data-line="1399">    <span class="n">known</span> <span class="o">=</span> <span class="p">[</span><span class="n">op</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">op</span> <span class="ow">in</span> <span class="n">genre_ops</span><span class="p">(</span><span class="n">genre_slug</span><span class="p">)]</span>
-</span><span data-line="1400">    <span class="k">raise</span> <span class="n">UnknownGenreOpError</span><span class="p">(</span>
-</span><span data-line="1401">        <span class="sa">f</span><span class="s2">"genre </span><span class="si">{</span><span class="n">genre_slug</span><span class="si">!r}</span><span class="s2"> has no op </span><span class="si">{</span><span class="n">name</span><span class="si">!r}</span><span class="s2">; known ops: </span><span class="si">{</span><span class="n">known</span><span class="si">}</span><span class="s2">"</span>
-</span><span data-line="1402">    <span class="p">)</span></div>
+</span><span data-line="1439"><span class="k">def</span><span class="w"> </span><span class="nf">genre_op</span><span class="p">(</span><span class="n">genre_slug</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">GenreOp</span><span class="p">:</span>
+</span><span data-line="1440"><span class="w">    </span><span class="sd">"""The op ``name`` of ``genre_slug``; :class:`UnknownGenreOpError` naming the known."""</span>
+</span><span data-line="1441">    <span class="k">for</span> <span class="n">op</span> <span class="ow">in</span> <span class="n">genre_ops</span><span class="p">(</span><span class="n">genre_slug</span><span class="p">):</span>
+</span><span data-line="1442">        <span class="k">if</span> <span class="n">op</span><span class="o">.</span><span class="n">name</span> <span class="o">==</span> <span class="n">name</span><span class="p">:</span>
+</span><span data-line="1443">            <span class="k">return</span> <span class="n">op</span>
+</span><span data-line="1444">    <span class="n">known</span> <span class="o">=</span> <span class="p">[</span><span class="n">op</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">op</span> <span class="ow">in</span> <span class="n">genre_ops</span><span class="p">(</span><span class="n">genre_slug</span><span class="p">)]</span>
+</span><span data-line="1445">    <span class="k">raise</span> <span class="n">UnknownGenreOpError</span><span class="p">(</span>
+</span><span data-line="1446">        <span class="sa">f</span><span class="s2">"genre </span><span class="si">{</span><span class="n">genre_slug</span><span class="si">!r}</span><span class="s2"> has no op </span><span class="si">{</span><span class="n">name</span><span class="si">!r}</span><span class="s2">; known ops: </span><span class="si">{</span><span class="n">known</span><span class="si">}</span><span class="s2">"</span>
+</span><span data-line="1447">    <span class="p">)</span></div>
 
-</span><span data-line="1403">
-</span><span data-line="1404">
+</span><span data-line="1448">
+</span><span data-line="1449">
 <div class="viewcode-block" id="genre_ops_catalogue">
 <a class="viewcode-back" href="../../_autosummary/nw.html#nw.genre_ops_catalogue">[docs]</a>
-</span><span data-line="1405"><span class="k">def</span><span class="w"> </span><span class="nf">genre_ops_catalogue</span><span class="p">(</span><span class="n">genre_slug</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">:</span>
-</span><span data-line="1406"><span class="w">    </span><span class="sd">"""The pure-JSON catalogue of ``genre_slug``'s ops (``[]`` for a genre with none).</span>
-</span><span data-line="1407">
-</span><span data-line="1408"><span class="sd">    One dict per op — ``name``, ``title``, ``description``, ``effect``, ``runs``,</span>
-</span><span data-line="1409"><span class="sd">    ``params_schema``, ``host_params``, ``max_upload_bytes``, ``spends`` — the shape a</span>
-</span><span data-line="1410"><span class="sd">    host exports to a frontend's codegen or an MCP</span>
-</span><span data-line="1411"><span class="sd">    tool builder.</span>
-</span><span data-line="1412"><span class="sd">    """</span>
-</span><span data-line="1413">    <span class="k">return</span> <span class="p">[</span><span class="n">op</span><span class="o">.</span><span class="n">to_dict</span><span class="p">()</span> <span class="k">for</span> <span class="n">op</span> <span class="ow">in</span> <span class="n">genre_ops</span><span class="p">(</span><span class="n">genre_slug</span><span class="p">)]</span></div>
+</span><span data-line="1450"><span class="k">def</span><span class="w"> </span><span class="nf">genre_ops_catalogue</span><span class="p">(</span><span class="n">genre_slug</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">:</span>
+</span><span data-line="1451"><span class="w">    </span><span class="sd">"""The pure-JSON catalogue of ``genre_slug``'s ops (``[]`` for a genre with none).</span>
+</span><span data-line="1452">
+</span><span data-line="1453"><span class="sd">    One dict per op — ``name``, ``title``, ``description``, ``effect``, ``runs``,</span>
+</span><span data-line="1454"><span class="sd">    ``params_schema``, ``host_params``, ``max_upload_bytes``, ``spends`` — the shape a</span>
+</span><span data-line="1455"><span class="sd">    host exports to a frontend's codegen or an MCP</span>
+</span><span data-line="1456"><span class="sd">    tool builder.</span>
+</span><span data-line="1457"><span class="sd">    """</span>
+</span><span data-line="1458">    <span class="k">return</span> <span class="p">[</span><span class="n">op</span><span class="o">.</span><span class="n">to_dict</span><span class="p">()</span> <span class="k">for</span> <span class="n">op</span> <span class="ow">in</span> <span class="n">genre_ops</span><span class="p">(</span><span class="n">genre_slug</span><span class="p">)]</span></div>
 
-</span><span data-line="1414">
-</span><span data-line="1415">
-</span><span data-line="1416"><span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span>
-</span><span data-line="1417">    <span class="s2">"GENRE_STATUSES"</span><span class="p">,</span>
-</span><span data-line="1418">    <span class="s2">"Genre"</span><span class="p">,</span>
-</span><span data-line="1419">    <span class="s2">"Template"</span><span class="p">,</span>
-</span><span data-line="1420">    <span class="s2">"genres"</span><span class="p">,</span>
-</span><span data-line="1421">    <span class="s2">"get_genre"</span><span class="p">,</span>
-</span><span data-line="1422">    <span class="s2">"list_genres"</span><span class="p">,</span>
-</span><span data-line="1423">    <span class="s2">"register_genre"</span><span class="p">,</span>
-</span><span data-line="1424">    <span class="s2">"genre_catalog"</span><span class="p">,</span>
-</span><span data-line="1425">    <span class="s2">"describe_genre"</span><span class="p">,</span>
-</span><span data-line="1426">    <span class="s2">"recommend_genre"</span><span class="p">,</span>
-</span><span data-line="1427">    <span class="s2">"resolve_defaults"</span><span class="p">,</span>
-</span><span data-line="1428">    <span class="s2">"GenreResolver"</span><span class="p">,</span>
-</span><span data-line="1429">    <span class="s2">"genre_resolvers"</span><span class="p">,</span>
-</span><span data-line="1430">    <span class="s2">"register_genre_resolver"</span><span class="p">,</span>
-</span><span data-line="1431">    <span class="s2">"resolve_genre"</span><span class="p">,</span>
-</span><span data-line="1432">    <span class="s2">"GenreInitializer"</span><span class="p">,</span>
-</span><span data-line="1433">    <span class="s2">"genre_initializers"</span><span class="p">,</span>
-</span><span data-line="1434">    <span class="s2">"register_genre_initializer"</span><span class="p">,</span>
-</span><span data-line="1435">    <span class="s2">"initialize_genre"</span><span class="p">,</span>
-</span><span data-line="1436">    <span class="s2">"GenreProjectFactory"</span><span class="p">,</span>
-</span><span data-line="1437">    <span class="s2">"genre_project_factories"</span><span class="p">,</span>
-</span><span data-line="1438">    <span class="s2">"register_genre_project_factory"</span><span class="p">,</span>
-</span><span data-line="1439">    <span class="s2">"has_genre_project_factory"</span><span class="p">,</span>
-</span><span data-line="1440">    <span class="s2">"can_place_genre_project"</span><span class="p">,</span>
-</span><span data-line="1441">    <span class="s2">"create_genre_project"</span><span class="p">,</span>
-</span><span data-line="1442">    <span class="s2">"PLACEMENT_ARG"</span><span class="p">,</span>
-</span><span data-line="1443">    <span class="s2">"GENRE_OP_EFFECTS"</span><span class="p">,</span>
-</span><span data-line="1444">    <span class="s2">"GENRE_OP_RUNS"</span><span class="p">,</span>
-</span><span data-line="1445">    <span class="s2">"GenreOp"</span><span class="p">,</span>
-</span><span data-line="1446">    <span class="s2">"UnknownGenreOpError"</span><span class="p">,</span>
-</span><span data-line="1447">    <span class="s2">"GenreOpRefused"</span><span class="p">,</span>
-</span><span data-line="1448">    <span class="s2">"GenreOpCancelled"</span><span class="p">,</span>
-</span><span data-line="1449">    <span class="s2">"CANCEL_PARAM"</span><span class="p">,</span>
-</span><span data-line="1450">    <span class="s2">"genre_ops_registry"</span><span class="p">,</span>
-</span><span data-line="1451">    <span class="s2">"register_genre_ops"</span><span class="p">,</span>
-</span><span data-line="1452">    <span class="s2">"genre_ops"</span><span class="p">,</span>
-</span><span data-line="1453">    <span class="s2">"genre_op"</span><span class="p">,</span>
-</span><span data-line="1454">    <span class="s2">"genre_ops_catalogue"</span><span class="p">,</span>
-</span><span data-line="1455">    <span class="s2">"genre_limits_registry"</span><span class="p">,</span>
-</span><span data-line="1456">    <span class="s2">"register_genre_limits"</span><span class="p">,</span>
-</span><span data-line="1457">    <span class="s2">"genre_limits"</span><span class="p">,</span>
-</span><span data-line="1458"><span class="p">]</span>
+</span><span data-line="1459">
+</span><span data-line="1460">
+</span><span data-line="1461"><span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span>
+</span><span data-line="1462">    <span class="s2">"GENRE_STATUSES"</span><span class="p">,</span>
+</span><span data-line="1463">    <span class="s2">"Genre"</span><span class="p">,</span>
+</span><span data-line="1464">    <span class="s2">"Template"</span><span class="p">,</span>
+</span><span data-line="1465">    <span class="s2">"genres"</span><span class="p">,</span>
+</span><span data-line="1466">    <span class="s2">"get_genre"</span><span class="p">,</span>
+</span><span data-line="1467">    <span class="s2">"list_genres"</span><span class="p">,</span>
+</span><span data-line="1468">    <span class="s2">"register_genre"</span><span class="p">,</span>
+</span><span data-line="1469">    <span class="s2">"genre_catalog"</span><span class="p">,</span>
+</span><span data-line="1470">    <span class="s2">"describe_genre"</span><span class="p">,</span>
+</span><span data-line="1471">    <span class="s2">"recommend_genre"</span><span class="p">,</span>
+</span><span data-line="1472">    <span class="s2">"resolve_defaults"</span><span class="p">,</span>
+</span><span data-line="1473">    <span class="s2">"GenreResolver"</span><span class="p">,</span>
+</span><span data-line="1474">    <span class="s2">"genre_resolvers"</span><span class="p">,</span>
+</span><span data-line="1475">    <span class="s2">"register_genre_resolver"</span><span class="p">,</span>
+</span><span data-line="1476">    <span class="s2">"resolve_genre"</span><span class="p">,</span>
+</span><span data-line="1477">    <span class="s2">"GenreInitializer"</span><span class="p">,</span>
+</span><span data-line="1478">    <span class="s2">"genre_initializers"</span><span class="p">,</span>
+</span><span data-line="1479">    <span class="s2">"register_genre_initializer"</span><span class="p">,</span>
+</span><span data-line="1480">    <span class="s2">"initialize_genre"</span><span class="p">,</span>
+</span><span data-line="1481">    <span class="s2">"GenreProjectFactory"</span><span class="p">,</span>
+</span><span data-line="1482">    <span class="s2">"genre_project_factories"</span><span class="p">,</span>
+</span><span data-line="1483">    <span class="s2">"register_genre_project_factory"</span><span class="p">,</span>
+</span><span data-line="1484">    <span class="s2">"has_genre_project_factory"</span><span class="p">,</span>
+</span><span data-line="1485">    <span class="s2">"can_place_genre_project"</span><span class="p">,</span>
+</span><span data-line="1486">    <span class="s2">"create_genre_project"</span><span class="p">,</span>
+</span><span data-line="1487">    <span class="s2">"PLACEMENT_ARG"</span><span class="p">,</span>
+</span><span data-line="1488">    <span class="s2">"GENRE_OP_EFFECTS"</span><span class="p">,</span>
+</span><span data-line="1489">    <span class="s2">"GENRE_OP_RUNS"</span><span class="p">,</span>
+</span><span data-line="1490">    <span class="s2">"GenreOp"</span><span class="p">,</span>
+</span><span data-line="1491">    <span class="s2">"UnknownGenreOpError"</span><span class="p">,</span>
+</span><span data-line="1492">    <span class="s2">"GenreOpRefused"</span><span class="p">,</span>
+</span><span data-line="1493">    <span class="s2">"GenreOpCancelled"</span><span class="p">,</span>
+</span><span data-line="1494">    <span class="s2">"CANCEL_PARAM"</span><span class="p">,</span>
+</span><span data-line="1495">    <span class="s2">"genre_ops_registry"</span><span class="p">,</span>
+</span><span data-line="1496">    <span class="s2">"register_genre_ops"</span><span class="p">,</span>
+</span><span data-line="1497">    <span class="s2">"genre_ops"</span><span class="p">,</span>
+</span><span data-line="1498">    <span class="s2">"genre_op"</span><span class="p">,</span>
+</span><span data-line="1499">    <span class="s2">"genre_ops_catalogue"</span><span class="p">,</span>
+</span><span data-line="1500">    <span class="s2">"genre_limits_registry"</span><span class="p">,</span>
+</span><span data-line="1501">    <span class="s2">"register_genre_limits"</span><span class="p">,</span>
+</span><span data-line="1502">    <span class="s2">"genre_limits"</span><span class="p">,</span>
+</span><span data-line="1503"><span class="p">]</span>
 </span></pre></div>
         </article><button class="back-to-top" type="button">
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
@@ -1751,7 +1796,7 @@ data-aria-dark="Switch to auto color mode">
     </div>
   </div>
 </footer>
-      <script src="../../_static/documentation_options.js?v=9cd8e891"></script>
+      <script src="../../_static/documentation_options.js?v=ab2062fb"></script>
       <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
       <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>

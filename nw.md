@@ -1,4 +1,4 @@
-> built 2026-10-27 13:34 UTC from 44125b5 (main) · nw 0.0.91. Details: build_info.json
+> built 2026-10-27 13:43 UTC from 894dd62 (main) · nw 0.0.92. Details: build_info.json
 
 # index.html.md
 
@@ -722,7 +722,8 @@ member jobs on read\* and never stored, so a batch cannot drift from its jobs:
   idempotent and a no-op on a finished job).
 
 Items are mappings `{"kind": ..., "params": {...}}` (optionally `label`,
-`idempotency_key`); a batch-level `kind=` is the default for items that omit
+`idempotency_key`, and `estimated_usd` — a host’s own price for that
+member, kept out of its job id, nw#144); a batch-level `kind=` is the default for items that omit
 one. Item identity should be semantic (see `nw.transforms.fanout`’s
 `mapping_key`): the default idempotency key hashes `params`.
 
@@ -735,6 +736,7 @@ Cost gating of the *spender* (a per-caller cap) belongs to the host’s
 |--------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------|
 | [`DEFAULT_POLL_S`](_autosummary/nw.batches.html.md#nw.batches.DEFAULT_POLL_S)    | How often [`wait()`](_autosummary/nw.batches.html.md#nw.batches.wait) re-reads the members when nothing notifies it. |
 | [`MISSING`](_autosummary/nw.batches.html.md#nw.batches.MISSING)           | Status key for a member whose job record is gone (it will never finish).                                         |
+| [`ITEM_KEYS`](_autosummary/nw.batches.html.md#nw.batches.ITEM_KEYS)         | [`nw.jobs.enqueue()`](_autosummary/nw.jobs.html.md#nw.jobs.enqueue)'s per-job arguments.          |
 
 ### Functions
 
@@ -765,6 +767,13 @@ The durable part of a batch. Everything else is derived from the jobs.
 ### nw.batches.DEFAULT_POLL_S *= 0.25*
 
 How often [`wait()`](_autosummary/nw.batches.html.md#nw.batches.wait) re-reads the members when nothing notifies it.
+
+### nw.batches.ITEM_KEYS *= frozenset({'estimated_usd', 'idempotency_key', 'kind', 'label', 'params'})*
+
+[`nw.jobs.enqueue()`](_autosummary/nw.jobs.html.md#nw.jobs.enqueue)’s per-job arguments.
+
+* **Type:**
+  A batch item’s keys
 
 ### nw.batches.MISSING *= 'missing'*
 
@@ -800,6 +809,10 @@ and no `dispatch`, the up-front `kind`-in-`dispatch` check is
 skipped: the door owns its dispatch, so it owns that check.
 
 Items resolving to the same job collapse to one member (first position wins).
+An `enqueue_kwargs` key that is also an item key ([`ITEM_KEYS`](_autosummary/nw.batches.html.md#nw.batches.ITEM_KEYS)), or
+an item `estimated_usd` that a custom `enqueue` does not accept, raises
+`TypeError` before anything launches, rather than on a later member
+after the first ones are running.
 
 * **Return type:**
   [`BatchRecord`](_autosummary/nw.batches.html.md#nw.batches.BatchRecord)
@@ -1387,7 +1400,7 @@ still-outstanding record. The real key is:
 
   `fan_out_execute()` through an `execute()`
   : implementation that accepts the `unit_instance_id` keyword (the same
-    accepts-it-or-not seam `_accepts_keyword()`
+    accepts-it-or-not seam `accepts_keyword()`
     already uses for `on_failure`). `call_index` still has to agree even
     here: a unit’s own plan can carry more than one call, and matching on
     `instance_id` alone would collapse two of that unit’s own outputs into
@@ -3915,7 +3928,7 @@ consumer needs no app-specific knowledge to render the catalog.
 * **Return type:**
   [`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)
 
-### *class* nw.GenreOp(name, fn, title, description='', effect='write', runs='now', host_params=(), max_upload_bytes=None, spends=False)
+### *class* nw.GenreOp(name, fn, title, description='', effect='write', runs='now', host_params=(), max_upload_bytes=None, spends=False, invalidates=None)
 
 Bases: [`object`](https://docs.python.org/3/builtins/functions.html#object)
 
@@ -3950,6 +3963,15 @@ raising [`GenreOpCancelled`](_autosummary/nw.html.md#nw.GenreOpCancelled)). A de
 rule is that an unknown cost forces approval, so a host must route a `spends` op
 through its money approval — or not offer it. `False` (the default) is a claim the
 genre makes: nothing this op calls bills anyone.
+
+`invalidates` names the genre’s `read` ops whose answer this op can make stale,
+so a client holding several reads knows which to refresh after it (reelee#750); for
+a `runs="job"` op, once the job has ended. Stale is not “re-run now”: a read that
+itself `runs="job"` is refreshed when the person asks. [`register_genre_ops()`](_autosummary/nw.html.md#nw.register_genre_ops)
+checks every name is a read op of the genre. `None` (the default) declares
+nothing, and the catalogue says so (`null`), so a client tells “the genre named
+no reads” from “the genre has not said” and keeps its own rule for the latter. A
+read op invalidates nothing.
 
 ```pycon
 >>> def _rename(project, *, title: str, loud: bool = False) -> dict:
@@ -6870,27 +6892,31 @@ Design decisions (from the `nw.jobs`-on-`au` design report,
   > move, and a stale figure under-quotes the run (nw#74). Descriptive only:
   > `cost_basis` stays out of `plan_hash`, so the idempotency key above is
   > byte-identical to what it was before repricing existed, and a resumed render
-  > still dedups onto work already paid for.
+  > still dedups onto work already paid for. A host that prices server-side
+  > passes `enqueue(..., estimated_usd=)` instead: recorded as the job’s
+  > estimate, and outside `params` so it never enters the job id (nw#144).
 
 All tunables are keyword-configurable via [`JobsConfig`](_autosummary/nw.jobs.html.md#nw.jobs.JobsConfig); defaults live at
 the top of this module — no magic numbers below.
 
 ### Module Attributes
 
-| [`UNREADABLE_PLAN_REASON`](_autosummary/nw.jobs.html.md#nw.jobs.UNREADABLE_PLAN_REASON)   | Why a quote came back unknown when the plan itself was unreadable.                                                                                       |
-|---------------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------|
-| [`terminal_hooks`](_autosummary/nw.jobs.html.md#nw.jobs.terminal_hooks)           | `{name: hook}`; each hook is called as `hook(project, job)` when a run ends ([`register_terminal_hook()`](_autosummary/nw.jobs.html.md#nw.jobs.register_terminal_hook)). |
-| [`ERROR_KIND_REFUSED`](_autosummary/nw.jobs.html.md#nw.jobs.ERROR_KIND_REFUSED)       | `Job.error_kind` values — see [`Job.error_kind`](_autosummary/nw.jobs.html.md#nw.jobs.Job.error_kind).                                                           |
+| [`ESTIMATE_FROM_RENDER`](_autosummary/nw.jobs.html.md#nw.jobs.ESTIMATE_FROM_RENDER)   | Where a job's estimate came from (`estimate()["estimate_source"]`, and the record's `cost["estimate_source"]`): the host's `estimated_usd=`, the re-quoted `params["plan"]`, `params["estimated_usd"]`, or (record only) a render event that replaced a non-host figure.   |
+|-------------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| [`UNREADABLE_PLAN_REASON`](_autosummary/nw.jobs.html.md#nw.jobs.UNREADABLE_PLAN_REASON) | Why a quote came back unknown when the plan itself was unreadable.                                                                                                                                                                                                         |
+| [`terminal_hooks`](_autosummary/nw.jobs.html.md#nw.jobs.terminal_hooks)         | `{name: hook}`; each hook is called as `hook(project, job)` when a run ends ([`register_terminal_hook()`](_autosummary/nw.jobs.html.md#nw.jobs.register_terminal_hook)).                                                                                                                   |
+| [`ERROR_KIND_REFUSED`](_autosummary/nw.jobs.html.md#nw.jobs.ERROR_KIND_REFUSED)     | `Job.error_kind` values — see [`Job.error_kind`](_autosummary/nw.jobs.html.md#nw.jobs.Job.error_kind).                                                                                                                                                                             |
 
 ### Functions
 
 | [`cancel_job`](_autosummary/nw.jobs.html.md#nw.jobs.cancel_job)(project, job_id, \*[, config])         | Request cancellation.                                                                                                                                                  |
 |----------------------------------------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | [`check_job_spec`](_autosummary/nw.jobs.html.md#nw.jobs.check_job_spec)(params)                            | Raise what [`enqueue()`](_autosummary/nw.jobs.html.md#nw.jobs.enqueue) would raise for malformed `params` (`ValueError` on a bad `units`), before anything is launched. |
+| [`checked_usd`](_autosummary/nw.jobs.html.md#nw.jobs.checked_usd)(value)                                | `value` as a `float` if it is a price nw can gate on, else `ValueError`.                                                                                               |
 | [`enqueue`](_autosummary/nw.jobs.html.md#nw.jobs.enqueue)(project, kind, params, \*[, ...])         | Enqueue a billable render as a background job.                                                                                                                         |
 | [`error_detail_of`](_autosummary/nw.jobs.html.md#nw.jobs.error_detail_of)(error, \*[, secrets])             | The refusal `error` carries as data, or `None`.                                                                                                                        |
 | [`error_kind_of`](_autosummary/nw.jobs.html.md#nw.jobs.error_kind_of)(error)                              | `"refused"` | `"cancelled"` | `"crashed"` for an exception a job raised.                                                                                               |
-| [`estimate`](_autosummary/nw.jobs.html.md#nw.jobs.estimate)(project, kind, params, \*[, config])     | Dry-run cost gate **without enqueueing**.                                                                                                                              |
+| [`estimate`](_autosummary/nw.jobs.html.md#nw.jobs.estimate)(project, kind, params, \*[, ...])        | Dry-run cost gate **without enqueueing**.                                                                                                                              |
 | [`get_job`](_autosummary/nw.jobs.html.md#nw.jobs.get_job)(project, job_id, \*[, config])            | One job (projecting the au status + mirrored index metadata).                                                                                                          |
 | [`job_id_for`](_autosummary/nw.jobs.html.md#nw.jobs.job_id_for)(project, kind, params, \*[, ...])      | The id [`enqueue()`](_autosummary/nw.jobs.html.md#nw.jobs.enqueue) would give this job, without enqueueing it.                                                          |
 | [`job_notifier`](_autosummary/nw.jobs.html.md#nw.jobs.job_notifier)(project, \*[, config])               | This project's [`JobNotifier`](_autosummary/nw.jobs.html.md#nw.jobs.JobNotifier) (built with its runtime).                                                                  |
@@ -7004,7 +7030,7 @@ before the thread registers launched a second worker (nw#128).
 
 #### on_error(key, error)
 
-Called when computation fails.
+Called when computation fails (`error` may be a BaseException).
 
 * **Return type:**
   [`None`](https://docs.python.org/3/builtins/constants.html#None)
@@ -7019,6 +7045,13 @@ Undo [`claim_locked()`](_autosummary/nw.jobs.html.md#nw.jobs.DurationLearningMid
 ### nw.jobs.ERROR_KIND_REFUSED *= 'refused'*
 
 `Job.error_kind` values — see [`Job.error_kind`](_autosummary/nw.jobs.html.md#nw.jobs.Job.error_kind).
+
+### nw.jobs.ESTIMATE_FROM_RENDER *= 'render'*
+
+Where a job’s estimate came from (`estimate()["estimate_source"]`, and the
+record’s `cost["estimate_source"]`): the host’s `estimated_usd=`, the
+re-quoted `params["plan"]`, `params["estimated_usd"]`, or (record only) a
+render event that replaced a non-host figure. `None` = none.
 
 ### *class* nw.jobs.Job(job_id, kind, label, status, idempotency_key, params=dict(), created_at=None, started_at=None, finished_at=None, queue_wait_s=None, elapsed_s=None, progress=JobProgress(), predicted_total_s=None, remaining_s=None, eta_ts=None, eta_s=None, pct=None, confidence=None, label_hint=None, eta_key=None, cost=JobCost(), cached=False, worker_silent_s=None, provider_phase=None, provider_queue_position=None, provider_started_at=None, worker_responsive=None, artifact_ref=None, result=None, error=None, error_kind=None, error_detail=None, run_id=None, last_event_id=None)
 
@@ -7266,7 +7299,21 @@ Raise what [`enqueue()`](_autosummary/nw.jobs.html.md#nw.jobs.enqueue) would rai
 * **Return type:**
   [`None`](https://docs.python.org/3/builtins/constants.html#None)
 
-### nw.jobs.enqueue(project, kind, params, , on_event=None, dispatch=None, backend=None, idempotency_key=None, label=None, capture_context=None, secrets=None, config=JobsConfig(n_min=3, sample_window_k=20, pct_ceil=99, overrun_factor=1.5, cache_hit_floor_s=0.5, dur_buckets_s=(4.0, 8.0, 12.0), prior_total_s={'image': 12.0, 'video': 90.0, 'audio': 15.0}, default_prior_total_s=30.0, stale_running_s=900.0, heartbeat_interval_s=20.0, heartbeat_stale_s=120.0, terminal_hook_attempts=3, approval_threshold_usd=1.0, jobs_dirname='.nw/jobs'))
+### nw.jobs.checked_usd(value)
+
+`value` as a `float` if it is a price nw can gate on, else `ValueError`.
+
+A `float` so that what is stored is JSON (a numpy scalar or a
+`Fraction` passes the check and would fail the index write).
+
+`None` (unknown) or a finite, non-negative real. A bool is refused (it is
+an `int`), and so is NaN: `nan >= threshold` is `False`, so a NaN
+price would pass every approval gate as cheap.
+
+* **Return type:**
+  [`float`](https://docs.python.org/3/builtins/functions.html#float) | [`None`](https://docs.python.org/3/builtins/constants.html#None)
+
+### nw.jobs.enqueue(project, kind, params, \*, on_event=None, dispatch=None, backend=None, idempotency_key=None, label=None, capture_context=None, secrets=None, estimated_usd=<object object>, config=JobsConfig(n_min=3, sample_window_k=20, pct_ceil=99, overrun_factor=1.5, cache_hit_floor_s=0.5, dur_buckets_s=(4.0, 8.0, 12.0), prior_total_s={'image': 12.0, 'video': 90.0, 'audio': 15.0}, default_prior_total_s=30.0, stale_running_s=900.0, heartbeat_interval_s=20.0, heartbeat_stale_s=120.0, terminal_hook_attempts=3, approval_threshold_usd=1.0, jobs_dirname='.nw/jobs'))
 
 Enqueue a billable render as a background job. Returns a [`Job`](_autosummary/nw.jobs.html.md#nw.jobs.Job)
 (`status="queued"`) **immediately** — the call never blocks and never
@@ -7334,10 +7381,19 @@ already exists, that job is returned instead of launching a duplicate.
     wins over an ambient one. The explicit counterpart of
     `capture_context`: what that hook re-binds ambiently, this
     threads by hand.
+  * **estimated_usd** ([`float`](https://docs.python.org/3/builtins/functions.html#float) | [`None`](https://docs.python.org/3/builtins/constants.html#None) | [`object`](https://docs.python.org/3/builtins/functions.html#object)) – the price the **host** computed for this job, recorded
+    as its `cost.estimated_usd` in place of nw’s own (the plan
+    re-quote, else `params["estimated_usd"]`, which a client may
+    have chosen). `None` records *unknown*. Not part of `params`,
+    so it never enters the job id: a price that drifts with the graph
+    does not split dedup, and a dedup onto a live job keeps that
+    job’s figure (nw#144). Omitted, nothing changes.
   * **config** ([`JobsConfig`](_autosummary/nw.jobs.html.md#nw.jobs.JobsConfig)) – tunables (see [`JobsConfig`](_autosummary/nw.jobs.html.md#nw.jobs.JobsConfig)).
 * **Raises:**
   * [**KeyError**](https://docs.python.org/3/builtins/exceptions.html#KeyError) – if `kind` is not in `dispatch`.
-  * [**ValueError**](https://docs.python.org/3/builtins/exceptions.html#ValueError) – if `params["units"]` is present but not a positive `int`.
+  * [**ValueError**](https://docs.python.org/3/builtins/exceptions.html#ValueError) – if `params["units"]` is present but not a positive `int`,
+        or `estimated_usd` is neither `None` nor a finite, non-negative
+        number (see [`checked_usd()`](_autosummary/nw.jobs.html.md#nw.jobs.checked_usd)).
 * **Return type:**
   [`Job`](_autosummary/nw.jobs.html.md#nw.jobs.Job)
 
@@ -7380,13 +7436,13 @@ True
 * **Return type:**
   [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
 
-### nw.jobs.estimate(project, kind, params, , config=JobsConfig(n_min=3, sample_window_k=20, pct_ceil=99, overrun_factor=1.5, cache_hit_floor_s=0.5, dur_buckets_s=(4.0, 8.0, 12.0), prior_total_s={'image': 12.0, 'video': 90.0, 'audio': 15.0}, default_prior_total_s=30.0, stale_running_s=900.0, heartbeat_interval_s=20.0, heartbeat_stale_s=120.0, terminal_hook_attempts=3, approval_threshold_usd=1.0, jobs_dirname='.nw/jobs'))
+### nw.jobs.estimate(project, kind, params, \*, estimated_usd=<object object>, config=JobsConfig(n_min=3, sample_window_k=20, pct_ceil=99, overrun_factor=1.5, cache_hit_floor_s=0.5, dur_buckets_s=(4.0, 8.0, 12.0), prior_total_s={'image': 12.0, 'video': 90.0, 'audio': 15.0}, default_prior_total_s=30.0, stale_running_s=900.0, heartbeat_interval_s=20.0, heartbeat_stale_s=120.0, terminal_hook_attempts=3, approval_threshold_usd=1.0, jobs_dirname='.nw/jobs'))
 
 Dry-run cost gate **without enqueueing**.
 
-Returns `{estimated_usd, has_unknown_costs, approval_threshold_usd,
-requires_approval, quote}`. Unknown cost always requires approval
-(preserves the one-price-per-clip gate).
+Returns `{estimated_usd, estimate_source, has_unknown_costs,
+approval_threshold_usd, requires_approval, quote}`. Unknown cost always
+requires approval (preserves the one-price-per-clip gate).
 
 **The gate quotes, it does not remember.** When `params["plan"]` is
 present its cost is re-quoted at today’s rates through
@@ -7409,8 +7465,15 @@ provenance nw cannot see; `quote` is then `None` to say so. When there
 reported beside today’s number rather than discarded, so a surface can
 show the movement.
 
-Raises `ValueError` on a malformed `params["units"]`, exactly as
-[`enqueue()`](_autosummary/nw.jobs.html.md#nw.jobs.enqueue) does, so the gate never approves what enqueue refuses.
+`estimated_usd` is a host’s own price, gated on exactly as
+[`enqueue()`](_autosummary/nw.jobs.html.md#nw.jobs.enqueue) records it (`None` = unknown); the quote is still
+reported beside it. `estimate_source` says which figure won:
+`"host"`, `"plan"` (the re-quote) or `"caller"`
+(`params["estimated_usd"]`), and `None` when there was none to take.
+
+Raises `ValueError` on a malformed `params["units"]` or
+`estimated_usd`, exactly as [`enqueue()`](_autosummary/nw.jobs.html.md#nw.jobs.enqueue) does, so the gate never
+approves what enqueue refuses.
 
 * **Return type:**
   [`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)
@@ -10455,7 +10518,7 @@ produce different URLs. The local file paths are byte-stable.
 
 # About this build
 
-This documentation was built on **2026-10-27 13:34 UTC** from commit <a href="https://github.com/reeleehq/nw/commit/44125b53a2f074635a0eadb6099824bb78d5f8d8"><code>44125b5</code></a> on branch <code>main</code>, for **nw 0.0.91** (from <code>pyproject.toml</code>).
+This documentation was built on **2026-10-27 13:43 UTC** from commit <a href="https://github.com/reeleehq/nw/commit/894dd62cf0140271e7789b4839bc6c1a79943f65"><code>894dd62</code></a> on branch <code>main</code>, for **nw 0.0.92** (from <code>pyproject.toml</code>).
 
 #### NOTE
 Nothing suggests a mismatch: the tree was clean at the commit above, and the documented version is the one on PyPI.
@@ -10464,9 +10527,9 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 
 |                     |                                                                                                                                                    |
 |---------------------|----------------------------------------------------------------------------------------------------------------------------------------------------|
-| Commit              | <a href="https://github.com/reeleehq/nw/commit/44125b53a2f074635a0eadb6099824bb78d5f8d8"><code>44125b53a2f074635a0eadb6099824bb78d5f8d8</code></a> |
+| Commit              | <a href="https://github.com/reeleehq/nw/commit/894dd62cf0140271e7789b4839bc6c1a79943f65"><code>894dd62cf0140271e7789b4839bc6c1a79943f65</code></a> |
 | Branch              | <code>main</code>                                                                                                                                  |
-| Tags at this commit | <code>0.0.91</code>                                                                                                                                |
+| Tags at this commit | <code>0.0.92</code>                                                                                                                                |
 | Working tree        | clean                                                                                                                                              |
 | Remote              | <code>https://github.com/reeleehq/nw</code>                                                                                                        |
 
@@ -10475,9 +10538,9 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 |              |                                                                                            |
 |--------------|--------------------------------------------------------------------------------------------|
 | Repository   | <code>reeleehq/nw</code>                                                                   |
-| Run          | <a href="https://github.com/reeleehq/nw/actions/runs/40506564728">40506564728</a>          |
+| Run          | <a href="https://github.com/reeleehq/nw/actions/runs/40514152945">40514152945</a>          |
 | Ref          | <code>refs/heads/main</code>                                                               |
-| Event commit | <code>81d8b3101678bbdd86ba7f7f038034052e4fb0e4</code> (in the history of the built commit) |
+| Event commit | <code>4437153ee2a9476c18b5241b71c2b518d004812b</code> (in the history of the built commit) |
 
 ## Tools
 
@@ -10502,13 +10565,13 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 
 ## Package on PyPI
 
-Latest release: <a href="https://pypi.org/project/nw/0.0.91/">0.0.91</a>, the same as the documented version.
+Latest release: <a href="https://pypi.org/project/nw/0.0.92/">0.0.92</a>, the same as the documented version.
 
 ## Reproduce
 
 ```bash
 git clone https://github.com/reeleehq/nw && cd nw
-git checkout 44125b53a2f074635a0eadb6099824bb78d5f8d8
+git checkout 894dd62cf0140271e7789b4839bc6c1a79943f65
 pip install "epythet==0.2.22"
 epythet quickstart . --ignore tests/ scrap/ examples/
 ```

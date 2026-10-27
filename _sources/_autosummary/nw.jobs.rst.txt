@@ -8,6 +8,7 @@ nw.jobs
 
    .. autosummary::
    
+      ESTIMATE_FROM_RENDER
       UNREADABLE_PLAN_REASON
       terminal_hooks
       ERROR_KIND_REFUSED
@@ -18,6 +19,7 @@ nw.jobs
    
       cancel_job
       check_job_spec
+      checked_usd
       enqueue
       error_detail_of
       error_kind_of

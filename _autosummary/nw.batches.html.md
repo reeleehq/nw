@@ -27,7 +27,8 @@ member jobs on read\* and never stored, so a batch cannot drift from its jobs:
   idempotent and a no-op on a finished job).
 
 Items are mappings `{"kind": ..., "params": {...}}` (optionally `label`,
-`idempotency_key`); a batch-level `kind=` is the default for items that omit
+`idempotency_key`, and `estimated_usd` — a host’s own price for that
+member, kept out of its job id, nw#144); a batch-level `kind=` is the default for items that omit
 one. Item identity should be semantic (see `nw.transforms.fanout`’s
 `mapping_key`): the default idempotency key hashes `params`.
 
@@ -40,6 +41,7 @@ Cost gating of the *spender* (a per-caller cap) belongs to the host’s
 |--------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------|
 | [`DEFAULT_POLL_S`](#nw.batches.DEFAULT_POLL_S)    | How often [`wait()`](#nw.batches.wait) re-reads the members when nothing notifies it. |
 | [`MISSING`](#nw.batches.MISSING)           | Status key for a member whose job record is gone (it will never finish).                                         |
+| [`ITEM_KEYS`](#nw.batches.ITEM_KEYS)         | [`nw.jobs.enqueue()`](nw.jobs.html.md#nw.jobs.enqueue)'s per-job arguments.          |
 
 ### Functions
 
@@ -70,6 +72,13 @@ The durable part of a batch. Everything else is derived from the jobs.
 ### nw.batches.DEFAULT_POLL_S *= 0.25*
 
 How often [`wait()`](#nw.batches.wait) re-reads the members when nothing notifies it.
+
+### nw.batches.ITEM_KEYS *= frozenset({'estimated_usd', 'idempotency_key', 'kind', 'label', 'params'})*
+
+[`nw.jobs.enqueue()`](nw.jobs.html.md#nw.jobs.enqueue)’s per-job arguments.
+
+* **Type:**
+  A batch item’s keys
 
 ### nw.batches.MISSING *= 'missing'*
 
@@ -105,6 +114,10 @@ and no `dispatch`, the up-front `kind`-in-`dispatch` check is
 skipped: the door owns its dispatch, so it owns that check.
 
 Items resolving to the same job collapse to one member (first position wins).
+An `enqueue_kwargs` key that is also an item key ([`ITEM_KEYS`](#nw.batches.ITEM_KEYS)), or
+an item `estimated_usd` that a custom `enqueue` does not accept, raises
+`TypeError` before anything launches, rather than on a later member
+after the first ones are running.
 
 * **Return type:**
   [`BatchRecord`](#nw.batches.BatchRecord)

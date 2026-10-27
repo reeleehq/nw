@@ -40,7 +40,7 @@ still-outstanding record. The real key is:
 
   `fan_out_execute()` through an `execute()`
   : implementation that accepts the `unit_instance_id` keyword (the same
-    accepts-it-or-not seam `_accepts_keyword()`
+    accepts-it-or-not seam `accepts_keyword()`
     already uses for `on_failure`). `call_index` still has to agree even
     here: a unit’s own plan can carry more than one call, and matching on
     `instance_id` alone would collapse two of that unit’s own outputs into

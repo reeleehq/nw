@@ -716,7 +716,7 @@ data-aria-dark="Switch to auto color mode">
 
 </span><span data-line="532">
 </span><span data-line="533">
-</span><span data-line="534"><span class="k">def</span><span class="w"> </span><span class="nf">_accepts_keyword</span><span class="p">(</span><span class="n">execute</span><span class="p">:</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+</span><span data-line="534"><span class="k">def</span><span class="w"> </span><span class="nf">accepts_keyword</span><span class="p">(</span><span class="n">execute</span><span class="p">:</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
 </span><span data-line="535"><span class="w">    </span><span class="sd">"""Whether ``execute`` accepts the keyword ``name``.</span>
 </span><span data-line="536">
 </span><span data-line="537"><span class="sd">    The Protocol's own warning: ``runtime_checkable`` compares method names,</span>
@@ -818,97 +818,95 @@ data-aria-dark="Switch to auto color mode">
 </span><span data-line="631">            <span class="s2">"misattribute every instance id in the run record (and skip the "</span>
 </span><span data-line="632">            <span class="s2">"executing transform's own impl_version stamp)."</span>
 </span><span data-line="633">        <span class="p">)</span>
-</span><span data-line="634">    <span class="n">pass_on_failure</span> <span class="o">=</span> <span class="n">_accepts_keyword</span><span class="p">(</span><span class="n">transform</span><span class="o">.</span><span class="n">execute</span><span class="p">,</span> <span class="s2">"on_failure"</span><span class="p">)</span>
-</span><span data-line="635">    <span class="n">pass_instance_id</span> <span class="o">=</span> <span class="n">_accepts_keyword</span><span class="p">(</span><span class="n">transform</span><span class="o">.</span><span class="n">execute</span><span class="p">,</span> <span class="s2">"unit_instance_id"</span><span class="p">)</span>
+</span><span data-line="634">    <span class="n">pass_on_failure</span> <span class="o">=</span> <span class="n">accepts_keyword</span><span class="p">(</span><span class="n">transform</span><span class="o">.</span><span class="n">execute</span><span class="p">,</span> <span class="s2">"on_failure"</span><span class="p">)</span>
+</span><span data-line="635">    <span class="n">pass_instance_id</span> <span class="o">=</span> <span class="n">accepts_keyword</span><span class="p">(</span><span class="n">transform</span><span class="o">.</span><span class="n">execute</span><span class="p">,</span> <span class="s2">"unit_instance_id"</span><span class="p">)</span>
 </span><span data-line="636">    <span class="n">secrets</span> <span class="o">=</span> <span class="n">as_secrets</span><span class="p">(</span><span class="n">secrets</span><span class="p">)</span>
-</span><span data-line="637">    <span class="n">pass_secrets</span> <span class="o">=</span> <span class="n">secrets</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">_accepts_keyword</span><span class="p">(</span>
-</span><span data-line="638">        <span class="n">transform</span><span class="o">.</span><span class="n">execute</span><span class="p">,</span> <span class="s2">"secrets"</span>
-</span><span data-line="639">    <span class="p">)</span>
-</span><span data-line="640">
-</span><span data-line="641">    <span class="n">results</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">FanOutItemResult</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
-</span><span data-line="642">    <span class="n">halted_by</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
-</span><span data-line="643">    <span class="k">for</span> <span class="n">unit</span> <span class="ow">in</span> <span class="n">fan_out</span><span class="o">.</span><span class="n">units</span><span class="p">:</span>
-</span><span data-line="644">        <span class="k">if</span> <span class="n">halted_by</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-</span><span data-line="645">            <span class="n">results</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
-</span><span data-line="646">                <span class="n">FanOutItemResult</span><span class="p">(</span>
-</span><span data-line="647">                    <span class="n">item</span><span class="o">=</span><span class="n">unit</span><span class="o">.</span><span class="n">item</span><span class="p">,</span>
-</span><span data-line="648">                    <span class="n">instance_id</span><span class="o">=</span><span class="n">unit</span><span class="o">.</span><span class="n">instance_id</span><span class="p">,</span>
-</span><span data-line="649">                    <span class="n">status</span><span class="o">=</span><span class="s2">"blocked"</span><span class="p">,</span>
-</span><span data-line="650">                    <span class="n">reason</span><span class="o">=</span><span class="sa">f</span><span class="s2">"not attempted: unit </span><span class="si">{</span><span class="n">halted_by</span><span class="si">!r}</span><span class="s2"> failed under 'halt'"</span><span class="p">,</span>
-</span><span data-line="651">                <span class="p">)</span>
-</span><span data-line="652">            <span class="p">)</span>
-</span><span data-line="653">            <span class="k">continue</span>
-</span><span data-line="654">        <span class="n">kwargs</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"use_cache"</span><span class="p">:</span> <span class="n">use_cache</span><span class="p">,</span> <span class="s2">"force"</span><span class="p">:</span> <span class="n">force</span><span class="p">}</span>
-</span><span data-line="655">        <span class="k">if</span> <span class="n">pass_on_failure</span><span class="p">:</span>
-</span><span data-line="656">            <span class="n">kwargs</span><span class="p">[</span><span class="s2">"on_failure"</span><span class="p">]</span> <span class="o">=</span> <span class="n">on_failure</span>
-</span><span data-line="657">        <span class="k">if</span> <span class="n">pass_instance_id</span><span class="p">:</span>
-</span><span data-line="658">            <span class="c1"># The precise identity nw#44's unproduced-output record retires</span>
-</span><span data-line="659">            <span class="c1"># by — without it, two units sharing an upstream set can alias.</span>
-</span><span data-line="660">            <span class="n">kwargs</span><span class="p">[</span><span class="s2">"unit_instance_id"</span><span class="p">]</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">unit</span><span class="o">.</span><span class="n">instance_id</span><span class="p">)</span>
-</span><span data-line="661">        <span class="k">if</span> <span class="n">pass_secrets</span><span class="p">:</span>
-</span><span data-line="662">            <span class="c1"># In memory, for this call: never in `unit`, never in the record.</span>
-</span><span data-line="663">            <span class="n">kwargs</span><span class="p">[</span><span class="s2">"secrets"</span><span class="p">]</span> <span class="o">=</span> <span class="n">secrets</span>
-</span><span data-line="664">        <span class="k">try</span><span class="p">:</span>
-</span><span data-line="665">            <span class="k">with</span> <span class="n">using_secrets</span><span class="p">(</span><span class="n">secrets</span><span class="p">):</span>
-</span><span data-line="666">                <span class="n">result</span> <span class="o">=</span> <span class="n">transform</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">project</span><span class="p">,</span> <span class="n">unit</span><span class="o">.</span><span class="n">plan</span><span class="p">,</span> <span class="n">unit</span><span class="o">.</span><span class="n">skeleton</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
-</span><span data-line="667">            <span class="c1"># Result interpretation stays INSIDE the try: an execute that</span>
-</span><span data-line="668">            <span class="c1"># returns None (or a result whose properties raise) is a</span>
-</span><span data-line="669">            <span class="c1"># protocol violation, but letting it escape mid-loop would</span>
-</span><span data-line="670">            <span class="c1"># discard the whole run record — cost attribution for money</span>
-</span><span data-line="671">            <span class="c1"># already spent — which is the loss isolate exists to prevent.</span>
-</span><span data-line="672">            <span class="n">status</span><span class="p">:</span> <span class="n">UnitStatus</span> <span class="o">=</span> <span class="s2">"succeeded"</span> <span class="k">if</span> <span class="n">result</span><span class="o">.</span><span class="n">is_complete</span> <span class="k">else</span> <span class="s2">"partial"</span>
-</span><span data-line="673">            <span class="n">reason</span> <span class="o">=</span> <span class="p">(</span>
-</span><span data-line="674">                <span class="s2">""</span>
-</span><span data-line="675">                <span class="k">if</span> <span class="n">result</span><span class="o">.</span><span class="n">is_complete</span>
-</span><span data-line="676">                <span class="k">else</span> <span class="p">(</span>
-</span><span data-line="677">                    <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">failed</span><span class="p">)</span><span class="si">}</span><span class="s2"> failed, "</span>
-</span><span data-line="678">                    <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">blocked</span><span class="p">)</span><span class="si">}</span><span class="s2"> blocked of "</span>
-</span><span data-line="679">                    <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">failed</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="nb">len</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">blocked</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="nb">len</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">annotations</span><span class="p">)</span><span class="si">}</span><span class="s2"> outputs"</span>
-</span><span data-line="680">                <span class="p">)</span>
-</span><span data-line="681">            <span class="p">)</span>
-</span><span data-line="682">        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>  <span class="c1"># noqa: BLE001 — per-unit isolation is the feature</span>
-</span><span data-line="683">            <span class="c1"># The message may quote the key (an auth error echoing it); the</span>
-</span><span data-line="684">            <span class="c1"># reason lands in the run record, so scrub before filing.</span>
-</span><span data-line="685">            <span class="n">e</span> <span class="o">=</span> <span class="n">redact_exception</span><span class="p">(</span><span class="n">e</span><span class="p">,</span> <span class="n">secrets</span><span class="p">)</span>
-</span><span data-line="686">            <span class="n">results</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
-</span><span data-line="687">                <span class="n">FanOutItemResult</span><span class="p">(</span>
-</span><span data-line="688">                    <span class="n">item</span><span class="o">=</span><span class="n">unit</span><span class="o">.</span><span class="n">item</span><span class="p">,</span>
-</span><span data-line="689">                    <span class="n">instance_id</span><span class="o">=</span><span class="n">unit</span><span class="o">.</span><span class="n">instance_id</span><span class="p">,</span>
-</span><span data-line="690">                    <span class="n">status</span><span class="o">=</span><span class="s2">"failed"</span><span class="p">,</span>
-</span><span data-line="691">                    <span class="n">error</span><span class="o">=</span><span class="n">e</span><span class="p">,</span>
-</span><span data-line="692">                    <span class="n">reason</span><span class="o">=</span><span class="n">redact</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">e</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">"</span><span class="p">,</span> <span class="n">secrets</span><span class="p">),</span>
-</span><span data-line="693">                <span class="p">)</span>
-</span><span data-line="694">            <span class="p">)</span>
-</span><span data-line="695">            <span class="k">if</span> <span class="n">on_failure</span> <span class="o">==</span> <span class="s2">"halt"</span><span class="p">:</span>
-</span><span data-line="696">                <span class="n">halted_by</span> <span class="o">=</span> <span class="n">unit</span><span class="o">.</span><span class="n">item</span><span class="o">.</span><span class="n">mapping_key</span>
-</span><span data-line="697">            <span class="k">continue</span>
-</span><span data-line="698">        <span class="n">results</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
-</span><span data-line="699">            <span class="n">FanOutItemResult</span><span class="p">(</span>
-</span><span data-line="700">                <span class="n">item</span><span class="o">=</span><span class="n">unit</span><span class="o">.</span><span class="n">item</span><span class="p">,</span>
-</span><span data-line="701">                <span class="n">instance_id</span><span class="o">=</span><span class="n">unit</span><span class="o">.</span><span class="n">instance_id</span><span class="p">,</span>
-</span><span data-line="702">                <span class="n">status</span><span class="o">=</span><span class="n">status</span><span class="p">,</span>
-</span><span data-line="703">                <span class="n">result</span><span class="o">=</span><span class="n">result</span><span class="p">,</span>
-</span><span data-line="704">                <span class="n">reason</span><span class="o">=</span><span class="n">reason</span><span class="p">,</span>
-</span><span data-line="705">            <span class="p">)</span>
-</span><span data-line="706">        <span class="p">)</span>
-</span><span data-line="707">    <span class="k">return</span> <span class="n">FanOutResult</span><span class="p">(</span><span class="n">transform_name</span><span class="o">=</span><span class="n">fan_out</span><span class="o">.</span><span class="n">transform_name</span><span class="p">,</span> <span class="n">items</span><span class="o">=</span><span class="nb">tuple</span><span class="p">(</span><span class="n">results</span><span class="p">))</span></div>
+</span><span data-line="637">    <span class="n">pass_secrets</span> <span class="o">=</span> <span class="n">secrets</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">accepts_keyword</span><span class="p">(</span><span class="n">transform</span><span class="o">.</span><span class="n">execute</span><span class="p">,</span> <span class="s2">"secrets"</span><span class="p">)</span>
+</span><span data-line="638">
+</span><span data-line="639">    <span class="n">results</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">FanOutItemResult</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+</span><span data-line="640">    <span class="n">halted_by</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+</span><span data-line="641">    <span class="k">for</span> <span class="n">unit</span> <span class="ow">in</span> <span class="n">fan_out</span><span class="o">.</span><span class="n">units</span><span class="p">:</span>
+</span><span data-line="642">        <span class="k">if</span> <span class="n">halted_by</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+</span><span data-line="643">            <span class="n">results</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+</span><span data-line="644">                <span class="n">FanOutItemResult</span><span class="p">(</span>
+</span><span data-line="645">                    <span class="n">item</span><span class="o">=</span><span class="n">unit</span><span class="o">.</span><span class="n">item</span><span class="p">,</span>
+</span><span data-line="646">                    <span class="n">instance_id</span><span class="o">=</span><span class="n">unit</span><span class="o">.</span><span class="n">instance_id</span><span class="p">,</span>
+</span><span data-line="647">                    <span class="n">status</span><span class="o">=</span><span class="s2">"blocked"</span><span class="p">,</span>
+</span><span data-line="648">                    <span class="n">reason</span><span class="o">=</span><span class="sa">f</span><span class="s2">"not attempted: unit </span><span class="si">{</span><span class="n">halted_by</span><span class="si">!r}</span><span class="s2"> failed under 'halt'"</span><span class="p">,</span>
+</span><span data-line="649">                <span class="p">)</span>
+</span><span data-line="650">            <span class="p">)</span>
+</span><span data-line="651">            <span class="k">continue</span>
+</span><span data-line="652">        <span class="n">kwargs</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"use_cache"</span><span class="p">:</span> <span class="n">use_cache</span><span class="p">,</span> <span class="s2">"force"</span><span class="p">:</span> <span class="n">force</span><span class="p">}</span>
+</span><span data-line="653">        <span class="k">if</span> <span class="n">pass_on_failure</span><span class="p">:</span>
+</span><span data-line="654">            <span class="n">kwargs</span><span class="p">[</span><span class="s2">"on_failure"</span><span class="p">]</span> <span class="o">=</span> <span class="n">on_failure</span>
+</span><span data-line="655">        <span class="k">if</span> <span class="n">pass_instance_id</span><span class="p">:</span>
+</span><span data-line="656">            <span class="c1"># The precise identity nw#44's unproduced-output record retires</span>
+</span><span data-line="657">            <span class="c1"># by — without it, two units sharing an upstream set can alias.</span>
+</span><span data-line="658">            <span class="n">kwargs</span><span class="p">[</span><span class="s2">"unit_instance_id"</span><span class="p">]</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">unit</span><span class="o">.</span><span class="n">instance_id</span><span class="p">)</span>
+</span><span data-line="659">        <span class="k">if</span> <span class="n">pass_secrets</span><span class="p">:</span>
+</span><span data-line="660">            <span class="c1"># In memory, for this call: never in `unit`, never in the record.</span>
+</span><span data-line="661">            <span class="n">kwargs</span><span class="p">[</span><span class="s2">"secrets"</span><span class="p">]</span> <span class="o">=</span> <span class="n">secrets</span>
+</span><span data-line="662">        <span class="k">try</span><span class="p">:</span>
+</span><span data-line="663">            <span class="k">with</span> <span class="n">using_secrets</span><span class="p">(</span><span class="n">secrets</span><span class="p">):</span>
+</span><span data-line="664">                <span class="n">result</span> <span class="o">=</span> <span class="n">transform</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">project</span><span class="p">,</span> <span class="n">unit</span><span class="o">.</span><span class="n">plan</span><span class="p">,</span> <span class="n">unit</span><span class="o">.</span><span class="n">skeleton</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+</span><span data-line="665">            <span class="c1"># Result interpretation stays INSIDE the try: an execute that</span>
+</span><span data-line="666">            <span class="c1"># returns None (or a result whose properties raise) is a</span>
+</span><span data-line="667">            <span class="c1"># protocol violation, but letting it escape mid-loop would</span>
+</span><span data-line="668">            <span class="c1"># discard the whole run record — cost attribution for money</span>
+</span><span data-line="669">            <span class="c1"># already spent — which is the loss isolate exists to prevent.</span>
+</span><span data-line="670">            <span class="n">status</span><span class="p">:</span> <span class="n">UnitStatus</span> <span class="o">=</span> <span class="s2">"succeeded"</span> <span class="k">if</span> <span class="n">result</span><span class="o">.</span><span class="n">is_complete</span> <span class="k">else</span> <span class="s2">"partial"</span>
+</span><span data-line="671">            <span class="n">reason</span> <span class="o">=</span> <span class="p">(</span>
+</span><span data-line="672">                <span class="s2">""</span>
+</span><span data-line="673">                <span class="k">if</span> <span class="n">result</span><span class="o">.</span><span class="n">is_complete</span>
+</span><span data-line="674">                <span class="k">else</span> <span class="p">(</span>
+</span><span data-line="675">                    <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">failed</span><span class="p">)</span><span class="si">}</span><span class="s2"> failed, "</span>
+</span><span data-line="676">                    <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">blocked</span><span class="p">)</span><span class="si">}</span><span class="s2"> blocked of "</span>
+</span><span data-line="677">                    <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">failed</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="nb">len</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">blocked</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="nb">len</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">annotations</span><span class="p">)</span><span class="si">}</span><span class="s2"> outputs"</span>
+</span><span data-line="678">                <span class="p">)</span>
+</span><span data-line="679">            <span class="p">)</span>
+</span><span data-line="680">        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>  <span class="c1"># noqa: BLE001 — per-unit isolation is the feature</span>
+</span><span data-line="681">            <span class="c1"># The message may quote the key (an auth error echoing it); the</span>
+</span><span data-line="682">            <span class="c1"># reason lands in the run record, so scrub before filing.</span>
+</span><span data-line="683">            <span class="n">e</span> <span class="o">=</span> <span class="n">redact_exception</span><span class="p">(</span><span class="n">e</span><span class="p">,</span> <span class="n">secrets</span><span class="p">)</span>
+</span><span data-line="684">            <span class="n">results</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+</span><span data-line="685">                <span class="n">FanOutItemResult</span><span class="p">(</span>
+</span><span data-line="686">                    <span class="n">item</span><span class="o">=</span><span class="n">unit</span><span class="o">.</span><span class="n">item</span><span class="p">,</span>
+</span><span data-line="687">                    <span class="n">instance_id</span><span class="o">=</span><span class="n">unit</span><span class="o">.</span><span class="n">instance_id</span><span class="p">,</span>
+</span><span data-line="688">                    <span class="n">status</span><span class="o">=</span><span class="s2">"failed"</span><span class="p">,</span>
+</span><span data-line="689">                    <span class="n">error</span><span class="o">=</span><span class="n">e</span><span class="p">,</span>
+</span><span data-line="690">                    <span class="n">reason</span><span class="o">=</span><span class="n">redact</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">e</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">"</span><span class="p">,</span> <span class="n">secrets</span><span class="p">),</span>
+</span><span data-line="691">                <span class="p">)</span>
+</span><span data-line="692">            <span class="p">)</span>
+</span><span data-line="693">            <span class="k">if</span> <span class="n">on_failure</span> <span class="o">==</span> <span class="s2">"halt"</span><span class="p">:</span>
+</span><span data-line="694">                <span class="n">halted_by</span> <span class="o">=</span> <span class="n">unit</span><span class="o">.</span><span class="n">item</span><span class="o">.</span><span class="n">mapping_key</span>
+</span><span data-line="695">            <span class="k">continue</span>
+</span><span data-line="696">        <span class="n">results</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+</span><span data-line="697">            <span class="n">FanOutItemResult</span><span class="p">(</span>
+</span><span data-line="698">                <span class="n">item</span><span class="o">=</span><span class="n">unit</span><span class="o">.</span><span class="n">item</span><span class="p">,</span>
+</span><span data-line="699">                <span class="n">instance_id</span><span class="o">=</span><span class="n">unit</span><span class="o">.</span><span class="n">instance_id</span><span class="p">,</span>
+</span><span data-line="700">                <span class="n">status</span><span class="o">=</span><span class="n">status</span><span class="p">,</span>
+</span><span data-line="701">                <span class="n">result</span><span class="o">=</span><span class="n">result</span><span class="p">,</span>
+</span><span data-line="702">                <span class="n">reason</span><span class="o">=</span><span class="n">reason</span><span class="p">,</span>
+</span><span data-line="703">            <span class="p">)</span>
+</span><span data-line="704">        <span class="p">)</span>
+</span><span data-line="705">    <span class="k">return</span> <span class="n">FanOutResult</span><span class="p">(</span><span class="n">transform_name</span><span class="o">=</span><span class="n">fan_out</span><span class="o">.</span><span class="n">transform_name</span><span class="p">,</span> <span class="n">items</span><span class="o">=</span><span class="nb">tuple</span><span class="p">(</span><span class="n">results</span><span class="p">))</span></div>
 
-</span><span data-line="708">
-</span><span data-line="709">
-</span><span data-line="710"><span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span>
-</span><span data-line="711">    <span class="s2">"GenerateWhen"</span><span class="p">,</span>
-</span><span data-line="712">    <span class="s2">"DFLT_GENERATE_WHEN"</span><span class="p">,</span>
-</span><span data-line="713">    <span class="s2">"WORK_ITEM_NAMESPACE"</span><span class="p">,</span>
-</span><span data-line="714">    <span class="s2">"WorkItem"</span><span class="p">,</span>
-</span><span data-line="715">    <span class="s2">"work_item_instance_id"</span><span class="p">,</span>
-</span><span data-line="716">    <span class="s2">"FanOutUnit"</span><span class="p">,</span>
-</span><span data-line="717">    <span class="s2">"FanOutPlan"</span><span class="p">,</span>
-</span><span data-line="718">    <span class="s2">"fan_out_plan"</span><span class="p">,</span>
-</span><span data-line="719">    <span class="s2">"UnitStatus"</span><span class="p">,</span>
-</span><span data-line="720">    <span class="s2">"FanOutItemResult"</span><span class="p">,</span>
-</span><span data-line="721">    <span class="s2">"FanOutResult"</span><span class="p">,</span>
-</span><span data-line="722">    <span class="s2">"fan_out_execute"</span><span class="p">,</span>
-</span><span data-line="723"><span class="p">]</span>
+</span><span data-line="706">
+</span><span data-line="707">
+</span><span data-line="708"><span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span>
+</span><span data-line="709">    <span class="s2">"GenerateWhen"</span><span class="p">,</span>
+</span><span data-line="710">    <span class="s2">"DFLT_GENERATE_WHEN"</span><span class="p">,</span>
+</span><span data-line="711">    <span class="s2">"WORK_ITEM_NAMESPACE"</span><span class="p">,</span>
+</span><span data-line="712">    <span class="s2">"WorkItem"</span><span class="p">,</span>
+</span><span data-line="713">    <span class="s2">"work_item_instance_id"</span><span class="p">,</span>
+</span><span data-line="714">    <span class="s2">"FanOutUnit"</span><span class="p">,</span>
+</span><span data-line="715">    <span class="s2">"FanOutPlan"</span><span class="p">,</span>
+</span><span data-line="716">    <span class="s2">"fan_out_plan"</span><span class="p">,</span>
+</span><span data-line="717">    <span class="s2">"UnitStatus"</span><span class="p">,</span>
+</span><span data-line="718">    <span class="s2">"FanOutItemResult"</span><span class="p">,</span>
+</span><span data-line="719">    <span class="s2">"FanOutResult"</span><span class="p">,</span>
+</span><span data-line="720">    <span class="s2">"fan_out_execute"</span><span class="p">,</span>
+</span><span data-line="721"><span class="p">]</span>
 </span></pre></div>
         </article><button class="back-to-top" type="button">
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
@@ -936,7 +934,7 @@ data-aria-dark="Switch to auto color mode">
     </div>
   </div>
 </footer>
-      <script src="../../../_static/documentation_options.js?v=9cd8e891"></script>
+      <script src="../../../_static/documentation_options.js?v=ab2062fb"></script>
       <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
       <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>

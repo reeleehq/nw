@@ -128,6 +128,7 @@ data-aria-dark="Switch to auto color mode">
 <li><a class="reference internal" href="#nw.batches.BATCHES_DIRNAME"><code class="docutils literal notranslate"><span class="pre">BATCHES_DIRNAME</span></code></a></li>
 <li><a class="reference internal" href="#nw.batches.BatchRecord"><code class="docutils literal notranslate"><span class="pre">BatchRecord</span></code></a></li>
 <li><a class="reference internal" href="#nw.batches.DEFAULT_POLL_S"><code class="docutils literal notranslate"><span class="pre">DEFAULT_POLL_S</span></code></a></li>
+<li><a class="reference internal" href="#nw.batches.ITEM_KEYS"><code class="docutils literal notranslate"><span class="pre">ITEM_KEYS</span></code></a></li>
 <li><a class="reference internal" href="#nw.batches.MISSING"><code class="docutils literal notranslate"><span class="pre">MISSING</span></code></a></li>
 <li><a class="reference internal" href="#nw.batches.cancel_batch"><code class="docutils literal notranslate"><span class="pre">cancel_batch()</span></code></a></li>
 <li><a class="reference internal" href="#nw.batches.enqueue_batch"><code class="docutils literal notranslate"><span class="pre">enqueue_batch()</span></code></a></li>
@@ -208,7 +209,8 @@ failures, never an all-or-nothing error.</p></li>
 idempotent and a no-op on a finished job).</p></li>
 </ul>
 <p>Items are mappings <code class="docutils literal notranslate"><span class="pre">{&quot;kind&quot;:</span> <span class="pre">...,</span> <span class="pre">&quot;params&quot;:</span> <span class="pre">{...}}</span></code> (optionally <code class="docutils literal notranslate"><span class="pre">label</span></code>,
-<code class="docutils literal notranslate"><span class="pre">idempotency_key</span></code>); a batch-level <code class="docutils literal notranslate"><span class="pre">kind=</span></code> is the default for items that omit
+<code class="docutils literal notranslate"><span class="pre">idempotency_key</span></code>, and <code class="docutils literal notranslate"><span class="pre">estimated_usd</span></code> — a host’s own price for that
+member, kept out of its job id, nw#144); a batch-level <code class="docutils literal notranslate"><span class="pre">kind=</span></code> is the default for items that omit
 one. Item identity should be semantic (see <code class="xref py py-mod docutils literal notranslate"><span class="pre">nw.transforms.fanout</span></code>’s
 <code class="docutils literal notranslate"><span class="pre">mapping_key</span></code>): the default idempotency key hashes <code class="docutils literal notranslate"><span class="pre">params</span></code>.</p>
 <p>Cost gating of the <em>spender</em> (a per-caller cap) belongs to the host’s
@@ -225,6 +227,9 @@ one. Item identity should be semantic (see <code class="xref py py-mod docutils 
 </tr>
 <tr class="row-odd"><td><p><a class="reference internal" href="#nw.batches.MISSING" title="nw.batches.MISSING"><code class="xref py py-obj docutils literal notranslate"><span class="pre">MISSING</span></code></a></p></td>
 <td><p>Status key for a member whose job record is gone (it will never finish).</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#nw.batches.ITEM_KEYS" title="nw.batches.ITEM_KEYS"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ITEM_KEYS</span></code></a></p></td>
+<td><p><a class="reference internal" href="nw.jobs.html#nw.jobs.enqueue" title="nw.jobs.enqueue"><code class="xref py py-func docutils literal notranslate"><span class="pre">nw.jobs.enqueue()</span></code></a>'s per-job arguments.</p></td>
 </tr>
 </tbody>
 </table>
@@ -289,6 +294,17 @@ one. Item identity should be semantic (see <code class="xref py py-mod docutils 
 </dd></dl>
 
 <dl class="py data">
+<dt class="sig sig-object py" id="nw.batches.ITEM_KEYS">
+<span class="sig-prename descclassname"><span class="pre">nw.batches.</span></span><span class="sig-name descname"><span class="pre">ITEM_KEYS</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">frozenset({'estimated_usd',</span> <span class="pre">'idempotency_key',</span> <span class="pre">'kind',</span> <span class="pre">'label',</span> <span class="pre">'params'})</span></span><a class="headerlink" href="#nw.batches.ITEM_KEYS" title="Link to this definition">#</a></dt>
+<dd><p><a class="reference internal" href="nw.jobs.html#nw.jobs.enqueue" title="nw.jobs.enqueue"><code class="xref py py-func docutils literal notranslate"><span class="pre">nw.jobs.enqueue()</span></code></a>’s per-job arguments.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A batch item’s keys</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py data">
 <dt class="sig sig-object py" id="nw.batches.MISSING">
 <span class="sig-prename descclassname"><span class="pre">nw.batches.</span></span><span class="sig-name descname"><span class="pre">MISSING</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'missing'</span></span><a class="headerlink" href="#nw.batches.MISSING" title="Link to this definition">#</a></dt>
 <dd><p>Status key for a member whose job record is gone (it will never finish).</p>
@@ -325,7 +341,11 @@ the members enqueued before it keep running, and a retry may relaunch the
 ones that have finished (and bill them again). With a custom <code class="docutils literal notranslate"><span class="pre">enqueue</span></code>
 and no <code class="docutils literal notranslate"><span class="pre">dispatch</span></code>, the up-front <code class="docutils literal notranslate"><span class="pre">kind</span></code>-in-<code class="docutils literal notranslate"><span class="pre">dispatch</span></code> check is
 skipped: the door owns its dispatch, so it owns that check.</p>
-<p>Items resolving to the same job collapse to one member (first position wins).</p>
+<p>Items resolving to the same job collapse to one member (first position wins).
+An <code class="docutils literal notranslate"><span class="pre">enqueue_kwargs</span></code> key that is also an item key (<a class="reference internal" href="#nw.batches.ITEM_KEYS" title="nw.batches.ITEM_KEYS"><code class="xref py py-data docutils literal notranslate"><span class="pre">ITEM_KEYS</span></code></a>), or
+an item <code class="docutils literal notranslate"><span class="pre">estimated_usd</span></code> that a custom <code class="docutils literal notranslate"><span class="pre">enqueue</span></code> does not accept, raises
+<code class="docutils literal notranslate"><span class="pre">TypeError</span></code> before anything launches, rather than on a later member
+after the first ones are running.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="#nw.batches.BatchRecord" title="nw.batches.BatchRecord"><code class="xref py py-class docutils literal notranslate"><span class="pre">BatchRecord</span></code></a></span></p>
@@ -447,7 +467,7 @@ first, so a caller can loop on it. <code class="docutils literal notranslate"><s
     </div>
   </div>
 </footer>
-      <script src="../_static/documentation_options.js?v=9cd8e891"></script>
+      <script src="../_static/documentation_options.js?v=ab2062fb"></script>
       <script src="../_static/doctools.js?v=fd6eb6e6"></script>
       <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script src="../_static/clipboard.min.js?v=a7894cd8"></script>

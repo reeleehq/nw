@@ -798,7 +798,7 @@ consumer needs no app-specific knowledge to render the catalog.
 * **Return type:**
   [`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)
 
-### *class* nw.GenreOp(name, fn, title, description='', effect='write', runs='now', host_params=(), max_upload_bytes=None, spends=False)
+### *class* nw.GenreOp(name, fn, title, description='', effect='write', runs='now', host_params=(), max_upload_bytes=None, spends=False, invalidates=None)
 
 Bases: [`object`](https://docs.python.org/3/builtins/functions.html#object)
 
@@ -833,6 +833,15 @@ raising [`GenreOpCancelled`](#nw.GenreOpCancelled)). A deliberate refusal is a
 rule is that an unknown cost forces approval, so a host must route a `spends` op
 through its money approval — or not offer it. `False` (the default) is a claim the
 genre makes: nothing this op calls bills anyone.
+
+`invalidates` names the genre’s `read` ops whose answer this op can make stale,
+so a client holding several reads knows which to refresh after it (reelee#750); for
+a `runs="job"` op, once the job has ended. Stale is not “re-run now”: a read that
+itself `runs="job"` is refreshed when the person asks. [`register_genre_ops()`](#nw.register_genre_ops)
+checks every name is a read op of the genre. `None` (the default) declares
+nothing, and the catalogue says so (`null`), so a client tells “the genre named
+no reads” from “the genre has not said” and keeps its own rule for the latter. A
+read op invalidates nothing.
 
 ```pycon
 >>> def _rename(project, *, title: str, loud: bool = False) -> dict:

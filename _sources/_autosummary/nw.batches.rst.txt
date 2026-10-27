@@ -11,6 +11,7 @@ nw.batches
       BATCHES_DIRNAME
       DEFAULT_POLL_S
       MISSING
+      ITEM_KEYS
    
    .. rubric:: Functions
 

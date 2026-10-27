@@ -64,27 +64,31 @@ Design decisions (from the `nw.jobs`-on-`au` design report,
   > move, and a stale figure under-quotes the run (nw#74). Descriptive only:
   > `cost_basis` stays out of `plan_hash`, so the idempotency key above is
   > byte-identical to what it was before repricing existed, and a resumed render
-  > still dedups onto work already paid for.
+  > still dedups onto work already paid for. A host that prices server-side
+  > passes `enqueue(..., estimated_usd=)` instead: recorded as the job’s
+  > estimate, and outside `params` so it never enters the job id (nw#144).
 
 All tunables are keyword-configurable via [`JobsConfig`](#nw.jobs.JobsConfig); defaults live at
 the top of this module — no magic numbers below.
 
 ### Module Attributes
 
-| [`UNREADABLE_PLAN_REASON`](#nw.jobs.UNREADABLE_PLAN_REASON)   | Why a quote came back unknown when the plan itself was unreadable.                                                                                       |
-|---------------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------|
-| [`terminal_hooks`](#nw.jobs.terminal_hooks)           | `{name: hook}`; each hook is called as `hook(project, job)` when a run ends ([`register_terminal_hook()`](#nw.jobs.register_terminal_hook)). |
-| [`ERROR_KIND_REFUSED`](#nw.jobs.ERROR_KIND_REFUSED)       | `Job.error_kind` values — see [`Job.error_kind`](#nw.jobs.Job.error_kind).                                                           |
+| [`ESTIMATE_FROM_RENDER`](#nw.jobs.ESTIMATE_FROM_RENDER)   | Where a job's estimate came from (`estimate()["estimate_source"]`, and the record's `cost["estimate_source"]`): the host's `estimated_usd=`, the re-quoted `params["plan"]`, `params["estimated_usd"]`, or (record only) a render event that replaced a non-host figure.   |
+|-------------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| [`UNREADABLE_PLAN_REASON`](#nw.jobs.UNREADABLE_PLAN_REASON) | Why a quote came back unknown when the plan itself was unreadable.                                                                                                                                                                                                         |
+| [`terminal_hooks`](#nw.jobs.terminal_hooks)         | `{name: hook}`; each hook is called as `hook(project, job)` when a run ends ([`register_terminal_hook()`](#nw.jobs.register_terminal_hook)).                                                                                                                   |
+| [`ERROR_KIND_REFUSED`](#nw.jobs.ERROR_KIND_REFUSED)     | `Job.error_kind` values — see [`Job.error_kind`](#nw.jobs.Job.error_kind).                                                                                                                                                                             |
 
 ### Functions
 
 | [`cancel_job`](#nw.jobs.cancel_job)(project, job_id, \*[, config])         | Request cancellation.                                                                                                                                                  |
 |----------------------------------------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | [`check_job_spec`](#nw.jobs.check_job_spec)(params)                            | Raise what [`enqueue()`](#nw.jobs.enqueue) would raise for malformed `params` (`ValueError` on a bad `units`), before anything is launched. |
+| [`checked_usd`](#nw.jobs.checked_usd)(value)                                | `value` as a `float` if it is a price nw can gate on, else `ValueError`.                                                                                               |
 | [`enqueue`](#nw.jobs.enqueue)(project, kind, params, \*[, ...])         | Enqueue a billable render as a background job.                                                                                                                         |
 | [`error_detail_of`](#nw.jobs.error_detail_of)(error, \*[, secrets])             | The refusal `error` carries as data, or `None`.                                                                                                                        |
 | [`error_kind_of`](#nw.jobs.error_kind_of)(error)                              | `"refused"` | `"cancelled"` | `"crashed"` for an exception a job raised.                                                                                               |
-| [`estimate`](#nw.jobs.estimate)(project, kind, params, \*[, config])     | Dry-run cost gate **without enqueueing**.                                                                                                                              |
+| [`estimate`](#nw.jobs.estimate)(project, kind, params, \*[, ...])        | Dry-run cost gate **without enqueueing**.                                                                                                                              |
 | [`get_job`](#nw.jobs.get_job)(project, job_id, \*[, config])            | One job (projecting the au status + mirrored index metadata).                                                                                                          |
 | [`job_id_for`](#nw.jobs.job_id_for)(project, kind, params, \*[, ...])      | The id [`enqueue()`](#nw.jobs.enqueue) would give this job, without enqueueing it.                                                          |
 | [`job_notifier`](#nw.jobs.job_notifier)(project, \*[, config])               | This project's [`JobNotifier`](#nw.jobs.JobNotifier) (built with its runtime).                                                                  |
@@ -198,7 +202,7 @@ before the thread registers launched a second worker (nw#128).
 
 #### on_error(key, error)
 
-Called when computation fails.
+Called when computation fails (`error` may be a BaseException).
 
 * **Return type:**
   [`None`](https://docs.python.org/3/builtins/constants.html#None)
@@ -213,6 +217,13 @@ Undo [`claim_locked()`](#nw.jobs.DurationLearningMiddleware.claim_locked) when t
 ### nw.jobs.ERROR_KIND_REFUSED *= 'refused'*
 
 `Job.error_kind` values — see [`Job.error_kind`](#nw.jobs.Job.error_kind).
+
+### nw.jobs.ESTIMATE_FROM_RENDER *= 'render'*
+
+Where a job’s estimate came from (`estimate()["estimate_source"]`, and the
+record’s `cost["estimate_source"]`): the host’s `estimated_usd=`, the
+re-quoted `params["plan"]`, `params["estimated_usd"]`, or (record only) a
+render event that replaced a non-host figure. `None` = none.
 
 ### *class* nw.jobs.Job(job_id, kind, label, status, idempotency_key, params=dict(), created_at=None, started_at=None, finished_at=None, queue_wait_s=None, elapsed_s=None, progress=JobProgress(), predicted_total_s=None, remaining_s=None, eta_ts=None, eta_s=None, pct=None, confidence=None, label_hint=None, eta_key=None, cost=JobCost(), cached=False, worker_silent_s=None, provider_phase=None, provider_queue_position=None, provider_started_at=None, worker_responsive=None, artifact_ref=None, result=None, error=None, error_kind=None, error_detail=None, run_id=None, last_event_id=None)
 
@@ -460,7 +471,21 @@ Raise what [`enqueue()`](#nw.jobs.enqueue) would raise for malformed `params`
 * **Return type:**
   [`None`](https://docs.python.org/3/builtins/constants.html#None)
 
-### nw.jobs.enqueue(project, kind, params, , on_event=None, dispatch=None, backend=None, idempotency_key=None, label=None, capture_context=None, secrets=None, config=JobsConfig(n_min=3, sample_window_k=20, pct_ceil=99, overrun_factor=1.5, cache_hit_floor_s=0.5, dur_buckets_s=(4.0, 8.0, 12.0), prior_total_s={'image': 12.0, 'video': 90.0, 'audio': 15.0}, default_prior_total_s=30.0, stale_running_s=900.0, heartbeat_interval_s=20.0, heartbeat_stale_s=120.0, terminal_hook_attempts=3, approval_threshold_usd=1.0, jobs_dirname='.nw/jobs'))
+### nw.jobs.checked_usd(value)
+
+`value` as a `float` if it is a price nw can gate on, else `ValueError`.
+
+A `float` so that what is stored is JSON (a numpy scalar or a
+`Fraction` passes the check and would fail the index write).
+
+`None` (unknown) or a finite, non-negative real. A bool is refused (it is
+an `int`), and so is NaN: `nan >= threshold` is `False`, so a NaN
+price would pass every approval gate as cheap.
+
+* **Return type:**
+  [`float`](https://docs.python.org/3/builtins/functions.html#float) | [`None`](https://docs.python.org/3/builtins/constants.html#None)
+
+### nw.jobs.enqueue(project, kind, params, \*, on_event=None, dispatch=None, backend=None, idempotency_key=None, label=None, capture_context=None, secrets=None, estimated_usd=<object object>, config=JobsConfig(n_min=3, sample_window_k=20, pct_ceil=99, overrun_factor=1.5, cache_hit_floor_s=0.5, dur_buckets_s=(4.0, 8.0, 12.0), prior_total_s={'image': 12.0, 'video': 90.0, 'audio': 15.0}, default_prior_total_s=30.0, stale_running_s=900.0, heartbeat_interval_s=20.0, heartbeat_stale_s=120.0, terminal_hook_attempts=3, approval_threshold_usd=1.0, jobs_dirname='.nw/jobs'))
 
 Enqueue a billable render as a background job. Returns a [`Job`](#nw.jobs.Job)
 (`status="queued"`) **immediately** — the call never blocks and never
@@ -528,10 +553,19 @@ already exists, that job is returned instead of launching a duplicate.
     wins over an ambient one. The explicit counterpart of
     `capture_context`: what that hook re-binds ambiently, this
     threads by hand.
+  * **estimated_usd** ([`float`](https://docs.python.org/3/builtins/functions.html#float) | [`None`](https://docs.python.org/3/builtins/constants.html#None) | [`object`](https://docs.python.org/3/builtins/functions.html#object)) – the price the **host** computed for this job, recorded
+    as its `cost.estimated_usd` in place of nw’s own (the plan
+    re-quote, else `params["estimated_usd"]`, which a client may
+    have chosen). `None` records *unknown*. Not part of `params`,
+    so it never enters the job id: a price that drifts with the graph
+    does not split dedup, and a dedup onto a live job keeps that
+    job’s figure (nw#144). Omitted, nothing changes.
   * **config** ([`JobsConfig`](#nw.jobs.JobsConfig)) – tunables (see [`JobsConfig`](#nw.jobs.JobsConfig)).
 * **Raises:**
   * [**KeyError**](https://docs.python.org/3/builtins/exceptions.html#KeyError) – if `kind` is not in `dispatch`.
-  * [**ValueError**](https://docs.python.org/3/builtins/exceptions.html#ValueError) – if `params["units"]` is present but not a positive `int`.
+  * [**ValueError**](https://docs.python.org/3/builtins/exceptions.html#ValueError) – if `params["units"]` is present but not a positive `int`,
+        or `estimated_usd` is neither `None` nor a finite, non-negative
+        number (see [`checked_usd()`](#nw.jobs.checked_usd)).
 * **Return type:**
   [`Job`](#nw.jobs.Job)
 
@@ -574,13 +608,13 @@ True
 * **Return type:**
   [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
 
-### nw.jobs.estimate(project, kind, params, , config=JobsConfig(n_min=3, sample_window_k=20, pct_ceil=99, overrun_factor=1.5, cache_hit_floor_s=0.5, dur_buckets_s=(4.0, 8.0, 12.0), prior_total_s={'image': 12.0, 'video': 90.0, 'audio': 15.0}, default_prior_total_s=30.0, stale_running_s=900.0, heartbeat_interval_s=20.0, heartbeat_stale_s=120.0, terminal_hook_attempts=3, approval_threshold_usd=1.0, jobs_dirname='.nw/jobs'))
+### nw.jobs.estimate(project, kind, params, \*, estimated_usd=<object object>, config=JobsConfig(n_min=3, sample_window_k=20, pct_ceil=99, overrun_factor=1.5, cache_hit_floor_s=0.5, dur_buckets_s=(4.0, 8.0, 12.0), prior_total_s={'image': 12.0, 'video': 90.0, 'audio': 15.0}, default_prior_total_s=30.0, stale_running_s=900.0, heartbeat_interval_s=20.0, heartbeat_stale_s=120.0, terminal_hook_attempts=3, approval_threshold_usd=1.0, jobs_dirname='.nw/jobs'))
 
 Dry-run cost gate **without enqueueing**.
 
-Returns `{estimated_usd, has_unknown_costs, approval_threshold_usd,
-requires_approval, quote}`. Unknown cost always requires approval
-(preserves the one-price-per-clip gate).
+Returns `{estimated_usd, estimate_source, has_unknown_costs,
+approval_threshold_usd, requires_approval, quote}`. Unknown cost always
+requires approval (preserves the one-price-per-clip gate).
 
 **The gate quotes, it does not remember.** When `params["plan"]` is
 present its cost is re-quoted at today’s rates through
@@ -603,8 +637,15 @@ provenance nw cannot see; `quote` is then `None` to say so. When there
 reported beside today’s number rather than discarded, so a surface can
 show the movement.
 
-Raises `ValueError` on a malformed `params["units"]`, exactly as
-[`enqueue()`](#nw.jobs.enqueue) does, so the gate never approves what enqueue refuses.
+`estimated_usd` is a host’s own price, gated on exactly as
+[`enqueue()`](#nw.jobs.enqueue) records it (`None` = unknown); the quote is still
+reported beside it. `estimate_source` says which figure won:
+`"host"`, `"plan"` (the re-quote) or `"caller"`
+(`params["estimated_usd"]`), and `None` when there was none to take.
+
+Raises `ValueError` on a malformed `params["units"]` or
+`estimated_usd`, exactly as [`enqueue()`](#nw.jobs.enqueue) does, so the gate never
+approves what enqueue refuses.
 
 * **Return type:**
   [`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)
