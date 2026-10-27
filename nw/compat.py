@@ -60,7 +60,9 @@ def require_fields(
     params = inspect.signature(cls).parameters.values()
     if any(p.kind is p.VAR_KEYWORD for p in params):
         return
-    keywords = {p.name for p in params if p.kind in (p.POSITIONAL_OR_KEYWORD, p.KEYWORD_ONLY)}
+    keywords = {
+        p.name for p in params if p.kind in (p.POSITIONAL_OR_KEYWORD, p.KEYWORD_ONLY)
+    }
     missing = sorted(set(fields) - keywords)
     if missing:
         names = ", ".join(repr(m) for m in missing)
