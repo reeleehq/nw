@@ -2541,6 +2541,70 @@ def test_reads_do_not_wait_for_the_index_lock(project):
     assert {j.job_id: j.status for j in listed} == {"q": jobs.QUEUED, "done": jobs.SUCCEEDED}
 
 
+def _ended_run(rt, job_id, *, days_ago, au_status=ComputationStatus.COMPLETED, **fields):
+    """A finished, announced run of ``job_id`` that ended ``days_ago`` days ago."""
+    when = jobs._iso(jobs._utcnow_plus(-days_ago * 86400))
+    record = {"job_id": job_id, "kind": "op", "label": "op", "run_token": "t",
+              "created_at": when, "finished_at": when, "terminal_announced": True,
+              **fields}
+    with rt.lock:
+        jobs._index_set_locked(rt, job_id, record)
+    rt.au_store[job_id] = ComputationResult({"ok": True}, au_status)
+
+
+def test_an_old_finished_run_moves_to_the_archive_and_still_answers(project):
+    """nw#169: the scan stays bounded by recent work. An old run leaves the
+    index (so list_jobs no longer reads or lists it), yet a held id still
+    answers through get_job and cancel_job."""
+    rt = jobs._runtime(project)
+    _ended_run(rt, "old", days_ago=40)
+    _ended_run(rt, "recent", days_ago=1)
+
+    assert [j.job_id for j in jobs.list_jobs(project)] == ["recent"]
+    assert "old" not in rt.index and "old" in rt.archive
+    assert jobs.get_job(project, "old").status == jobs.SUCCEEDED
+    assert jobs.cancel_job(project, "old").status == jobs.SUCCEEDED  # a no-op
+    assert jobs.cancel_job(project, "never") is None  # unknown is still unknown
+
+
+@pytest.mark.parametrize(
+    "fields, au_status",
+    [
+        ({"terminal_announced": False}, ComputationStatus.COMPLETED),
+        ({"announce_claim": {"by": "x", "until": "2999-01-01T00:00:00Z"}},
+         ComputationStatus.COMPLETED),
+        ({"heartbeat_at": "2999-01-01T00:00:00Z"}, ComputationStatus.CANCELLED),
+        ({}, ComputationStatus.RUNNING),
+    ],
+    ids=["unannounced", "lease", "worker-beating", "au-running"],
+)
+def test_an_old_run_that_is_not_over_stays_in_the_index(project, fields, au_status):
+    rt = jobs._runtime(project)
+    _ended_run(rt, "old", days_ago=40, au_status=au_status, **fields)
+    jobs.list_jobs(project)
+    assert "old" in rt.index and "old" not in rt.archive
+
+
+def test_retention_none_keeps_every_run(project):
+    config = JobsConfig(index_retention_s=None)
+    rt = jobs._runtime(project, config)
+    _ended_run(rt, "old", days_ago=4000)
+    assert [j.job_id for j in jobs.list_jobs(project, config=config)] == ["old"]
+    assert "old" in rt.index
+
+
+def test_re_enqueueing_an_archived_key_starts_a_new_run(project, parked):
+    rt = jobs._runtime(project)
+    key = jobs.job_id_for(project, "op", VIDEO_PARAMS)
+    _ended_run(rt, key, days_ago=40)
+    jobs.list_jobs(project)
+    assert key in rt.archive
+    job = jobs.enqueue(project, "op", VIDEO_PARAMS, dispatch=parked)
+    assert job.job_id == key and job.status in (jobs.QUEUED, jobs.RUNNING)
+    assert jobs.get_job(project, key).status in (jobs.QUEUED, jobs.RUNNING)
+    assert key in rt.index and key not in rt.archive
+
+
 def test_cancel_announces_once_even_after_the_worker_exits(project, announced):
     release = threading.Event()
     job = jobs.enqueue(project, "op", VIDEO_PARAMS, dispatch={"op": _blocking_stub(release)})
