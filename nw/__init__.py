@@ -85,7 +85,7 @@ from .pricing import (
     quote_render_decision,
     unquotable,
 )
-from .project import CharacterImage, Project
+from .project import CharacterImage, Project, genre_status_of
 from .storage import (
     FolderStorage,
     MappingStorage,
@@ -280,6 +280,7 @@ __all__ = [
     "register_genre_limits",
     "genre_limits",
     "Project",
+    "genre_status_of",
     "ProjectGraph",
     "ProjectStorage",
     "FolderStorage",

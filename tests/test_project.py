@@ -758,3 +758,76 @@ def test_resumption_brief_is_deterministic(tmp_path):
     assert a.suggested_next == b.suggested_next
     assert a.caveats == b.caveats
     assert a.downstream_of_last_authored_change == b.downstream_of_last_authored_change
+
+
+# ---------------------------------------------------------------------------
+# genre_status hook (nw#133)
+# ---------------------------------------------------------------------------
+
+
+def _status_project(tmp_path, status, *, name="p"):
+    class P(Project):
+        def genre_status(self):
+            if isinstance(status, BaseException):
+                raise status
+            return status(self) if callable(status) else status
+
+    return P.init(tmp_path / name, title="T")
+
+
+def test_genre_status_defaults_to_none(tmp_path):
+    from nw import genre_status_of
+
+    project = Project.init(tmp_path / "p", title="T")
+    assert project.genre_status() is None
+    assert genre_status_of(project) is None
+
+
+def test_genre_status_of_passes_a_json_dict(tmp_path):
+    from nw import genre_status_of
+
+    project = _status_project(tmp_path, {"stage": "mix", "n_clips": 3})
+    assert genre_status_of(project) == {"stage": "mix", "n_clips": 3}
+
+
+@pytest.mark.parametrize(
+    "bad",
+    [
+        RuntimeError("boom"),
+        ["not", "a", "dict"],
+        {"x": object()},
+        lambda p: {"where": str(p.root / "clips")},
+    ],
+    ids=["raises", "not-dict", "not-json", "leaks-root"],
+)
+def test_genre_status_of_treats_a_bad_hook_as_no_status(tmp_path, bad):
+    from nw import genre_status_of
+
+    assert genre_status_of(_status_project(tmp_path, bad)) is None
+
+
+def test_genre_status_of_hardening(tmp_path, caplog):
+    from nw import genre_status_of
+
+    leaks = lambda p: {"p": "see " + str(p.root / "clips")}  # noqa: E731
+    for i, bad in enumerate(
+        ({"x": float("nan")}, {"blob": "x" * 70_000}, leaks, lambda p: {"p": str(p.root)})
+    ):
+        assert genre_status_of(_status_project(tmp_path, bad, name=f"b{i}")) is None
+    # a sibling that merely shares the root's prefix is not a leak
+    sibling = {"p": str(tmp_path / "p2")}
+    assert genre_status_of(_status_project(tmp_path, sibling, name="p")) == sibling
+    # non-ascii root is still caught (matched on strings, not on escaped JSON text)
+    root = tmp_path / "café"
+    project = type("P", (Project,), {"genre_status": lambda self: {"w": str(self.root)}}).init(root, title="T")
+    assert genre_status_of(project) is None
+    # returns checked JSON data, not the hook's object
+    assert genre_status_of(_status_project(tmp_path, {1: "a"}, name="k")) == {"1": "a"}
+    # a duck-typed object without the hook is "no status", silently
+    assert genre_status_of(object()) is None
+    # a persistent failure logs one warning, then debug
+    caplog.set_level("DEBUG", logger="nw.project")
+    boom = _status_project(tmp_path, RuntimeError("boom"), name="e")
+    caplog.clear()
+    genre_status_of(boom); genre_status_of(boom)
+    assert [r.levelname for r in caplog.records].count("WARNING") <= 1

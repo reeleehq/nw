@@ -22,6 +22,7 @@ It does NOT do rendering — that's :mod:`nw.workflow` (Phase 1b.2).
 from __future__ import annotations
 
 import json
+import logging
 import shutil
 from datetime import datetime, timezone
 from pathlib import Path
@@ -170,6 +171,88 @@ class CharacterImage:
 
 
 _PROJECT_FILE_NAME = "project.json"
+
+
+_logger = logging.getLogger(__name__)
+
+
+DEFAULT_GENRE_STATUS_MAX_BYTES = 64 * 1024
+"""Serialized size above which a genre status is refused as "large content"."""
+
+_GENRE_STATUS_WARNED: set[type] = set()
+
+
+def _strings_in(value: Any) -> Iterable[str]:
+    """Every string (keys and values) in a deserialized JSON value."""
+    if isinstance(value, str):
+        yield value
+    elif isinstance(value, dict):
+        for k, v in value.items():
+            yield k
+            yield from _strings_in(v)
+    elif isinstance(value, list):
+        for v in value:
+            yield from _strings_in(v)
+
+
+def _mentions_path(text: str, path: str) -> bool:
+    """Whether ``text`` names ``path`` itself or something inside it (not ``path2``)."""
+    start = text.find(path)
+    while start != -1:
+        end = start + len(path)
+        if end == len(text) or text[end] in "/\\":
+            return True
+        start = text.find(path, start + 1)
+    return False
+
+
+def genre_status_of(
+    project: object,
+    *,
+    max_bytes: int = DEFAULT_GENRE_STATUS_MAX_BYTES,
+    refuse_root: bool = True,
+) -> Optional[dict]:
+    """``project.genre_status()`` made safe to serve: a JSON dict, or ``None``.
+
+    ``None`` when the project has no hook, the hook returns ``None``, raises
+    (logged, never propagated: a broken genre must not take a generic status
+    down), or returns something that is not a JSON object (NaN/inf, non-string
+    keys coerced aside, circular, over ``max_bytes`` serialized). What comes back
+    is the *deserialized* JSON, so the caller gets exactly what was checked, not
+    the hook's live object.
+
+    ``refuse_root`` is a best-effort guard for the contract's "no absolute paths":
+    any string naming the project root (or its resolved form) is refused. It is
+    not a path detector; the contract is still the hook author's to keep.
+    """
+    hook = getattr(project, "genre_status", None)
+    if hook is None:
+        return None
+    try:
+        status = hook()
+        if status is None:
+            return None
+        if not isinstance(status, dict):
+            raise TypeError(f"genre_status must return a dict, got {type(status).__name__}")
+        text = json.dumps(status, allow_nan=False)
+        if len(text.encode()) > max_bytes:
+            raise ValueError(f"genre_status exceeds {max_bytes} bytes")
+        status = json.loads(text)
+        if refuse_root:
+            root = getattr(project, "root", None)
+            roots = {str(root), str(Path(root).resolve())} if root is not None else set()
+            if any(_mentions_path(t, r) for t in _strings_in(status) for r in roots):
+                raise ValueError("genre_status leaks the project's absolute path")
+    except Exception:  # noqa: BLE001 — a genre's bug is "no genre status", not a failure
+        # One traceback per genre class; a status endpoint polls.
+        first = type(project) not in _GENRE_STATUS_WARNED
+        _GENRE_STATUS_WARNED.add(type(project))
+        _logger.log(
+            logging.WARNING if first else logging.DEBUG,
+            "genre_status refused for %s", type(project).__name__, exc_info=True,
+        )
+        return None
+    return status
 
 
 class Project:
@@ -377,6 +460,18 @@ class Project:
             "template": body.template,
             "params": dict(body.params),
         }
+
+    def genre_status(self) -> Optional[dict]:
+        """Where this project stands, in the genre's own terms. Override me.
+
+        The hook a host (reelee's ``project_status``) asks to add a genre's
+        answer to its generic one (nw#133). The default is ``None``: "this genre
+        says nothing". An override returns **JSON-serializable data only**, with
+        no absolute paths or server-side layout and never large content inlined.
+        Callers go through :func:`genre_status_of`, which enforces that and
+        treats a raising hook as "no genre status".
+        """
+        return None
 
     def write_spec(self, spec: ProjectSpec) -> None:
         """Write the spec.
