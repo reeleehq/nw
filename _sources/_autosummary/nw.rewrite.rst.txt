@@ -1,0 +1,23 @@
+nw.rewrite
+==========
+
+.. automodule:: nw.rewrite
+
+   
+   .. rubric:: Module Attributes
+
+   .. autosummary::
+   
+      MARKER_PREFIX
+      LOCK_NAME
+      MARKER_PATTERN
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      is_rewritten
+      is_value_row
+      mark_rewritten
+      rewrite_values
+   

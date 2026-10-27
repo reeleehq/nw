@@ -29,6 +29,9 @@
       register_genre_limits
       genre_limits
       genre_status_of
+      is_rewritten
+      mark_rewritten
+      rewrite_values
       adopt_tenant_id
       as_project_storage
       register_project_storage
@@ -165,6 +168,7 @@
    pricing
    project
    renderers
+   rewrite
    schema
    script_segmentation
    secrets
