@@ -98,6 +98,7 @@ from au import (
 )
 from au.base import ComputationBackend
 
+from dol.atomic import FileLock
 from xdol import Registry
 
 from nw.secrets import as_secrets, redact_exception, using_secrets
@@ -948,7 +949,7 @@ class DurationLearningMiddleware(Middleware):
         *,
         durations: MutableMapping,
         index: MutableMapping,
-        lock: threading.Lock,
+        lock: AbstractContextManager[Any],
         config: JobsConfig = DEFAULT_CONFIG,
     ):
         self._durations = durations
@@ -1407,7 +1408,7 @@ class _JobsRuntime:
     durations: MutableMapping
     backend: ThreadBackend
     middleware: DurationLearningMiddleware
-    lock: threading.Lock
+    lock: FileLock
     config: JobsConfig
     notifier: JobNotifier
     announcer: _AnnounceMiddleware
@@ -1439,7 +1440,13 @@ def _runtime(project, config: JobsConfig = DEFAULT_CONFIG) -> _JobsRuntime:
             # worker while the API reads them; see :class:`AtomicJsonFiles`.
             index = AtomicJsonFiles(base / "index")
             durations = AtomicJsonFiles(base / "durations")
-            lock = threading.Lock()
+            # Cross-process (nw#148): every read-modify-write of the index and
+            # the durations runs under this lock, so replicas sharing the jobs
+            # root exclude each other exactly as threads do. ``dol``'s
+            # ``FileLock`` is a ``threading.Lock`` that also holds an advisory
+            # lock on ``index.lock`` beside the stores; where the filesystem
+            # refuses locks it degrades to the thread lock (``lock.held``).
+            lock = FileLock(base / "index")
             middleware = DurationLearningMiddleware(
                 durations=durations, index=index, lock=lock, config=config
             )
@@ -1480,7 +1487,11 @@ def check_job_spec(params: dict) -> None:
 
 
 def _reset_runtimes() -> None:
-    """Drop all memoized runtimes (test hygiene / re-open after config change)."""
+    """Drop all memoized runtimes (test hygiene / re-open after config change).
+
+    A worker still running keeps its runtime and lock; the next touch of the
+    project builds a new runtime whose lock excludes that one across the
+    file lock, like another replica's would."""
     with _RUNTIMES_LOCK:
         _RUNTIMES.clear()
 

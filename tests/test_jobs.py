@@ -2130,7 +2130,7 @@ def test_learning_reads_the_record_in_the_same_critical_section_as_the_pop(proje
 
     class Index(dict):
         def get(self, key, default=None):
-            seen.append((mw._lock.locked(), "k" in mw._start))
+            seen.append((mw._lock.held, "k" in mw._start))
             return super().get(key, default)
 
     mw._index = Index()
@@ -2439,3 +2439,61 @@ def test_the_enqueue_door_announces_the_old_run_even_after_the_new_one_was(
     jobs._fire_terminal_hooks(rt, project, old, run_token="T1")
     assert announced == [("k", jobs.SUCCEEDED)]
     assert ("k", "T1") not in rt.announcing
+
+
+# ---------------------------------------------------------------------------
+# The index lock excludes replicas, not only threads (nw#148)
+# ---------------------------------------------------------------------------
+
+
+def test_two_runtimes_over_one_jobs_root_exclude_each_other(project):
+    """``_reset_runtimes()`` stands in for a second replica: its runtime has its
+    own lock object, so only the file lock beside the index makes them exclude."""
+    replica_1 = jobs._runtime(project)
+    jobs._reset_runtimes()
+    replica_2 = jobs._runtime(project)
+    assert replica_1.lock is not replica_2.lock
+    inside, attempting, acquired = (threading.Event() for _ in range(3))
+
+    def contender():
+        inside.wait(5)
+        attempting.set()
+        with replica_2.lock:
+            acquired.set()
+
+    t = threading.Thread(target=contender, daemon=True)
+    t.start()
+    with replica_1.lock:
+        assert replica_1.lock.held
+        inside.set()
+        assert attempting.wait(5)
+        assert not acquired.wait(0.3)  # replica 2 waits on replica 1's section
+    t.join(5)
+    assert acquired.is_set()
+
+
+def test_a_cancel_from_another_replica_is_not_lost_to_a_heartbeat(project):
+    """The lost update #148 is about: replica 1 read the record for a beat, then
+    replica 2's cancel must not be overwritten by replica 1's write."""
+    rt_1 = jobs._runtime(project)
+    with rt_1.lock:
+        jobs._index_set_locked(rt_1, "j", {"job_id": "j", "run_token": "t"})
+    jobs._reset_runtimes()
+    rt_2 = jobs._runtime(project)
+    cancelled = threading.Event()
+
+    def cancel_from_replica_2():
+        with rt_2.lock:
+            jobs._index_update_locked(rt_2, "j", cancel_requested=True)
+        cancelled.set()
+
+    with rt_1.lock:
+        record = jobs._index_get_locked(rt_1, "j")
+        threading.Thread(target=cancel_from_replica_2, daemon=True).start()
+        assert not cancelled.wait(0.3)  # blocked: replica 1 is mid read-modify-write
+        record["heartbeat_at"] = jobs._now_iso()
+        jobs._index_set_locked(rt_1, "j", record)
+    assert cancelled.wait(5)
+    with rt_2.lock:
+        final = jobs._index_get_locked(rt_2, "j")
+    assert final["cancel_requested"] is True and final["heartbeat_at"]
