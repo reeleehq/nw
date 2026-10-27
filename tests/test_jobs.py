@@ -2140,16 +2140,23 @@ def test_learning_reads_the_record_in_the_same_critical_section_as_the_pop(proje
 
 
 @pytest.fixture
-def announced():
-    """A registered terminal hook recording ``(job_id, status)``; removed after."""
+def announced(project):
+    """A registered terminal hook recording ``(job_id, status)`` for this test's
+    project only (hooks fire for every project); removed after."""
     class Seen(list):
         done = None
+        projects = None
 
     seen = Seen()
     seen.done = threading.Event()
+    seen.projects = []
+    root = Path(project.root).resolve()
 
-    def hook(project, job):
+    def hook(hook_project, job):
+        if Path(hook_project.root).resolve() != root:
+            return
         seen.append((job.job_id, job.status))
+        seen.projects.append(hook_project)
         seen.done.set()
 
     jobs.register_terminal_hook("test", hook)
@@ -2179,6 +2186,32 @@ def test_a_failed_render_is_announced_failed(project, announced):
     assert announced == [(job.job_id, jobs.FAILED)]
 
 
+def _wait_until_end_read(rt, job_id, *, timeout=5.0):
+    """Until the worker's end-of-job read (:class:`jobs._AnnounceMiddleware`)
+    has finished: it forgets the run's project only after that read."""
+    deadline = time.time() + timeout
+    while job_id in rt.announcer._projects:
+        assert time.time() < deadline
+        time.sleep(0.01)
+
+
+def _terminal_record(rt, job_id, *, run_token="t", au_status=ComputationStatus.COMPLETED):
+    """Hand-write a finished, never-announced run of ``job_id``."""
+    with rt.lock:
+        jobs._index_set_locked(
+            rt,
+            job_id,
+            {
+                "job_id": job_id,
+                "kind": "op",
+                "label": "op",
+                "run_token": run_token,
+                "terminal_announced": False,
+            },
+        )
+    rt.au_store[job_id] = ComputationResult({"ok": True}, au_status)
+
+
 def test_cancel_announces_once_even_after_the_worker_exits(project, announced):
     release = threading.Event()
     job = jobs.enqueue(project, "op", VIDEO_PARAMS, dispatch={"op": _blocking_stub(release)})
@@ -2187,7 +2220,7 @@ def test_cancel_announces_once_even_after_the_worker_exits(project, announced):
     assert announced == [(job.job_id, jobs.CANCELLED)]  # synchronously, by cancel
 
     release.set()
-    _wait_until_thread_exits(jobs._runtime(project), job.job_id)
+    _wait_until_end_read(jobs._runtime(project), job.job_id)  # the worker's read ran
     jobs.get_job(project, job.job_id)
     assert announced == [(job.job_id, jobs.CANCELLED)]
 
@@ -2265,3 +2298,100 @@ def test_register_terminal_hook_refuses_a_name_twice_and_a_non_callable():
             jobs.register_terminal_hook("nope", "not callable")
     finally:
         del jobs.terminal_hooks["once"]
+
+
+def test_a_read_straddling_a_reenqueue_never_announces_the_new_run_with_the_old_outcome(
+    project, announced
+):
+    """The read started from run T1's snapshot and read T1's FAILED result; an
+    enqueue then replaced the run with T2. T2 must not be announced FAILED: the
+    read skips, and T2's own end is announced."""
+    rt = jobs._runtime(project)
+    _terminal_record(rt, "k", run_token="T1", au_status=ComputationStatus.FAILED)
+    with rt.lock:
+        snapshot = jobs._index_get_locked(rt, "k")
+    _terminal_record(rt, "k", run_token="T2", au_status=ComputationStatus.FAILED)
+    jobs._read_job(rt, snapshot, jobs.DEFAULT_CONFIG, project=project)
+    assert announced == []
+
+    rt.au_store["k"] = ComputationResult({"ok": True}, ComputationStatus.COMPLETED)
+    jobs.get_job(project, "k")
+    assert announced == [("k", jobs.SUCCEEDED)]
+
+
+def test_reenqueue_over_a_finished_never_announced_run_announces_it_first(
+    project, announced
+):
+    rt = jobs._runtime(project)
+    _terminal_record(rt, "k")
+    release = threading.Event()
+    jobs.enqueue(
+        project,
+        "op",
+        VIDEO_PARAMS,
+        idempotency_key="k",
+        dispatch={"op": _blocking_stub(release)},
+    )
+    assert announced == [("k", jobs.SUCCEEDED)]  # synchronously, before the new run
+    release.set()
+    _wait_until_end_read(rt, "k")
+    assert announced == [("k", jobs.SUCCEEDED)] * 2  # and the new run on its own
+
+
+def test_a_hook_that_raises_is_retried_on_the_next_read_then_announced_once(
+    project, announced
+):
+    calls = []
+
+    def flaky(project, job):
+        calls.append(job.job_id)
+        if len(calls) == 1:
+            raise RuntimeError("host down")
+
+    jobs.register_terminal_hook("flaky", flaky)
+    try:
+        _terminal_record(jobs._runtime(project), "j")
+        for _ in range(3):
+            jobs.get_job(project, "j")
+    finally:
+        del jobs.terminal_hooks["flaky"]
+    assert calls == ["j", "j"]
+    assert announced == [("j", jobs.SUCCEEDED)] * 2  # at least once, not at most
+
+
+def test_concurrent_readers_announce_each_job_exactly_once(project, announced):
+    rt = jobs._runtime(project)
+    job_ids = [f"k{i}" for i in range(10)]
+    for job_id in job_ids:
+        _terminal_record(rt, job_id)
+
+    def slow(project, job):
+        time.sleep(0.01)  # widen the window between claim and durable mark
+
+    jobs.register_terminal_hook("slow", slow)
+    start = threading.Barrier(8)
+
+    def reader():
+        start.wait()
+        jobs.list_jobs(project)
+
+    try:
+        threads = [threading.Thread(target=reader) for _ in range(8)]
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join()
+    finally:
+        del jobs.terminal_hooks["slow"]
+    assert sorted(announced) == sorted((job_id, jobs.SUCCEEDED) for job_id in job_ids)
+
+
+def test_the_worker_announces_with_the_enqueuing_project(project, announced):
+    jobs.list_jobs(project)  # an earlier project object touches the runtime first
+    enqueuer = Project(project.root)
+    release = threading.Event()
+    release.set()
+    jobs.enqueue(enqueuer, "op", VIDEO_PARAMS, dispatch={"op": _blocking_stub(release)})
+    assert announced.done.wait(5)
+    assert len(announced.projects) == 1
+    assert announced.projects[0] is enqueuer
