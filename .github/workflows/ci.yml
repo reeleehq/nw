@@ -50,6 +50,9 @@ jobs:
     if: "!contains(github.event.head_commit.message, '[skip ci]')"
     needs: setup
     runs-on: ubuntu-latest
+    # A normal run takes ~2 min; a stalled step (nw#140) fails fast instead of
+    # holding the job until GitHub's 6 h default.
+    timeout-minutes: 15
     strategy:
       matrix:
         python-version: ${{ fromJson(needs.setup.outputs.python-versions) }}
