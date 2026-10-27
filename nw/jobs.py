@@ -830,8 +830,7 @@ def list_jobs(
     whose missing-key-returns-PENDING gotcha makes membership meaningless).
     """
     rt = _runtime(project, config)
-    with rt.lock:
-        records = [r for r in (_index_get_locked(rt, k) for k in list(rt.index)) if r]
+    records = [r for r in (_index_snapshot(rt, k) for k in list(rt.index)) if r]
     records.sort(key=lambda r: r.get("created_at") or "", reverse=True)
 
     jobs: list[Job] = []
@@ -929,8 +928,7 @@ def get_job(project, job_id: str, *, config: JobsConfig = DEFAULT_CONFIG) -> Job
     """One job (projecting the au status + mirrored index metadata). ``None`` if
     unknown. Reaps a stale-RUNNING record on read."""
     rt = _runtime(project, config)
-    with rt.lock:
-        record = _index_get_locked(rt, job_id)
+    record = _index_snapshot(rt, job_id)
     if record is None:
         return None
     return _read_job(rt, record, config, project=project)
@@ -1427,11 +1425,8 @@ def _claim_announcement_locked(rt, record, *, run_token) -> str | None:
     :func:`_fire_terminal_hooks` releases it. The id is per claim, not per
     runtime, so a thread whose lease expired cannot release the one that took
     it over, even in the same process."""
-    if (
-        record is None
-        or record.get("run_token") != run_token
-        or record.get("terminal_announced") is not False
-        or _lease_is_live(record.get("announce_claim"))
+    if _announcement_settled(record, run_token) or _lease_is_live(
+        record.get("announce_claim")
     ):
         return None
     claim = uuid4().hex
@@ -1439,6 +1434,18 @@ def _claim_announcement_locked(rt, record, *, run_token) -> str | None:
     record["announce_claim"] = {"by": claim, "until": until}
     _index_set_locked(rt, record["job_id"], record)
     return claim
+
+
+def _announcement_settled(record, run_token) -> bool:
+    """Whether run ``run_token`` can no longer be announced from ``record``:
+    the record is gone, holds another run, was announced, or predates
+    announcing. Each only ever moves one way for a run, so a lock-free
+    snapshot that says "settled" stays right (nw#158)."""
+    return (
+        record is None
+        or record.get("run_token") != run_token
+        or record.get("terminal_announced") is not False
+    )
 
 
 def _lease_is_live(claim) -> bool:
@@ -1514,8 +1521,10 @@ def _this_run_locked(rt, job_id, run_token):
 def _announce_if_terminal(rt, project, job: Job, *, run_token) -> None:
     """Announce ``job`` if it reads terminal and run ``run_token`` — the run the
     read started from — is still the key's current, unannounced run."""
-    if job.status not in TERMINAL_STATUSES:
-        return
+    if job.status not in TERMINAL_STATUSES or _announcement_settled(
+        _index_snapshot(rt, job.job_id), run_token
+    ):
+        return  # without the lock: most terminal reads are of announced runs
     with rt.lock:
         claim = _claim_announcement_locked(
             rt, _index_get_locked(rt, job.job_id), run_token=run_token
@@ -1743,8 +1752,7 @@ def _bind_worker(
     captured_fal_key = _capture_fal_credentials()
 
     def should_cancel() -> bool:
-        with rt.lock:
-            record = _index_get_locked(rt, job_id)
+        record = _index_snapshot(rt, job_id)
         if record and record.get("cancel_requested"):
             return True
         try:
@@ -2088,8 +2096,7 @@ def _read_job(rt, record, config, *, project) -> Job:
         ComputationStatus.FAILED,
         ComputationStatus.CANCELLED,
     ):
-        with rt.lock:
-            record = _index_get_locked(rt, job_id) or record
+        record = _index_snapshot(rt, job_id) or record
     job = _project_job(rt, record, au_result, config)
     if job.status in (RUNNING, CANCELLING) and job.pct is not None:
         if record.get("pct_floor") is None or job.pct > record["pct_floor"]:
@@ -2479,6 +2486,32 @@ def _compute_pct_eta(elapsed_s, prediction: _Prediction, record, config):
 
 def _index_get_locked(rt, job_id):
     return rt.index.get(job_id)
+
+
+#: Whether :func:`_index_snapshot` still takes ``rt.lock``: on Windows a reader's
+#: open file makes a writer's ``os.replace`` fail, so these reads stay serialized
+#: there (other lock-free reads of the index, e.g. :func:`summarize`, do not).
+_SNAPSHOT_READS_LOCK = os.name == "nt"
+
+
+def _index_snapshot(rt, job_id):
+    """``job_id``'s record (``None`` if absent) as one whole snapshot, **without**
+    ``rt.lock`` (nw#158).
+
+    The index is an :class:`AtomicJsonFiles`: every write lands by
+    ``os.replace``, so a reader sees the old record or the new one, never a
+    torn one, and the lock adds nothing to a lone read. Taking it anyway made
+    every poll on every replica queue behind each other, and behind
+    heartbeats, for as long as a full :func:`list_jobs` scan.
+
+    Only for a read that no write depends on. A read-modify-write keeps
+    reading inside the ``with rt.lock:`` that covers the write
+    (:func:`_index_get_locked`).
+    """
+    if _SNAPSHOT_READS_LOCK:
+        with rt.lock:
+            return _index_get_locked(rt, job_id)
+    return _index_get_locked(rt, job_id)
 
 
 def _index_set_locked(rt, job_id, record) -> None:
