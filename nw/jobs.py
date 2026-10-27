@@ -2091,11 +2091,7 @@ def _read_job(rt, record, config, *, project) -> Job:
     run_token = record.get("run_token")  # the run this read starts from
     au_result = rt.au_store[job_id]
     au_result = _maybe_reap(rt, record, au_result, config)
-    if au_result.status in (
-        ComputationStatus.COMPLETED,
-        ComputationStatus.FAILED,
-        ComputationStatus.CANCELLED,
-    ):
+    if au_result.status in _AU_TERMINAL:
         record = _index_snapshot(rt, job_id) or record
     job = _project_job(rt, record, au_result, config)
     if job.status in (RUNNING, CANCELLING) and job.pct is not None:
