@@ -29,6 +29,7 @@ Public surface:
   as-of-then fact; reporting one as current under-quotes the run once falaw's
   rate tables move, so read it back through here (nw#74).
 - ``nw.jobs`` — durable async render jobs over ``au``. Loaded on first touch.
+- ``nw.batches`` — submit / status / wait / output / cancel over many jobs as one batch.
 - ``nw.storyboard`` — the storyboard bridge to ``artful`` (``open_storyboard``,
   ``save_storyboard``, ``storyboard_from_shots``, …). Needs the
   ``nw[storyboard]`` extra; loaded on first touch.
@@ -408,6 +409,7 @@ _register_builtin_checks()
 
 _LAZY_SUBMODULES = {
     "jobs": "nw.jobs",
+    "batches": "nw.batches",
     "storyboard": "nw.storyboard",
 }
 _LAZY_ATTRS = {
