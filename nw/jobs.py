@@ -801,8 +801,7 @@ def list_jobs(
     whose missing-key-returns-PENDING gotcha makes membership meaningless).
     """
     rt = _runtime(project, config)
-    with rt.lock:
-        records = [r for r in (_index_get_locked(rt, k) for k in list(rt.index)) if r]
+    records = [r for r in (_index_snapshot(rt, k) for k in list(rt.index)) if r]
     records.sort(key=lambda r: r.get("created_at") or "", reverse=True)
 
     jobs: list[Job] = []
@@ -900,8 +899,7 @@ def get_job(project, job_id: str, *, config: JobsConfig = DEFAULT_CONFIG) -> Job
     """One job (projecting the au status + mirrored index metadata). ``None`` if
     unknown. Reaps a stale-RUNNING record on read."""
     rt = _runtime(project, config)
-    with rt.lock:
-        record = _index_get_locked(rt, job_id)
+    record = _index_snapshot(rt, job_id)
     if record is None:
         return None
     return _read_job(rt, record, config, project=project)
@@ -1712,8 +1710,7 @@ def _bind_worker(
     captured_fal_key = _capture_fal_credentials()
 
     def should_cancel() -> bool:
-        with rt.lock:
-            record = _index_get_locked(rt, job_id)
+        record = _index_snapshot(rt, job_id)
         if record and record.get("cancel_requested"):
             return True
         try:
@@ -2057,8 +2054,7 @@ def _read_job(rt, record, config, *, project) -> Job:
         ComputationStatus.FAILED,
         ComputationStatus.CANCELLED,
     ):
-        with rt.lock:
-            record = _index_get_locked(rt, job_id) or record
+        record = _index_snapshot(rt, job_id) or record
     job = _project_job(rt, record, au_result, config)
     if job.status in (RUNNING, CANCELLING) and job.pct is not None:
         if record.get("pct_floor") is None or job.pct > record["pct_floor"]:
@@ -2447,6 +2443,31 @@ def _compute_pct_eta(elapsed_s, prediction: _Prediction, record, config):
 
 def _index_get_locked(rt, job_id):
     return rt.index.get(job_id)
+
+
+#: Whether a snapshot read must still take ``rt.lock``. On Windows a reader's
+#: open file makes the writer's ``os.replace`` fail, so reads stay serialized.
+_SNAPSHOT_READS_LOCK = os.name == "nt"
+
+
+def _index_snapshot(rt, job_id):
+    """``job_id``'s record (``None`` if absent) as one whole snapshot, **without**
+    ``rt.lock`` (nw#158).
+
+    The index is an :class:`AtomicJsonFiles`: every write lands by
+    ``os.replace``, so a reader sees the old record or the new one, never a
+    torn one, and the lock adds nothing to a lone read. Taking it anyway made
+    every poll on every replica queue behind each other, and behind
+    heartbeats, for as long as a full :func:`list_jobs` scan.
+
+    Only for a read that no write depends on. A read-modify-write keeps
+    reading inside the ``with rt.lock:`` that covers the write
+    (:func:`_index_get_locked`).
+    """
+    if _SNAPSHOT_READS_LOCK:
+        with rt.lock:
+            return _index_get_locked(rt, job_id)
+    return _index_get_locked(rt, job_id)
 
 
 def _index_set_locked(rt, job_id, record) -> None:

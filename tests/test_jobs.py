@@ -2371,6 +2371,37 @@ def _terminal_record(rt, job_id, *, run_token="t", au_status=ComputationStatus.C
     rt.au_store[job_id] = ComputationResult({"ok": True}, au_status)
 
 
+@pytest.mark.skipif(jobs._SNAPSHOT_READS_LOCK, reason="reads stay locked on Windows")
+def test_reads_do_not_wait_for_the_index_lock(project):
+    """A poll never queues behind the cross-process index lock (nw#158): a
+    replica holding it for a long scan or a write must not stall every reader."""
+    rt = jobs._runtime(project)
+    _terminal_record(rt, "q", au_status=ComputationStatus.PENDING)  # queued: no writes
+    held, release = threading.Event(), threading.Event()
+
+    def hold():
+        with rt.lock:
+            held.set()
+            release.wait(10)
+
+    holder = threading.Thread(target=hold)
+    holder.start()
+    assert held.wait(5)
+    try:
+        seen = []
+        reader = threading.Thread(
+            target=lambda: seen.append((jobs.get_job(project, "q"), jobs.list_jobs(project)))
+        )
+        reader.start()
+        reader.join(5)
+        assert seen, "a read waited for the index lock"
+    finally:
+        release.set()
+        holder.join()
+    job, listed = seen[0]
+    assert job.status == jobs.QUEUED and [j.job_id for j in listed] == ["q"]
+
+
 def test_cancel_announces_once_even_after_the_worker_exits(project, announced):
     release = threading.Event()
     job = jobs.enqueue(project, "op", VIDEO_PARAMS, dispatch={"op": _blocking_stub(release)})
