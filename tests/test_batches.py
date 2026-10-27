@@ -242,3 +242,82 @@ def test_an_enqueue_that_changes_the_job_is_refused(project):
         batches.enqueue_batch(project, _items(1), kind="x", dispatch=d, enqueue=rewriting_door)
     # the record would point at the wrong job, so none is written
     assert list(batches._store(project.root, jobs.DEFAULT_CONFIG)) == []
+
+
+@pytest.fixture
+def parked():
+    """A dispatch whose members wait, released on teardown even when a test fails."""
+    release = threading.Event()
+    yield {"x": _stub(release)}
+    release.set()
+
+
+def _priced(n, usd=3.0):
+    return [{**item, "estimated_usd": usd} for item in _items(n)]
+
+
+def test_a_members_host_estimate_is_recorded_and_gated_but_not_hashed(project, parked):
+    """nw#144: a batch item's ``estimated_usd`` is that member's server-side price."""
+    gate = batches.estimate_batch(project, _priced(2), kind="x")
+    assert gate["estimated_usd"] == pytest.approx(6.0)
+    assert {e["estimate_source"] for e in gate["items"]} == {"host"}
+    b = batches.enqueue_batch(project, _priced(2), kind="x", dispatch=parked)
+    unpriced_ids = batches._spec_job_ids(project, batches._item_specs(_items(2), "x"))
+    assert list(b.job_ids) == unpriced_ids  # the price is not in any job id
+    assert all(jobs.get_job(project, j).cost.estimated_usd == 3.0 for j in b.job_ids)
+
+
+def test_an_item_priced_unknown_makes_the_batch_unknown(project):
+    items = [*_priced(1), *_priced(1, usd=None)]
+    gate = batches.estimate_batch(project, items, kind="x")
+    assert gate["estimated_usd"] is None and gate["requires_approval"]
+
+
+def test_a_host_door_receives_each_members_estimate(project, parked):
+    seen = []
+
+    def door(project, *, estimated_usd, **kwargs):
+        seen.append(estimated_usd)
+        return jobs.enqueue(project, estimated_usd=estimated_usd, **kwargs)
+
+    batches.enqueue_batch(project, _priced(2), kind="x", dispatch=parked, enqueue=door)
+    assert seen == [3.0, 3.0]
+
+
+@pytest.mark.parametrize("bad", (float("nan"), -1, True, "3"), ids=repr)
+def test_a_bad_item_estimate_is_refused_before_any_launch(project, parked, bad):
+    items = [*_priced(1), {**_items(2)[1], "estimated_usd": bad}]
+    with pytest.raises(ValueError, match="batch item 1"):
+        batches.enqueue_batch(project, items, kind="x", dispatch=parked)
+    with pytest.raises(ValueError, match="batch item 1"):
+        batches.estimate_batch(project, items, kind="x")
+    assert jobs.list_jobs(project) == []
+
+
+def test_a_nan_item_cannot_slip_a_batch_past_the_gate(project):
+    """``nan + 1e9`` is NaN and ``nan >= threshold`` is False: refused, not approved."""
+    items = [*_priced(1, usd=float("nan")), {**_items(2)[1], "estimated_usd": 1e9}]
+    with pytest.raises(ValueError):
+        batches.estimate_batch(project, items, kind="x")
+
+
+def test_a_batch_level_item_key_launches_nothing(project, parked):
+    with pytest.raises(TypeError, match="per-item"):
+        batches.enqueue_batch(
+            project, _priced(2), kind="x", dispatch=parked, estimated_usd=1.0
+        )
+    assert jobs.list_jobs(project) == []
+
+
+def test_a_door_without_the_estimate_keyword_launches_nothing(project, parked):
+    def old_door(project, *, kind, params, config, dispatch):
+        return jobs.enqueue(project, kind, params, config=config, dispatch=dispatch)
+
+    with pytest.raises(TypeError, match="enqueue door"):
+        batches.enqueue_batch(
+            project, _priced(2), kind="x", dispatch=parked, enqueue=old_door
+        )
+    assert jobs.list_jobs(project) == []
+    # unpriced items still go through a door that predates the keyword
+    b = batches.enqueue_batch(project, _items(2), kind="x", dispatch=parked, enqueue=old_door)
+    assert len(b.job_ids) == 2
