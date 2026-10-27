@@ -2421,3 +2421,21 @@ def test_the_worker_announces_with_the_enqueuing_project(project, announced):
     assert announced.done.wait(5)
     assert len(announced.projects) == 1
     assert announced.projects[0] is enqueuer
+
+
+def test_the_enqueue_door_announces_the_old_run_even_after_the_new_one_was(
+    project, announced
+):
+    """The door fires the OLD run's hooks after the new run is in the index; if
+    the new run was already announced, its ``announced_to`` is not the old run's."""
+    rt = jobs._runtime(project)
+    _terminal_record(rt, "k", run_token="T1")
+    old = jobs._project_job(rt, jobs._index_get_locked(rt, "k"), rt.au_store["k"], rt.config)
+    with rt.lock:
+        record = jobs._index_get_locked(rt, "k")
+        record.update(run_token="T2", announced_to=["test"], terminal_announced=True)
+        jobs._index_set_locked(rt, "k", record)
+        rt.announcing.add(("k", "T1"))
+    jobs._fire_terminal_hooks(rt, project, old, run_token="T1")
+    assert announced == [("k", jobs.SUCCEEDED)]
+    assert ("k", "T1") not in rt.announcing

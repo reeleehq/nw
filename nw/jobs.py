@@ -1274,34 +1274,36 @@ def _claim_announcement_locked(rt, record, *, run_token) -> bool:
 def _fire_terminal_hooks(rt, project, job: Job, *, run_token) -> None:
     """Run the hooks a claimed run has not yet been announced to, record which
     returned, and mark the run announced once none is left owing (or the failing
-    ones are out of attempts); release the claim either way, so what failed is
-    retried by the next read."""
-    with rt.lock:
-        record = _index_get_locked(rt, job.job_id) or {}
+    ones are out of attempts); release the claim on every path, so what failed
+    is retried by the next read."""
+    try:
+        with rt.lock:
+            record = _this_run_locked(rt, job.job_id, run_token) or {}
         done = set(record.get("announced_to") or ())
-    failed = []
-    for name, hook in list(terminal_hooks.items()):
-        if name in done:
-            continue
-        try:
-            hook(project, job)
-            done.add(name)
-        except Exception:  # noqa: BLE001 — a host's hook must not break a read
-            failed.append(name)
-            _logger.exception(
-                "nw.jobs: terminal hook %r failed for %s", name, job.job_id
-            )
-    with rt.lock:
-        try:
-            record = _index_get_locked(rt, job.job_id)
-            if record is None or record.get("run_token") != run_token:
+        failed = []
+        for name, hook in list(terminal_hooks.items()):
+            if name in done:
+                continue
+            try:
+                hook(project, job)
+                done.add(name)
+            except Exception:  # noqa: BLE001 — a host's hook must not break a read
+                failed.append(name)
+                _logger.exception(
+                    "nw.jobs: terminal hook %r failed for %s", name, job.job_id
+                )
+        with rt.lock:
+            record = _this_run_locked(rt, job.job_id, run_token)
+            if record is None:
                 return
             attempts = record.get("announce_attempts", 0) + 1
             given_up = bool(failed) and attempts >= rt.config.terminal_hook_attempts
             if given_up:
                 _logger.warning(
                     "nw.jobs: giving up on terminal hooks %s for %s after %d attempts",
-                    failed, job.job_id, attempts,
+                    failed,
+                    job.job_id,
+                    attempts,
                 )
             record.update(
                 announced_to=sorted(done),
@@ -1309,8 +1311,15 @@ def _fire_terminal_hooks(rt, project, job: Job, *, run_token) -> None:
                 terminal_announced=not failed or given_up,
             )
             _index_set_locked(rt, job.job_id, record)
-        finally:
+    finally:
+        with rt.lock:
             rt.announcing.discard((job.job_id, run_token))
+
+
+def _this_run_locked(rt, job_id, run_token):
+    """``job_id``'s record if it is still run ``run_token``'s, else ``None``."""
+    record = _index_get_locked(rt, job_id)
+    return record if record is not None and record.get("run_token") == run_token else None
 
 
 def _announce_if_terminal(rt, project, job: Job, *, run_token) -> None:
