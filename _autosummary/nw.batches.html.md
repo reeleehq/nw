@@ -15,7 +15,7 @@ member jobs on read\* and never stored, so a batch cannot drift from its jobs:
 - [`status()`](#nw.batches.status) — counts per job status, summed cost, `done`.
 - [`wait()`](#nw.batches.wait) — blocks until every member is terminal or `timeout` elapses,
   then returns the current aggregate with `timed_out`. Distinct from
-  [`status()`](#nw.batches.status), which never blocks. Woken by [`nw.jobs.wait_for_change()`](nw.jobs.html.md#nw.jobs.wait_for_change)
+  [`status()`](#nw.batches.status), which never blocks. Woken by the project’s [`nw.jobs.JobNotifier`](nw.jobs.html.md#nw.jobs.JobNotifier)
   > (job finish / cancel) and re-checking at `poll_s` regardless, because the
   > reaper and cross-process workers change a job without notifying anyone here.
 - [`output()`](#nw.batches.output) — a partially failed batch yields its successes *and* its
@@ -145,7 +145,7 @@ honesty flags: `estimated_usd` is `None` if any member’s is unknown, and
 
 Block until the batch is done or `timeout` seconds pass (a hard cap).
 
-`timeout` must be >= 0. Wakes on job finish/cancel via [`nw.jobs.notify_change()`](nw.jobs.html.md#nw.jobs.notify_change) (managed
+`timeout` must be >= 0. Wakes on job finish/cancel via the project’s [`nw.jobs.JobNotifier`](nw.jobs.html.md#nw.jobs.JobNotifier) (managed
 backend only; a custom `backend=` falls back to the `poll_s` re-read).
 
 Returns the [`status()`](#nw.batches.status) aggregate with `timed_out` True when the cap hit

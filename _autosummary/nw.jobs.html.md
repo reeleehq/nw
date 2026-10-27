@@ -73,7 +73,6 @@ the top of this module — no magic numbers below.
 
 | [`cancel_job`](#nw.jobs.cancel_job)(project, job_id, \*[, config])         | Request cancellation.                                                                                                                                                  |
 |----------------------------------------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| [`change_count`](#nw.jobs.change_count)()                                    | A counter that [`notify_change()`](#nw.jobs.notify_change) advances.                                                                              |
 | [`check_job_spec`](#nw.jobs.check_job_spec)(params)                            | Raise what [`enqueue()`](#nw.jobs.enqueue) would raise for malformed `params` (`ValueError` on a bad `units`), before anything is launched. |
 | [`enqueue`](#nw.jobs.enqueue)(project, kind, params, \*[, ...])         | Enqueue a billable render as a background job.                                                                                                                         |
 | [`error_detail_of`](#nw.jobs.error_detail_of)(error, \*[, secrets])             | The refusal `error` carries as data, or `None`.                                                                                                                        |
@@ -81,13 +80,12 @@ the top of this module — no magic numbers below.
 | [`estimate`](#nw.jobs.estimate)(project, kind, params, \*[, config])     | Dry-run cost gate **without enqueueing**.                                                                                                                              |
 | [`get_job`](#nw.jobs.get_job)(project, job_id, \*[, config])            | One job (projecting the au status + mirrored index metadata).                                                                                                          |
 | [`job_id_for`](#nw.jobs.job_id_for)(project, kind, params, \*[, ...])      | The id [`enqueue()`](#nw.jobs.enqueue) would give this job, without enqueueing it.                                                          |
+| [`job_notifier`](#nw.jobs.job_notifier)(project, \*[, config])               | This project's [`JobNotifier`](#nw.jobs.JobNotifier) (built with its runtime).                                                                  |
 | [`list_jobs`](#nw.jobs.list_jobs)(project, \*[, status, limit, config])   | Jobs for this project, **newest first**, optionally filtered by status.                                                                                                |
-| [`notify_change`](#nw.jobs.notify_change)()                                   | Wake [`wait_for_change()`](#nw.jobs.wait_for_change) waiters: some job reached a new state.                                                         |
 | `now_iso`()                                                                                        |                                                                                                                                                                        |
 | [`predict_total_s`](#nw.jobs.predict_total_s)(eta_candidates, output_kind, ...) | Predict the total render seconds for a job as `(p50, p90, confidence)`.                                                                                                |
 | [`summarize`](#nw.jobs.summarize)(project_root, \*[, limit, config])      | This project's jobs **without provisioning it**.                                                                                                                       |
 | [`to_dict`](#nw.jobs.to_dict)(job)                                      | Serialize a [`Job`](#nw.jobs.Job) to the JSON contract (design report §7.4).                                                            |
-| [`wait_for_change`](#nw.jobs.wait_for_change)(seen, timeout)                    | Block until the counter moves past `seen` or `timeout` seconds pass.                                                                                                   |
 
 ### Classes
 
@@ -96,8 +94,14 @@ the top of this module — no magic numbers below.
 | [`DurationLearningMiddleware`](#nw.jobs.DurationLearningMiddleware)(\*, durations, ...)    | Keyed, percentile duration learner — a cousin of `au.MetricsMiddleware`.                                       |
 | [`Job`](#nw.jobs.Job)(job_id, kind, label, status, idempotency_key) | Projected, JSON-serializable view of one job (see [`to_dict()`](#nw.jobs.to_dict)). |
 | [`JobCost`](#nw.jobs.JobCost)([estimated_usd, actual_usd, ...])         |                                                                                                                |
+| [`JobNotifier`](#nw.jobs.JobNotifier)()                                     | A change counter with a wakeup: "some job of this project changed state".                                      |
 | [`JobProgress`](#nw.jobs.JobProgress)([stage_index, stage_count, ...])      |                                                                                                                |
 | [`JobsConfig`](#nw.jobs.JobsConfig)([n_min, sample_window_k, ...])         | Tunables for the job manager.                                                                                  |
+
+### Exceptions
+
+| [`JobAborted`](#nw.jobs.JobAborted)   | A render raised something that is not an `Exception` (`KeyboardInterrupt`, `asyncio.CancelledError`, a custom `BaseException`).   |
+|---------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------|
 
 ### *class* nw.jobs.AtomicJsonFiles(rootdir)
 
@@ -173,9 +177,27 @@ Called before computation starts.
 * **Return type:**
   [`None`](https://docs.python.org/3/builtins/constants.html#None)
 
+#### claim_locked(key)
+
+Mark `key` live before its worker thread has started (caller holds
+the lock). `before_compute` re-stamps the time; `after_compute` /
+`on_error` release it, [`release_locked()`](#nw.jobs.DurationLearningMiddleware.release_locked) undoes it if the launch
+itself fails. Without it a cancel plus a re-enqueue inside the window
+before the thread registers launched a second worker (nw#128).
+
+* **Return type:**
+  [`None`](https://docs.python.org/3/builtins/constants.html#None)
+
 #### on_error(key, error)
 
 Called when computation fails.
+
+* **Return type:**
+  [`None`](https://docs.python.org/3/builtins/constants.html#None)
+
+#### release_locked(key)
+
+Undo [`claim_locked()`](#nw.jobs.DurationLearningMiddleware.claim_locked) when the launch itself failed.
 
 * **Return type:**
   [`None`](https://docs.python.org/3/builtins/constants.html#None)
@@ -255,6 +277,14 @@ existed, or a worker that died before its first beat. Absence is not a
 duration, and rendering `None` as `0` would report the silent case as
 the healthiest one.
 
+### *exception* nw.jobs.JobAborted
+
+Bases: [`RuntimeError`](https://docs.python.org/3/builtins/exceptions.html#RuntimeError)
+
+A render raised something that is not an `Exception` (`KeyboardInterrupt`,
+`asyncio.CancelledError`, a custom `BaseException`). The worker re-raises
+it as this so au records the job FAILED instead of leaving it RUNNING forever.
+
 ### *class* nw.jobs.JobCost(estimated_usd=None, actual_usd=None, cache_hit_savings_usd=None, actual_is_lower_bound=None)
 
 Bases: [`object`](https://docs.python.org/3/builtins/functions.html#object)
@@ -283,6 +313,25 @@ Predicted spend, re-quoted at today’s rates when a plan was supplied.
 a plan whose calls carry no `falaw.CostBasis` re-prices to. Never
 the plan-time figure passed in alongside such a plan: that number was true
 when it was written and falaw’s rate tables have moved since (nw#74).
+
+### *class* nw.jobs.JobNotifier
+
+Bases: [`object`](https://docs.python.org/3/builtins/functions.html#object)
+
+A change counter with a wakeup: “some job of this project changed state”.
+
+One per project runtime, so a change in one project never wakes another’s
+waiters. Waiters read `count()` BEFORE inspecting jobs and hand it to
+[`wait()`](#nw.jobs.JobNotifier.wait), so a change landing in between is not lost. The wakeup is a
+*hint*: reaping and other processes’ workers change jobs without calling
+`notify()`, so a waiter bounds its timeout and re-reads.
+
+#### wait(seen, timeout)
+
+Block until the counter moves past `seen` or `timeout` seconds pass.
+
+* **Return type:**
+  [`None`](https://docs.python.org/3/builtins/constants.html#None)
 
 ### *class* nw.jobs.JobProgress(stage_index=None, stage_count=None, current_transform=None, fraction=None)
 
@@ -387,15 +436,6 @@ to change.
 
 * **Return type:**
   [`Job`](#nw.jobs.Job) | [`None`](https://docs.python.org/3/builtins/constants.html#None)
-
-### nw.jobs.change_count()
-
-A counter that [`notify_change()`](#nw.jobs.notify_change) advances. Read it BEFORE inspecting
-jobs and hand it to [`wait_for_change()`](#nw.jobs.wait_for_change), so a change landing between
-the read and the wait is not lost.
-
-* **Return type:**
-  [`int`](https://docs.python.org/3/builtins/functions.html#int)
 
 ### nw.jobs.check_job_spec(params)
 
@@ -569,6 +609,13 @@ The id [`enqueue()`](#nw.jobs.enqueue) would give this job, without enqueueing i
 * **Return type:**
   [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
 
+### nw.jobs.job_notifier(project, , config=JobsConfig(n_min=3, sample_window_k=20, pct_ceil=99, overrun_factor=1.5, cache_hit_floor_s=0.5, dur_buckets_s=(4.0, 8.0, 12.0), prior_total_s={'image': 12.0, 'video': 90.0, 'audio': 15.0}, default_prior_total_s=30.0, stale_running_s=900.0, heartbeat_interval_s=20.0, heartbeat_stale_s=120.0, approval_threshold_usd=1.0, jobs_dirname='.nw/jobs'))
+
+This project’s [`JobNotifier`](#nw.jobs.JobNotifier) (built with its runtime).
+
+* **Return type:**
+  [`JobNotifier`](#nw.jobs.JobNotifier)
+
 ### nw.jobs.list_jobs(project, , status=None, limit=50, config=JobsConfig(n_min=3, sample_window_k=20, pct_ceil=99, overrun_factor=1.5, cache_hit_floor_s=0.5, dur_buckets_s=(4.0, 8.0, 12.0), prior_total_s={'image': 12.0, 'video': 90.0, 'audio': 15.0}, default_prior_total_s=30.0, stale_running_s=900.0, heartbeat_interval_s=20.0, heartbeat_stale_s=120.0, approval_threshold_usd=1.0, jobs_dirname='.nw/jobs'))
 
 Jobs for this project, **newest first**, optionally filtered by status.
@@ -578,13 +625,6 @@ whose missing-key-returns-PENDING gotcha makes membership meaningless).
 
 * **Return type:**
   [`list`](https://docs.python.org/3/builtins/stdtypes.html#list)[[`Job`](#nw.jobs.Job)]
-
-### nw.jobs.notify_change()
-
-Wake [`wait_for_change()`](#nw.jobs.wait_for_change) waiters: some job reached a new state.
-
-* **Return type:**
-  [`None`](https://docs.python.org/3/builtins/constants.html#None)
 
 ### nw.jobs.predict_total_s(eta_candidates, output_kind, , durations, expected_cache_hit=False, units=None, config=JobsConfig(n_min=3, sample_window_k=20, pct_ceil=99, overrun_factor=1.5, cache_hit_floor_s=0.5, dur_buckets_s=(4.0, 8.0, 12.0), prior_total_s={'image': 12.0, 'video': 90.0, 'audio': 15.0}, default_prior_total_s=30.0, stale_running_s=900.0, heartbeat_interval_s=20.0, heartbeat_stale_s=120.0, approval_threshold_usd=1.0, jobs_dirname='.nw/jobs'))
 
@@ -649,14 +689,3 @@ Serialize a [`Job`](#nw.jobs.Job) to the JSON contract (design report §7.4).
 
 * **Return type:**
   [`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)
-
-### nw.jobs.wait_for_change(seen, timeout)
-
-Block until the counter moves past `seen` or `timeout` seconds pass.
-
-A *hint*, not a guarantee: reaping and other processes’ workers change a job
-without calling [`notify_change()`](#nw.jobs.notify_change), so a caller must bound `timeout` and
-re-read.
-
-* **Return type:**
-  [`None`](https://docs.python.org/3/builtins/constants.html#None)

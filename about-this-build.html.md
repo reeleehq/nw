@@ -2,18 +2,20 @@
 
 # About this build
 
-This documentation was built on **2026-10-27 02:04 UTC** from commit <a href="https://github.com/reeleehq/nw/commit/5abf11f5e728399cf833833fd74d544b5f52f810"><code>5abf11f</code></a> on branch <code>main</code>, for **nw 0.0.82** (from <code>pyproject.toml</code>).
+This documentation was built on **2026-10-27 02:46 UTC** from commit <a href="https://github.com/reeleehq/nw/commit/d9ddc54eca0f8d37821cf230139a00db56ca1101"><code>d9ddc54</code></a> on branch <code>main</code>, for **nw 0.0.83** (from <code>pyproject.toml</code>).
 
-#### NOTE
-Nothing suggests a mismatch: the tree was clean at the commit above, and the documented version is the one on PyPI.
+#### WARNING
+The documentation and the package may be misaligned:
+
+- The documented version (0.0.83) is behind the latest release on PyPI (0.0.84): `pip install nw` gives newer code than these docs describe.
 
 ## Source
 
 |                     |                                                                                                                                                    |
 |---------------------|----------------------------------------------------------------------------------------------------------------------------------------------------|
-| Commit              | <a href="https://github.com/reeleehq/nw/commit/5abf11f5e728399cf833833fd74d544b5f52f810"><code>5abf11f5e728399cf833833fd74d544b5f52f810</code></a> |
+| Commit              | <a href="https://github.com/reeleehq/nw/commit/d9ddc54eca0f8d37821cf230139a00db56ca1101"><code>d9ddc54eca0f8d37821cf230139a00db56ca1101</code></a> |
 | Branch              | <code>main</code>                                                                                                                                  |
-| Tags at this commit | <code>0.0.82</code>                                                                                                                                |
+| Tags at this commit | <code>0.0.83</code>                                                                                                                                |
 | Working tree        | clean                                                                                                                                              |
 | Remote              | <code>https://github.com/reeleehq/nw</code>                                                                                                        |
 
@@ -22,9 +24,9 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 |              |                                                                                            |
 |--------------|--------------------------------------------------------------------------------------------|
 | Repository   | <code>reeleehq/nw</code>                                                                   |
-| Run          | <a href="https://github.com/reeleehq/nw/actions/runs/40433855437">40433855437</a>          |
+| Run          | <a href="https://github.com/reeleehq/nw/actions/runs/40437659084">40437659084</a>          |
 | Ref          | <code>refs/heads/main</code>                                                               |
-| Event commit | <code>da0a32371eb413b2969252da6a0ccf4f2afad799</code> (in the history of the built commit) |
+| Event commit | <code>76d1f998a3c12cde4af3019840a42416a51c1086</code> (in the history of the built commit) |
 
 ## Tools
 
@@ -49,13 +51,13 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 
 ## Package on PyPI
 
-Latest release: <a href="https://pypi.org/project/nw/0.0.82/">0.0.82</a>, the same as the documented version.
+Latest release: <a href="https://pypi.org/project/nw/0.0.84/">0.0.84</a>, newer than the documented version (0.0.83).
 
 ## Reproduce
 
 ```bash
 git clone https://github.com/reeleehq/nw && cd nw
-git checkout 5abf11f5e728399cf833833fd74d544b5f52f810
+git checkout d9ddc54eca0f8d37821cf230139a00db56ca1101
 pip install "epythet==0.2.22"
 epythet quickstart . --ignore tests/ scrap/ examples/
 ```
