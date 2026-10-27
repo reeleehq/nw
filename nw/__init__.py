@@ -86,6 +86,7 @@ from .pricing import (
     unquotable,
 )
 from .project import CharacterImage, Project, genre_status_of
+from .rewrite import is_rewritten, rewrite_values
 from .storage import (
     FolderStorage,
     MappingStorage,
@@ -281,6 +282,8 @@ __all__ = [
     "genre_limits",
     "Project",
     "genre_status_of",
+    "is_rewritten",
+    "rewrite_values",
     "ProjectGraph",
     "ProjectStorage",
     "FolderStorage",
