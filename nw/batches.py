@@ -97,13 +97,17 @@ def enqueue_batch(
     Items resolving to the same job collapse to one member (first position wins).
     """
     specs = _item_specs(items, kind, dispatch=enqueue_kwargs.get("dispatch"))
-    ids = tuple(dict.fromkeys(  # ordered set: items resolving to one job collapse
-        _jobs.job_id_for(
-            project, spec["kind"], spec["params"],
-            idempotency_key=spec.get("idempotency_key"),
+    ids = tuple(
+        dict.fromkeys(  # ordered set: items resolving to one job collapse
+            _jobs.job_id_for(
+                project,
+                spec["kind"],
+                spec["params"],
+                idempotency_key=spec.get("idempotency_key"),
+            )
+            for spec in specs
         )
-        for spec in specs
-    ))
+    )
     batch_id = _batch_id(ids)
     store = _store(project.root, config, create=True)
     if batch_id in store:
@@ -354,8 +358,10 @@ def _aggregate(record: BatchRecord, members: list) -> dict:
             ),
             "actual_usd": sum(actuals) if actuals else None,
             "actual_is_lower_bound": (
-                True if any(b is True for b in bounds) or len(present) < len(members)
-                else False if bounds and all(b is False for b in bounds)
+                True
+                if any(b is True for b in bounds) or len(present) < len(members)
+                else False
+                if bounds and all(b is False for b in bounds)
                 else None
             ),
         },
