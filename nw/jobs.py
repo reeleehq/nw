@@ -436,7 +436,7 @@ def enqueue(
                 "label": label,
                 "idempotency_key": idempotency_key,
                 "params": params,
-                "created_at": _now_iso(),
+                "created_at": now_iso(),
                 "started_at": None,
                 "finished_at": None,
                 "eta_candidates": [list(c) for c in eta_candidates],
@@ -704,7 +704,7 @@ def summarize(
     if not index_dir.is_dir() or not au_dir.is_dir():
         return []
 
-    index = _AtomicJsonFiles(index_dir)
+    index = AtomicJsonFiles(index_dir)
     au_store = FileSystemStore(str(au_dir), ttl_seconds=None)
     records = [r for r in (index.get(k) for k in list(index)) if r]
     records.sort(key=lambda r: r.get("created_at") or "", reverse=True)
@@ -809,6 +809,7 @@ def cancel_job(
     # Flip the durable record terminal immediately (idempotent: no-op if already
     # terminal). Passing the backend lets cancel() reach terminate() (§3.1).
     au.cancel_task(job_id, backend=rt.backend, store=rt.au_store)
+    notify_change()
     return get_job(project, job_id, config=config)
 
 
@@ -916,10 +917,16 @@ class DurationLearningMiddleware(Middleware):
             self._start[key] = time.monotonic()
             record = self._index.get(key)
             if record is not None and record.get("started_at") is None:
-                record["started_at"] = _now_iso()
+                record["started_at"] = now_iso()
                 self._index[key] = record
 
     def after_compute(self, key: str, result: ComputationResult) -> None:
+        try:
+            self._learn(key)
+        finally:
+            notify_change()
+
+    def _learn(self, key: str) -> None:
         with self._lock:
             start = self._start.pop(key, None)
         if start is None:
@@ -948,6 +955,7 @@ class DurationLearningMiddleware(Middleware):
     def on_error(self, key: str, error: Exception) -> None:
         with self._lock:
             self._start.pop(key, None)
+        notify_change()
 
     def is_running(self, key: str) -> bool:
         with self._lock:
@@ -1008,7 +1016,7 @@ def predict_total_s(
 # ---------------------------------------------------------------------------
 
 
-class _AtomicJsonFiles(MutableMapping):
+class AtomicJsonFiles(MutableMapping):
     """A ``{key: json-value}`` directory store whose writes are **atomic**.
 
     Drop-in for the ``dol.JsonFiles`` it replaced — same on-disk layout, one
@@ -1087,6 +1095,9 @@ class _AtomicJsonFiles(MutableMapping):
             return False
 
 
+_AtomicJsonFiles = AtomicJsonFiles  # historical private spelling (tests, hosts)
+
+
 @dataclass
 class _JobsRuntime:
     root: str
@@ -1120,9 +1131,9 @@ def _runtime(project, config: JobsConfig = DEFAULT_CONFIG) -> _JobsRuntime:
             (base / "durations").mkdir(parents=True, exist_ok=True)
             au_store = FileSystemStore(str(base / "au"), ttl_seconds=None)
             # Atomic on purpose (reelee#298): these two are rewritten by the
-            # worker while the API reads them; see :class:`_AtomicJsonFiles`.
-            index = _AtomicJsonFiles(base / "index")
-            durations = _AtomicJsonFiles(base / "durations")
+            # worker while the API reads them; see :class:`AtomicJsonFiles`.
+            index = AtomicJsonFiles(base / "index")
+            durations = AtomicJsonFiles(base / "durations")
             lock = threading.Lock()
             middleware = DurationLearningMiddleware(
                 durations=durations, index=index, lock=lock, config=config
@@ -1140,6 +1151,50 @@ def _runtime(project, config: JobsConfig = DEFAULT_CONFIG) -> _JobsRuntime:
             )
             _RUNTIMES[root] = rt
     return rt
+
+
+_CHANGED = threading.Condition()
+_CHANGES = 0
+
+
+def notify_change() -> None:
+    """Wake :func:`wait_for_change` waiters: some job reached a new state."""
+    global _CHANGES
+    with _CHANGED:
+        _CHANGES += 1
+        _CHANGED.notify_all()
+
+
+def change_count() -> int:
+    """A counter that :func:`notify_change` advances. Read it BEFORE inspecting
+    jobs and hand it to :func:`wait_for_change`, so a change landing between
+    the read and the wait is not lost."""
+    with _CHANGED:
+        return _CHANGES
+
+
+def wait_for_change(seen: int, timeout: float) -> None:
+    """Block until the counter moves past ``seen`` or ``timeout`` seconds pass.
+
+    A *hint*, not a guarantee: reaping and other processes' workers change a job
+    without calling :func:`notify_change`, so a caller must bound ``timeout`` and
+    re-read.
+    """
+    with _CHANGED:
+        _CHANGED.wait_for(lambda: _CHANGES != seen, timeout=timeout)
+
+
+def job_id_for(
+    project, kind: str, params: dict, *, idempotency_key: str | None = None
+) -> str:
+    """The id :func:`enqueue` would give this job, without enqueueing it."""
+    return idempotency_key or _default_idempotency_key(project, kind, params)
+
+
+def check_job_spec(params: dict) -> None:
+    """Raise what :func:`enqueue` would raise for malformed ``params``
+    (``ValueError`` on a bad ``units``), before anything is launched."""
+    _eta_units(params)
 
 
 def _reset_runtimes() -> None:
@@ -1379,7 +1434,7 @@ def _mirror_provider_phase(
     else:
         updates["provider_queue_position"] = None
         if record.get("provider_phase") != "in_progress":
-            updates["provider_started_at"] = _now_iso()
+            updates["provider_started_at"] = now_iso()
 
 
 def _mirror_event_into_index(rt, job_id, ev) -> None:
@@ -1455,7 +1510,7 @@ def _reconcile_terminal(rt, job_id, result) -> None:
         record = _index_get_locked(rt, job_id)
         if record is None:
             return
-        updates: dict[str, Any] = {"finished_at": _now_iso()}
+        updates: dict[str, Any] = {"finished_at": now_iso()}
         if isinstance(result, Mapping):
             cost = dict(record.get("cost") or {})
             if result.get("cost_usd_actual") is not None:
@@ -1532,7 +1587,7 @@ def _maybe_reap(rt, record, au_result, config) -> ComputationResult:
         _index_update_locked(
             rt,
             job_id,
-            finished_at=_now_iso(),
+            finished_at=now_iso(),
             error=REAPED_REASON,
             error_kind=ERROR_KIND_CRASHED,
         )
@@ -1576,7 +1631,7 @@ def _beat_while_running(rt, job_id, config, stop: threading.Event) -> None:
         try:
             with rt.lock:
                 if _index_get_locked(rt, job_id) is not None:
-                    _index_update_locked(rt, job_id, heartbeat_at=_now_iso())
+                    _index_update_locked(rt, job_id, heartbeat_at=now_iso())
         except Exception:  # noqa: BLE001 — reporting must not break the render
             pass
         stop.wait(config.heartbeat_interval_s)
@@ -2012,7 +2067,7 @@ def _dur_bucket(duration_s, config) -> str | None:
 
 def _durations_get(durations: MutableMapping, eta_key: str) -> list:
     # Defense in depth, no longer load-bearing: since the store writes
-    # atomically (reelee#298, :class:`_AtomicJsonFiles`) a reader cannot catch
+    # atomically (reelee#298, :class:`AtomicJsonFiles`) a reader cannot catch
     # a sample write half-done. The guard stays for what atomicity cannot
     # promise — a record written by a pre-atomic version mid-upgrade, or a
     # hand-mangled file — where "no history" beats a crashed ETA query.
@@ -2113,8 +2168,11 @@ def _utcnow_plus(seconds: float) -> datetime:
     return _utcnow() + timedelta(seconds=seconds)
 
 
-def _now_iso() -> str:
+def now_iso() -> str:
     return _iso(_utcnow())
+
+
+_now_iso = now_iso  # historical private spelling
 
 
 def _iso(dt: datetime) -> str:
