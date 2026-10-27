@@ -2435,7 +2435,7 @@ def test_the_enqueue_door_announces_the_old_run_even_after_the_new_one_was(
         record = jobs._index_get_locked(rt, "k")
         record.update(run_token="T2", announced_to=["test"], terminal_announced=True)
         jobs._index_set_locked(rt, "k", record)
-    jobs._fire_terminal_hooks(rt, project, old, run_token="T1")
+    jobs._fire_terminal_hooks(rt, project, old, run_token="T1", claim="door")
     assert announced == [("k", jobs.SUCCEEDED)]
     with rt.lock:
         assert jobs._index_get_locked(rt, "k") == record  # T2's record untouched
@@ -2562,3 +2562,29 @@ def test_a_cancel_from_another_replica_is_not_lost_to_a_heartbeat(project):
     with rt_2.lock:
         final = jobs._index_get_locked(rt_2, "j")
     assert final["cancel_requested"] is True and final["heartbeat_at"]
+
+
+def test_a_claimant_whose_lease_expired_cannot_release_the_one_that_took_over(
+    project, announced
+):
+    """Claims are per claim, not per runtime: thread 1's late final write must
+    leave thread 2's live lease alone, even in the same process."""
+    rt = jobs._runtime(project)
+    _terminal_record(rt, "k")
+    with rt.lock:
+        first = jobs._claim_announcement_locked(
+            rt, jobs._index_get_locked(rt, "k"), run_token="t"
+        )
+        record = jobs._index_get_locked(rt, "k")
+        record["announce_claim"]["until"] = jobs._iso(jobs._utcnow_plus(-1))  # expired
+        jobs._index_set_locked(rt, "k", record)
+        second = jobs._claim_announcement_locked(
+            rt, jobs._index_get_locked(rt, "k"), run_token="t"
+        )
+    assert first and second and first != second
+    job = jobs._project_job(rt, record, rt.au_store["k"], rt.config)
+    jobs._fire_terminal_hooks(rt, project, job, run_token="t", claim=first)
+    with rt.lock:
+        record = jobs._index_get_locked(rt, "k")
+    assert record["announce_claim"]["by"] == second  # still the taker-over's
+    assert record["terminal_announced"] is False  # the late claimant recorded nothing

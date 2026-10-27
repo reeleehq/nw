@@ -174,7 +174,8 @@ class JobsConfig:
 
     Well above a slow hook: a lease that expires while its hooks still run lets
     a second claimant announce the run again. A claimant that crashed mid-hooks
-    holds the run this long, then the next read retries it."""
+    holds the run this long, then the next read retries it. Replicas' clocks
+    are assumed to agree to well within it, as for ``heartbeat_stale_s``."""
     approval_threshold_usd: float = 1.0
     """Estimated cost at/above which a render requires explicit approval."""
     jobs_dirname: str = ".nw/jobs"
@@ -527,8 +528,9 @@ def enqueue(
                 old_token = existing.get("run_token")
                 # The claim stamps its lease on ``existing``, so a failed
                 # launch restores the old run still claimed by this door.
-                if _claim_announcement_locked(rt, existing, run_token=old_token):
-                    replaced = (old_job, old_token)
+                claim = _claim_announcement_locked(rt, existing, run_token=old_token)
+                if claim is not None:
+                    replaced = (old_job, old_token, claim)
             registered = False
             try:
                 # Index first: a failed write then leaves the previous run whole.
@@ -577,8 +579,8 @@ def enqueue(
         # Outside ``rt.lock``: a hook may call back into ``nw.jobs``. A failed
         # launch restored the run, so the hooks' success marks it announced.
         if replaced is not None:
-            old_job, old_token = replaced
-            _fire_terminal_hooks(rt, project, old_job, run_token=old_token)
+            old_job, old_token, claim = replaced
+            _fire_terminal_hooks(rt, project, old_job, run_token=old_token, claim=claim)
     return _project_job(rt, record, rt.au_store[job_id], config)
 
 
@@ -1271,25 +1273,29 @@ def register_terminal_hook(
     return hook
 
 
-def _claim_announcement_locked(rt, record, *, run_token) -> bool:
-    """Claim the announcement of run ``run_token`` (caller holds ``rt.lock``).
+def _claim_announcement_locked(rt, record, *, run_token) -> str | None:
+    """Claim the announcement of run ``run_token`` (caller holds ``rt.lock``);
+    return the claim's id, or ``None`` when it is not this caller's to make.
 
     Only a run that is still ``record``'s, not yet announced (an absent flag is
     a record from before announcing) and not under another live claim is
     claimed. The claim is a lease stamped on ``record`` and written to the
     index, so it excludes other replicas and this one's threads alike;
-    :func:`_fire_terminal_hooks` releases it."""
+    :func:`_fire_terminal_hooks` releases it. The id is per claim, not per
+    runtime, so a thread whose lease expired cannot release the one that took
+    it over, even in the same process."""
     if (
         record is None
         or record.get("run_token") != run_token
         or record.get("terminal_announced") is not False
         or _lease_is_live(record.get("announce_claim"))
     ):
-        return False
+        return None
+    claim = uuid4().hex
     until = _iso(_utcnow_plus(rt.config.terminal_hook_lease_s))
-    record["announce_claim"] = {"by": rt.runtime_id, "until": until}
+    record["announce_claim"] = {"by": claim, "until": until}
     _index_set_locked(rt, record["job_id"], record)
-    return True
+    return claim
 
 
 def _lease_is_live(claim) -> bool:
@@ -1299,12 +1305,12 @@ def _lease_is_live(claim) -> bool:
     return until is not None and until > _utcnow()
 
 
-def _holds_lease(rt, record) -> bool:
-    claim = record.get("announce_claim")
-    return isinstance(claim, Mapping) and claim.get("by") == rt.runtime_id
+def _holds_lease(record, claim) -> bool:
+    lease = record.get("announce_claim")
+    return isinstance(lease, Mapping) and lease.get("by") == claim
 
 
-def _fire_terminal_hooks(rt, project, job: Job, *, run_token) -> None:
+def _fire_terminal_hooks(rt, project, job: Job, *, run_token, claim) -> None:
     """Run the hooks a claimed run has not yet been announced to, record which
     returned, and mark the run announced once none is left owing (or the failing
     ones are out of attempts); release the lease on every path, so what failed
@@ -1328,7 +1334,7 @@ def _fire_terminal_hooks(rt, project, job: Job, *, run_token) -> None:
                 )
         with rt.lock:
             record = _this_run_locked(rt, job.job_id, run_token)
-            if record is None or not _holds_lease(rt, record):
+            if record is None or not _holds_lease(record, claim):
                 return
             attempts = record.get("announce_attempts", 0) + 1
             given_up = bool(failed) and attempts >= rt.config.terminal_hook_attempts
@@ -1349,7 +1355,7 @@ def _fire_terminal_hooks(rt, project, job: Job, *, run_token) -> None:
     finally:
         with rt.lock:
             record = _this_run_locked(rt, job.job_id, run_token)
-            if record is not None and _holds_lease(rt, record):
+            if record is not None and _holds_lease(record, claim):
                 del record["announce_claim"]
                 _index_set_locked(rt, job.job_id, record)
 
@@ -1368,11 +1374,11 @@ def _announce_if_terminal(rt, project, job: Job, *, run_token) -> None:
     if job.status not in TERMINAL_STATUSES:
         return
     with rt.lock:
-        claimed = _claim_announcement_locked(
+        claim = _claim_announcement_locked(
             rt, _index_get_locked(rt, job.job_id), run_token=run_token
         )
-    if claimed:
-        _fire_terminal_hooks(rt, project, job, run_token=run_token)
+    if claim is not None:
+        _fire_terminal_hooks(rt, project, job, run_token=run_token, claim=claim)
 
 
 class _AnnounceMiddleware(Middleware):
@@ -1449,8 +1455,6 @@ class _JobsRuntime:
     config: JobsConfig
     notifier: JobNotifier
     announcer: _AnnounceMiddleware
-    #: who this runtime is in an ``announce_claim`` lease (one per replica)
-    runtime_id: str
 
 
 _RUNTIMES: dict[str, _JobsRuntime] = {}
@@ -1510,7 +1514,6 @@ def _runtime(project, config: JobsConfig = DEFAULT_CONFIG) -> _JobsRuntime:
                 config=config,
                 notifier=notifier,
                 announcer=announcer,
-                runtime_id=uuid4().hex,
             )
             announcer.runtime = rt
             _RUNTIMES[root] = rt
