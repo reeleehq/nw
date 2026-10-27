@@ -2683,20 +2683,76 @@ def test_an_old_unannounced_run_is_announced_then_archived(project, announced):
     assert announced == [("old", jobs.SUCCEEDED)]
 
 
-def test_an_old_run_that_never_started_is_failed_and_announced(project, announced):
-    """A run still queued after the whole retention period, with no worker
-    anywhere, is failed as never started (and announced), instead of costing
-    a lock on every sweep forever. A recent queued run is left alone."""
-    rt = jobs._runtime(project)
-    _ended_run(rt, "stuck", days_ago=40, au_status=ComputationStatus.PENDING,
-               finished_at=None, terminal_announced=False)
-    _ended_run(rt, "queued", days_ago=1, au_status=ComputationStatus.PENDING,
-               finished_at=None, terminal_announced=False)
-    assert jobs.archive_finished_runs(project) == []  # it ended just now
-    stuck = jobs.get_job(project, "stuck")
+PATIENT = JobsConfig(never_started_after_s=7 * 86400.0)
+
+
+def _queued(rt, job_id, *, days_ago, **fields):
+    _ended_run(rt, job_id, days_ago=days_ago, au_status=ComputationStatus.PENDING,
+               finished_at=None, terminal_announced=False, **fields)
+
+
+def test_a_run_that_never_started_is_failed_and_announced_by_the_sweep(project, announced):
+    """With ``never_started_after_s`` set, a run queued that long with no worker
+    anywhere is failed as never started and announced by the sweep itself,
+    instead of costing a lock on every sweep forever. A younger one is left."""
+    rt = jobs._runtime(project, PATIENT)
+    _queued(rt, "stuck", days_ago=8)
+    _queued(rt, "queued", days_ago=1)
+    jobs.archive_finished_runs(project, config=PATIENT)
+    assert announced == [("stuck", jobs.FAILED)]  # announced by the sweep's read
+    stuck = jobs.get_job(project, "stuck", config=PATIENT)
     assert stuck.status == jobs.FAILED and stuck.error == jobs.NEVER_STARTED_REASON
-    assert announced == [("stuck", jobs.FAILED)]
-    assert jobs.get_job(project, "queued").status == jobs.QUEUED
+    assert jobs.get_job(project, "queued", config=PATIENT).status == jobs.QUEUED
+
+
+def test_by_default_a_queued_run_is_never_failed_for_waiting(project):
+    """Retention decides when a run leaves the list, not whether a queue is
+    too slow: without ``never_started_after_s`` nothing queued is failed."""
+    rt = jobs._runtime(project)
+    _queued(rt, "slow-queue", days_ago=400)
+    jobs.archive_finished_runs(project)
+    assert jobs.get_job(project, "slow-queue").status == jobs.QUEUED
+
+
+@pytest.mark.parametrize(
+    "alive",
+    ["claimed here", "heartbeat", "re-enqueued", "started", "finished", "au-lost"],
+)
+def test_a_run_with_any_sign_of_life_is_not_failed_as_never_started(
+    project, monkeypatch, alive
+):
+    rt = jobs._runtime(project, PATIENT)
+    fields = {
+        "heartbeat": {"heartbeat_at": jobs.now_iso()},
+        "started": {"started_at": jobs._iso(jobs._utcnow_plus(-8 * 86400))},
+    }.get(alive, {})
+    _queued(rt, "j", days_ago=8, **fields)
+    snapshot = jobs._index_snapshot(rt, "j")
+    if alive == "claimed here":
+        monkeypatch.setattr(rt.middleware, "is_running_locked", lambda key: True)
+    elif alive == "re-enqueued":
+        with rt.lock:
+            jobs._index_update_locked(rt, "j", run_token="new")
+    elif alive in ("finished", "au-lost"):
+        # A run that ended long ago and whose au entry was lost reads PENDING.
+        with rt.lock:
+            jobs._index_update_locked(rt, "j", finished_at=snapshot["created_at"])
+        del rt.au_store["j"]
+    jobs._fail_never_started(rt, snapshot, PATIENT)
+    with rt.lock:
+        assert jobs._index_get_locked(rt, "j").get("error") is None
+
+
+def test_a_dead_running_run_past_every_list_limit_is_reaped_by_the_sweep(project, announced):
+    """Nothing reads a run past the list limit, so its dead worker was never
+    reaped and it could never be archived: the sweep reads it."""
+    rt = jobs._runtime(project)
+    _ended_run(rt, "dead", days_ago=40, au_status=ComputationStatus.RUNNING,
+               finished_at=None, terminal_announced=False,
+               started_at=jobs._iso(jobs._utcnow_plus(-40 * 86400)))
+    jobs.archive_finished_runs(project)
+    assert announced == [("dead", jobs.FAILED)]
+    assert jobs.get_job(project, "dead").error == jobs.REAPED_REASON
 
 
 def test_retention_none_keeps_every_run(project):
