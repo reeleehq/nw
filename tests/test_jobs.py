@@ -2435,10 +2435,64 @@ def test_the_enqueue_door_announces_the_old_run_even_after_the_new_one_was(
         record = jobs._index_get_locked(rt, "k")
         record.update(run_token="T2", announced_to=["test"], terminal_announced=True)
         jobs._index_set_locked(rt, "k", record)
-        rt.announcing.add(("k", "T1"))
     jobs._fire_terminal_hooks(rt, project, old, run_token="T1")
     assert announced == [("k", jobs.SUCCEEDED)]
-    assert ("k", "T1") not in rt.announcing
+    with rt.lock:
+        assert jobs._index_get_locked(rt, "k") == record  # T2's record untouched
+
+
+def test_a_run_is_announced_once_across_replicas_while_its_hooks_run(project):
+    """Replica 1 claims and its hook is still running when replica 2 reads the
+    job terminal: the durable lease on the record refuses replica 2's claim."""
+    entered, release = threading.Event(), threading.Event()
+    calls = []
+
+    def slow(hook_project, job):
+        calls.append(job.job_id)
+        entered.set()
+        release.wait(5)
+
+    jobs.register_terminal_hook("slow", slow)
+    try:
+        _terminal_record(jobs._runtime(project), "k")
+        replica_1 = threading.Thread(target=jobs.get_job, args=(project, "k"))
+        replica_1.start()
+        assert entered.wait(5)
+        jobs._reset_runtimes()  # replica 2: same store, its own runtime id
+        jobs.get_job(project, "k")
+        release.set()
+        replica_1.join(5)
+        jobs.get_job(project, "k")
+    finally:
+        release.set()
+        del jobs.terminal_hooks["slow"]
+    assert calls == ["k"]
+    rt = jobs._runtime(project)
+    with rt.lock:
+        record = jobs._index_get_locked(rt, "k")
+    assert record["terminal_announced"] is True and "announce_claim" not in record
+
+
+def test_an_expired_lease_is_taken_over_and_a_live_one_is_not(project, announced):
+    """A crashed claimant's lease blocks the run only until it expires."""
+    rt = jobs._runtime(project)
+    _terminal_record(rt, "k")
+
+    def lease(seconds):
+        until = jobs._iso(jobs._utcnow_plus(seconds))
+        with rt.lock:
+            jobs._index_update_locked(
+                rt, "k", announce_claim={"by": "crashed", "until": until}
+            )
+
+    lease(60)
+    jobs.get_job(project, "k")
+    assert announced == []
+    lease(-1)
+    jobs.get_job(project, "k")
+    assert announced == [("k", jobs.SUCCEEDED)]
+    with rt.lock:
+        assert "announce_claim" not in jobs._index_get_locked(rt, "k")
 
 
 # ---------------------------------------------------------------------------
@@ -2470,6 +2524,17 @@ def test_two_runtimes_over_one_jobs_root_exclude_each_other(project):
         assert not acquired.wait(0.3)  # replica 2 waits on replica 1's section
     t.join(5)
     assert acquired.is_set()
+
+
+def test_a_filesystem_refusing_the_lock_is_warned_about_once(
+    project, monkeypatch, caplog
+):
+    monkeypatch.setattr(jobs.FileLock, "_try_lock", lambda self: False)
+    jobs._reset_runtimes()
+    jobs._runtime(project)
+    jobs.list_jobs(project)
+    warnings = [r for r in caplog.records if "refuses the index lock" in r.message]
+    assert len(warnings) == 1
 
 
 def test_a_cancel_from_another_replica_is_not_lost_to_a_heartbeat(project):

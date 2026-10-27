@@ -168,6 +168,13 @@ class JobsConfig:
     nw gives up on it (logged once). Hooks that already succeeded for the run
     are not called again, so a broken hook never makes the healthy ones re-fire
     on every poll."""
+    terminal_hook_lease_s: float = 300.0
+    """How long a claim to announce a run excludes every other claimant, this
+    replica's threads included (the ``announce_claim`` lease on its record).
+
+    Well above a slow hook: a lease that expires while its hooks still run lets
+    a second claimant announce the run again. A claimant that crashed mid-hooks
+    holds the run this long, then the next read retries it."""
     approval_threshold_usd: float = 1.0
     """Estimated cost at/above which a render requires explicit approval."""
     jobs_dirname: str = ".nw/jobs"
@@ -391,9 +398,10 @@ def enqueue(
             which otherwise fall back to owner/env in a background job because
             ``ThreadBackend`` does not copy ``ContextVars`` into the worker.
             The hook runs **under the runtime's non-reentrant lock**
-            (``rt.lock``), so it must be quick and must not call back into
-            ``nw.jobs`` (``enqueue``, ``get_job``, ``cancel``…): that would
-            deadlock. If ``backend.launch`` then fails, the returned context
+            (``rt.lock``, which also holds every other replica sharing the
+            jobs root out of the index), so it must be quick and must not call
+            back into ``nw.jobs`` (``enqueue``, ``get_job``, ``cancel``…): that
+            would deadlock. If ``backend.launch`` then fails, the returned context
             manager is entered and exited once, so anything it acquired in the
             call itself is released (outside the lock, so its ``__enter__``/
             ``__exit__`` run once, on the request thread); it is otherwise
@@ -517,6 +525,8 @@ def enqueue(
                 # worker's end read), and replacing it would erase it (nw#151).
                 old_job = _project_job(rt, existing, au_result, config)
                 old_token = existing.get("run_token")
+                # The claim stamps its lease on ``existing``, so a failed
+                # launch restores the old run still claimed by this door.
                 if _claim_announcement_locked(rt, existing, run_token=old_token):
                     replaced = (old_job, old_token)
             registered = False
@@ -842,10 +852,11 @@ def cancel_job(
         # shape that produces a late click.
         #
         # Read the au record, not the index: the index carries intent, the au
-        # store carries outcome. A cross-process race can still slip between
-        # this read and the write below; that shrinks the window from "the whole
-        # poll gap" to "two statements", and closing it fully needs the
-        # optimistic-concurrency work the module owes anyway.
+        # store carries outcome. The index read-modify-write is excluded across
+        # replicas by ``rt.lock`` (nw#148), but au writes its outcome outside
+        # that lock, so a worker finishing between this read and the write
+        # below can still race it; the window is two statements, not the poll
+        # gap.
         already_finished = (
             _normalize_status(
                 rt.au_store[job_id].status,
@@ -1240,10 +1251,16 @@ def register_terminal_hook(
     - **At least once, per hook.** A hook that raises is logged, never
       propagated, and called again on a later read, up to
       ``JobsConfig.terminal_hook_attempts`` announcements of that run; the hooks
-      that already returned are not called again. Replicas sharing a store can
-      race, so a host dedupes. The exception is :func:`enqueue` replacing a
-      finished run: that run's record is gone, so a hook failing there is not
-      retried.
+      that already returned are not called again. The exception is
+      :func:`enqueue` replacing a finished run: that run's record is gone, so a
+      hook failing there is not retried.
+    - **Once, across replicas** sharing a jobs root on a lockable filesystem:
+      the claim is a lease written on the run's record under the index lock
+      (``JobsConfig.terminal_hook_lease_s``), so a run is announced by one
+      thread of one replica at a time. A host still dedupes for the two cases
+      that defeat it: a claimant that dies after a hook returned but before
+      recording it (the run is re-announced once its lease expires), and a
+      filesystem that refuses locks (nw logs a warning).
 
     Runs recorded before this existed are never announced. Remove one with
     ``del terminal_hooks[name]``.
@@ -1255,28 +1272,44 @@ def register_terminal_hook(
 
 
 def _claim_announcement_locked(rt, record, *, run_token) -> bool:
-    """Claim, in this process, the announcement of run ``run_token`` (caller
-    holds ``rt.lock``). Only a run that is still ``record``'s, not yet announced
-    (an absent flag is a record from before announcing) and not being announced
-    by another thread is claimed; :func:`_fire_terminal_hooks` releases it."""
+    """Claim the announcement of run ``run_token`` (caller holds ``rt.lock``).
+
+    Only a run that is still ``record``'s, not yet announced (an absent flag is
+    a record from before announcing) and not under another live claim is
+    claimed. The claim is a lease stamped on ``record`` and written to the
+    index, so it excludes other replicas and this one's threads alike;
+    :func:`_fire_terminal_hooks` releases it."""
     if (
         record is None
         or record.get("run_token") != run_token
         or record.get("terminal_announced") is not False
+        or _lease_is_live(record.get("announce_claim"))
     ):
         return False
-    claim = (record["job_id"], run_token)
-    if claim in rt.announcing:
-        return False
-    rt.announcing.add(claim)
+    until = _iso(_utcnow_plus(rt.config.terminal_hook_lease_s))
+    record["announce_claim"] = {"by": rt.runtime_id, "until": until}
+    _index_set_locked(rt, record["job_id"], record)
     return True
+
+
+def _lease_is_live(claim) -> bool:
+    """Whether ``claim`` (an ``announce_claim``) has not expired; an unreadable
+    one reads expired, so a corrupt lease cannot hold a run forever."""
+    until = _parse_iso(claim.get("until")) if isinstance(claim, Mapping) else None
+    return until is not None and until > _utcnow()
+
+
+def _holds_lease(rt, record) -> bool:
+    claim = record.get("announce_claim")
+    return isinstance(claim, Mapping) and claim.get("by") == rt.runtime_id
 
 
 def _fire_terminal_hooks(rt, project, job: Job, *, run_token) -> None:
     """Run the hooks a claimed run has not yet been announced to, record which
     returned, and mark the run announced once none is left owing (or the failing
-    ones are out of attempts); release the claim on every path, so what failed
-    is retried by the next read."""
+    ones are out of attempts); release the lease on every path, so what failed
+    is retried by the next read. A lease taken over after it expired is the new
+    claimant's: this one then records nothing."""
     try:
         with rt.lock:
             record = _this_run_locked(rt, job.job_id, run_token) or {}
@@ -1295,7 +1328,7 @@ def _fire_terminal_hooks(rt, project, job: Job, *, run_token) -> None:
                 )
         with rt.lock:
             record = _this_run_locked(rt, job.job_id, run_token)
-            if record is None:
+            if record is None or not _holds_lease(rt, record):
                 return
             attempts = record.get("announce_attempts", 0) + 1
             given_up = bool(failed) and attempts >= rt.config.terminal_hook_attempts
@@ -1306,6 +1339,7 @@ def _fire_terminal_hooks(rt, project, job: Job, *, run_token) -> None:
                     job.job_id,
                     attempts,
                 )
+            del record["announce_claim"]
             record.update(
                 announced_to=sorted(done),
                 announce_attempts=attempts,
@@ -1314,7 +1348,10 @@ def _fire_terminal_hooks(rt, project, job: Job, *, run_token) -> None:
             _index_set_locked(rt, job.job_id, record)
     finally:
         with rt.lock:
-            rt.announcing.discard((job.job_id, run_token))
+            record = _this_run_locked(rt, job.job_id, run_token)
+            if record is not None and _holds_lease(rt, record):
+                del record["announce_claim"]
+                _index_set_locked(rt, job.job_id, record)
 
 
 def _this_run_locked(rt, job_id, run_token):
@@ -1412,8 +1449,8 @@ class _JobsRuntime:
     config: JobsConfig
     notifier: JobNotifier
     announcer: _AnnounceMiddleware
-    #: ``(job_id, run_token)`` runs being announced in this process (under ``lock``)
-    announcing: set = field(default_factory=set)
+    #: who this runtime is in an ``announce_claim`` lease (one per replica)
+    runtime_id: str
 
 
 _RUNTIMES: dict[str, _JobsRuntime] = {}
@@ -1428,9 +1465,11 @@ def _runtime(project, config: JobsConfig = DEFAULT_CONFIG) -> _JobsRuntime:
     that first build.
     """
     root = str(Path(project.root).resolve())
+    built = False
     with _RUNTIMES_LOCK:
         rt = _RUNTIMES.get(root)
         if rt is None:
+            built = True
             base = Path(project.root) / config.jobs_dirname
             (base / "au").mkdir(parents=True, exist_ok=True)
             (base / "index").mkdir(parents=True, exist_ok=True)
@@ -1445,7 +1484,11 @@ def _runtime(project, config: JobsConfig = DEFAULT_CONFIG) -> _JobsRuntime:
             # root exclude each other exactly as threads do. ``dol``'s
             # ``FileLock`` is a ``threading.Lock`` that also holds an advisory
             # lock on ``index.lock`` beside the stores; where the filesystem
-            # refuses locks it degrades to the thread lock (``lock.held``).
+            # refuses locks it degrades to the thread lock (``lock.held``),
+            # which :func:`_warn_if_lock_not_held` reports. One open handle per
+            # memoized runtime. On NFS, ``flock`` is emulated with POSIX locks,
+            # which belong to the process: two runtimes in one process there do
+            # not exclude each other (separate processes still do).
             lock = FileLock(base / "index")
             middleware = DurationLearningMiddleware(
                 durations=durations, index=index, lock=lock, config=config
@@ -1467,10 +1510,28 @@ def _runtime(project, config: JobsConfig = DEFAULT_CONFIG) -> _JobsRuntime:
                 config=config,
                 notifier=notifier,
                 announcer=announcer,
+                runtime_id=uuid4().hex,
             )
             announcer.runtime = rt
             _RUNTIMES[root] = rt
+    if built:
+        _warn_if_lock_not_held(rt)
     return rt
+
+
+def _warn_if_lock_not_held(rt) -> None:
+    """Warn, once per runtime, when the filesystem under the jobs root refuses
+    the index lock (shared mounts such as SMB, some FUSE, Lustre): the body
+    still runs under the thread lock, so replicas then lose each other's
+    updates and may announce a run twice."""
+    with rt.lock:
+        held = rt.lock.held
+    if not held:
+        _logger.warning(
+            "nw.jobs: the filesystem refuses the index lock %s; replicas sharing "
+            "this jobs root do not exclude each other",
+            rt.lock.path,
+        )
 
 
 def job_id_for(
