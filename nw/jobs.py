@@ -1352,6 +1352,14 @@ def _finite_json(value: Any) -> Any:
     return value
 
 
+#: What an :class:`AtomicJsonFiles` write retries by default: Windows' sharing
+#: violation (a reader has the file open); nothing elsewhere, where the same
+#: error means a real permission problem.
+_SHARING_VIOLATIONS: tuple[type[BaseException], ...] = (
+    (PermissionError,) if os.name == "nt" else ()
+)
+
+
 class AtomicJsonFiles(MutableMapping):
     """A ``{key: json-value}`` directory store whose writes are **atomic**.
 
@@ -1374,11 +1382,38 @@ class AtomicJsonFiles(MutableMapping):
     A failed serialization touches nothing: the old record survives and no
     temp file is left behind. Temp names start with ``.`` so iteration never
     lists an in-flight write as a key.
+
+    Readers need no lock, on Windows too (nw#170): there a reader holding the
+    file open makes ``os.replace`` / ``os.unlink`` of it fail with
+    ``PermissionError`` until it closes, so a write retries those briefly
+    (``retry_on``, ``attempts``, doubling from ``backoff_s``: ~0.6 s in all by
+    default). A read is milliseconds; the retries outlast it, and they cost
+    nothing unless a write is actually refused.
     """
 
-    def __init__(self, rootdir: str | Path) -> None:
+    def __init__(
+        self,
+        rootdir: str | Path,
+        *,
+        retry_on: tuple[type[BaseException], ...] | None = None,
+        attempts: int = 7,
+        backoff_s: float = 0.01,
+    ) -> None:
         self._rootdir = Path(rootdir)
         self._rootdir.mkdir(parents=True, exist_ok=True)
+        self._retry_on = _SHARING_VIOLATIONS if retry_on is None else retry_on
+        self._attempts = attempts
+        self._backoff_s = backoff_s
+
+    def _retrying(self, op, *args):
+        """``op(*args)``, retried on ``self._retry_on`` with doubling backoff."""
+        for attempt in range(self._attempts):
+            try:
+                return op(*args)
+            except self._retry_on:
+                if attempt == self._attempts - 1:
+                    raise
+                time.sleep(self._backoff_s * 2**attempt)
 
     def _path(self, key: str) -> Path:
         # Keys here are filesystem-safe by construction (sha256 hex job ids,
@@ -1410,11 +1445,16 @@ class AtomicJsonFiles(MutableMapping):
             with suppress(OSError):  # best-effort cleanup; the raise is the point
                 os.unlink(tmp)
             raise
-        os.replace(tmp, path)
+        try:
+            self._retrying(os.replace, tmp, path)
+        except BaseException:
+            with suppress(OSError):  # no orphaned temp file when the swap fails
+                os.unlink(tmp)
+            raise
 
     def __delitem__(self, key: str) -> None:
         try:
-            os.unlink(self._path(key))
+            self._retrying(os.unlink, self._path(key))
         except FileNotFoundError:
             raise KeyError(key) from None
 
@@ -2236,7 +2276,7 @@ def _read_job(rt, record, config, *, project) -> Job:
     if job.status in (RUNNING, CANCELLING) and job.pct is not None:
         if record.get("pct_floor") is None or job.pct > record["pct_floor"]:
             with rt.lock:
-                _index_update_locked(rt, job_id, pct_floor=job.pct)
+                _raise_pct_floor_locked(rt, job_id, run_token, job.pct)
     # The snapshot's run, not the re-read's: an ``enqueue`` between the two
     # replaces the run, and the status read here may be the old run's.
     _announce_if_terminal(rt, project, job, run_token=run_token)
@@ -2653,12 +2693,6 @@ def _index_get_locked(rt, job_id):
     return rt.index.get(job_id)
 
 
-#: Whether :func:`_index_snapshot` still takes ``rt.lock``: on Windows a reader's
-#: open file makes a writer's ``os.replace`` fail, so these reads stay serialized
-#: there (other lock-free reads of the index, e.g. :func:`summarize`, do not).
-_SNAPSHOT_READS_LOCK = os.name == "nt"
-
-
 def _index_snapshot(rt, job_id, *, store=None):
     """``job_id``'s record (``None`` if absent) as one whole snapshot, **without**
     ``rt.lock`` (nw#158). ``store`` reads the archive instead (``rt.archive``,
@@ -2674,11 +2708,23 @@ def _index_snapshot(rt, job_id, *, store=None):
     reading inside the ``with rt.lock:`` that covers the write
     (:func:`_index_get_locked`).
     """
-    store = rt.index if store is None else store
-    if _SNAPSHOT_READS_LOCK:
-        with rt.lock:
-            return store.get(job_id)
-    return store.get(job_id)
+    return (rt.index if store is None else store).get(job_id)
+
+
+def _raise_pct_floor_locked(rt, job_id, run_token, pct) -> None:
+    """Raise run ``run_token``'s ``pct_floor`` to ``pct`` (caller holds
+    ``rt.lock``), never lower it and never touch a run that replaced it
+    (nw#170): two readers projecting different ``pct`` from their own
+    snapshots would otherwise let the later, lower one win, and a reader whose
+    snapshot predates a re-enqueue would hand the old run's progress to the
+    new one."""
+    record = _index_get_locked(rt, job_id)
+    if record is None or record.get("run_token") != run_token:
+        return
+    floor = record.get("pct_floor")
+    if floor is None or pct > floor:
+        record["pct_floor"] = pct
+        _index_set_locked(rt, job_id, record)
 
 
 def _index_set_locked(rt, job_id, record) -> None:

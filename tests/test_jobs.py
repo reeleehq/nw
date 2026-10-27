@@ -6,9 +6,11 @@ progress/cost/eta/cancel machinery is exercised without spending money.
 """
 
 import contextlib
+import dataclasses
 from pathlib import Path
 import contextvars
 import logging
+import os
 import threading
 import time
 
@@ -2552,7 +2554,6 @@ def _terminal_record(rt, job_id, *, run_token="t", au_status=ComputationStatus.C
     rt.au_store[job_id] = ComputationResult({"ok": True}, au_status)
 
 
-@pytest.mark.skipif(jobs._SNAPSHOT_READS_LOCK, reason="reads stay locked on Windows")
 def test_reads_do_not_wait_for_the_index_lock(project):
     """A poll never queues behind the cross-process index lock (nw#158): a
     replica holding it for a long scan or a write must not stall every reader."""
@@ -3143,3 +3144,110 @@ def test_a_run_never_learns_from_the_record_of_a_run_that_replaced_it(project):
         )
     mw.after_compute(key, None)
     assert jobs._durations_get(rt.durations, "x|y|z") == []  # the new run's key learned nothing
+
+
+# ---------------------------------------------------------------------------
+# Windows-safe writes and a monotonic, per-run pct floor (nw#170)
+# ---------------------------------------------------------------------------
+
+
+def _flaky(real, failures):
+    """``real``, failing with ``PermissionError`` the first ``failures`` calls,
+    as Windows does while a reader holds the file open."""
+    calls = []
+
+    def op(*args):
+        calls.append(args)
+        if len(calls) <= failures:
+            raise PermissionError("in use by another process")
+        return real(*args)
+
+    return op
+
+
+def test_a_write_outlasts_a_reader_holding_the_file(tmp_path, monkeypatch):
+    store = jobs.AtomicJsonFiles(tmp_path, retry_on=(PermissionError,), backoff_s=0)
+    monkeypatch.setattr(jobs.os, "replace", _flaky(os.replace, 2))
+    store["k"] = {"v": 1}
+    assert store["k"] == {"v": 1}
+    monkeypatch.setattr(jobs.os, "unlink", _flaky(os.unlink, 2))
+    del store["k"]
+    assert "k" not in store
+
+
+def test_a_write_that_stays_refused_raises_and_leaves_no_temp_file(tmp_path, monkeypatch):
+    store = jobs.AtomicJsonFiles(
+        tmp_path, retry_on=(PermissionError,), attempts=3, backoff_s=0
+    )
+    monkeypatch.setattr(jobs.os, "replace", _flaky(os.replace, 99))
+    with pytest.raises(PermissionError):
+        store["k"] = {"v": 1}
+    assert list(tmp_path.iterdir()) == []
+
+
+def test_no_retry_where_the_error_means_a_real_permission_problem(tmp_path, monkeypatch):
+    store = jobs.AtomicJsonFiles(tmp_path, retry_on=(), backoff_s=0)
+    flaky = _flaky(os.replace, 1)
+    monkeypatch.setattr(jobs.os, "replace", flaky)
+    with pytest.raises(PermissionError):
+        store["k"] = {"v": 1}
+
+
+def test_the_pct_floor_only_rises_and_only_for_its_own_run(project):
+    rt = jobs._runtime(project)
+    with rt.lock:
+        jobs._index_set_locked(rt, "j", {"job_id": "j", "run_token": "t", "pct_floor": 60})
+        jobs._raise_pct_floor_locked(rt, "j", "t", 40)  # a reader behind: no-op
+        assert jobs._index_get_locked(rt, "j")["pct_floor"] == 60
+        jobs._raise_pct_floor_locked(rt, "j", "old", 90)  # a replaced run: no-op
+        assert jobs._index_get_locked(rt, "j")["pct_floor"] == 60
+        jobs._raise_pct_floor_locked(rt, "j", "t", 70)
+        assert jobs._index_get_locked(rt, "j")["pct_floor"] == 70
+
+
+@pytest.mark.skipif(os.name == "nt", reason="Windows retries by default")
+def test_by_default_a_refused_write_is_not_retried_off_windows(tmp_path, monkeypatch):
+    store = jobs.AtomicJsonFiles(tmp_path)
+    monkeypatch.setattr(jobs.os, "replace", _flaky(os.replace, 1))
+    with pytest.raises(PermissionError):
+        store["k"] = {"v": 1}
+
+
+def _reading_at(monkeypatch, pct):
+    """Make every projection report a RUNNING job at ``pct``."""
+    real = jobs._project_job
+    monkeypatch.setattr(
+        jobs, "_project_job",
+        lambda *a, **k: dataclasses.replace(real(*a, **k), status=jobs.RUNNING, pct=pct),
+    )
+
+
+def _running(rt, job_id, **fields):
+    record = {"job_id": job_id, "kind": "op", "label": "op", "run_token": "t",
+              "started_at": jobs.now_iso(), "heartbeat_at": jobs.now_iso(),
+              "pct_floor": None, **fields}
+    with rt.lock:
+        jobs._index_set_locked(rt, job_id, record)
+    rt.au_store[job_id] = ComputationResult(None, ComputationStatus.RUNNING)
+    return dict(record)
+
+
+def test_a_reader_behind_another_never_lowers_the_floor(project, monkeypatch):
+    rt = jobs._runtime(project)
+    snapshot = _running(rt, "j")  # read before the other reader raised it
+    with rt.lock:
+        jobs._index_update_locked(rt, "j", pct_floor=80)
+    _reading_at(monkeypatch, 40)
+    jobs._read_job(rt, snapshot, rt.config, project=project)
+    with rt.lock:
+        assert jobs._index_get_locked(rt, "j")["pct_floor"] == 80
+
+
+def test_a_snapshot_of_a_replaced_run_never_sets_the_new_runs_floor(project, monkeypatch):
+    rt = jobs._runtime(project)
+    snapshot = _running(rt, "j", run_token="old")
+    _running(rt, "j", run_token="new")  # re-enqueued after the snapshot
+    _reading_at(monkeypatch, 50)
+    jobs._read_job(rt, snapshot, rt.config, project=project)
+    with rt.lock:
+        assert jobs._index_get_locked(rt, "j")["pct_floor"] is None
