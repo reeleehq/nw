@@ -2,7 +2,7 @@
 
 # About this build
 
-This documentation was built on **2026-10-27 16:26 UTC** from commit <a href="https://github.com/reeleehq/nw/commit/f09e70edffec302da735ece73c5fd1fc00de40b6"><code>f09e70e</code></a> on branch <code>main</code>, for **nw 0.0.98** (from <code>pyproject.toml</code>).
+This documentation was built on **2026-10-27 16:27 UTC** from commit <a href="https://github.com/reeleehq/nw/commit/f09e70edffec302da735ece73c5fd1fc00de40b6"><code>f09e70e</code></a> on branch <code>main</code>, for **nw 0.0.98** (from <code>pyproject.toml</code>).
 
 #### NOTE
 Nothing suggests a mismatch: the tree was clean at the commit above, and the documented version is the one on PyPI.
@@ -22,9 +22,9 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 |              |                                                                                            |
 |--------------|--------------------------------------------------------------------------------------------|
 | Repository   | <code>reeleehq/nw</code>                                                                   |
-| Run          | <a href="https://github.com/reeleehq/nw/actions/runs/40532347352">40532347352</a>          |
+| Run          | <a href="https://github.com/reeleehq/nw/actions/runs/40533137840">40533137840</a>          |
 | Ref          | <code>refs/heads/main</code>                                                               |
-| Event commit | <code>324d58d2214f3cc1951a432a7ea75dfb6892e371</code> (in the history of the built commit) |
+| Event commit | <code>39fc85cb477d8bce201be00a6010185ff1dd0642</code> (in the history of the built commit) |
 
 ## Tools
 
