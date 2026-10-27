@@ -1319,7 +1319,9 @@ def _fire_terminal_hooks(rt, project, job: Job, *, run_token) -> None:
 def _this_run_locked(rt, job_id, run_token):
     """``job_id``'s record if it is still run ``run_token``'s, else ``None``."""
     record = _index_get_locked(rt, job_id)
-    return record if record is not None and record.get("run_token") == run_token else None
+    return (
+        record if record is not None and record.get("run_token") == run_token else None
+    )
 
 
 def _announce_if_terminal(rt, project, job: Job, *, run_token) -> None:
