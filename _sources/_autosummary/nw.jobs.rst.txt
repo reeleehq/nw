@@ -9,6 +9,7 @@ nw.jobs
    .. autosummary::
    
       UNREADABLE_PLAN_REASON
+      terminal_hooks
       ERROR_KIND_REFUSED
    
    .. rubric:: Functions
@@ -27,6 +28,7 @@ nw.jobs
       list_jobs
       now_iso
       predict_total_s
+      register_terminal_hook
       summarize
       to_dict
    
