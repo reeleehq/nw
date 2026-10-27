@@ -2585,6 +2585,35 @@ def test_an_old_run_that_is_not_over_stays_in_the_index(project, fields, au_stat
     assert "old" in rt.index and "old" not in rt.archive
 
 
+def test_an_old_run_whose_worker_lives_here_stays_in_the_index(project, monkeypatch):
+    rt = jobs._runtime(project)
+    _ended_run(rt, "old", days_ago=40, au_status=ComputationStatus.CANCELLED)
+    monkeypatch.setattr(rt.middleware, "is_running_locked", lambda key: key == "old")
+    jobs.list_jobs(project)
+    assert "old" in rt.index
+
+
+def test_archiving_is_throttled_and_never_fails_the_poll(project, monkeypatch):
+    """A look for runs to archive happens at most once per
+    ``index_sweep_interval_s``, and an archive that cannot be written leaves
+    the run live instead of failing ``list_jobs`` (nw#169)."""
+    rt = jobs._runtime(project)
+    _ended_run(rt, "old", days_ago=40)
+
+    class FullDisk(dict):
+        def __setitem__(self, key, value):
+            raise OSError("disk full")
+
+    monkeypatch.setattr(rt, "archive", FullDisk())
+    assert [j.job_id for j in jobs.list_jobs(project)] == ["old"]  # no raise
+    monkeypatch.undo()
+    jobs.list_jobs(project)  # within the interval: not looked at again
+    assert "old" in rt.index
+    rt.next_sweep = 0.0  # the interval has passed
+    jobs.list_jobs(project)
+    assert "old" in rt.archive and "old" not in rt.index
+
+
 def test_retention_none_keeps_every_run(project):
     config = JobsConfig(index_retention_s=None)
     rt = jobs._runtime(project, config)

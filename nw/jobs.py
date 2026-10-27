@@ -190,6 +190,11 @@ class JobsConfig:
     the scan, and every poll, stays bounded by recent work instead of growing
     with the project's whole history. :func:`get_job` and :func:`cancel_job`
     still answer for an archived id. ``None`` keeps every run in the index."""
+    index_sweep_interval_s: float = 3600.0
+    """How often (per process and project) :func:`list_jobs` looks for runs to
+    archive. A run too old to list but not yet over (an unannounced run, an
+    orphaned queued record) costs a lock round-trip per look, so the look is
+    throttled rather than repeated on every poll."""
     jobs_dirname: str = ".nw/jobs"
     """Sub-path under ``project.root`` for the job stores (nw's ``.nw/`` convention)."""
 
@@ -603,7 +608,6 @@ def enqueue(
                         del rt.au_store[job_id]
                 the_backend.launch(bound, (), {}, job_id, rt.au_store)
                 unentered = None  # a worker owns the context now
-                rt.archive.pop(job_id, None)  # the index holds this key's run again
             except BaseException:
                 rt.middleware.release_locked(job_id)
                 if registered:
@@ -624,6 +628,10 @@ def enqueue(
                     with suppress(Exception):
                         _index_set_locked(rt, job_id, existing)
                 raise
+            # After the launch, outside its rollback: the index holds this key's
+            # run again, and a failure here must not undo a launched worker.
+            with suppress(Exception):
+                rt.archive.pop(job_id, None)
 
     except BaseException:
         # No worker will ever enter the hook's context: release what it
@@ -863,15 +871,27 @@ def _archive_old_runs(rt, records, config) -> list:
     pays nothing beyond the scan it was doing anyway; each candidate is then
     re-read and moved under ``rt.lock`` (:func:`_archive_if_settled`).
     """
-    if config.index_retention_s is None:
+    if config.index_retention_s is None or time.monotonic() < rt.next_sweep:
         return records
+    rt.next_sweep = time.monotonic() + config.index_sweep_interval_s
     cutoff = _utcnow_plus(-config.index_retention_s)
     moved = {
         r["job_id"]
         for r in records
-        if _ended_before(r, cutoff) and _archive_if_settled(rt, r["job_id"], cutoff, config)
+        if _ended_before(r, cutoff) and _archive_quietly(rt, r["job_id"], cutoff, config)
     }
     return [r for r in records if r["job_id"] not in moved] if moved else records
+
+
+def _archive_quietly(rt, job_id, cutoff: datetime, config) -> bool:
+    """:func:`_archive_if_settled`, best-effort: archiving is housekeeping on
+    a read path, so a failure (a full disk, a refused unlink) is logged and the
+    run stays live, never failing the poll."""
+    try:
+        return _archive_if_settled(rt, job_id, cutoff, config)
+    except Exception:  # noqa: BLE001 — the poll matters more than the sweep
+        _logger.warning("could not archive job %s; it stays in the index", job_id, exc_info=True)
+        return False
 
 
 def _ended_before(record, cutoff: datetime) -> bool:
@@ -989,8 +1009,13 @@ def get_job(project, job_id: str, *, config: JobsConfig = DEFAULT_CONFIG) -> Job
     unknown. Reaps a stale-RUNNING record on read. Answers for an archived run
     too (nw#169): a finished, announced run, so the read writes nothing."""
     rt = _runtime(project, config)
-    record = _index_snapshot(rt, job_id) or _index_snapshot(
-        rt, job_id, store=rt.archive
+    # Index, archive, index: a re-run's enqueue writes the index before it
+    # drops the archived copy, so a read that missed both meanwhile finds
+    # the new run on the third look rather than calling a live job unknown.
+    record = (
+        _index_snapshot(rt, job_id)
+        or _index_snapshot(rt, job_id, store=rt.archive)
+        or _index_snapshot(rt, job_id)
     )
     if record is None:
         return None
@@ -1673,6 +1698,8 @@ class _JobsRuntime:
     config: JobsConfig
     notifier: JobNotifier
     announcer: _AnnounceMiddleware
+    next_sweep: float = 0.0
+    """``time.monotonic()`` before which :func:`list_jobs` skips archiving."""
 
 
 _RUNTIMES: dict[str, _JobsRuntime] = {}
