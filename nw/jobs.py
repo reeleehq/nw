@@ -40,7 +40,11 @@ Design decisions (from the ``nw.jobs``-on-``au`` design report,
   record terminal *and* sets a durable should-cancel flag; the ``cancel_requested``
   flag is the authority for cancellation intent, so a job reads
   ``cancelling`` → ``cancelled`` regardless of whether the still-running
-  ``ThreadBackend`` thread later clobbers the store with COMPLETED.
+  ``ThreadBackend`` thread later clobbers the store with COMPLETED. The key
+  stays live until that thread has exited, in this process or any replica
+  sharing the store: each run carries a ``run_token``, its heartbeat stamps
+  only its own record, and its worker writes ``worker_exited_at`` on the way
+  out (nw#124, nw#141).
 - **ETA is learned from observed wall-time**, per ``(model, operation, dur_bucket)``
   with back-off, median (not mean), honest "estimating…" before enough
   history, and **cache-hits excluded from learning**.
@@ -80,6 +84,7 @@ from dataclasses import dataclass, field, asdict
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, TYPE_CHECKING
+from uuid import uuid4
 
 import au
 from au import (
@@ -423,9 +428,10 @@ def enqueue(
                 # running (cancel is cooperative). Launching over it would hand
                 # the new record to a worker that never sees its own
                 # ``cancel_requested`` and writes its events/result into the new
-                # job, so the key stays live until that thread has exited (nw#124).
-                if status not in TERMINAL_STATUSES or rt.middleware._is_running_locked(
-                    job_id
+                # job, so the key stays live until that thread has exited (nw#124),
+                # wherever it runs (nw#141).
+                if status not in TERMINAL_STATUSES or _worker_may_still_run_locked(
+                    rt, existing, config
                 ):
                     # Live job with this key already exists → dedup, run once.
                     return _project_job(rt, existing, au_result, config)
@@ -436,8 +442,11 @@ def enqueue(
                     f"unknown job kind {kind!r} (dispatch has {sorted(dispatch)})"
                 )
 
+            run_token = uuid4().hex
             record = {
                 "job_id": job_id,
+                "run_token": run_token,
+                "worker_exited_at": None,
                 "kind": kind,
                 "label": label,
                 "idempotency_key": idempotency_key,
@@ -484,6 +493,7 @@ def enqueue(
                 config=config,
                 extra_ctx=unentered,
                 secrets=as_secrets(secrets),
+                run_token=run_token,
             )
             the_backend = backend if backend is not None else rt.backend
             try:
@@ -1271,6 +1281,7 @@ def _bind_worker(
     config,
     extra_ctx=None,
     secrets=None,
+    run_token=None,
 ):
     """Bind the render callable into a zero-arg worker body that (a) re-establishes
     request context (fal credentials + project + any caller-supplied context), (b)
@@ -1281,7 +1292,11 @@ def _bind_worker(
     ``capture_context`` hook (called on the request thread); it is entered
     around the render on the worker thread (``ThreadBackend`` does not copy
     ``ContextVars`` into the worker, so anything the caller owns must be
-    re-bound explicitly)."""
+    re-bound explicitly).
+
+    ``run_token`` is the token :func:`enqueue` wrote on this run's record: the
+    heartbeat and the exit marker touch the record only while it still carries
+    it, so a stale worker never stamps a run that replaced its own."""
     captured_fal_key = _capture_fal_credentials()
 
     def should_cancel() -> bool:
@@ -1319,6 +1334,9 @@ def _bind_worker(
             raise JobAborted(
                 f"{type(e).__name__}: {redact_exception(e, secrets)}"
             ) from None
+        finally:
+            # After ``_run`` has joined the beat, so no stamp lands after it.
+            _mark_worker_exited(rt, job_id, run_token)
 
     def _run():
         # ``started_at`` is stamped by the backend's ``before_compute`` hook, which
@@ -1350,7 +1368,7 @@ def _bind_worker(
         stop_beat = threading.Event()
         beat = threading.Thread(
             target=_beat_while_running,
-            args=(rt, job_id, config, stop_beat),
+            args=(rt, job_id, run_token, config, stop_beat),
             name=f"nw-jobs-heartbeat-{job_id[:8]}",
             daemon=True,
         )
@@ -1394,6 +1412,7 @@ def _bind_worker(
             # still stop beating, or a dead job keeps claiming to be alive and
             # the reaper it exists to inform never fires.
             stop_beat.set()
+            beat.join()
         _reconcile_terminal(rt, job_id, result)
         return result
 
@@ -1685,8 +1704,9 @@ def _heartbeat_is_fresh(record, config) -> bool:
     return (_utcnow() - beat).total_seconds() < config.heartbeat_stale_s
 
 
-def _beat_while_running(rt, job_id, config, stop: threading.Event) -> None:
-    """Stamp ``heartbeat_at`` on the index record until ``stop`` is set.
+def _beat_while_running(rt, job_id, run_token, config, stop: threading.Event) -> None:
+    """Stamp ``heartbeat_at`` on the index record until ``stop`` is set, while
+    the record is still this run's (``run_token``).
 
     Runs on a daemon thread beside the render. Best-effort throughout: a
     failed beat must never take down the render it is only reporting on, and
@@ -1696,11 +1716,46 @@ def _beat_while_running(rt, job_id, config, stop: threading.Event) -> None:
     while not stop.is_set():
         try:
             with rt.lock:
-                if _index_get_locked(rt, job_id) is not None:
+                if _is_this_run_locked(rt, job_id, run_token):
                     _index_update_locked(rt, job_id, heartbeat_at=now_iso())
         except Exception:  # noqa: BLE001 — reporting must not break the render
             pass
         stop.wait(config.heartbeat_interval_s)
+
+
+def _is_this_run_locked(rt, job_id, run_token) -> bool:
+    record = _index_get_locked(rt, job_id)
+    return record is not None and record.get("run_token") == run_token
+
+
+def _mark_worker_exited(rt, job_id, run_token) -> None:
+    """Stamp ``worker_exited_at`` on this run's record. Best-effort: a missed
+    stamp leaves a cancelled key held only until its heartbeat goes stale."""
+    try:
+        with rt.lock:
+            if _is_this_run_locked(rt, job_id, run_token):
+                _index_update_locked(rt, job_id, worker_exited_at=now_iso())
+    except Exception:  # noqa: BLE001 — reporting must not break the render
+        pass
+
+
+def _worker_may_still_run_locked(rt, record, config) -> bool:
+    """Whether a terminal-reading ``record`` may still have its worker running.
+
+    Here, the process-local map answers. Elsewhere, only a cancelled job can
+    read terminal while its worker runs (cancel is cooperative), and its worker
+    proves it is alive with a fresh heartbeat until it writes
+    ``worker_exited_at``. The exit marker matters because a heartbeat stays
+    fresh ``heartbeat_stale_s`` after the thread is gone. Left open: a worker
+    between its exit marker and au's terminal write.
+    """
+    if rt.middleware._is_running_locked(record["job_id"]):
+        return True
+    return (
+        bool(record.get("cancel_requested"))
+        and not record.get("worker_exited_at")
+        and _heartbeat_is_fresh(record, config)
+    )
 
 
 def _project_job(rt, record, au_result, config) -> Job:
