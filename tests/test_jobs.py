@@ -1948,10 +1948,14 @@ def test_the_exit_marker_is_written_only_after_the_beat_has_finished(
         beat_done.set()
 
     mark = jobs._mark_worker_exited
+    ours = jobs.job_id_for(project, "op", VIDEO_PARAMS)
 
     def recording_mark(rt, job_id, run_token):
-        beat_alive_at_marker.append(not beat_done.is_set())
-        let_finish.set()
+        # Only this test's job: a worker an earlier test left running exits
+        # through the same patched function.
+        if job_id == ours:
+            beat_alive_at_marker.append(not beat_done.is_set())
+            let_finish.set()
         return mark(rt, job_id, run_token)
 
     monkeypatch.setattr(jobs, "_beat_while_running", fake_beat)
