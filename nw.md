@@ -1,4 +1,4 @@
-> built 2026-10-27 15:28 UTC from 08493d6 (main) · nw 0.0.96. Details: build_info.json
+> built 2026-10-27 16:26 UTC from f09e70e (main) · nw 0.0.98. Details: build_info.json
 
 # index.html.md
 
@@ -7033,6 +7033,14 @@ another replica before the old run’s outcome has landed (nw#149).
 * **Return type:**
   [`None`](https://docs.python.org/3/builtins/constants.html#None)
 
+#### is_running_locked(key)
+
+`is_running()` for a caller already holding the runtime lock
+(it is this middleware’s lock too, and not reentrant).
+
+* **Return type:**
+  [`bool`](https://docs.python.org/3/builtins/functions.html#bool)
+
 #### on_error(key, error)
 
 Called when computation fails (`error` may be a BaseException).
@@ -7058,7 +7066,7 @@ record’s `cost["estimate_source"]`): the host’s `estimated_usd=`, the
 re-quoted `params["plan"]`, `params["estimated_usd"]`, or (record only) a
 render event that replaced a non-host figure. `None` = none.
 
-### *class* nw.jobs.Job(job_id, kind, label, status, idempotency_key, params=dict(), created_at=None, started_at=None, finished_at=None, queue_wait_s=None, elapsed_s=None, progress=JobProgress(), predicted_total_s=None, remaining_s=None, eta_ts=None, eta_s=None, pct=None, confidence=None, label_hint=None, eta_key=None, cost=JobCost(), cached=False, worker_silent_s=None, provider_phase=None, provider_queue_position=None, provider_started_at=None, worker_responsive=None, artifact_ref=None, result=None, error=None, error_kind=None, error_detail=None, run_id=None, last_event_id=None)
+### *class* nw.jobs.Job(job_id, kind, label, status, idempotency_key, params=dict(), created_at=None, started_at=None, finished_at=None, queue_wait_s=None, elapsed_s=None, progress=JobProgress(), predicted_total_s=None, remaining_s=None, eta_ts=None, eta_s=None, pct=None, confidence=None, label_hint=None, eta_key=None, cost=JobCost(), cached=False, worker_silent_s=None, provider_phase=None, provider_queue_position=None, provider_started_at=None, worker_responsive=None, artifact_ref=None, result=None, error=None, error_kind=None, error_detail=None, run_id=None, run_token=None, last_event_id=None)
 
 Bases: [`object`](https://docs.python.org/3/builtins/functions.html#object)
 
@@ -7107,6 +7115,23 @@ The provider’s `queue_position` while `provider_phase` is `"in_queue"`
 
 When the provider first reported the work in progress (ISO UTC), else `None`.
 A job that makes several provider calls reports the latest one’s start.
+
+#### run_id *: [str](https://docs.python.org/3/builtins/stdtypes.html#str) | [None](https://docs.python.org/3/builtins/constants.html#None)* *= None*
+
+the `job_id`, the same
+for every run of the key.
+
+* **Type:**
+  The job’s correlation id, stamped on its events
+
+#### run_token *: [str](https://docs.python.org/3/builtins/stdtypes.html#str) | [None](https://docs.python.org/3/builtins/constants.html#None)* *= None*
+
+a re-run of the key gets a new one (nw#153), so a
+host that dedupes terminal announcements keys on `(job_id, run_token)`.
+`None` for a record written before runs had tokens.
+
+* **Type:**
+  This *run’s* identity
 
 #### worker_responsive *: [bool](https://docs.python.org/3/builtins/functions.html#bool) | [None](https://docs.python.org/3/builtins/constants.html#None)* *= None*
 
@@ -7323,7 +7348,9 @@ A `float` so that what is stored is JSON (a numpy scalar or a
 
 `None` (unknown) or a finite, non-negative real. A bool is refused (it is
 an `int`), and so is NaN: `nan >= threshold` is `False`, so a NaN
-price would pass every approval gate as cheap.
+price would pass every approval gate as cheap. So is an `int` too large
+for a `float`, as `ValueError` rather than `OverflowError`, so a
+caller that tolerates a bad price catches one exception type.
 
 * **Return type:**
   [`float`](https://docs.python.org/3/builtins/functions.html#float) | [`None`](https://docs.python.org/3/builtins/constants.html#None)
@@ -7568,10 +7595,11 @@ read. A re-run of the key is a new run and is announced again.
 - **Once, across replicas** sharing a jobs root on a lockable filesystem:
   the claim is a lease written on the run’s record under the index lock
   (`JobsConfig.terminal_hook_lease_s`), so a run is announced by one
-  thread of one replica at a time. A host still dedupes for the two cases
-  that defeat it: a claimant that dies after a hook returned but before
-  recording it (the run is re-announced once its lease expires), and a
-  filesystem that refuses locks (nw logs a warning).
+  thread of one replica at a time. A host still dedupes, on
+  `(job.job_id, job.run_token)` since a re-run shares the `job_id`, for
+  the two cases that defeat it: a claimant that dies after a hook returned
+  but before recording it (the run is re-announced once its lease
+  expires), and a filesystem that refuses locks (nw logs a warning).
 
 Runs recorded before this existed are never announced. Remove one with
 `del terminal_hooks[name]`.
@@ -10540,7 +10568,7 @@ produce different URLs. The local file paths are byte-stable.
 
 # About this build
 
-This documentation was built on **2026-10-27 15:28 UTC** from commit <a href="https://github.com/reeleehq/nw/commit/08493d63b96ff4799ae6e1ab4c3264588b6dbed9"><code>08493d6</code></a> on branch <code>main</code>, for **nw 0.0.96** (from <code>pyproject.toml</code>).
+This documentation was built on **2026-10-27 16:26 UTC** from commit <a href="https://github.com/reeleehq/nw/commit/f09e70edffec302da735ece73c5fd1fc00de40b6"><code>f09e70e</code></a> on branch <code>main</code>, for **nw 0.0.98** (from <code>pyproject.toml</code>).
 
 #### NOTE
 Nothing suggests a mismatch: the tree was clean at the commit above, and the documented version is the one on PyPI.
@@ -10549,9 +10577,9 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 
 |                     |                                                                                                                                                    |
 |---------------------|----------------------------------------------------------------------------------------------------------------------------------------------------|
-| Commit              | <a href="https://github.com/reeleehq/nw/commit/08493d63b96ff4799ae6e1ab4c3264588b6dbed9"><code>08493d63b96ff4799ae6e1ab4c3264588b6dbed9</code></a> |
+| Commit              | <a href="https://github.com/reeleehq/nw/commit/f09e70edffec302da735ece73c5fd1fc00de40b6"><code>f09e70edffec302da735ece73c5fd1fc00de40b6</code></a> |
 | Branch              | <code>main</code>                                                                                                                                  |
-| Tags at this commit | <code>0.0.96</code>                                                                                                                                |
+| Tags at this commit | <code>0.0.98</code>                                                                                                                                |
 | Working tree        | clean                                                                                                                                              |
 | Remote              | <code>https://github.com/reeleehq/nw</code>                                                                                                        |
 
@@ -10560,9 +10588,9 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 |              |                                                                                            |
 |--------------|--------------------------------------------------------------------------------------------|
 | Repository   | <code>reeleehq/nw</code>                                                                   |
-| Run          | <a href="https://github.com/reeleehq/nw/actions/runs/40525507065">40525507065</a>          |
+| Run          | <a href="https://github.com/reeleehq/nw/actions/runs/40532347352">40532347352</a>          |
 | Ref          | <code>refs/heads/main</code>                                                               |
-| Event commit | <code>253750f230ccfa0edadd983848deabece9f8ebb1</code> (in the history of the built commit) |
+| Event commit | <code>324d58d2214f3cc1951a432a7ea75dfb6892e371</code> (in the history of the built commit) |
 
 ## Tools
 
@@ -10587,13 +10615,13 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 
 ## Package on PyPI
 
-Latest release: <a href="https://pypi.org/project/nw/0.0.96/">0.0.96</a>, the same as the documented version.
+Latest release: <a href="https://pypi.org/project/nw/0.0.98/">0.0.98</a>, the same as the documented version.
 
 ## Reproduce
 
 ```bash
 git clone https://github.com/reeleehq/nw && cd nw
-git checkout 08493d63b96ff4799ae6e1ab4c3264588b6dbed9
+git checkout f09e70edffec302da735ece73c5fd1fc00de40b6
 pip install "epythet==0.2.22"
 epythet quickstart . --ignore tests/ scrap/ examples/
 ```
