@@ -74,6 +74,7 @@ are recorded as linked artifacts), see
 | [`is_rewritten`](#nw.is_rewritten)(project, marker)                     | Whether the rewrite named `marker` has completed on this project.                                                                                                                 |
 | [`mark_rewritten`](#nw.mark_rewritten)(project, marker)                   | Record `marker` as done without scanning: for a project created already in today's vocabulary, so opening it never pays for the scan.                                             |
 | [`rewrite_values`](#nw.rewrite_values)(project, fn, \*[, marker, where])  | Apply `fn(body) -> body` to every stored annotation body; return how many changed.                                                                                                |
+| [`require_fields`](#nw.require_fields)(cls, fields, \*[, remedy])         | Raise [`NwTooOldError`](#nw.NwTooOldError) unless `cls` accepts every keyword in `fields` (names, or a mapping whose keys are the names).               |
 | [`unmark_rewritten`](#nw.unmark_rewritten)(project, marker)                 | Forget that `marker` ran, so the next [`rewrite_values()`](#nw.rewrite_values) with it scans again (a test simulating a project made before the rename). |
 | [`adopt_tenant_id`](#nw.adopt_tenant_id)(project, \*[, dry_run])           | Pin a legacy project's historical tenant into `project.json` (nw#112).                                                                                                            |
 | [`as_project_storage`](#nw.as_project_storage)(project)                       | The [`ProjectStorage`](#nw.ProjectStorage) for a path, a storage, or an `nw.Project`.                                                                    |
@@ -185,6 +186,7 @@ are recorded as linked artifacts), see
 | [`UnknownGenreOpError`](#nw.UnknownGenreOpError)              | `genre_op` was asked for a name the genre does not register.                                   |
 | [`GenreOpRefused`](#nw.GenreOpRefused)(\*args[, detail]) | An op DELIBERATELY declined — no song yet, an unknown clip, an edit that does not hold.        |
 | [`GenreOpCancelled`](#nw.GenreOpCancelled)                 | An op stopped because the host asked it to (its `should_cancel` returned True).                |
+| [`NwTooOldError`](#nw.NwTooOldError)                    | The installed nw lacks something a plugin needs.                                               |
 | [`ValidationError`](#nw.ValidationError)(report)          | Raised by [`ValidationReport.raise_if_failed()`](#nw.ValidationReport.raise_if_failed). |
 
 ### *class* nw.BaseTransform
@@ -963,6 +965,14 @@ A project whose graph and documents live in mappings the caller owns.
     `root` (none by default: the genre owns its layout).
   * **asset_id** ([`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]) – Fix the asset id instead of deriving it from `root` and
     the project’s title.
+
+### *exception* nw.NwTooOldError
+
+Bases: [`ImportError`](https://docs.python.org/3/builtins/exceptions.html#ImportError)
+
+The installed nw lacks something a plugin needs. An `ImportError`
+because it is raised while the plugin is being imported and registered,
+where an environment that cannot provide a dependency is reported.
 
 ### *class* nw.PlanQuote(, total_usd, status, as_of_total_usd, repriced, reason='')
 
@@ -3229,6 +3239,20 @@ regardless of when, or whether, the registry opens.
 * **Return type:**
   [`Union`](https://docs.python.org/3/library/typing.html#typing.Union)[[`Transform`](#nw.Transform), [`Callable`](https://docs.python.org/3/library/typing.html#typing.Callable)[[[`type`](https://docs.python.org/3/builtins/functions.html#type)], [`type`](https://docs.python.org/3/builtins/functions.html#type)]]
 
+### nw.require_fields(cls, fields, , remedy='upgrade nw')
+
+Raise [`NwTooOldError`](#nw.NwTooOldError) unless `cls` accepts every keyword in
+`fields` (names, or a mapping whose keys are the names).
+
+The error names nw, the class, each missing keyword and `remedy` (say
+which extra or floor carries the right nw). A class whose constructor
+takes `**kwargs` accepts everything; a positional-only parameter is not
+a keyword, so it does not count. A bare `str` is refused with
+`TypeError`: iterated, it would blame nw for lacking each letter.
+
+* **Return type:**
+  [`None`](https://docs.python.org/3/builtins/constants.html#None)
+
 ### nw.resolve_defaults(genre, template=None)
 
 Resolve a genre (+ optional template) to the params for a new project.
@@ -3565,6 +3589,7 @@ True
 | [`checks`](nw.checks.html.md#module-nw.checks)                           | The checks nw itself ships — a small, honest default menu.                                                                      |
 | [`batches`](nw.batches.html.md#module-nw.batches)                         | nw.batches — many jobs, one handle: submit / status / wait / output / cancel.                                                   |
 | [`bodies`](nw.bodies.html.md#module-nw.bodies)                           | Body schemas for nw's project-graph annotations.                                                                                |
+| [`compat`](nw.compat.html.md#module-nw.compat)                           | What a plugin built against a newer nw checks before it registers (nw#164).                                                     |
 | [`delivery`](nw.delivery.html.md#module-nw.delivery)                       | What a genre hands back when a human wants to *hold* what it made.                                                              |
 | [`experiment`](nw.experiment.html.md#module-nw.experiment)                   | Experiment helpers — clone projects, apply operations across siblings.                                                          |
 | [`genres`](nw.genres.html.md#nw.genres)                                  | A typed dict-backed plugin registry.                                                                                            |

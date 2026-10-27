@@ -22,6 +22,7 @@
 - [nw.bodies.shot](_autosummary/nw.bodies.shot.html.md): Body schema for shots — the renderable visual unit.
 - [nw.bodies.unproduced_output](_autosummary/nw.bodies.unproduced_output.html.md): Body schema for unproduced-output records — nw#44.
 - [nw.bodies.verifying_trace](_autosummary/nw.bodies.verifying_trace.html.md): Body schema for verifying traces — what makes early cutoff possible.
+- [nw.compat](_autosummary/nw.compat.html.md): What a plugin built against a newer nw checks before it registers (nw#164).
 - [nw.delivery](_autosummary/nw.delivery.html.md): What a genre hands back when a human wants to &#42;hold&#42; what it made.
 - [nw.experiment](_autosummary/nw.experiment.html.md): Experiment helpers — clone projects, apply operations across siblings.
 - [nw.genres](_autosummary/nw.genres.html.md): A typed dict-backed plugin registry.
@@ -47,7 +48,7 @@
 - [nw.validation](_autosummary/nw.validation.html.md): Pluggable validation of finished work — the seam, not the checks.
 - [nw.workflow](_autosummary/nw.workflow.html.md): Workflow: prepare → plan → execute, for a &#42;&#42;video shot&#42;&#42;.
 - [For AI agents](ai-agents.html.md): &#96;nw&#96; ships artifacts for coding agents alongside its code. This page lists
-- [About this build](about-this-build.html.md): This documentation was built on &#42;&#42;2026-10-27 17:56 UTC&#42;&#42; from commit &lt;a href="https://github.com/ree...
+- [About this build](about-this-build.html.md): This documentation was built on &#42;&#42;2026-10-27 18:12 UTC&#42;&#42; from commit &lt;a href="https://github.com/ree...
 
 ## Optional
 

@@ -32,6 +32,7 @@
       is_rewritten
       mark_rewritten
       rewrite_values
+      require_fields
       unmark_rewritten
       adopt_tenant_id
       as_project_storage
@@ -145,6 +146,7 @@
       UnknownGenreOpError
       GenreOpRefused
       GenreOpCancelled
+      NwTooOldError
       ValidationError
    
 .. rubric:: Modules
@@ -158,6 +160,7 @@
    checks
    batches
    bodies
+   compat
    delivery
    experiment
    genres

@@ -10,6 +10,7 @@ nw.jobs
    
       ESTIMATE_FROM_RENDER
       UNREADABLE_PLAN_REASON
+      NEVER_STARTED_REASON
       terminal_hooks
       ERROR_KIND_REFUSED
    
@@ -17,6 +18,7 @@ nw.jobs
 
    .. autosummary::
    
+      archive_finished_runs
       cancel_job
       check_job_spec
       checked_usd

@@ -20,6 +20,7 @@
 - [nw.bodies.shot](nw.bodies.shot.html.md): Body schema for shots — the renderable visual unit.
 - [nw.bodies.unproduced_output](nw.bodies.unproduced_output.html.md): Body schema for unproduced-output records — nw#44.
 - [nw.bodies.verifying_trace](nw.bodies.verifying_trace.html.md): Body schema for verifying traces — what makes early cutoff possible.
+- [nw.compat](nw.compat.html.md): What a plugin built against a newer nw checks before it registers (nw#164).
 - [nw.delivery](nw.delivery.html.md): What a genre hands back when a human wants to &#42;hold&#42; what it made.
 - [nw.experiment](nw.experiment.html.md): Experiment helpers — clone projects, apply operations across siblings.
 - [nw.genres](nw.genres.html.md): A typed dict-backed plugin registry.

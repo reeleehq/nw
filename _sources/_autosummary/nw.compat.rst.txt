@@ -1,0 +1,18 @@
+nw.compat
+=========
+
+.. automodule:: nw.compat
+
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      require_fields
+   
+   .. rubric:: Exceptions
+
+   .. autosummary::
+   
+      NwTooOldError
+   
