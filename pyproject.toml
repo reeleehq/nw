@@ -69,7 +69,7 @@ dependencies = [
     # nothing of its own; imported lazily because its package import is not
     # free (nw#96).
     "au>=0.1.1",
-    "dol",
+    "dol>=0.3.37",  # Files(delete_func=) — json_docs deletes outright
 ]
 
 [project.urls]

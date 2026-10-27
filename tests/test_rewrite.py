@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from pathlib import Path
+
 import pytest
 
 import nw
@@ -189,6 +191,22 @@ def test_unmark_rewritten_makes_the_next_rewrite_scan_again(proj):
     assert rewrite_values(proj, _rename, marker="m") == 1
     assert _bodies(proj)[src.id]["style"] == "new"
     assert nw.is_rewritten(proj, "m")
+
+
+def test_unmark_rewritten_of_an_absent_marker_writes_nothing(tmp_path):
+    bare = tmp_path / "not-a-project"
+    nw.unmark_rewritten(bare, "m")
+    assert not bare.exists()
+
+
+def test_unmark_rewritten_clears_a_corrupt_marker(proj):
+    from nw.rewrite import MARKER_PREFIX
+
+    nw.mark_rewritten(proj, "m")
+    marker_file = Path(proj.root) / f"{MARKER_PREFIX}m.json"
+    marker_file.write_text("{not json")
+    nw.unmark_rewritten(proj, "m")
+    assert not marker_file.exists() and not nw.is_rewritten(proj, "m")
 
 
 def test_unmark_rewritten_checks_the_slug(proj):

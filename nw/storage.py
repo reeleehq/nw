@@ -40,6 +40,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 from contextlib import contextmanager
 from pathlib import Path
 from typing import (
@@ -151,10 +152,11 @@ def json_docs(root: str | Path) -> MutableMapping[str, Any]:
     (``"project.json"``, ``"characters/<name>/card.json"``,
     ``"shots/<id>/shot.json"``, the ``".nw/migrated_to_graph"`` sentinel).
     Values are Python objects; on disk they are ``indent=2`` JSON. Parent
-    directories are created on write; a missing key raises ``KeyError``.
+    directories are created on write; a missing key raises ``KeyError``; a
+    delete removes the file (never to the OS trash, dol's default).
     """
     return wrap_kvs(
-        mk_dirs_if_missing(Files(str(root))),
+        mk_dirs_if_missing(Files(str(root), delete_func=os.remove)),
         data_of_obj=lambda obj: json.dumps(obj, indent=2).encode("utf-8"),
         obj_of_data=lambda data: json.loads(data),
     )
