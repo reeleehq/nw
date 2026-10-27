@@ -180,6 +180,22 @@ def test_mark_rewritten_skips_the_scan(proj):
     assert _bodies(proj)[src.id]["style"] == "old"
 
 
+def test_unmark_rewritten_makes_the_next_rewrite_scan_again(proj):
+    src = _source(proj)
+    nw.mark_rewritten(proj, "m")
+    nw.unmark_rewritten(proj, "m")
+    assert not nw.is_rewritten(proj, "m")
+    nw.unmark_rewritten(proj, "m")  # idempotent: absent is not an error
+    assert rewrite_values(proj, _rename, marker="m") == 1
+    assert _bodies(proj)[src.id]["style"] == "new"
+    assert nw.is_rewritten(proj, "m")
+
+
+def test_unmark_rewritten_checks_the_slug(proj):
+    with pytest.raises(ValueError):
+        nw.unmark_rewritten(proj, "../x")
+
+
 def test_works_on_a_mapping_storage(tmp_path):
     from tests.test_storage import _mapping_storage
 
@@ -191,3 +207,5 @@ def test_works_on_a_mapping_storage(tmp_path):
     assert nw.is_rewritten(storage, "m")
     assert {a.id: a.body for a in nw.iter_all_annotations(storage)}[src.id] == {"style": "new"}
     assert all_stale(storage) == []
+    nw.unmark_rewritten(storage, "m")
+    assert not nw.is_rewritten(storage, "m")

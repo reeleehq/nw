@@ -123,6 +123,17 @@ def mark_rewritten(project: ProjectLike, marker: str) -> None:
     as_project_storage(project).docs[_marker_key(marker)] = {"rewritten": 0}
 
 
+def unmark_rewritten(project: ProjectLike, marker: str) -> None:
+    """Forget that ``marker`` ran, so the next :func:`rewrite_values` with it scans
+    again (a test simulating a project made before the rename). Idempotent: an
+    absent marker is not an error. Taken under :data:`LOCK_NAME`, so it cannot
+    interleave with a rewrite that is about to write the marker."""
+    key = _marker_key(marker)
+    storage = as_project_storage(project)
+    with project_lock(storage, LOCK_NAME):
+        storage.docs.pop(key, None)
+
+
 def _marker_key(marker: str) -> str:
     if not MARKER_PATTERN.fullmatch(marker):
         raise ValueError(
