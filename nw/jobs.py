@@ -489,7 +489,7 @@ def enqueue(
             try:
                 # Index first: a failed write then leaves the previous run whole.
                 _index_set_locked(rt, job_id, record)
-                if the_backend is rt.backend:  # a custom backend has no middleware to release it
+                if rt.middleware in getattr(the_backend, "middleware", ()):  # only a backend that will release it
                     rt.middleware.claim_locked(job_id)
                 if existing is not None:
                     # A re-run of a terminal key: the previous run's au result
@@ -971,6 +971,7 @@ class DurationLearningMiddleware(Middleware):
         self._start[key] = time.monotonic()
 
     def release_locked(self, key: str) -> None:
+        """Undo :meth:`claim_locked` when the launch itself failed."""
         self._start.pop(key, None)
 
     def is_running(self, key: str) -> bool:
@@ -1303,6 +1304,19 @@ def _bind_worker(
                 pass
 
     def run():
+        try:
+            return _run()
+        except Exception:
+            raise
+        except BaseException as e:
+            # au's worker catches only ``Exception``: anything else would leave
+            # the record RUNNING and ``_start`` set, so the key could never be
+            # re-enqueued or reaped. Re-raised as an ordinary failure, from ANY
+            # step of the run (the render, a context hook, the heartbeat
+            # start, the terminal reconcile), with the redacted text (nw#128).
+            raise JobAborted(f"{type(e).__name__}: {redact_exception(e, secrets)}") from None
+
+    def _run():
         # ``started_at`` is stamped by the backend's ``before_compute`` hook, which
         # runs before the RUNNING transition is observable — see
         # :meth:`DurationLearningMiddleware.before_compute`. Nothing to stamp here.
@@ -1367,13 +1381,7 @@ def _bind_worker(
                     # `__context__` (a log integration walking suppressed
                     # context would otherwise still reach it).
                     scrubbed = redact_exception(e, secrets)
-                    if not isinstance(e, Exception):
-                        # au's worker catches only ``Exception``: anything else
-                        # would leave the record RUNNING and ``_start`` set, so
-                        # the key could never be re-enqueued or reaped. Re-raise
-                        # it as an ordinary failure (nw#128).
-                        scrubbed = JobAborted(f"{type(e).__name__}: {scrubbed}")
-                    elif scrubbed is e:
+                    if scrubbed is e:
                         raise
             if scrubbed is not None:
                 raise scrubbed

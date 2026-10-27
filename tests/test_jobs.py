@@ -1928,16 +1928,47 @@ def test_cancel_then_reenqueue_before_the_worker_registers_launches_one_worker(p
 
 
 def test_a_failed_launch_releases_the_claim(project):
+    rt = jobs._runtime(project)
+    real = rt.backend
+
     class Boom:
+        middleware = real.middleware  # carries ours, so the key is claimed
+
         def launch(self, *a, **k):
             raise RuntimeError("no")
 
-    rt = jobs._runtime(project)
-    rt.backend = Boom()  # the managed-backend path claims the key
+    rt.backend = Boom()
     with pytest.raises(RuntimeError):
         jobs.enqueue(project, "op", VIDEO_PARAMS, dispatch={"op": lambda p, q: 1})
     key = jobs._default_idempotency_key(project, "op", VIDEO_PARAMS)
     assert not rt.middleware.is_running(key)
+
+
+def test_a_backend_without_our_middleware_is_never_claimed(project):
+    """A per-call ``backend=`` will never call ``after_compute``, so a claim for it
+    would read the key as running forever."""
+    from au import ThreadBackend
+
+    mine = ThreadBackend(store=jobs._runtime(project).au_store)  # no nw middleware
+    job = jobs.enqueue(
+        project, "op", VIDEO_PARAMS, dispatch={"op": lambda p, q: {"ok": 1}}, backend=mine
+    )
+    assert not jobs._runtime(project).middleware.is_running(job.job_id)
+
+
+def test_a_base_exception_from_a_context_hook_also_fails_the_job(project):
+    @contextlib.contextmanager
+    def hook():
+        raise _Abort("enter")
+        yield
+
+    job = jobs.enqueue(
+        project, "op", VIDEO_PARAMS, dispatch={"op": lambda p, q: 1}, capture_context=hook
+    )
+    failed = _poll_until(project, job.job_id, lambda j: j.status == jobs.FAILED)
+    assert failed.status == jobs.FAILED
+    _wait_worker_exit(project, job.job_id)
+    assert not jobs._runtime(project).middleware.is_running(job.job_id)
 
 
 def test_learning_reads_the_record_in_the_same_critical_section_as_the_pop(project):
