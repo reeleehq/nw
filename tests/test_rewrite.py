@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from pathlib import Path
+
 import pytest
 
 import nw
@@ -180,6 +182,54 @@ def test_mark_rewritten_skips_the_scan(proj):
     assert _bodies(proj)[src.id]["style"] == "old"
 
 
+def test_unmark_rewritten_makes_the_next_rewrite_scan_again(proj):
+    src = _source(proj)
+    nw.mark_rewritten(proj, "m")
+    nw.unmark_rewritten(proj, "m")
+    assert not nw.is_rewritten(proj, "m")
+    nw.unmark_rewritten(proj, "m")  # idempotent: absent is not an error
+    assert rewrite_values(proj, _rename, marker="m") == 1
+    assert _bodies(proj)[src.id]["style"] == "new"
+    assert nw.is_rewritten(proj, "m")
+
+
+def test_unmark_rewritten_of_an_absent_marker_writes_nothing(tmp_path):
+    bare = tmp_path / "not-a-project"
+    nw.unmark_rewritten(bare, "m")
+    assert not bare.exists()
+
+
+def test_unmark_rewritten_clears_a_corrupt_marker(proj):
+    from nw.rewrite import MARKER_PREFIX
+
+    nw.mark_rewritten(proj, "m")
+    marker_file = Path(proj.root) / f"{MARKER_PREFIX}m.json"
+    marker_file.write_text("{not json")
+    nw.unmark_rewritten(proj, "m")
+    assert not marker_file.exists() and not nw.is_rewritten(proj, "m")
+
+
+def test_unmark_rewritten_raises_when_the_delete_fails(proj, monkeypatch):
+    """dol turns a failed delete into ``KeyError``; it must not read as "already gone"."""
+    import os
+
+    nw.mark_rewritten(proj, "m")
+
+    def _refuse(path):
+        raise PermissionError(f"read-only mount: {path}")
+
+    monkeypatch.setattr(os, "remove", _refuse)  # json_docs' delete_func
+    with pytest.raises(KeyError):  # a path: a storage built after the patch
+        nw.unmark_rewritten(proj.root, "m")
+    monkeypatch.undo()
+    assert nw.is_rewritten(proj, "m")
+
+
+def test_unmark_rewritten_checks_the_slug(proj):
+    with pytest.raises(ValueError):
+        nw.unmark_rewritten(proj, "../x")
+
+
 def test_works_on_a_mapping_storage(tmp_path):
     from tests.test_storage import _mapping_storage
 
@@ -191,3 +241,5 @@ def test_works_on_a_mapping_storage(tmp_path):
     assert nw.is_rewritten(storage, "m")
     assert {a.id: a.body for a in nw.iter_all_annotations(storage)}[src.id] == {"style": "new"}
     assert all_stale(storage) == []
+    nw.unmark_rewritten(storage, "m")
+    assert not nw.is_rewritten(storage, "m")

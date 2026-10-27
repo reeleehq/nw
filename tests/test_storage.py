@@ -190,3 +190,24 @@ def test_mapping_storage_persists_into_the_mapping_across_reopens(tmp_path):
         tmp_path, storage=nw.MappingStorage(root=tmp_path, graph=graph, docs=docs)
     )
     assert [s.body.section_id for s in again.graph.sections()] == ["a"]
+
+
+def test_json_docs_delete_removes_the_file_without_the_trash(tmp_path, monkeypatch):
+    """dol ``Files`` defaults to sending deletes to the OS trash (or warning
+    when it cannot); a project's docs are deleted outright."""
+    import warnings
+
+    import dol.trash
+
+    from nw.storage import json_docs
+
+    def _no_trash(_):
+        raise AssertionError("json_docs delete went through dol's trash default")
+
+    monkeypatch.setattr(dol.trash, "default_delete_func", _no_trash)
+    docs = json_docs(tmp_path)
+    docs["a/b.json"] = {"x": 1}
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
+        del docs["a/b.json"]
+    assert not (tmp_path / "a" / "b.json").exists()
