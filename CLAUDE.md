@@ -66,7 +66,7 @@ it. Layering: `lacing → nw → falaw.Plan → backends` — nothing above
   *spent* (`Project.total_spend_usd`) is deliberately not re-quoted.
 - **Genres & jobs** (`nw/genres.py`, `nw/jobs.py`) — the genre/template
   registry (`genre_catalog()`, resolved envelopes persisted on the project)
-  and durable async jobs (idempotency by `falaw.plan_hash`; store writes are
+  and durable async jobs (idempotency by `falaw.plan_hash`; a run's end announced once to `nw.jobs.register_terminal_hook` hooks, nw#151; store writes are
   atomic via temp-file + `os.replace`). **Placement** (nw#84): a
   `GenreProjectFactory` takes `projects_dir` — *a factory places a project
   where its caller asks; it does not own the location* — so a host that will

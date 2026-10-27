@@ -2132,3 +2132,136 @@ def test_learning_reads_the_record_in_the_same_critical_section_as_the_pop(proje
     mw._index = Index()
     mw.after_compute("k", None)
     assert seen == [(True, False)]  # popped, and still holding the lock when it read
+
+
+# ---------------------------------------------------------------------------
+# Terminal hooks: a job's end announced once (nw#151)
+# ---------------------------------------------------------------------------
+
+
+@pytest.fixture
+def announced():
+    """A registered terminal hook recording ``(job_id, status)``; removed after."""
+    class Seen(list):
+        done = None
+
+    seen = Seen()
+    seen.done = threading.Event()
+
+    def hook(project, job):
+        seen.append((job.job_id, job.status))
+        seen.done.set()
+
+    jobs.register_terminal_hook("test", hook)
+    try:
+        yield seen
+    finally:
+        del jobs.terminal_hooks["test"]
+
+
+def test_the_worker_announces_a_finished_job_without_any_read(project, announced):
+    release = threading.Event()
+    release.set()
+    job = jobs.enqueue(project, "op", VIDEO_PARAMS, dispatch={"op": _blocking_stub(release)})
+    assert announced.done.wait(5), "no hook fired from the worker"
+    assert announced == [(job.job_id, jobs.SUCCEEDED)]
+    jobs.get_job(project, job.job_id)
+    jobs.list_jobs(project)
+    assert announced == [(job.job_id, jobs.SUCCEEDED)]  # once, not per read
+
+
+def test_a_failed_render_is_announced_failed(project, announced):
+    def boom(project, params):
+        raise RuntimeError("render failed")
+
+    job = jobs.enqueue(project, "op", VIDEO_PARAMS, dispatch={"op": boom})
+    assert announced.done.wait(5)
+    assert announced == [(job.job_id, jobs.FAILED)]
+
+
+def test_cancel_announces_once_even_after_the_worker_exits(project, announced):
+    release = threading.Event()
+    job = jobs.enqueue(project, "op", VIDEO_PARAMS, dispatch={"op": _blocking_stub(release)})
+    _poll_until(project, job.job_id, lambda j: j.status == jobs.RUNNING)
+    jobs.cancel_job(project, job.job_id)
+    assert announced == [(job.job_id, jobs.CANCELLED)]  # synchronously, by cancel
+
+    release.set()
+    _wait_until_thread_exits(jobs._runtime(project), job.job_id)
+    jobs.get_job(project, job.job_id)
+    assert announced == [(job.job_id, jobs.CANCELLED)]
+
+
+def test_the_reaper_announces_a_dead_worker(project, announced):
+    rt = jobs._runtime(project)
+    record = {
+        "job_id": "dead",
+        "kind": "op",
+        "label": "op",
+        "created_at": jobs._iso(jobs._utcnow_plus(-3600)),
+        "started_at": jobs._iso(jobs._utcnow_plus(-3600)),
+        "run_token": "t",
+        "terminal_announced": False,
+    }
+    with rt.lock:
+        jobs._index_set_locked(rt, "dead", record)
+    rt.au_store["dead"] = ComputationResult(None, ComputationStatus.RUNNING)
+    job = jobs.get_job(project, "dead", config=JobsConfig(stale_running_s=0.0))
+    assert job.status == jobs.FAILED
+    assert announced == [("dead", jobs.FAILED)]
+
+
+def test_a_rerun_of_the_key_is_announced_again(project, announced):
+    release = threading.Event()
+    release.set()
+    dispatch = {"op": _blocking_stub(release)}
+    job = jobs.enqueue(project, "op", VIDEO_PARAMS, dispatch=dispatch)
+    assert announced.done.wait(5)
+    _wait_until_thread_exits(jobs._runtime(project), job.job_id)
+    announced.done.clear()
+    jobs.enqueue(project, "op", VIDEO_PARAMS, dispatch=dispatch)
+    assert announced.done.wait(5)
+    assert announced == [(job.job_id, jobs.SUCCEEDED)] * 2
+
+
+def test_a_record_from_before_announcing_is_never_announced(project, announced):
+    release = threading.Event()
+    release.set()
+    rt = jobs._runtime(project)
+    with rt.lock:  # what an older nw wrote: no ``terminal_announced`` at all
+        jobs._index_set_locked(rt, "old", {"job_id": "old", "kind": "op", "label": "op"})
+    rt.au_store["old"] = ComputationResult({"ok": True}, ComputationStatus.COMPLETED)
+    assert jobs.get_job(project, "old").status == jobs.SUCCEEDED
+    assert announced == []
+
+
+def test_a_hook_that_raises_never_breaks_the_read(project, announced, caplog):
+    def bad(project, job):
+        raise RuntimeError("host bug")
+
+    jobs.register_terminal_hook("bad", bad)
+    try:
+        rt = jobs._runtime(project)
+        with rt.lock:
+            jobs._index_set_locked(
+                rt,
+                "j",
+                {"job_id": "j", "kind": "op", "label": "op", "terminal_announced": False},
+            )
+        rt.au_store["j"] = ComputationResult({"ok": True}, ComputationStatus.COMPLETED)
+        assert jobs.get_job(project, "j").status == jobs.SUCCEEDED
+    finally:
+        del jobs.terminal_hooks["bad"]
+    assert ("j", jobs.SUCCEEDED) in announced  # the other hook still ran
+    assert "host bug" in caplog.text
+
+
+def test_register_terminal_hook_refuses_a_name_twice_and_a_non_callable():
+    jobs.register_terminal_hook("once", lambda p, j: None)
+    try:
+        with pytest.raises(Exception):
+            jobs.register_terminal_hook("once", lambda p, j: None)
+        with pytest.raises(TypeError):
+            jobs.register_terminal_hook("nope", "not callable")
+    finally:
+        del jobs.terminal_hooks["once"]

@@ -45,6 +45,10 @@ Design decisions (from the ``nw.jobs``-on-``au`` design report,
   sharing the store: each run carries a ``run_token``, its heartbeat stamps
   only its own record, and its worker writes ``worker_exited_at`` on the way
   out (nw#124, nw#141).
+- **A job's end is announced once.** :func:`register_terminal_hook` hooks get
+  ``(project, job)`` the first time a run is read terminal — by its worker
+  (managed backend), :func:`cancel_job`, the reaper, or any read — so a host
+  records a completion in one place instead of after every door (nw#151).
 - **ETA is learned from observed wall-time**, per ``(model, operation, dur_bucket)``
   with back-off, median (not mean), honest "estimating…" before enough
   history, and **cache-hits excluded from learning**.
@@ -95,6 +99,8 @@ from au import (
     ThreadBackend,
 )
 from au.base import ComputationBackend
+
+from xdol import Registry
 
 from nw.secrets import as_secrets, redact_exception, using_secrets
 
@@ -447,6 +453,7 @@ def enqueue(
                 "job_id": job_id,
                 "run_token": run_token,
                 "worker_exited_at": None,
+                "terminal_announced": False,
                 "kind": kind,
                 "label": label,
                 "idempotency_key": idempotency_key,
@@ -675,7 +682,7 @@ def list_jobs(
 
     jobs: list[Job] = []
     for record in records:
-        job = _read_job(rt, record, config)
+        job = _read_job(rt, record, config, project=project)
         if status is None or job.status == status:
             jobs.append(job)
         if len(jobs) >= limit:
@@ -772,7 +779,7 @@ def get_job(project, job_id: str, *, config: JobsConfig = DEFAULT_CONFIG) -> Job
         record = _index_get_locked(rt, job_id)
     if record is None:
         return None
-    return _read_job(rt, record, config)
+    return _read_job(rt, record, config, project=project)
 
 
 def cancel_job(
@@ -1165,19 +1172,87 @@ class _NotifyMiddleware(Middleware):
     ``_start`` has been popped, so a waiter that re-enqueues the key is not
     refused as still running (nw#124). A caller-supplied ``backend=`` does not
     carry it; its waiters rely on their bounded re-read.
+
+    ``on_end(key)`` runs after the wakeup: the runtime reads the job there, so
+    its terminal hooks fire from the worker, not only from a later read.
     """
 
-    def __init__(self, notifier: JobNotifier) -> None:
+    def __init__(
+        self, notifier: JobNotifier, *, on_end: Callable[[str], None] | None = None
+    ) -> None:
         self._notifier = notifier
+        self._on_end = on_end
 
     def before_compute(self, func, args, kwargs, key) -> None:
         pass
 
     def after_compute(self, key, result) -> None:
-        self._notifier.notify()
+        self._end(key)
 
     def on_error(self, key, error) -> None:
+        self._end(key)
+
+    def _end(self, key) -> None:
         self._notifier.notify()
+        if self._on_end is not None:
+            try:
+                self._on_end(key)
+            except Exception:  # noqa: BLE001 — a read must not fail the worker
+                _logger.exception("nw.jobs: end-of-job read failed for %s", key)
+
+
+#: ``{name: hook}``; each hook is called as ``hook(project, job)`` once per run,
+#: when that run is first read terminal. ``on_conflict="error"`` so two hosts
+#: cannot silently claim one name.
+terminal_hooks: Registry = Registry(name="nw.jobs.terminal_hooks", on_conflict="error")
+
+
+def register_terminal_hook(
+    name: str, hook: Callable[[Any, Job], None]
+) -> Callable[[Any, Job], None]:
+    """Call ``hook(project, job)`` once when a job's run ends (nw#151).
+
+    "Ends" is the first time the run is read terminal — succeeded, failed or
+    cancelled — wherever that happens: the managed backend's worker as it
+    finishes, :func:`cancel_job`, the stale-worker reaper, or any
+    :func:`get_job` / :func:`list_jobs`. The run is claimed durably on its index
+    record before the hooks run, so it is announced **at most once** per store
+    even if it is read again (a crash between the claim and the hook loses that
+    one call); a re-run of the key is a new run and is announced again. Two
+    replicas can still race on the claim, so a host keeps its own dedupe.
+
+    A hook runs on whatever thread did the read, outside nw's locks (it may call
+    back into ``nw.jobs``), and a hook that raises is logged, never propagated.
+    Runs recorded before this existed are never announced. Remove one with
+    ``del terminal_hooks[name]``.
+    """
+    if not callable(hook):
+        raise TypeError(f"terminal hook {name!r} must be callable")
+    terminal_hooks.register(name, hook)
+    return hook
+
+
+def _announce_if_terminal(rt, project, job: Job, *, run_token) -> None:
+    """Fire the terminal hooks for ``job`` if this read is the first to see its
+    run (``run_token``) terminal. The claim is ``terminal_announced`` flipping
+    from ``False``; an absent flag is a record from before announcing."""
+    if job.status not in TERMINAL_STATUSES:
+        return
+    with rt.lock:
+        record = _index_get_locked(rt, job.job_id)
+        if (
+            record is None
+            or record.get("run_token") != run_token
+            or record.get("terminal_announced") is not False
+        ):
+            return
+        record["terminal_announced"] = True
+        _index_set_locked(rt, job.job_id, record)
+    for name, hook in list(terminal_hooks.items()):
+        try:
+            hook(project, job)
+        except Exception:  # noqa: BLE001 — a host's hook must not break a read
+            _logger.exception("nw.jobs: terminal hook %r failed for %s", name, job.job_id)
 
 
 def job_notifier(project, *, config: JobsConfig = DEFAULT_CONFIG) -> JobNotifier:
@@ -1227,8 +1302,16 @@ def _runtime(project, config: JobsConfig = DEFAULT_CONFIG) -> _JobsRuntime:
                 durations=durations, index=index, lock=lock, config=config
             )
             notifier = JobNotifier()
+
+            def read_at_end(job_id, _project=project, _config=config):
+                get_job(_project, job_id, config=_config)
+
             backend = ThreadBackend(
-                store=au_store, middleware=[middleware, _NotifyMiddleware(notifier)]
+                store=au_store,
+                middleware=[
+                    middleware,
+                    _NotifyMiddleware(notifier, on_end=read_at_end),
+                ],
             )
             rt = _JobsRuntime(
                 root=root,
@@ -1617,8 +1700,9 @@ def _reconcile_terminal(rt, job_id, result) -> None:
 # ---------------------------------------------------------------------------
 
 
-def _read_job(rt, record, config) -> Job:
-    """Read one job: reap-if-stale, project, and persist a grown pct floor.
+def _read_job(rt, record, config, *, project) -> Job:
+    """Read one job: reap-if-stale, project, persist a grown pct floor, and
+    announce a run seen terminal for the first time (:func:`register_terminal_hook`).
 
     Terminal-read consistency: a caller may hand us an index ``record`` snapshot
     taken *before* the worker mirrored the render's terminal fields (cost,
@@ -1643,6 +1727,7 @@ def _read_job(rt, record, config) -> Job:
         if record.get("pct_floor") is None or job.pct > record["pct_floor"]:
             with rt.lock:
                 _index_update_locked(rt, job_id, pct_floor=job.pct)
+    _announce_if_terminal(rt, project, job, run_token=record.get("run_token"))
     return job
 
 
