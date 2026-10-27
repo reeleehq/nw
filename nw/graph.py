@@ -72,7 +72,13 @@ from .migrate import (
     _TIER_SECTION,
     _TIER_SHOT,
 )
-from .storage import FolderStorage, ProjectLike, as_project_storage
+from .storage import (
+    FolderStorage,
+    ProjectLike,
+    as_project_storage,
+    close_quietly,
+    open_graph_for_read,
+)
 
 
 _logger = logging.getLogger("nw.graph")
@@ -153,58 +159,27 @@ class ProjectGraph:
         try:
             yield store
         finally:
-            close = getattr(store, "close", None)
-            if callable(close):
-                try:
-                    close()
-                except Exception:
-                    pass
+            close_quietly(store)
 
     @contextmanager
     def _open_read(self) -> Iterator[Optional[IntervalAnnotationStore]]:
         """Open for a READ, without taking a write lock. May yield ``None``.
 
-        This class's docstring already promises that "concurrent reads/writes
-        from different processes are safe (SqliteStore is file-locked)".
-        :func:`open_project_graph` broke that promise for readers: it calls
-        ``_ensure_tiers``, which writes on every open, so a read contended with
-        any live writer. Measured with a writer holding ``BEGIN IMMEDIATE``, a
-        read of one project's genre envelope took **5.4 s** and then raised —
-        and because callers of ``resolved_genre`` catch per project, what a
-        user saw was a listing that stalled for five seconds per contended
-        project and then quietly lost that project's metadata.
-
-        Two fallbacks, each preserving a guarantee the read-write open makes:
-
-        - **No graph on disk yields ``None``**, and the caller returns its
-          empty answer. A project with no store has no sections; creating one
-          to discover that is the write this exists to avoid.
-        - **A file needing migration falls back to the read-write open.**
-          ``open_project_graph`` passes ``migrate=True`` deliberately —
-          without it every pre-D5 project refuses to open — and dropping that
-          for reads would strand those projects until something wrote to them.
-          So the rare case pays the lock and the common case does not.
+        This class's docstring promises that "concurrent reads/writes from
+        different processes are safe (SqliteStore is file-locked)"; a
+        read-write open broke that promise for readers.
+        :func:`~nw.storage.open_graph_for_read` states the measurement and the
+        two fallbacks: no graph yields ``None`` (the caller returns its empty
+        answer), and an older store schema gets the migrating open.
         """
-        from lacing.store.sqlite import SchemaMismatchError
-
-        try:
-            store = self.storage.open_graph_readonly()
-        except FileNotFoundError:
+        store = open_graph_for_read(self.storage)
+        if store is None:
             yield None
-            return
-        except SchemaMismatchError:
-            with self._open() as store:
-                yield store
             return
         try:
             yield store
         finally:
-            close = getattr(store, "close", None)
-            if callable(close):
-                try:
-                    close()
-                except Exception:
-                    pass
+            close_quietly(store)
 
     # -- sections ------------------------------------------------------------
 
