@@ -176,3 +176,35 @@ def test_bad_items_are_refused(project):
         batches.enqueue_batch(project, [], kind="x")
     with pytest.raises(ValueError):
         batches.enqueue_batch(project, [{"params": {}}])  # no kind
+
+
+def test_notifier_is_per_project_and_wakes_promptly(tmp_path):
+    a = Project.init(tmp_path / "a", title="A")
+    b = Project.init(tmp_path / "b", title="B")
+    release = threading.Event()
+    job = jobs.enqueue(a, "x", {"n": 1}, dispatch={"x": _stub(release)})
+    na, nb = jobs.job_notifier(a), jobs.job_notifier(b)
+    seen_a, seen_b = na.count(), nb.count()
+    threading.Timer(0.1, release.set).start()
+    t0 = time.monotonic()
+    na.wait(seen_a, 5)
+    assert na.count() > seen_a and time.monotonic() - t0 < 2  # woken, not timed out
+    # the waiter can re-enqueue the key at once: the worker is no longer "running"
+    assert not jobs._runtime(a).middleware.is_running(job.job_id)
+    assert jobs.get_job(a, job.job_id).status in jobs.TERMINAL_STATUSES
+    assert nb.count() == seen_b  # another project's notifier never moved
+
+
+def test_cancel_wakes_a_waiting_batch(project):
+    release = threading.Event()
+    b = batches.enqueue_batch(
+        project, _items(1), kind="x", dispatch={"x": _stub(release)}
+    )
+    def cancel_then_let_the_worker_exit():
+        batches.cancel_batch(project, b.batch_id)
+        release.set()  # cancel is cooperative: the job reads cancelling until the worker exits
+
+    threading.Timer(0.1, cancel_then_let_the_worker_exit).start()
+    t0 = time.monotonic()
+    st = batches.wait(project, b.batch_id, 5, poll_s=30)
+    assert st["done"] and time.monotonic() - t0 < 2

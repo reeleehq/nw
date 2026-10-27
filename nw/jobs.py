@@ -809,7 +809,7 @@ def cancel_job(
     # Flip the durable record terminal immediately (idempotent: no-op if already
     # terminal). Passing the backend lets cancel() reach terminate() (§3.1).
     au.cancel_task(job_id, backend=rt.backend, store=rt.au_store)
-    notify_change()
+    rt.notifier.notify()
     return get_job(project, job_id, config=config)
 
 
@@ -921,12 +921,6 @@ class DurationLearningMiddleware(Middleware):
                 self._index[key] = record
 
     def after_compute(self, key: str, result: ComputationResult) -> None:
-        try:
-            self._learn(key)
-        finally:
-            notify_change()
-
-    def _learn(self, key: str) -> None:
         with self._lock:
             start = self._start.pop(key, None)
         if start is None:
@@ -955,7 +949,6 @@ class DurationLearningMiddleware(Middleware):
     def on_error(self, key: str, error: Exception) -> None:
         with self._lock:
             self._start.pop(key, None)
-        notify_change()
 
     def is_running(self, key: str) -> bool:
         with self._lock:
@@ -1098,6 +1091,64 @@ class AtomicJsonFiles(MutableMapping):
 _AtomicJsonFiles = AtomicJsonFiles  # historical private spelling (tests, hosts)
 
 
+class JobNotifier:
+    """A change counter with a wakeup: "some job of this project changed state".
+
+    One per project runtime, so a change in one project never wakes another's
+    waiters. Waiters read :meth:`count` BEFORE inspecting jobs and hand it to
+    :meth:`wait`, so a change landing in between is not lost. The wakeup is a
+    *hint*: reaping and other processes' workers change jobs without calling
+    :meth:`notify`, so a waiter bounds its timeout and re-reads.
+    """
+
+    def __init__(self) -> None:
+        self._cond = threading.Condition()
+        self._count = 0
+
+    def notify(self) -> None:
+        with self._cond:
+            self._count += 1
+            self._cond.notify_all()
+
+    def count(self) -> int:
+        with self._cond:
+            return self._count
+
+    def wait(self, seen: int, timeout: float) -> None:
+        """Block until the counter moves past ``seen`` or ``timeout`` seconds pass."""
+        with self._cond:
+            self._cond.wait_for(lambda: self._count != seen, timeout=timeout)
+
+
+class _NotifyMiddleware(Middleware):
+    """Tells a :class:`JobNotifier` when the managed backend finishes a job.
+
+    Its own middleware (not part of duration learning). au writes the terminal
+    record before it calls any middleware, so a woken waiter always sees the new
+    status; placed after :class:`DurationLearningMiddleware` it also fires once
+    ``_start`` has been popped, so a waiter that re-enqueues the key is not
+    refused as still running (nw#124). A caller-supplied ``backend=`` does not
+    carry it; its waiters rely on their bounded re-read.
+    """
+
+    def __init__(self, notifier: JobNotifier) -> None:
+        self._notifier = notifier
+
+    def before_compute(self, func, args, kwargs, key) -> None:
+        pass
+
+    def after_compute(self, key, result) -> None:
+        self._notifier.notify()
+
+    def on_error(self, key, error) -> None:
+        self._notifier.notify()
+
+
+def job_notifier(project, *, config: JobsConfig = DEFAULT_CONFIG) -> JobNotifier:
+    """This project's :class:`JobNotifier` (built with its runtime)."""
+    return _runtime(project, config).notifier
+
+
 @dataclass
 class _JobsRuntime:
     root: str
@@ -1108,6 +1159,7 @@ class _JobsRuntime:
     middleware: DurationLearningMiddleware
     lock: threading.Lock
     config: JobsConfig
+    notifier: JobNotifier
 
 
 _RUNTIMES: dict[str, _JobsRuntime] = {}
@@ -1138,7 +1190,10 @@ def _runtime(project, config: JobsConfig = DEFAULT_CONFIG) -> _JobsRuntime:
             middleware = DurationLearningMiddleware(
                 durations=durations, index=index, lock=lock, config=config
             )
-            backend = ThreadBackend(store=au_store, middleware=[middleware])
+            notifier = JobNotifier()
+            backend = ThreadBackend(
+                store=au_store, middleware=[middleware, _NotifyMiddleware(notifier)]
+            )
             rt = _JobsRuntime(
                 root=root,
                 au_store=au_store,
@@ -1148,40 +1203,10 @@ def _runtime(project, config: JobsConfig = DEFAULT_CONFIG) -> _JobsRuntime:
                 middleware=middleware,
                 lock=lock,
                 config=config,
+                notifier=notifier,
             )
             _RUNTIMES[root] = rt
     return rt
-
-
-_CHANGED = threading.Condition()
-_CHANGES = 0
-
-
-def notify_change() -> None:
-    """Wake :func:`wait_for_change` waiters: some job reached a new state."""
-    global _CHANGES
-    with _CHANGED:
-        _CHANGES += 1
-        _CHANGED.notify_all()
-
-
-def change_count() -> int:
-    """A counter that :func:`notify_change` advances. Read it BEFORE inspecting
-    jobs and hand it to :func:`wait_for_change`, so a change landing between
-    the read and the wait is not lost."""
-    with _CHANGED:
-        return _CHANGES
-
-
-def wait_for_change(seen: int, timeout: float) -> None:
-    """Block until the counter moves past ``seen`` or ``timeout`` seconds pass.
-
-    A *hint*, not a guarantee: reaping and other processes' workers change a job
-    without calling :func:`notify_change`, so a caller must bound ``timeout`` and
-    re-read.
-    """
-    with _CHANGED:
-        _CHANGED.wait_for(lambda: _CHANGES != seen, timeout=timeout)
 
 
 def job_id_for(

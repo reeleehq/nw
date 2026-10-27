@@ -52,6 +52,19 @@ def _poll_until(project, job_id, predicate, *, timeout=5.0, config=jobs.DEFAULT_
     return job
 
 
+def _wait_worker_exit(project, job_id, *, config=jobs.DEFAULT_CONFIG, timeout=5.0):
+    """Block until the job's worker thread has left the middleware chain.
+
+    The terminal status is visible as soon as au writes the record, which is
+    BEFORE ``after_compute`` runs; anything the middleware records (learned
+    durations) is only settled once the worker has exited.
+    """
+    mw = jobs._runtime(project, config).middleware
+    deadline = time.time() + timeout
+    while mw.is_running(job_id) and time.time() < deadline:
+        time.sleep(0.005)
+
+
 def _blocking_stub(release: threading.Event, *, calls=None, cached=False, emit_delay=0.0):
     """A stub render that blocks on ``release`` then completes, emitting events.
 
@@ -464,6 +477,7 @@ def test_learning_accumulates_for_real_renders(project):
         params = dict(VIDEO_PARAMS, nonce=i)
         job = jobs.enqueue(project, "op", params, dispatch=dispatch, config=cfg)
         _poll_until(project, job.job_id, lambda j: j.status in jobs.TERMINAL_STATUSES, config=cfg)
+        _wait_worker_exit(project, job.job_id, config=cfg)
 
     samples = jobs._durations_get(rt.durations, key)
     assert len(samples) == 3  # every real render was learned
@@ -484,6 +498,7 @@ def test_cache_hit_is_not_learned(project):
         dispatch={"op": _blocking_stub(rel_c, cached=True)}, config=cfg,
     )
     _poll_until(project, job_c.job_id, lambda j: j.status in jobs.TERMINAL_STATUSES, config=cfg)
+    _wait_worker_exit(project, job_c.job_id, config=cfg)
     assert jobs.get_job(project, job_c.job_id, config=cfg).cached is True
     assert jobs._durations_get(rt.durations, key) == []  # nothing learned from a cache hit
 
@@ -494,6 +509,7 @@ def test_cache_hit_is_not_learned(project):
         dispatch={"op": _blocking_stub(rel_r, cached=False)}, config=cfg,
     )
     _poll_until(project, job_r.job_id, lambda j: j.status in jobs.TERMINAL_STATUSES, config=cfg)
+    _wait_worker_exit(project, job_r.job_id, config=cfg)
     assert len(jobs._durations_get(rt.durations, key)) == 1
 
 
@@ -1408,6 +1424,7 @@ def _run_to_end(project, kind, params, cfg):
     _poll_until(
         project, job.job_id, lambda j: j.status in jobs.TERMINAL_STATUSES, config=cfg
     )
+    _wait_worker_exit(project, job.job_id, config=cfg)
     return job
 
 
@@ -1782,13 +1799,16 @@ def test_reenqueue_over_a_cancelled_job_whose_thread_still_runs_is_deduped(proje
     final = _poll_until(project, job.job_id, lambda j: j.status == jobs.CANCELLED)
     assert final.status == jobs.CANCELLED  # the old run's result did not revive it
     assert len(calls) == 1  # no second worker was launched over it
-    assert cancel_seen == [True]  # the old render still sees its own cancel
 
-    # Once the thread has exited the key is free again.
+    # Once the thread has exited the key is free again. (The job record is
+    # already terminal after ``cancel_job``, so the poll above does not wait
+    # for the worker; wait for it before asserting
+    # what it saw.)
     deadline = time.time() + 5
     while jobs._runtime(project, jobs.DEFAULT_CONFIG).middleware.is_running(job.job_id):
         assert time.time() < deadline
         time.sleep(0.01)
+    assert cancel_seen == [True]  # the old render still sees its own cancel
     rerun = jobs.enqueue(project, "op", VIDEO_PARAMS, dispatch=dispatch)
     done = _poll_until(project, rerun.job_id, lambda j: j.status == jobs.SUCCEEDED)
     assert done.status == jobs.SUCCEEDED
