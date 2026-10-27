@@ -45,6 +45,8 @@ Design decisions (from the ``nw.jobs``-on-``au`` design report,
   sharing the store: each run carries a ``run_token``, its heartbeat stamps
   only its own record, and its worker writes ``worker_exited_at`` on the way
   out (nw#124, nw#141).
+- **A job's end is announced** to :func:`register_terminal_hook` hooks, so a
+  host records a completion in one place instead of after every door (nw#151).
 - **ETA is learned from observed wall-time**, per ``(model, operation, dur_bucket)``
   with back-off, median (not mean), honest "estimating…" before enough
   history, and **cache-hits excluded from learning**.
@@ -95,6 +97,8 @@ from au import (
     ThreadBackend,
 )
 from au.base import ComputationBackend
+
+from xdol import Registry
 
 from nw.secrets import as_secrets, redact_exception, using_secrets
 
@@ -158,6 +162,11 @@ class JobsConfig:
     thread, and a render holding the GIL in a C extension can delay it well
     past one interval. The asymmetry is deliberate — a late beat costs a
     slower reap, while an eager one destroys a live job's record."""
+    terminal_hook_attempts: int = 3
+    """How many announcements of one run a failing terminal hook gets before
+    nw gives up on it (logged once). Hooks that already succeeded for the run
+    are not called again, so a broken hook never makes the healthy ones re-fire
+    on every poll."""
     approval_threshold_usd: float = 1.0
     """Estimated cost at/above which a render requires explicit approval."""
     jobs_dirname: str = ".nw/jobs"
@@ -415,6 +424,7 @@ def enqueue(
     eta_candidates, output_kind = _eta_candidates(params, config)
 
     unentered = None
+    replaced = None  # ``(Job, run_token)`` of a finished run replaced unannounced
     try:
         with rt.lock:
             existing = _index_get_locked(rt, job_id)
@@ -447,6 +457,7 @@ def enqueue(
                 "job_id": job_id,
                 "run_token": run_token,
                 "worker_exited_at": None,
+                "terminal_announced": False,
                 "kind": kind,
                 "label": label,
                 "idempotency_key": idempotency_key,
@@ -496,13 +507,26 @@ def enqueue(
                 run_token=run_token,
             )
             the_backend = backend if backend is not None else rt.backend
+            # Only a backend that will release them gets the liveness claim and
+            # the worker-side announcement.
+            backend_middleware = getattr(the_backend, "middleware", ())
+            if existing is not None:
+                # The fourth door: nothing read this run terminal yet (a custom
+                # backend nobody polled, or a waiter re-enqueueing ahead of the
+                # worker's end read), and replacing it would erase it (nw#151).
+                old_job = _project_job(rt, existing, au_result, config)
+                old_token = existing.get("run_token")
+                if _claim_announcement_locked(rt, existing, run_token=old_token):
+                    replaced = (old_job, old_token)
+            registered = False
             try:
                 # Index first: a failed write then leaves the previous run whole.
                 _index_set_locked(rt, job_id, record)
-                if rt.middleware in getattr(
-                    the_backend, "middleware", ()
-                ):  # only a backend that will release it
+                if rt.middleware in backend_middleware:
                     rt.middleware.claim_locked(job_id)
+                if rt.announcer in backend_middleware:
+                    rt.announcer.launch_locked(job_id, project)
+                    registered = True
                 if existing is not None:
                     # A re-run of a terminal key: the previous run's au result
                     # would otherwise be what this call (and any poll) reads
@@ -514,6 +538,8 @@ def enqueue(
                 unentered = None  # a worker owns the context now
             except BaseException:
                 rt.middleware.release_locked(job_id)
+                if registered:
+                    rt.announcer.release_locked(job_id)
                 # Undo the swap, whichever step failed. A record with no worker
                 # behind it reads as a live PENDING job to the next enqueue of
                 # this key (au's store answers PENDING for a missing entry) and
@@ -536,6 +562,12 @@ def enqueue(
         # acquired in the call itself, outside ``rt.lock`` (nw#120).
         _release_unentered(unentered)
         raise
+    finally:
+        # Outside ``rt.lock``: a hook may call back into ``nw.jobs``. A failed
+        # launch restored the run, so the hooks' success marks it announced.
+        if replaced is not None:
+            old_job, old_token = replaced
+            _fire_terminal_hooks(rt, project, old_job, run_token=old_token)
     return _project_job(rt, record, rt.au_store[job_id], config)
 
 
@@ -675,7 +707,7 @@ def list_jobs(
 
     jobs: list[Job] = []
     for record in records:
-        job = _read_job(rt, record, config)
+        job = _read_job(rt, record, config, project=project)
         if status is None or job.status == status:
             jobs.append(job)
         if len(jobs) >= limit:
@@ -772,7 +804,7 @@ def get_job(project, job_id: str, *, config: JobsConfig = DEFAULT_CONFIG) -> Job
         record = _index_get_locked(rt, job_id)
     if record is None:
         return None
-    return _read_job(rt, record, config)
+    return _read_job(rt, record, config, project=project)
 
 
 def cancel_job(
@@ -1180,6 +1212,186 @@ class _NotifyMiddleware(Middleware):
         self._notifier.notify()
 
 
+#: ``{name: hook}``; each hook is called as ``hook(project, job)`` when a run
+#: ends (:func:`register_terminal_hook`). ``on_conflict="error"`` so two hosts
+#: cannot silently claim one name.
+terminal_hooks: Registry = Registry(name="nw.jobs.terminal_hooks", on_conflict="error")
+
+
+def register_terminal_hook(
+    name: str, hook: Callable[[Any, Job], None]
+) -> Callable[[Any, Job], None]:
+    """Call ``hook(project, job)`` when a job's run ends (nw#151).
+
+    "Ends" is the first time the run is read terminal — succeeded, failed or
+    cancelled — wherever that happens: the managed backend's worker as it
+    finishes, :func:`cancel_job`, the stale-worker reaper, any :func:`get_job` /
+    :func:`list_jobs`, or :func:`enqueue` about to replace a finished run nobody
+    read. A re-run of the key is a new run and is announced again.
+
+    - **Every project.** Hooks are process-wide: they fire for every project nw
+      runs jobs in, a guest genre's included, so a hook filters on ``project``.
+    - **Cancelled as of the announcement.** A cancelled job is announced at
+      once, while its worker may still be running (cancel is cooperative) and
+      may still add cost.
+    - **On the reading thread**, outside nw's locks (a hook may call back into
+      ``nw.jobs``). Inside :func:`list_jobs` it adds to that poll's latency.
+    - **At least once, per hook.** A hook that raises is logged, never
+      propagated, and called again on a later read, up to
+      ``JobsConfig.terminal_hook_attempts`` announcements of that run; the hooks
+      that already returned are not called again. Replicas sharing a store can
+      race, so a host dedupes. The exception is :func:`enqueue` replacing a
+      finished run: that run's record is gone, so a hook failing there is not
+      retried.
+
+    Runs recorded before this existed are never announced. Remove one with
+    ``del terminal_hooks[name]``.
+    """
+    if not callable(hook):
+        raise TypeError(f"terminal hook {name!r} must be callable")
+    terminal_hooks.register(name, hook)
+    return hook
+
+
+def _claim_announcement_locked(rt, record, *, run_token) -> bool:
+    """Claim, in this process, the announcement of run ``run_token`` (caller
+    holds ``rt.lock``). Only a run that is still ``record``'s, not yet announced
+    (an absent flag is a record from before announcing) and not being announced
+    by another thread is claimed; :func:`_fire_terminal_hooks` releases it."""
+    if (
+        record is None
+        or record.get("run_token") != run_token
+        or record.get("terminal_announced") is not False
+    ):
+        return False
+    claim = (record["job_id"], run_token)
+    if claim in rt.announcing:
+        return False
+    rt.announcing.add(claim)
+    return True
+
+
+def _fire_terminal_hooks(rt, project, job: Job, *, run_token) -> None:
+    """Run the hooks a claimed run has not yet been announced to, record which
+    returned, and mark the run announced once none is left owing (or the failing
+    ones are out of attempts); release the claim on every path, so what failed
+    is retried by the next read."""
+    try:
+        with rt.lock:
+            record = _this_run_locked(rt, job.job_id, run_token) or {}
+        done = set(record.get("announced_to") or ())
+        failed = []
+        for name, hook in list(terminal_hooks.items()):
+            if name in done:
+                continue
+            try:
+                hook(project, job)
+                done.add(name)
+            except Exception:  # noqa: BLE001 — a host's hook must not break a read
+                failed.append(name)
+                _logger.exception(
+                    "nw.jobs: terminal hook %r failed for %s", name, job.job_id
+                )
+        with rt.lock:
+            record = _this_run_locked(rt, job.job_id, run_token)
+            if record is None:
+                return
+            attempts = record.get("announce_attempts", 0) + 1
+            given_up = bool(failed) and attempts >= rt.config.terminal_hook_attempts
+            if given_up:
+                _logger.warning(
+                    "nw.jobs: giving up on terminal hooks %s for %s after %d attempts",
+                    failed,
+                    job.job_id,
+                    attempts,
+                )
+            record.update(
+                announced_to=sorted(done),
+                announce_attempts=attempts,
+                terminal_announced=not failed or given_up,
+            )
+            _index_set_locked(rt, job.job_id, record)
+    finally:
+        with rt.lock:
+            rt.announcing.discard((job.job_id, run_token))
+
+
+def _this_run_locked(rt, job_id, run_token):
+    """``job_id``'s record if it is still run ``run_token``'s, else ``None``."""
+    record = _index_get_locked(rt, job_id)
+    return record if record is not None and record.get("run_token") == run_token else None
+
+
+def _announce_if_terminal(rt, project, job: Job, *, run_token) -> None:
+    """Announce ``job`` if it reads terminal and run ``run_token`` — the run the
+    read started from — is still the key's current, unannounced run."""
+    if job.status not in TERMINAL_STATUSES:
+        return
+    with rt.lock:
+        claimed = _claim_announcement_locked(
+            rt, _index_get_locked(rt, job.job_id), run_token=run_token
+        )
+    if claimed:
+        _fire_terminal_hooks(rt, project, job, run_token=run_token)
+
+
+class _AnnounceMiddleware(Middleware):
+    """Announces a managed-backend job's end from its worker (nw#151).
+
+    Placed after :class:`_NotifyMiddleware`. :func:`enqueue` records the
+    enqueuing project per key at launch (:meth:`launch_locked`, under the lock,
+    alongside the liveness claim); at the end this reads the job through
+    :func:`_read_job` on its own runtime, with that project, then forgets it — so
+    a hook gets the caller's project and nothing is pinned past the run. Entries
+    are per-key FIFO: a re-enqueue can land between the old worker's liveness
+    release and this read, and must not take the old run's entry.
+    """
+
+    def __init__(self) -> None:
+        self.runtime: _JobsRuntime | None = None  # bound once by :func:`_runtime`
+        self._projects: dict[str, list] = {}
+
+    def launch_locked(self, key: str, project) -> None:
+        self._projects.setdefault(key, []).append(project)
+
+    def release_locked(self, key: str) -> None:
+        """Undo :meth:`launch_locked` when the launch itself failed."""
+        self._pop_locked(key, index=-1)
+
+    def before_compute(self, func, args, kwargs, key) -> None:
+        pass
+
+    def after_compute(self, key, result) -> None:
+        self._end(key)
+
+    def on_error(self, key, error) -> None:
+        self._end(key)
+
+    def _pop_locked(self, key: str, *, index: int) -> None:
+        queue = self._projects.get(key)
+        if queue:
+            queue.pop(index)
+        if not queue:
+            self._projects.pop(key, None)
+
+    def _end(self, key) -> None:
+        rt = self.runtime
+        with rt.lock:
+            queue = self._projects.get(key)
+            if not queue:
+                return
+            project = queue[0]
+            record = _index_get_locked(rt, key)
+        try:
+            if record is not None:
+                _read_job(rt, record, rt.config, project=project)
+        except Exception:  # noqa: BLE001 — a read must not fail the worker
+            _logger.exception("nw.jobs: end-of-job read failed for %s", key)
+        finally:
+            with rt.lock:
+                self._pop_locked(key, index=0)
+
+
 def job_notifier(project, *, config: JobsConfig = DEFAULT_CONFIG) -> JobNotifier:
     """This project's :class:`JobNotifier` (built with its runtime)."""
     return _runtime(project, config).notifier
@@ -1196,6 +1408,9 @@ class _JobsRuntime:
     lock: threading.Lock
     config: JobsConfig
     notifier: JobNotifier
+    announcer: _AnnounceMiddleware
+    #: ``(job_id, run_token)`` runs being announced in this process (under ``lock``)
+    announcing: set = field(default_factory=set)
 
 
 _RUNTIMES: dict[str, _JobsRuntime] = {}
@@ -1227,8 +1442,10 @@ def _runtime(project, config: JobsConfig = DEFAULT_CONFIG) -> _JobsRuntime:
                 durations=durations, index=index, lock=lock, config=config
             )
             notifier = JobNotifier()
+            announcer = _AnnounceMiddleware()
             backend = ThreadBackend(
-                store=au_store, middleware=[middleware, _NotifyMiddleware(notifier)]
+                store=au_store,
+                middleware=[middleware, _NotifyMiddleware(notifier), announcer],
             )
             rt = _JobsRuntime(
                 root=root,
@@ -1240,7 +1457,9 @@ def _runtime(project, config: JobsConfig = DEFAULT_CONFIG) -> _JobsRuntime:
                 lock=lock,
                 config=config,
                 notifier=notifier,
+                announcer=announcer,
             )
+            announcer.runtime = rt
             _RUNTIMES[root] = rt
     return rt
 
@@ -1617,8 +1836,9 @@ def _reconcile_terminal(rt, job_id, result) -> None:
 # ---------------------------------------------------------------------------
 
 
-def _read_job(rt, record, config) -> Job:
-    """Read one job: reap-if-stale, project, and persist a grown pct floor.
+def _read_job(rt, record, config, *, project) -> Job:
+    """Read one job: reap-if-stale, project, persist a grown pct floor, and
+    announce a run seen terminal for the first time (:func:`register_terminal_hook`).
 
     Terminal-read consistency: a caller may hand us an index ``record`` snapshot
     taken *before* the worker mirrored the render's terminal fields (cost,
@@ -1629,6 +1849,7 @@ def _read_job(rt, record, config) -> Job:
     reports a stale/empty cost or a missing artifact_ref.
     """
     job_id = record["job_id"]
+    run_token = record.get("run_token")  # the run this read starts from
     au_result = rt.au_store[job_id]
     au_result = _maybe_reap(rt, record, au_result, config)
     if au_result.status in (
@@ -1643,6 +1864,9 @@ def _read_job(rt, record, config) -> Job:
         if record.get("pct_floor") is None or job.pct > record["pct_floor"]:
             with rt.lock:
                 _index_update_locked(rt, job_id, pct_floor=job.pct)
+    # The snapshot's run, not the re-read's: an ``enqueue`` between the two
+    # replaces the run, and the status read here may be the old run's.
+    _announce_if_terminal(rt, project, job, run_token=run_token)
     return job
 
 
