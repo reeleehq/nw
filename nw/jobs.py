@@ -1123,10 +1123,12 @@ class JobNotifier:
 class _NotifyMiddleware(Middleware):
     """Tells a :class:`JobNotifier` when the managed backend finishes a job.
 
-    Its own middleware (not part of duration learning), placed after it, and
-    after au has written the terminal record, so a woken waiter sees the new
-    state. A caller-supplied ``backend=`` does not carry it; its waiters rely
-    on their bounded re-read.
+    Its own middleware (not part of duration learning). au writes the terminal
+    record before it calls any middleware, so a woken waiter always sees the new
+    status; placed after :class:`DurationLearningMiddleware` it also fires once
+    ``_start`` has been popped, so a waiter that re-enqueues the key is not
+    refused as still running (nw#124). A caller-supplied ``backend=`` does not
+    carry it; its waiters rely on their bounded re-read.
     """
 
     def __init__(self, notifier: JobNotifier) -> None:
@@ -1142,16 +1144,9 @@ class _NotifyMiddleware(Middleware):
         self._notifier.notify()
 
 
-def change_count(project, *, config: JobsConfig = DEFAULT_CONFIG) -> int:
-    """This project's :class:`JobNotifier` counter (see :meth:`JobNotifier.count`)."""
-    return _runtime(project, config).notifier.count()
-
-
-def wait_for_change(
-    project, seen: int, timeout: float, *, config: JobsConfig = DEFAULT_CONFIG
-) -> None:
-    """Block until a job of ``project`` changes after ``seen``, or ``timeout`` passes."""
-    _runtime(project, config).notifier.wait(seen, timeout)
+def job_notifier(project, *, config: JobsConfig = DEFAULT_CONFIG) -> JobNotifier:
+    """This project's :class:`JobNotifier` (built with its runtime)."""
+    return _runtime(project, config).notifier
 
 
 @dataclass
