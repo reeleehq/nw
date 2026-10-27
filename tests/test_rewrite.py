@@ -209,6 +209,22 @@ def test_unmark_rewritten_clears_a_corrupt_marker(proj):
     assert not marker_file.exists() and not nw.is_rewritten(proj, "m")
 
 
+def test_unmark_rewritten_raises_when_the_delete_fails(proj, monkeypatch):
+    """dol turns a failed delete into ``KeyError``; it must not read as "already gone"."""
+    import os
+
+    nw.mark_rewritten(proj, "m")
+
+    def _refuse(path):
+        raise PermissionError(f"read-only mount: {path}")
+
+    monkeypatch.setattr(os, "remove", _refuse)  # json_docs' delete_func
+    with pytest.raises(KeyError):  # a path: a storage built after the patch
+        nw.unmark_rewritten(proj.root, "m")
+    monkeypatch.undo()
+    assert nw.is_rewritten(proj, "m")
+
+
 def test_unmark_rewritten_checks_the_slug(proj):
     with pytest.raises(ValueError):
         nw.unmark_rewritten(proj, "../x")

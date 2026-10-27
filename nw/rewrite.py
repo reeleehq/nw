@@ -137,7 +137,10 @@ def unmark_rewritten(project: ProjectLike, marker: str) -> None:
         try:
             del storage.docs[key]
         except KeyError:
-            pass
+            # dol reports any failed file delete as ``KeyError``; only a marker
+            # another unmark already removed may pass.
+            if key in storage.docs:
+                raise
 
 
 def _marker_key(marker: str) -> str:
