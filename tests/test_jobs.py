@@ -2376,7 +2376,10 @@ def test_reads_do_not_wait_for_the_index_lock(project):
     """A poll never queues behind the cross-process index lock (nw#158): a
     replica holding it for a long scan or a write must not stall every reader."""
     rt = jobs._runtime(project)
-    _terminal_record(rt, "q", au_status=ComputationStatus.PENDING)  # queued: no writes
+    _terminal_record(rt, "q", au_status=ComputationStatus.PENDING)  # queued
+    _terminal_record(rt, "done")
+    with rt.lock:  # finished and already announced: nothing left to claim
+        jobs._index_update_locked(rt, "done", terminal_announced=True)
     held, release = threading.Event(), threading.Event()
 
     def hold():
@@ -2399,7 +2402,8 @@ def test_reads_do_not_wait_for_the_index_lock(project):
         release.set()
         holder.join()
     job, listed = seen[0]
-    assert job.status == jobs.QUEUED and [j.job_id for j in listed] == ["q"]
+    assert job.status == jobs.QUEUED
+    assert {j.job_id: j.status for j in listed} == {"q": jobs.QUEUED, "done": jobs.SUCCEEDED}
 
 
 def test_cancel_announces_once_even_after_the_worker_exits(project, announced):

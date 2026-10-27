@@ -1394,11 +1394,8 @@ def _claim_announcement_locked(rt, record, *, run_token) -> str | None:
     :func:`_fire_terminal_hooks` releases it. The id is per claim, not per
     runtime, so a thread whose lease expired cannot release the one that took
     it over, even in the same process."""
-    if (
-        record is None
-        or record.get("run_token") != run_token
-        or record.get("terminal_announced") is not False
-        or _lease_is_live(record.get("announce_claim"))
+    if _announcement_settled(record, run_token) or _lease_is_live(
+        record.get("announce_claim")
     ):
         return None
     claim = uuid4().hex
@@ -1406,6 +1403,18 @@ def _claim_announcement_locked(rt, record, *, run_token) -> str | None:
     record["announce_claim"] = {"by": claim, "until": until}
     _index_set_locked(rt, record["job_id"], record)
     return claim
+
+
+def _announcement_settled(record, run_token) -> bool:
+    """Whether run ``run_token`` can no longer be announced from ``record``:
+    the record is gone, holds another run, was announced, or predates
+    announcing. Each only ever moves one way for a run, so a lock-free
+    snapshot that says "settled" stays right (nw#158)."""
+    return (
+        record is None
+        or record.get("run_token") != run_token
+        or record.get("terminal_announced") is not False
+    )
 
 
 def _lease_is_live(claim) -> bool:
@@ -1481,8 +1490,10 @@ def _this_run_locked(rt, job_id, run_token):
 def _announce_if_terminal(rt, project, job: Job, *, run_token) -> None:
     """Announce ``job`` if it reads terminal and run ``run_token`` — the run the
     read started from — is still the key's current, unannounced run."""
-    if job.status not in TERMINAL_STATUSES:
-        return
+    if job.status not in TERMINAL_STATUSES or _announcement_settled(
+        _index_snapshot(rt, job.job_id), run_token
+    ):
+        return  # without the lock: most terminal reads are of announced runs
     with rt.lock:
         claim = _claim_announcement_locked(
             rt, _index_get_locked(rt, job.job_id), run_token=run_token
@@ -2445,8 +2456,9 @@ def _index_get_locked(rt, job_id):
     return rt.index.get(job_id)
 
 
-#: Whether a snapshot read must still take ``rt.lock``. On Windows a reader's
-#: open file makes the writer's ``os.replace`` fail, so reads stay serialized.
+#: Whether :func:`_index_snapshot` still takes ``rt.lock``: on Windows a reader's
+#: open file makes a writer's ``os.replace`` fail, so these reads stay serialized
+#: there (other lock-free reads of the index, e.g. :func:`summarize`, do not).
 _SNAPSHOT_READS_LOCK = os.name == "nt"
 
 
