@@ -85,7 +85,7 @@ the top of this module — no magic numbers below.
 | [`cancel_job`](#nw.jobs.cancel_job)(project, job_id, \*[, config])         | Request cancellation.                                                                                                                                                  |
 |----------------------------------------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | [`check_job_spec`](#nw.jobs.check_job_spec)(params)                            | Raise what [`enqueue()`](#nw.jobs.enqueue) would raise for malformed `params` (`ValueError` on a bad `units`), before anything is launched. |
-| [`checked_usd`](#nw.jobs.checked_usd)(value)                                | `value` as a `float` if it is a price nw can gate on, else `ValueError`.                                                                                               |
+| [`checked_usd`](#nw.jobs.checked_usd)(value, \*[, name])                    | `value` as a `float` if it is a price nw can gate on, else `ValueError`.                                                                                               |
 | [`enqueue`](#nw.jobs.enqueue)(project, kind, params, \*[, ...])         | Enqueue a billable render as a background job.                                                                                                                         |
 | [`error_detail_of`](#nw.jobs.error_detail_of)(error, \*[, secrets])             | The refusal `error` carries as data, or `None`.                                                                                                                        |
 | [`error_kind_of`](#nw.jobs.error_kind_of)(error)                              | `"refused"` | `"cancelled"` | `"crashed"` for an exception a job raised.                                                                                               |
@@ -142,7 +142,7 @@ A failed serialization touches nothing: the old record survives and no
 temp file is left behind. Temp names start with `.` so iteration never
 lists an in-flight write as a key.
 
-### *class* nw.jobs.DurationLearningMiddleware(, durations, index, lock, config=JobsConfig(n_min=3, sample_window_k=20, pct_ceil=99, overrun_factor=1.5, cache_hit_floor_s=0.5, dur_buckets_s=(4.0, 8.0, 12.0), prior_total_s={'image': 12.0, 'video': 90.0, 'audio': 15.0}, default_prior_total_s=30.0, stale_running_s=900.0, heartbeat_interval_s=20.0, heartbeat_stale_s=120.0, terminal_hook_attempts=3, terminal_hook_lease_s=300.0, approval_threshold_usd=1.0, jobs_dirname='.nw/jobs'))
+### *class* nw.jobs.DurationLearningMiddleware(, durations, index, lock, config=JobsConfig(n_min=3, sample_window_k=20, pct_ceil=99, overrun_factor=1.5, cache_hit_floor_s=0.5, dur_buckets_s=(4.0, 8.0, 12.0), prior_total_s={'image': 12.0, 'video': 90.0, 'audio': 15.0}, default_prior_total_s=30.0, stale_running_s=900.0, heartbeat_interval_s=20.0, heartbeat_stale_s=120.0, terminal_hook_attempts=3, terminal_hook_lease_s=300.0, approval_threshold_usd=1.0, index_retention_s=2592000.0, index_sweep_interval_s=3600.0, jobs_dirname='.nw/jobs'))
 
 Bases: `Middleware`
 
@@ -386,7 +386,7 @@ Block until the counter moves past `seen` or `timeout` seconds pass.
 
 Bases: [`object`](https://docs.python.org/3/builtins/functions.html#object)
 
-### *class* nw.jobs.JobsConfig(n_min=3, sample_window_k=20, pct_ceil=99, overrun_factor=1.5, cache_hit_floor_s=0.5, dur_buckets_s=(4.0, 8.0, 12.0), prior_total_s=<factory>, default_prior_total_s=30.0, stale_running_s=900.0, heartbeat_interval_s=20.0, heartbeat_stale_s=120.0, terminal_hook_attempts=3, terminal_hook_lease_s=300.0, approval_threshold_usd=1.0, jobs_dirname='.nw/jobs')
+### *class* nw.jobs.JobsConfig(n_min=3, sample_window_k=20, pct_ceil=99, overrun_factor=1.5, cache_hit_floor_s=0.5, dur_buckets_s=(4.0, 8.0, 12.0), prior_total_s=<factory>, default_prior_total_s=30.0, stale_running_s=900.0, heartbeat_interval_s=20.0, heartbeat_stale_s=120.0, terminal_hook_attempts=3, terminal_hook_lease_s=300.0, approval_threshold_usd=1.0, index_retention_s=2592000.0, index_sweep_interval_s=3600.0, jobs_dirname='.nw/jobs')
 
 Bases: [`object`](https://docs.python.org/3/builtins/functions.html#object)
 
@@ -426,6 +426,21 @@ Generously larger than `heartbeat_interval_s`: the beat is a Python
 thread, and a render holding the GIL in a C extension can delay it well
 past one interval. The asymmetry is deliberate — a late beat costs a
 slower reap, while an eager one destroys a live job’s record.
+
+#### index_retention_s *: [float](https://docs.python.org/3/builtins/functions.html#float) | [None](https://docs.python.org/3/builtins/constants.html#None)* *= 2592000.0*
+
+A finished, announced run whose end is older than this leaves the live
+index for the archive when [`list_jobs()`](#nw.jobs.list_jobs) next scans it (nw#169), so
+the scan, and every poll, stays bounded by recent work instead of growing
+with the project’s whole history. [`get_job()`](#nw.jobs.get_job) and [`cancel_job()`](#nw.jobs.cancel_job)
+still answer for an archived id. `None` keeps every run in the index.
+
+#### index_sweep_interval_s *: [float](https://docs.python.org/3/builtins/functions.html#float)* *= 3600.0*
+
+How often (per process and project) [`list_jobs()`](#nw.jobs.list_jobs) looks for runs to
+archive. A run too old to list but not yet over (an unannounced run, an
+orphaned queued record) costs a lock round-trip per look, so the look is
+throttled rather than repeated on every poll.
 
 #### jobs_dirname *: [str](https://docs.python.org/3/builtins/stdtypes.html#str)* *= '.nw/jobs'*
 
@@ -481,7 +496,7 @@ A fixed sentence rather than the exception text: this string reaches a job
 surface, and an exception’s message is written for an operator reading a log,
 not for whoever is deciding whether to approve a spend.
 
-### nw.jobs.cancel_job(project, job_id, , config=JobsConfig(n_min=3, sample_window_k=20, pct_ceil=99, overrun_factor=1.5, cache_hit_floor_s=0.5, dur_buckets_s=(4.0, 8.0, 12.0), prior_total_s={'image': 12.0, 'video': 90.0, 'audio': 15.0}, default_prior_total_s=30.0, stale_running_s=900.0, heartbeat_interval_s=20.0, heartbeat_stale_s=120.0, terminal_hook_attempts=3, terminal_hook_lease_s=300.0, approval_threshold_usd=1.0, jobs_dirname='.nw/jobs'))
+### nw.jobs.cancel_job(project, job_id, , config=JobsConfig(n_min=3, sample_window_k=20, pct_ceil=99, overrun_factor=1.5, cache_hit_floor_s=0.5, dur_buckets_s=(4.0, 8.0, 12.0), prior_total_s={'image': 12.0, 'video': 90.0, 'audio': 15.0}, default_prior_total_s=30.0, stale_running_s=900.0, heartbeat_interval_s=20.0, heartbeat_stale_s=120.0, terminal_hook_attempts=3, terminal_hook_lease_s=300.0, approval_threshold_usd=1.0, index_retention_s=2592000.0, index_sweep_interval_s=3600.0, jobs_dirname='.nw/jobs'))
 
 Request cancellation. **Idempotent.** `None` if unknown.
 
@@ -511,7 +526,7 @@ Raise what [`enqueue()`](#nw.jobs.enqueue) would raise for malformed `params`
 * **Return type:**
   [`None`](https://docs.python.org/3/builtins/constants.html#None)
 
-### nw.jobs.checked_usd(value)
+### nw.jobs.checked_usd(value, , name='estimated_usd')
 
 `value` as a `float` if it is a price nw can gate on, else `ValueError`.
 
@@ -522,12 +537,13 @@ A `float` so that what is stored is JSON (a numpy scalar or a
 an `int`), and so is NaN: `nan >= threshold` is `False`, so a NaN
 price would pass every approval gate as cheap. So is an `int` too large
 for a `float`, as `ValueError` rather than `OverflowError`, so a
-caller that tolerates a bad price catches one exception type.
+caller that tolerates a bad price catches one exception type. `name`
+is the figure the error message names.
 
 * **Return type:**
   [`float`](https://docs.python.org/3/builtins/functions.html#float) | [`None`](https://docs.python.org/3/builtins/constants.html#None)
 
-### nw.jobs.enqueue(project, kind, params, \*, on_event=None, dispatch=None, backend=None, idempotency_key=None, label=None, capture_context=None, secrets=None, estimated_usd=<object object>, config=JobsConfig(n_min=3, sample_window_k=20, pct_ceil=99, overrun_factor=1.5, cache_hit_floor_s=0.5, dur_buckets_s=(4.0, 8.0, 12.0), prior_total_s={'image': 12.0, 'video': 90.0, 'audio': 15.0}, default_prior_total_s=30.0, stale_running_s=900.0, heartbeat_interval_s=20.0, heartbeat_stale_s=120.0, terminal_hook_attempts=3, terminal_hook_lease_s=300.0, approval_threshold_usd=1.0, jobs_dirname='.nw/jobs'))
+### nw.jobs.enqueue(project, kind, params, \*, on_event=None, dispatch=None, backend=None, idempotency_key=None, label=None, capture_context=None, secrets=None, estimated_usd=<object object>, config=JobsConfig(n_min=3, sample_window_k=20, pct_ceil=99, overrun_factor=1.5, cache_hit_floor_s=0.5, dur_buckets_s=(4.0, 8.0, 12.0), prior_total_s={'image': 12.0, 'video': 90.0, 'audio': 15.0}, default_prior_total_s=30.0, stale_running_s=900.0, heartbeat_interval_s=20.0, heartbeat_stale_s=120.0, terminal_hook_attempts=3, terminal_hook_lease_s=300.0, approval_threshold_usd=1.0, index_retention_s=2592000.0, index_sweep_interval_s=3600.0, jobs_dirname='.nw/jobs'))
 
 Enqueue a billable render as a background job. Returns a [`Job`](#nw.jobs.Job)
 (`status="queued"`) **immediately** — the call never blocks and never
@@ -651,7 +667,7 @@ True
 * **Return type:**
   [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
 
-### nw.jobs.estimate(project, kind, params, \*, estimated_usd=<object object>, config=JobsConfig(n_min=3, sample_window_k=20, pct_ceil=99, overrun_factor=1.5, cache_hit_floor_s=0.5, dur_buckets_s=(4.0, 8.0, 12.0), prior_total_s={'image': 12.0, 'video': 90.0, 'audio': 15.0}, default_prior_total_s=30.0, stale_running_s=900.0, heartbeat_interval_s=20.0, heartbeat_stale_s=120.0, terminal_hook_attempts=3, terminal_hook_lease_s=300.0, approval_threshold_usd=1.0, jobs_dirname='.nw/jobs'))
+### nw.jobs.estimate(project, kind, params, \*, estimated_usd=<object object>, config=JobsConfig(n_min=3, sample_window_k=20, pct_ceil=99, overrun_factor=1.5, cache_hit_floor_s=0.5, dur_buckets_s=(4.0, 8.0, 12.0), prior_total_s={'image': 12.0, 'video': 90.0, 'audio': 15.0}, default_prior_total_s=30.0, stale_running_s=900.0, heartbeat_interval_s=20.0, heartbeat_stale_s=120.0, terminal_hook_attempts=3, terminal_hook_lease_s=300.0, approval_threshold_usd=1.0, index_retention_s=2592000.0, index_sweep_interval_s=3600.0, jobs_dirname='.nw/jobs'))
 
 Dry-run cost gate **without enqueueing**.
 
@@ -693,10 +709,11 @@ approves what enqueue refuses.
 * **Return type:**
   [`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)
 
-### nw.jobs.get_job(project, job_id, , config=JobsConfig(n_min=3, sample_window_k=20, pct_ceil=99, overrun_factor=1.5, cache_hit_floor_s=0.5, dur_buckets_s=(4.0, 8.0, 12.0), prior_total_s={'image': 12.0, 'video': 90.0, 'audio': 15.0}, default_prior_total_s=30.0, stale_running_s=900.0, heartbeat_interval_s=20.0, heartbeat_stale_s=120.0, terminal_hook_attempts=3, terminal_hook_lease_s=300.0, approval_threshold_usd=1.0, jobs_dirname='.nw/jobs'))
+### nw.jobs.get_job(project, job_id, , config=JobsConfig(n_min=3, sample_window_k=20, pct_ceil=99, overrun_factor=1.5, cache_hit_floor_s=0.5, dur_buckets_s=(4.0, 8.0, 12.0), prior_total_s={'image': 12.0, 'video': 90.0, 'audio': 15.0}, default_prior_total_s=30.0, stale_running_s=900.0, heartbeat_interval_s=20.0, heartbeat_stale_s=120.0, terminal_hook_attempts=3, terminal_hook_lease_s=300.0, approval_threshold_usd=1.0, index_retention_s=2592000.0, index_sweep_interval_s=3600.0, jobs_dirname='.nw/jobs'))
 
 One job (projecting the au status + mirrored index metadata). `None` if
-unknown. Reaps a stale-RUNNING record on read.
+unknown. Reaps a stale-RUNNING record on read. Answers for an archived run
+too (nw#169): a finished, announced run, so the read writes nothing.
 
 * **Return type:**
   [`Job`](#nw.jobs.Job) | [`None`](https://docs.python.org/3/builtins/constants.html#None)
@@ -708,24 +725,26 @@ The id [`enqueue()`](#nw.jobs.enqueue) would give this job, without enqueueing i
 * **Return type:**
   [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
 
-### nw.jobs.job_notifier(project, , config=JobsConfig(n_min=3, sample_window_k=20, pct_ceil=99, overrun_factor=1.5, cache_hit_floor_s=0.5, dur_buckets_s=(4.0, 8.0, 12.0), prior_total_s={'image': 12.0, 'video': 90.0, 'audio': 15.0}, default_prior_total_s=30.0, stale_running_s=900.0, heartbeat_interval_s=20.0, heartbeat_stale_s=120.0, terminal_hook_attempts=3, terminal_hook_lease_s=300.0, approval_threshold_usd=1.0, jobs_dirname='.nw/jobs'))
+### nw.jobs.job_notifier(project, , config=JobsConfig(n_min=3, sample_window_k=20, pct_ceil=99, overrun_factor=1.5, cache_hit_floor_s=0.5, dur_buckets_s=(4.0, 8.0, 12.0), prior_total_s={'image': 12.0, 'video': 90.0, 'audio': 15.0}, default_prior_total_s=30.0, stale_running_s=900.0, heartbeat_interval_s=20.0, heartbeat_stale_s=120.0, terminal_hook_attempts=3, terminal_hook_lease_s=300.0, approval_threshold_usd=1.0, index_retention_s=2592000.0, index_sweep_interval_s=3600.0, jobs_dirname='.nw/jobs'))
 
 This project’s [`JobNotifier`](#nw.jobs.JobNotifier) (built with its runtime).
 
 * **Return type:**
   [`JobNotifier`](#nw.jobs.JobNotifier)
 
-### nw.jobs.list_jobs(project, , status=None, limit=50, config=JobsConfig(n_min=3, sample_window_k=20, pct_ceil=99, overrun_factor=1.5, cache_hit_floor_s=0.5, dur_buckets_s=(4.0, 8.0, 12.0), prior_total_s={'image': 12.0, 'video': 90.0, 'audio': 15.0}, default_prior_total_s=30.0, stale_running_s=900.0, heartbeat_interval_s=20.0, heartbeat_stale_s=120.0, terminal_hook_attempts=3, terminal_hook_lease_s=300.0, approval_threshold_usd=1.0, jobs_dirname='.nw/jobs'))
+### nw.jobs.list_jobs(project, , status=None, limit=50, config=JobsConfig(n_min=3, sample_window_k=20, pct_ceil=99, overrun_factor=1.5, cache_hit_floor_s=0.5, dur_buckets_s=(4.0, 8.0, 12.0), prior_total_s={'image': 12.0, 'video': 90.0, 'audio': 15.0}, default_prior_total_s=30.0, stale_running_s=900.0, heartbeat_interval_s=20.0, heartbeat_stale_s=120.0, terminal_hook_attempts=3, terminal_hook_lease_s=300.0, approval_threshold_usd=1.0, index_retention_s=2592000.0, index_sweep_interval_s=3600.0, jobs_dirname='.nw/jobs'))
 
 Jobs for this project, **newest first**, optionally filtered by status.
 
 Backed by the per-project active-jobs index (not by scanning the au store,
 whose missing-key-returns-PENDING gotcha makes membership meaningless).
+Runs that ended more than `config.index_retention_s` ago move to the
+archive during the scan and are not listed (`_archive_old_runs()`).
 
 * **Return type:**
   [`list`](https://docs.python.org/3/builtins/stdtypes.html#list)[[`Job`](#nw.jobs.Job)]
 
-### nw.jobs.predict_total_s(eta_candidates, output_kind, , durations, expected_cache_hit=False, units=None, config=JobsConfig(n_min=3, sample_window_k=20, pct_ceil=99, overrun_factor=1.5, cache_hit_floor_s=0.5, dur_buckets_s=(4.0, 8.0, 12.0), prior_total_s={'image': 12.0, 'video': 90.0, 'audio': 15.0}, default_prior_total_s=30.0, stale_running_s=900.0, heartbeat_interval_s=20.0, heartbeat_stale_s=120.0, terminal_hook_attempts=3, terminal_hook_lease_s=300.0, approval_threshold_usd=1.0, jobs_dirname='.nw/jobs'))
+### nw.jobs.predict_total_s(eta_candidates, output_kind, , durations, expected_cache_hit=False, units=None, config=JobsConfig(n_min=3, sample_window_k=20, pct_ceil=99, overrun_factor=1.5, cache_hit_floor_s=0.5, dur_buckets_s=(4.0, 8.0, 12.0), prior_total_s={'image': 12.0, 'video': 90.0, 'audio': 15.0}, default_prior_total_s=30.0, stale_running_s=900.0, heartbeat_interval_s=20.0, heartbeat_stale_s=120.0, terminal_hook_attempts=3, terminal_hook_lease_s=300.0, approval_threshold_usd=1.0, index_retention_s=2592000.0, index_sweep_interval_s=3600.0, jobs_dirname='.nw/jobs'))
 
 Predict the total render seconds for a job as `(p50, p90, confidence)`.
 
@@ -779,7 +798,7 @@ Runs recorded before this existed are never announced. Remove one with
 * **Return type:**
   [`Callable`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable)[[[`Any`](https://docs.python.org/3/library/typing.html#typing.Any), [`Job`](#nw.jobs.Job)], [`None`](https://docs.python.org/3/builtins/constants.html#None)]
 
-### nw.jobs.summarize(project_root, , limit=50, config=JobsConfig(n_min=3, sample_window_k=20, pct_ceil=99, overrun_factor=1.5, cache_hit_floor_s=0.5, dur_buckets_s=(4.0, 8.0, 12.0), prior_total_s={'image': 12.0, 'video': 90.0, 'audio': 15.0}, default_prior_total_s=30.0, stale_running_s=900.0, heartbeat_interval_s=20.0, heartbeat_stale_s=120.0, terminal_hook_attempts=3, terminal_hook_lease_s=300.0, approval_threshold_usd=1.0, jobs_dirname='.nw/jobs'))
+### nw.jobs.summarize(project_root, , limit=50, config=JobsConfig(n_min=3, sample_window_k=20, pct_ceil=99, overrun_factor=1.5, cache_hit_floor_s=0.5, dur_buckets_s=(4.0, 8.0, 12.0), prior_total_s={'image': 12.0, 'video': 90.0, 'audio': 15.0}, default_prior_total_s=30.0, stale_running_s=900.0, heartbeat_interval_s=20.0, heartbeat_stale_s=120.0, terminal_hook_attempts=3, terminal_hook_lease_s=300.0, approval_threshold_usd=1.0, index_retention_s=2592000.0, index_sweep_interval_s=3600.0, jobs_dirname='.nw/jobs'))
 
 This project’s jobs **without provisioning it**. Newest first.
 
