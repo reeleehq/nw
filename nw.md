@@ -1,4 +1,4 @@
-> built 2026-10-27 17:25 UTC from cfd52d6 (main) · nw 0.0.102. Details: build_info.json
+> built 2026-10-27 17:56 UTC from c542de6 (main) · nw 0.0.103. Details: build_info.json
 
 # index.html.md
 
@@ -6930,7 +6930,7 @@ the top of this module — no magic numbers below.
 
 ### Classes
 
-| [`AtomicJsonFiles`](_autosummary/nw.jobs.html.md#nw.jobs.AtomicJsonFiles)(rootdir)                          | A `{key: json-value}` directory store whose writes are **atomic**.                                             |
+| [`AtomicJsonFiles`](_autosummary/nw.jobs.html.md#nw.jobs.AtomicJsonFiles)(rootdir, \*[, retry_on, ...])     | A `{key: json-value}` directory store whose writes are **atomic**.                                             |
 |----------------------------------------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------|
 | [`DurationLearningMiddleware`](_autosummary/nw.jobs.html.md#nw.jobs.DurationLearningMiddleware)(\*, durations, ...)    | Keyed, percentile duration learner — a cousin of `au.MetricsMiddleware`.                                       |
 | [`Job`](_autosummary/nw.jobs.html.md#nw.jobs.Job)(job_id, kind, label, status, idempotency_key) | Projected, JSON-serializable view of one job (see [`to_dict()`](_autosummary/nw.jobs.html.md#nw.jobs.to_dict)). |
@@ -6944,7 +6944,7 @@ the top of this module — no magic numbers below.
 | [`JobAborted`](_autosummary/nw.jobs.html.md#nw.jobs.JobAborted)   | A render raised something that is not an `Exception` (`KeyboardInterrupt`, `asyncio.CancelledError`, a custom `BaseException`).   |
 |---------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------|
 
-### *class* nw.jobs.AtomicJsonFiles(rootdir)
+### *class* nw.jobs.AtomicJsonFiles(rootdir, , retry_on=None, attempts=7, backoff_s=0.01)
 
 Bases: [`MutableMapping`](https://docs.python.org/3/library/collections.abc.html#collections.abc.MutableMapping)
 
@@ -6969,6 +6969,13 @@ now every durable record this module owns does too.
 A failed serialization touches nothing: the old record survives and no
 temp file is left behind. Temp names start with `.` so iteration never
 lists an in-flight write as a key.
+
+Readers need no lock, on Windows too (nw#170): there a reader holding the
+file open makes `os.replace` / `os.unlink` of it fail with
+`PermissionError` until it closes, so a write retries those briefly
+(`retry_on`, `attempts`, doubling from `backoff_s`: ~0.6 s in all by
+default). A read is milliseconds; the retries outlast it, and they cost
+nothing unless a write is actually refused.
 
 ### *class* nw.jobs.DurationLearningMiddleware(, durations, index, lock, config=JobsConfig(n_min=3, sample_window_k=20, pct_ceil=99, overrun_factor=1.5, cache_hit_floor_s=0.5, dur_buckets_s=(4.0, 8.0, 12.0), prior_total_s={'image': 12.0, 'video': 90.0, 'audio': 15.0}, default_prior_total_s=30.0, stale_running_s=900.0, heartbeat_interval_s=20.0, heartbeat_stale_s=120.0, terminal_hook_attempts=3, terminal_hook_lease_s=300.0, approval_threshold_usd=1.0, index_retention_s=2592000.0, index_sweep_interval_s=3600.0, jobs_dirname='.nw/jobs'))
 
@@ -10587,7 +10594,7 @@ produce different URLs. The local file paths are byte-stable.
 
 # About this build
 
-This documentation was built on **2026-10-27 17:25 UTC** from commit <a href="https://github.com/reeleehq/nw/commit/cfd52d6a2a7edd41d66aac5ae988b0a651273a5b"><code>cfd52d6</code></a> on branch <code>main</code>, for **nw 0.0.102** (from <code>pyproject.toml</code>).
+This documentation was built on **2026-10-27 17:56 UTC** from commit <a href="https://github.com/reeleehq/nw/commit/c542de6777df2055bf1d88dfe762aebe0fcac8ad"><code>c542de6</code></a> on branch <code>main</code>, for **nw 0.0.103** (from <code>pyproject.toml</code>).
 
 #### NOTE
 Nothing suggests a mismatch: the tree was clean at the commit above, and the documented version is the one on PyPI.
@@ -10596,9 +10603,9 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 
 |                     |                                                                                                                                                    |
 |---------------------|----------------------------------------------------------------------------------------------------------------------------------------------------|
-| Commit              | <a href="https://github.com/reeleehq/nw/commit/cfd52d6a2a7edd41d66aac5ae988b0a651273a5b"><code>cfd52d6a2a7edd41d66aac5ae988b0a651273a5b</code></a> |
+| Commit              | <a href="https://github.com/reeleehq/nw/commit/c542de6777df2055bf1d88dfe762aebe0fcac8ad"><code>c542de6777df2055bf1d88dfe762aebe0fcac8ad</code></a> |
 | Branch              | <code>main</code>                                                                                                                                  |
-| Tags at this commit | <code>0.0.102</code>                                                                                                                               |
+| Tags at this commit | <code>0.0.103</code>                                                                                                                               |
 | Working tree        | clean                                                                                                                                              |
 | Remote              | <code>https://github.com/reeleehq/nw</code>                                                                                                        |
 
@@ -10607,9 +10614,9 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 |              |                                                                                            |
 |--------------|--------------------------------------------------------------------------------------------|
 | Repository   | <code>reeleehq/nw</code>                                                                   |
-| Run          | <a href="https://github.com/reeleehq/nw/actions/runs/40547006717">40547006717</a>          |
+| Run          | <a href="https://github.com/reeleehq/nw/actions/runs/40553637263">40553637263</a>          |
 | Ref          | <code>refs/heads/main</code>                                                               |
-| Event commit | <code>f0094ab3b2d2bd911b784ac6e19266fc511228c0</code> (in the history of the built commit) |
+| Event commit | <code>4d2257a9dcd7bf7eed0af668e543743bd8d749ff</code> (in the history of the built commit) |
 
 ## Tools
 
@@ -10634,13 +10641,13 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 
 ## Package on PyPI
 
-Latest release: <a href="https://pypi.org/project/nw/0.0.102/">0.0.102</a>, the same as the documented version.
+Latest release: <a href="https://pypi.org/project/nw/0.0.103/">0.0.103</a>, the same as the documented version.
 
 ## Reproduce
 
 ```bash
 git clone https://github.com/reeleehq/nw && cd nw
-git checkout cfd52d6a2a7edd41d66aac5ae988b0a651273a5b
+git checkout c542de6777df2055bf1d88dfe762aebe0fcac8ad
 pip install "epythet==0.2.22"
 epythet quickstart . --ignore tests/ scrap/ examples/
 ```

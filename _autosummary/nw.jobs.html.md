@@ -102,7 +102,7 @@ the top of this module — no magic numbers below.
 
 ### Classes
 
-| [`AtomicJsonFiles`](#nw.jobs.AtomicJsonFiles)(rootdir)                          | A `{key: json-value}` directory store whose writes are **atomic**.                                             |
+| [`AtomicJsonFiles`](#nw.jobs.AtomicJsonFiles)(rootdir, \*[, retry_on, ...])     | A `{key: json-value}` directory store whose writes are **atomic**.                                             |
 |----------------------------------------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------|
 | [`DurationLearningMiddleware`](#nw.jobs.DurationLearningMiddleware)(\*, durations, ...)    | Keyed, percentile duration learner — a cousin of `au.MetricsMiddleware`.                                       |
 | [`Job`](#nw.jobs.Job)(job_id, kind, label, status, idempotency_key) | Projected, JSON-serializable view of one job (see [`to_dict()`](#nw.jobs.to_dict)). |
@@ -116,7 +116,7 @@ the top of this module — no magic numbers below.
 | [`JobAborted`](#nw.jobs.JobAborted)   | A render raised something that is not an `Exception` (`KeyboardInterrupt`, `asyncio.CancelledError`, a custom `BaseException`).   |
 |---------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------|
 
-### *class* nw.jobs.AtomicJsonFiles(rootdir)
+### *class* nw.jobs.AtomicJsonFiles(rootdir, , retry_on=None, attempts=7, backoff_s=0.01)
 
 Bases: [`MutableMapping`](https://docs.python.org/3/library/collections.abc.html#collections.abc.MutableMapping)
 
@@ -141,6 +141,13 @@ now every durable record this module owns does too.
 A failed serialization touches nothing: the old record survives and no
 temp file is left behind. Temp names start with `.` so iteration never
 lists an in-flight write as a key.
+
+Readers need no lock, on Windows too (nw#170): there a reader holding the
+file open makes `os.replace` / `os.unlink` of it fail with
+`PermissionError` until it closes, so a write retries those briefly
+(`retry_on`, `attempts`, doubling from `backoff_s`: ~0.6 s in all by
+default). A read is milliseconds; the retries outlast it, and they cost
+nothing unless a write is actually refused.
 
 ### *class* nw.jobs.DurationLearningMiddleware(, durations, index, lock, config=JobsConfig(n_min=3, sample_window_k=20, pct_ceil=99, overrun_factor=1.5, cache_hit_floor_s=0.5, dur_buckets_s=(4.0, 8.0, 12.0), prior_total_s={'image': 12.0, 'video': 90.0, 'audio': 15.0}, default_prior_total_s=30.0, stale_running_s=900.0, heartbeat_interval_s=20.0, heartbeat_stale_s=120.0, terminal_hook_attempts=3, terminal_hook_lease_s=300.0, approval_threshold_usd=1.0, index_retention_s=2592000.0, index_sweep_interval_s=3600.0, jobs_dirname='.nw/jobs'))
 

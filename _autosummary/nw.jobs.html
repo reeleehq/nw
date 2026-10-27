@@ -386,7 +386,7 @@ the top of this module — no magic numbers below.</p>
 <div class="table-wrapper autosummary longtable docutils container">
 <table class="autosummary longtable docutils align-default">
 <tbody>
-<tr class="row-odd"><td><p><a class="reference internal" href="#nw.jobs.AtomicJsonFiles" title="nw.jobs.AtomicJsonFiles"><code class="xref py py-obj docutils literal notranslate"><span class="pre">AtomicJsonFiles</span></code></a>(rootdir)</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#nw.jobs.AtomicJsonFiles" title="nw.jobs.AtomicJsonFiles"><code class="xref py py-obj docutils literal notranslate"><span class="pre">AtomicJsonFiles</span></code></a>(rootdir, *[, retry_on, ...])</p></td>
 <td><p>A <code class="docutils literal notranslate"><span class="pre">{key:</span> <span class="pre">json-value}</span></code> directory store whose writes are <strong>atomic</strong>.</p></td>
 </tr>
 <tr class="row-even"><td><p><a class="reference internal" href="#nw.jobs.DurationLearningMiddleware" title="nw.jobs.DurationLearningMiddleware"><code class="xref py py-obj docutils literal notranslate"><span class="pre">DurationLearningMiddleware</span></code></a>(*, durations, ...)</p></td>
@@ -422,7 +422,7 @@ the top of this module — no magic numbers below.</p>
 </div>
 <dl class="py class">
 <dt class="sig sig-object py" id="nw.jobs.AtomicJsonFiles">
-<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">nw.jobs.</span></span><span class="sig-name descname"><span class="pre">AtomicJsonFiles</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">rootdir</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/nw/jobs.html#AtomicJsonFiles"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nw.jobs.AtomicJsonFiles" title="Link to this definition">#</a></dt>
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">nw.jobs.</span></span><span class="sig-name descname"><span class="pre">AtomicJsonFiles</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">rootdir</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">retry_on</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">attempts</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">7</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">backoff_s</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.01</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/nw/jobs.html#AtomicJsonFiles"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nw.jobs.AtomicJsonFiles" title="Link to this definition">#</a></dt>
 <dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/collections.abc.html#collections.abc.MutableMapping" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">MutableMapping</span></code></a></p>
 <p>A <code class="docutils literal notranslate"><span class="pre">{key:</span> <span class="pre">json-value}</span></code> directory store whose writes are <strong>atomic</strong>.</p>
 <p>Drop-in for the <code class="docutils literal notranslate"><span class="pre">dol.JsonFiles</span></code> it replaced — same on-disk layout, one
@@ -442,6 +442,12 @@ now every durable record this module owns does too.</p>
 <p>A failed serialization touches nothing: the old record survives and no
 temp file is left behind. Temp names start with <code class="docutils literal notranslate"><span class="pre">.</span></code> so iteration never
 lists an in-flight write as a key.</p>
+<p>Readers need no lock, on Windows too (nw#170): there a reader holding the
+file open makes <code class="docutils literal notranslate"><span class="pre">os.replace</span></code> / <code class="docutils literal notranslate"><span class="pre">os.unlink</span></code> of it fail with
+<code class="docutils literal notranslate"><span class="pre">PermissionError</span></code> until it closes, so a write retries those briefly
+(<code class="docutils literal notranslate"><span class="pre">retry_on</span></code>, <code class="docutils literal notranslate"><span class="pre">attempts</span></code>, doubling from <code class="docutils literal notranslate"><span class="pre">backoff_s</span></code>: ~0.6 s in all by
+default). A read is milliseconds; the retries outlast it, and they cost
+nothing unless a write is actually refused.</p>
 <dl class="field-list simple">
 </dl>
 </dd></dl>
@@ -1353,7 +1359,7 @@ cannot silently claim one name.</p>
     </div>
   </div>
 </footer>
-      <script src="../_static/documentation_options.js?v=33adb31a"></script>
+      <script src="../_static/documentation_options.js?v=97d53703"></script>
       <script src="../_static/doctools.js?v=fd6eb6e6"></script>
       <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
