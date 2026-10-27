@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="en" data-accent-color="grass" data-content_root="../">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"><title>nw.batches - nw</title><link rel="index" title="Index" href="../genindex.html" /><link rel="search" title="Search" href="../search.html" /><link rel="next" title="nw.bodies" href="nw.bodies.html" /><link rel="prev" title="nw.checks" href="nw.checks.html" /><script>
+    function setColorMode(t){let e=document.documentElement;e.setAttribute("data-color-mode",t);let a=window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches,s=t;"auto"===t&&(s=a?"dark":"light"),"light"===s?(e.classList.remove("dark"),e.classList.add("light")):(e.classList.remove("light"),e.classList.add("dark"))}
+    setColorMode(localStorage._theme||"auto");
+  </script><link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=d88b86f9" />
+    <link rel="stylesheet" type="text/css" href="../_static/shibuya.css?v=2ceb65ce" />
+    <link rel="stylesheet" type="text/css" href="../_static/sphinx_autodoc_typehints.css?v=057ac668" />
+    <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
+    <link media="print" rel="stylesheet" type="text/css" href="../_static/print.css?v=20ff2c19" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --sy-f-text: "Inter", var(--sy-f-sys), var(--sy-f-cjk), sans-serif;
+  --sy-f-heading: "Inter", var(--sy-f-sys), var(--sy-f-cjk), sans-serif;
+}
+</style>
+    
+  <meta property="og:type" content="website"/><meta property="og:title" content="nw.batches"/>
+    <meta name="twitter:card" content="summary"/>
+  
+<link rel="alternate" type="text/markdown" href="nw.batches.html.md">
+<link rel="describedby" href="../llms.txt" type="text/markdown">
+</head>
+<body><div class="sy-head">
+  <div class="sy-head-blur"></div>
+  <div class="sy-head-inner sy-container mx-auto">
+    <a class="sy-head-brand" href="../index.html">
+      
+      
+      <strong>nw</strong>
+    </a>
+    <div class="sy-head-nav" id="head-nav">
+      <nav class="sy-head-links"></nav>
+      <div class="sy-head-extra flex items-center print:hidden"><form class="searchbox flex items-center" action="../search.html" method="get">
+  <input type="text" name="q" placeholder="Search" />
+  <kbd>/</kbd>
+</form><div class="sy-head-socials">
+  <a href="https://github.com/thorwhalen/nw" aria-label="GitHub">
+    <iconify-icon icon="simple-icons:github"></iconify-icon>
+  </a></div></div>
+    </div>
+    <div class="sy-head-actions flex items-center shrink-0 print:hidden"><button class="js-theme theme-switch flex items-center"
+data-aria-auto="Switch to light color mode"
+data-aria-light="Switch to dark color mode"
+data-aria-dark="Switch to auto color mode">
+<i class="i-lucide theme-icon"></i>
+</button><button class="md:hidden flex items-center js-menu" aria-label="Menu" type="button" aria-controls="head-nav" aria-expanded="false">
+        <div class="hamburger">
+          <span class="hamburger_1"></span>
+          <span class="hamburger_2"></span>
+          <span class="hamburger_3"></span>
+        </div>
+      </button>
+    </div>
+  </div>
+</div>
+<div class="sy-page sy-container flex mx-auto">
+  <aside id="lside" class="sy-lside md:w-72 md:shrink-0 print:hidden">
+    <div class="sy-lside-inner md:sticky">
+      <div class="sy-scrollbar p-6">
+        <div class="globaltoc" data-expand-depth="0"><ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="../api.html">API reference</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="nw.html">nw</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="nw.freshness.html">nw.freshness</a></li>
+<li class="toctree-l3"><a class="reference internal" href="nw.inspect.html">nw.inspect</a></li>
+<li class="toctree-l3"><a class="reference internal" href="nw.checks.html">nw.checks</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">nw.batches</a></li>
+<li class="toctree-l3"><a class="reference internal" href="nw.bodies.html">nw.bodies</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="nw.bodies.character_ref.html">nw.bodies.character_ref</a></li>
+<li class="toctree-l4"><a class="reference internal" href="nw.bodies.decision.html">nw.bodies.decision</a></li>
+<li class="toctree-l4"><a class="reference internal" href="nw.bodies.environment_ref.html">nw.bodies.environment_ref</a></li>
+<li class="toctree-l4"><a class="reference internal" href="nw.bodies.genre_envelope.html">nw.bodies.genre_envelope</a></li>
+<li class="toctree-l4"><a class="reference internal" href="nw.bodies.render_result.html">nw.bodies.render_result</a></li>
+<li class="toctree-l4"><a class="reference internal" href="nw.bodies.section.html">nw.bodies.section</a></li>
+<li class="toctree-l4"><a class="reference internal" href="nw.bodies.shot.html">nw.bodies.shot</a></li>
+<li class="toctree-l4"><a class="reference internal" href="nw.bodies.unproduced_output.html">nw.bodies.unproduced_output</a></li>
+<li class="toctree-l4"><a class="reference internal" href="nw.bodies.verifying_trace.html">nw.bodies.verifying_trace</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="nw.delivery.html">nw.delivery</a></li>
+<li class="toctree-l3"><a class="reference internal" href="nw.experiment.html">nw.experiment</a></li>
+<li class="toctree-l3"><a class="reference internal" href="nw.genres.html">nw.genres</a></li>
+<li class="toctree-l3"><a class="reference internal" href="nw.graph.html">nw.graph</a></li>
+<li class="toctree-l3"><a class="reference internal" href="nw.graph_backend.html">nw.graph_backend</a></li>
+<li class="toctree-l3"><a class="reference internal" href="nw.jobs.html">nw.jobs</a></li>
+<li class="toctree-l3"><a class="reference internal" href="nw.media_catalog.html">nw.media_catalog</a></li>
+<li class="toctree-l3"><a class="reference internal" href="nw.migrate.html">nw.migrate</a></li>
+<li class="toctree-l3"><a class="reference internal" href="nw.pricing.html">nw.pricing</a></li>
+<li class="toctree-l3"><a class="reference internal" href="nw.project.html">nw.project</a></li>
+<li class="toctree-l3"><a class="reference internal" href="nw.renderers.html">nw.renderers</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="nw.renderers.composite_lipsync.html">nw.renderers.composite_lipsync</a></li>
+<li class="toctree-l4"><a class="reference internal" href="nw.renderers.image_to_video.html">nw.renderers.image_to_video</a></li>
+<li class="toctree-l4"><a class="reference internal" href="nw.renderers.lipsync.html">nw.renderers.lipsync</a></li>
+<li class="toctree-l4"><a class="reference internal" href="nw.renderers.still.html">nw.renderers.still</a></li>
+<li class="toctree-l4"><a class="reference internal" href="nw.renderers.text_to_video.html">nw.renderers.text_to_video</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="nw.schema.html">nw.schema</a></li>
+<li class="toctree-l3"><a class="reference internal" href="nw.script_segmentation.html">nw.script_segmentation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="nw.secrets.html">nw.secrets</a></li>
+<li class="toctree-l3"><a class="reference internal" href="nw.storage.html">nw.storage</a></li>
+<li class="toctree-l3"><a class="reference internal" href="nw.transforms.html">nw.transforms</a></li>
+<li class="toctree-l3"><a class="reference internal" href="nw.validation.html">nw.validation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="nw.workflow.html">nw.workflow</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../ai-agents.html">For AI agents</a></li>
+</ul>
+
+        </div>
+      </div>
+    </div>
+  </aside>
+  <div class="lside-overlay js-menu" role="button" aria-label="Close left sidebar" aria-controls="lside" aria-expanded="false"></div>
+  <aside id="rside" class="sy-rside pb-3 w-64 shrink-0 order-last">
+    <button class="rside-close js-menu xl:hidden" aria-label="Close Table of Contents" type="button" aria-controls="rside" aria-expanded="false">
+      <i class="i-lucide close"></i>
+    </button>
+    <div class="sy-scrollbar sy-rside-inner px-6 xl:top-16 xl:sticky xl:pl-0 pt-6 pb-4"><div class="localtoc"><h3>On this page</h3><ul>
+<li><a class="reference internal" href="#nw.batches.BATCHES_DIRNAME"><code class="docutils literal notranslate"><span class="pre">BATCHES_DIRNAME</span></code></a></li>
+<li><a class="reference internal" href="#nw.batches.BatchRecord"><code class="docutils literal notranslate"><span class="pre">BatchRecord</span></code></a></li>
+<li><a class="reference internal" href="#nw.batches.DEFAULT_POLL_S"><code class="docutils literal notranslate"><span class="pre">DEFAULT_POLL_S</span></code></a></li>
+<li><a class="reference internal" href="#nw.batches.MISSING"><code class="docutils literal notranslate"><span class="pre">MISSING</span></code></a></li>
+<li><a class="reference internal" href="#nw.batches.cancel_batch"><code class="docutils literal notranslate"><span class="pre">cancel_batch()</span></code></a></li>
+<li><a class="reference internal" href="#nw.batches.enqueue_batch"><code class="docutils literal notranslate"><span class="pre">enqueue_batch()</span></code></a></li>
+<li><a class="reference internal" href="#nw.batches.estimate_batch"><code class="docutils literal notranslate"><span class="pre">estimate_batch()</span></code></a></li>
+<li><a class="reference internal" href="#nw.batches.get_batch"><code class="docutils literal notranslate"><span class="pre">get_batch()</span></code></a></li>
+<li><a class="reference internal" href="#nw.batches.output"><code class="docutils literal notranslate"><span class="pre">output()</span></code></a></li>
+<li><a class="reference internal" href="#nw.batches.status"><code class="docutils literal notranslate"><span class="pre">status()</span></code></a></li>
+<li><a class="reference internal" href="#nw.batches.wait"><code class="docutils literal notranslate"><span class="pre">wait()</span></code></a></li>
+</ul>
+</div><div id="ethical-ad-placement" data-ea-publisher="readthedocs"></div></div>
+  </aside>
+  <div class="rside-overlay js-menu" role="button" aria-label="Close Table of Contents" aria-controls="rside" aria-expanded="false"></div>
+  <main class="sy-main w-full max-sm:max-w-full print:pt-6">
+<div class="sy-breadcrumbs" role="navigation">
+  <div class="sy-breadcrumbs-inner flex items-center">
+    <div class="md:hidden mr-3">
+      <button class="js-menu" aria-label="Menu" type="button" aria-controls="lside" aria-expanded="false">
+        <i class="i-lucide menu"></i>
+      </button>
+    </div>
+    <ol class="flex-1" itemscope itemtype="https://schema.org/BreadcrumbList"><li itemprop="itemListElement" itemscope itemtype="https://schema.org/ListItem">
+        <a itemprop="item" href="../index.html"><span itemprop="name">nw</span></a>
+        <span>/</span>
+        <meta itemprop="position" content="1" />
+      </li><li itemprop="itemListElement" itemscope itemtype="https://schema.org/ListItem">
+        <a itemprop="item" href="../api.html"><span itemprop="name">API reference</span></a>
+        <span>/</span>
+        <meta itemprop="position" content="2" />
+      </li><li itemprop="itemListElement" itemscope itemtype="https://schema.org/ListItem">
+        <a itemprop="item" href="nw.html"><span itemprop="name">nw</span></a>
+        <span>/</span>
+        <meta itemprop="position" content="3" />
+      </li><li itemprop="itemListElement" itemscope itemtype="https://schema.org/ListItem">
+        <strong itemprop="name">nw.batches</strong>
+        <meta itemprop="position" content="4" />
+      </li></ol>
+    <div class="xl:hidden ml-1">
+      <button class="js-menu" aria-label="Show table of contents" type="button" aria-controls="rside"
+        aria-expanded="false">
+        <i class="i-lucide outdent"></i>
+      </button>
+    </div>
+  </div>
+</div><div class="flex flex-col break-words justify-between">
+      <div class="relative min-w-0 max-w-6xl px-6 pb-6 pt-8 xl:px-12">
+  <article class="yue dark-code" role="main">
+          <section id="module-nw.batches">
+<span id="nw-batches"></span><h1>nw.batches<a class="headerlink" href="#module-nw.batches" title="Link to this heading">#</a></h1>
+<p>nw.batches — many jobs, one handle: submit / status / wait / output / cancel.</p>
+<p>An agent driving a 200-shot fan-out should not burn a turn per poll and track
+N job ids (reelee#261 B). A <strong>batch</strong> is a small durable record beside the job
+records (<code class="docutils literal notranslate"><span class="pre">&lt;jobs_dirname&gt;/batches/&lt;batch_id&gt;.json</span></code>: <code class="docutils literal notranslate"><span class="pre">batch_id</span></code>, the ordered
+<code class="docutils literal notranslate"><span class="pre">job_ids</span></code>, a <code class="docutils literal notranslate"><span class="pre">label</span></code>, <code class="docutils literal notranslate"><span class="pre">created_at</span></code>). Everything else is *computed from the
+member jobs on read* and never stored, so a batch cannot drift from its jobs:</p>
+<ul>
+<li><p><a class="reference internal" href="#nw.batches.enqueue_batch" title="nw.batches.enqueue_batch"><code class="xref py py-func docutils literal notranslate"><span class="pre">enqueue_batch()</span></code></a> enqueues each item through <a class="reference internal" href="nw.jobs.html#nw.jobs.enqueue" title="nw.jobs.enqueue"><code class="xref py py-func docutils literal notranslate"><span class="pre">nw.jobs.enqueue()</span></code></a>, so
+idempotency, ETA, cost, heartbeat and the reaper stay per-job and unchanged.
+The <code class="docutils literal notranslate"><span class="pre">batch_id</span></code> is a pure function of the ordered job ids, so re-submitting
+the same batch returns the same batch (and, per job, the same live jobs).</p></li>
+<li><p><a class="reference internal" href="#nw.batches.status" title="nw.batches.status"><code class="xref py py-func docutils literal notranslate"><span class="pre">status()</span></code></a> — counts per job status, summed cost, <code class="docutils literal notranslate"><span class="pre">done</span></code>.</p></li>
+<li><p><a class="reference internal" href="#nw.batches.wait" title="nw.batches.wait"><code class="xref py py-func docutils literal notranslate"><span class="pre">wait()</span></code></a> — blocks until every member is terminal or <code class="docutils literal notranslate"><span class="pre">timeout</span></code> elapses,
+then returns the current aggregate with <code class="docutils literal notranslate"><span class="pre">timed_out</span></code>. Distinct from
+<a class="reference internal" href="#nw.batches.status" title="nw.batches.status"><code class="xref py py-func docutils literal notranslate"><span class="pre">status()</span></code></a>, which never blocks. Woken by <a class="reference internal" href="nw.jobs.html#nw.jobs.wait_for_change" title="nw.jobs.wait_for_change"><code class="xref py py-func docutils literal notranslate"><span class="pre">nw.jobs.wait_for_change()</span></code></a></p>
+<blockquote>
+<div><p>(job finish / cancel) and re-checking at <code class="docutils literal notranslate"><span class="pre">poll_s</span></code> regardless, because the
+reaper and cross-process workers change a job without notifying anyone here.</p>
+</div></blockquote>
+</li>
+<li><p><a class="reference internal" href="#nw.batches.output" title="nw.batches.output"><code class="xref py py-func docutils literal notranslate"><span class="pre">output()</span></code></a> — a partially failed batch yields its successes <em>and</em> its
+failures, never an all-or-nothing error.</p></li>
+<li><p><a class="reference internal" href="#nw.batches.estimate_batch" title="nw.batches.estimate_batch"><code class="xref py py-func docutils literal notranslate"><span class="pre">estimate_batch()</span></code></a> — the cost gate: the sum of per-item
+<a class="reference internal" href="nw.jobs.html#nw.jobs.estimate" title="nw.jobs.estimate"><code class="xref py py-func docutils literal notranslate"><span class="pre">nw.jobs.estimate()</span></code></a>; an unknown item makes the whole batch unknown and</p>
+<blockquote>
+<div><p>therefore approval-requiring (<code class="docutils literal notranslate"><span class="pre">None</span></code> is never free).</p>
+</div></blockquote>
+</li>
+<li><p><a class="reference internal" href="#nw.batches.cancel_batch" title="nw.batches.cancel_batch"><code class="xref py py-func docutils literal notranslate"><span class="pre">cancel_batch()</span></code></a> — cancels every non-terminal member (job cancel is
+idempotent and a no-op on a finished job).</p></li>
+</ul>
+<p>Items are mappings <code class="docutils literal notranslate"><span class="pre">{&quot;kind&quot;:</span> <span class="pre">...,</span> <span class="pre">&quot;params&quot;:</span> <span class="pre">{...}}</span></code> (optionally <code class="docutils literal notranslate"><span class="pre">label</span></code>,
+<code class="docutils literal notranslate"><span class="pre">idempotency_key</span></code>); a batch-level <code class="docutils literal notranslate"><span class="pre">kind=</span></code> is the default for items that omit
+one. Item identity should be semantic (see <code class="xref py py-mod docutils literal notranslate"><span class="pre">nw.transforms.fanout</span></code>’s
+<code class="docutils literal notranslate"><span class="pre">mapping_key</span></code>): the default idempotency key hashes <code class="docutils literal notranslate"><span class="pre">params</span></code>.</p>
+<p>Cost gating of the <em>spender</em> (a per-caller cap) belongs to the host’s
+<code class="docutils literal notranslate"><span class="pre">enqueue</span></code> door, exactly as for a single job; this module adds only the dry-run.</p>
+<p class="rubric">Module Attributes</p>
+<div class="table-wrapper autosummary longtable docutils container">
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#nw.batches.BATCHES_DIRNAME" title="nw.batches.BATCHES_DIRNAME"><code class="xref py py-obj docutils literal notranslate"><span class="pre">BATCHES_DIRNAME</span></code></a></p></td>
+<td><p>Sub-directory of <code class="docutils literal notranslate"><span class="pre">config.jobs_dirname</span></code> holding batch records.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#nw.batches.DEFAULT_POLL_S" title="nw.batches.DEFAULT_POLL_S"><code class="xref py py-obj docutils literal notranslate"><span class="pre">DEFAULT_POLL_S</span></code></a></p></td>
+<td><p>How often <a class="reference internal" href="#nw.batches.wait" title="nw.batches.wait"><code class="xref py py-func docutils literal notranslate"><span class="pre">wait()</span></code></a> re-reads the members when nothing notifies it.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#nw.batches.MISSING" title="nw.batches.MISSING"><code class="xref py py-obj docutils literal notranslate"><span class="pre">MISSING</span></code></a></p></td>
+<td><p>Status key for a member whose job record is gone (it will never finish).</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p class="rubric">Functions</p>
+<div class="table-wrapper autosummary longtable docutils container">
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#nw.batches.cancel_batch" title="nw.batches.cancel_batch"><code class="xref py py-obj docutils literal notranslate"><span class="pre">cancel_batch</span></code></a>(project, batch_id, *[, config])</p></td>
+<td><p>Cancel every non-terminal member, then return <a class="reference internal" href="#nw.batches.status" title="nw.batches.status"><code class="xref py py-func docutils literal notranslate"><span class="pre">status()</span></code></a>.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#nw.batches.enqueue_batch" title="nw.batches.enqueue_batch"><code class="xref py py-obj docutils literal notranslate"><span class="pre">enqueue_batch</span></code></a>(project, items, *[, kind, ...])</p></td>
+<td><p>Enqueue every item as a job and record the batch.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#nw.batches.estimate_batch" title="nw.batches.estimate_batch"><code class="xref py py-obj docutils literal notranslate"><span class="pre">estimate_batch</span></code></a>(project, items, *[, kind, config])</p></td>
+<td><p>Dry-run gate for a whole batch, without enqueueing anything.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#nw.batches.get_batch" title="nw.batches.get_batch"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_batch</span></code></a>(project, batch_id, *[, config])</p></td>
+<td><p>The stored batch record, or <code class="docutils literal notranslate"><span class="pre">None</span></code> if unknown.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#nw.batches.output" title="nw.batches.output"><code class="xref py py-obj docutils literal notranslate"><span class="pre">output</span></code></a>(project, batch_id, *[, config])</p></td>
+<td><p>Per-outcome results, in batch order within each bucket.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#nw.batches.status" title="nw.batches.status"><code class="xref py py-obj docutils literal notranslate"><span class="pre">status</span></code></a>(project, batch_id, *[, config])</p></td>
+<td><p>Aggregate of the member jobs, computed now.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#nw.batches.wait" title="nw.batches.wait"><code class="xref py py-obj docutils literal notranslate"><span class="pre">wait</span></code></a>(project, batch_id, timeout, *[, ...])</p></td>
+<td><p>Block until the batch is done or <code class="docutils literal notranslate"><span class="pre">timeout</span></code> seconds pass (a hard cap).</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p class="rubric">Classes</p>
+<div class="table-wrapper autosummary longtable docutils container">
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#nw.batches.BatchRecord" title="nw.batches.BatchRecord"><code class="xref py py-obj docutils literal notranslate"><span class="pre">BatchRecord</span></code></a>(batch_id, job_ids, label, created_at)</p></td>
+<td><p>The durable part of a batch.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<dl class="py data">
+<dt class="sig sig-object py" id="nw.batches.BATCHES_DIRNAME">
+<span class="sig-prename descclassname"><span class="pre">nw.batches.</span></span><span class="sig-name descname"><span class="pre">BATCHES_DIRNAME</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'batches'</span></span><a class="headerlink" href="#nw.batches.BATCHES_DIRNAME" title="Link to this definition">#</a></dt>
+<dd><p>Sub-directory of <code class="docutils literal notranslate"><span class="pre">config.jobs_dirname</span></code> holding batch records.</p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="nw.batches.BatchRecord">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">nw.batches.</span></span><span class="sig-name descname"><span class="pre">BatchRecord</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">batch_id</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">job_ids</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">label</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">created_at</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/nw/batches.html#BatchRecord"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nw.batches.BatchRecord" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/builtins/functions.html#object" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>The durable part of a batch. Everything else is derived from the jobs.</p>
+<dl class="field-list simple">
+</dl>
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="nw.batches.DEFAULT_POLL_S">
+<span class="sig-prename descclassname"><span class="pre">nw.batches.</span></span><span class="sig-name descname"><span class="pre">DEFAULT_POLL_S</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0.25</span></span><a class="headerlink" href="#nw.batches.DEFAULT_POLL_S" title="Link to this definition">#</a></dt>
+<dd><p>How often <a class="reference internal" href="#nw.batches.wait" title="nw.batches.wait"><code class="xref py py-func docutils literal notranslate"><span class="pre">wait()</span></code></a> re-reads the members when nothing notifies it.</p>
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="nw.batches.MISSING">
+<span class="sig-prename descclassname"><span class="pre">nw.batches.</span></span><span class="sig-name descname"><span class="pre">MISSING</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'missing'</span></span><a class="headerlink" href="#nw.batches.MISSING" title="Link to this definition">#</a></dt>
+<dd><p>Status key for a member whose job record is gone (it will never finish).</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="nw.batches.cancel_batch">
+<span class="sig-prename descclassname"><span class="pre">nw.batches.</span></span><span class="sig-name descname"><span class="pre">cancel_batch</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">project</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">batch_id</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">config</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">JobsConfig(n_min=3,</span> <span class="pre">sample_window_k=20,</span> <span class="pre">pct_ceil=99,</span> <span class="pre">overrun_factor=1.5,</span> <span class="pre">cache_hit_floor_s=0.5,</span> <span class="pre">dur_buckets_s=(4.0,</span> <span class="pre">8.0,</span> <span class="pre">12.0),</span> <span class="pre">prior_total_s={'image':</span> <span class="pre">12.0,</span> <span class="pre">'video':</span> <span class="pre">90.0,</span> <span class="pre">'audio':</span> <span class="pre">15.0},</span> <span class="pre">default_prior_total_s=30.0,</span> <span class="pre">stale_running_s=900.0,</span> <span class="pre">heartbeat_interval_s=20.0,</span> <span class="pre">heartbeat_stale_s=120.0,</span> <span class="pre">approval_threshold_usd=1.0,</span> <span class="pre">jobs_dirname='.nw/jobs')</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/nw/batches.html#cancel_batch"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nw.batches.cancel_batch" title="Link to this definition">#</a></dt>
+<dd><p>Cancel every non-terminal member, then return <a class="reference internal" href="#nw.batches.status" title="nw.batches.status"><code class="xref py py-func docutils literal notranslate"><span class="pre">status()</span></code></a>. Idempotent.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#dict" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></a> | <span class="highlight sphinx_autodoc_typehints-value"><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></a></span></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="nw.batches.enqueue_batch">
+<span class="sig-prename descclassname"><span class="pre">nw.batches.</span></span><span class="sig-name descname"><span class="pre">enqueue_batch</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">project</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">items</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">kind</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">label</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">config</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">JobsConfig(n_min=3,</span> <span class="pre">sample_window_k=20,</span> <span class="pre">pct_ceil=99,</span> <span class="pre">overrun_factor=1.5,</span> <span class="pre">cache_hit_floor_s=0.5,</span> <span class="pre">dur_buckets_s=(4.0,</span> <span class="pre">8.0,</span> <span class="pre">12.0),</span> <span class="pre">prior_total_s={'image':</span> <span class="pre">12.0,</span> <span class="pre">'video':</span> <span class="pre">90.0,</span> <span class="pre">'audio':</span> <span class="pre">15.0},</span> <span class="pre">default_prior_total_s=30.0,</span> <span class="pre">stale_running_s=900.0,</span> <span class="pre">heartbeat_interval_s=20.0,</span> <span class="pre">heartbeat_stale_s=120.0,</span> <span class="pre">approval_threshold_usd=1.0,</span> <span class="pre">jobs_dirname='.nw/jobs')</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">enqueue_kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/nw/batches.html#enqueue_batch"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nw.batches.enqueue_batch" title="Link to this definition">#</a></dt>
+<dd><p>Enqueue every item as a job and record the batch. Never blocks.</p>
+<p><code class="docutils literal notranslate"><span class="pre">enqueue_kwargs</span></code> (<code class="docutils literal notranslate"><span class="pre">dispatch</span></code>, <code class="docutils literal notranslate"><span class="pre">on_event</span></code>, <code class="docutils literal notranslate"><span class="pre">secrets</span></code>,
+<code class="docutils literal notranslate"><span class="pre">capture_context</span></code>, <code class="docutils literal notranslate"><span class="pre">backend</span></code>) go to each <a class="reference internal" href="nw.jobs.html#nw.jobs.enqueue" title="nw.jobs.enqueue"><code class="xref py py-func docutils literal notranslate"><span class="pre">nw.jobs.enqueue()</span></code></a> call
+unchanged. Every item is validated (keys, <code class="docutils literal notranslate"><span class="pre">kind</span></code> in <code class="docutils literal notranslate"><span class="pre">dispatch</span></code>,
+<code class="docutils literal notranslate"><span class="pre">units</span></code>) before the first one launches, so a bad item leaves nothing
+running. Re-submitting a batch that exists returns it without enqueueing.</p>
+<p>Items resolving to the same job collapse to one member (first position wins).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="#nw.batches.BatchRecord" title="nw.batches.BatchRecord"><code class="xref py py-class docutils literal notranslate"><span class="pre">BatchRecord</span></code></a></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="nw.batches.estimate_batch">
+<span class="sig-prename descclassname"><span class="pre">nw.batches.</span></span><span class="sig-name descname"><span class="pre">estimate_batch</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">project</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">items</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">kind</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">config</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">JobsConfig(n_min=3,</span> <span class="pre">sample_window_k=20,</span> <span class="pre">pct_ceil=99,</span> <span class="pre">overrun_factor=1.5,</span> <span class="pre">cache_hit_floor_s=0.5,</span> <span class="pre">dur_buckets_s=(4.0,</span> <span class="pre">8.0,</span> <span class="pre">12.0),</span> <span class="pre">prior_total_s={'image':</span> <span class="pre">12.0,</span> <span class="pre">'video':</span> <span class="pre">90.0,</span> <span class="pre">'audio':</span> <span class="pre">15.0},</span> <span class="pre">default_prior_total_s=30.0,</span> <span class="pre">stale_running_s=900.0,</span> <span class="pre">heartbeat_interval_s=20.0,</span> <span class="pre">heartbeat_stale_s=120.0,</span> <span class="pre">approval_threshold_usd=1.0,</span> <span class="pre">jobs_dirname='.nw/jobs')</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/nw/batches.html#estimate_batch"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nw.batches.estimate_batch" title="Link to this definition">#</a></dt>
+<dd><p>Dry-run gate for a whole batch, without enqueueing anything.</p>
+<p><code class="docutils literal notranslate"><span class="pre">{estimated_usd,</span> <span class="pre">has_unknown_costs,</span> <span class="pre">approval_threshold_usd,</span>
+<span class="pre">requires_approval,</span> <span class="pre">n_items,</span> <span class="pre">items}</span></code>. <code class="docutils literal notranslate"><span class="pre">estimated_usd</span></code> is the sum of the
+known per-item estimates and is <code class="docutils literal notranslate"><span class="pre">None</span></code> as soon as any item is unknown;
+unknown forces approval. The threshold applies to the <em>batch</em> total, and a
+single item that alone requires approval does too.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#dict" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></a></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="nw.batches.get_batch">
+<span class="sig-prename descclassname"><span class="pre">nw.batches.</span></span><span class="sig-name descname"><span class="pre">get_batch</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">project</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">batch_id</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">config</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">JobsConfig(n_min=3,</span> <span class="pre">sample_window_k=20,</span> <span class="pre">pct_ceil=99,</span> <span class="pre">overrun_factor=1.5,</span> <span class="pre">cache_hit_floor_s=0.5,</span> <span class="pre">dur_buckets_s=(4.0,</span> <span class="pre">8.0,</span> <span class="pre">12.0),</span> <span class="pre">prior_total_s={'image':</span> <span class="pre">12.0,</span> <span class="pre">'video':</span> <span class="pre">90.0,</span> <span class="pre">'audio':</span> <span class="pre">15.0},</span> <span class="pre">default_prior_total_s=30.0,</span> <span class="pre">stale_running_s=900.0,</span> <span class="pre">heartbeat_interval_s=20.0,</span> <span class="pre">heartbeat_stale_s=120.0,</span> <span class="pre">approval_threshold_usd=1.0,</span> <span class="pre">jobs_dirname='.nw/jobs')</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/nw/batches.html#get_batch"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nw.batches.get_batch" title="Link to this definition">#</a></dt>
+<dd><p>The stored batch record, or <code class="docutils literal notranslate"><span class="pre">None</span></code> if unknown.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="#nw.batches.BatchRecord" title="nw.batches.BatchRecord"><code class="xref py py-class docutils literal notranslate"><span class="pre">BatchRecord</span></code></a> | <span class="highlight sphinx_autodoc_typehints-value"><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></a></span></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="nw.batches.output">
+<span class="sig-prename descclassname"><span class="pre">nw.batches.</span></span><span class="sig-name descname"><span class="pre">output</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">project</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">batch_id</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">config</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">JobsConfig(n_min=3,</span> <span class="pre">sample_window_k=20,</span> <span class="pre">pct_ceil=99,</span> <span class="pre">overrun_factor=1.5,</span> <span class="pre">cache_hit_floor_s=0.5,</span> <span class="pre">dur_buckets_s=(4.0,</span> <span class="pre">8.0,</span> <span class="pre">12.0),</span> <span class="pre">prior_total_s={'image':</span> <span class="pre">12.0,</span> <span class="pre">'video':</span> <span class="pre">90.0,</span> <span class="pre">'audio':</span> <span class="pre">15.0},</span> <span class="pre">default_prior_total_s=30.0,</span> <span class="pre">stale_running_s=900.0,</span> <span class="pre">heartbeat_interval_s=20.0,</span> <span class="pre">heartbeat_stale_s=120.0,</span> <span class="pre">approval_threshold_usd=1.0,</span> <span class="pre">jobs_dirname='.nw/jobs')</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/nw/batches.html#output"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nw.batches.output" title="Link to this definition">#</a></dt>
+<dd><p>Per-outcome results, in batch order within each bucket.</p>
+<p><code class="docutils literal notranslate"><span class="pre">{succeeded:</span> <span class="pre">[{job_id,</span> <span class="pre">result}],</span> <span class="pre">failed:</span> <span class="pre">[{job_id,</span> <span class="pre">error,</span> <span class="pre">error_kind}],</span>
+<span class="pre">cancelled:</span> <span class="pre">[{job_id}],</span> <span class="pre">pending:</span> <span class="pre">[{job_id,</span> <span class="pre">status}]}</span></code>; a vanished member is
+listed under <code class="docutils literal notranslate"><span class="pre">failed</span></code> with <code class="docutils literal notranslate"><span class="pre">error_kind=&quot;missing&quot;</span></code>. <code class="docutils literal notranslate"><span class="pre">None</span></code> if unknown.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#dict" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></a> | <span class="highlight sphinx_autodoc_typehints-value"><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></a></span></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="nw.batches.status">
+<span class="sig-prename descclassname"><span class="pre">nw.batches.</span></span><span class="sig-name descname"><span class="pre">status</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">project</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">batch_id</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">config</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">JobsConfig(n_min=3,</span> <span class="pre">sample_window_k=20,</span> <span class="pre">pct_ceil=99,</span> <span class="pre">overrun_factor=1.5,</span> <span class="pre">cache_hit_floor_s=0.5,</span> <span class="pre">dur_buckets_s=(4.0,</span> <span class="pre">8.0,</span> <span class="pre">12.0),</span> <span class="pre">prior_total_s={'image':</span> <span class="pre">12.0,</span> <span class="pre">'video':</span> <span class="pre">90.0,</span> <span class="pre">'audio':</span> <span class="pre">15.0},</span> <span class="pre">default_prior_total_s=30.0,</span> <span class="pre">stale_running_s=900.0,</span> <span class="pre">heartbeat_interval_s=20.0,</span> <span class="pre">heartbeat_stale_s=120.0,</span> <span class="pre">approval_threshold_usd=1.0,</span> <span class="pre">jobs_dirname='.nw/jobs')</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/nw/batches.html#status"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nw.batches.status" title="Link to this definition">#</a></dt>
+<dd><p>Aggregate of the member jobs, computed now. <code class="docutils literal notranslate"><span class="pre">None</span></code> if the batch is unknown.</p>
+<p><code class="docutils literal notranslate"><span class="pre">{batch_id,</span> <span class="pre">label,</span> <span class="pre">total,</span> <span class="pre">counts,</span> <span class="pre">done,</span> <span class="pre">cost,</span> <span class="pre">timed_out:</span> <span class="pre">False}</span></code>. <code class="docutils literal notranslate"><span class="pre">counts</span></code>
+has one entry per status present (plus <a class="reference internal" href="#nw.batches.MISSING" title="nw.batches.MISSING"><code class="xref py py-data docutils literal notranslate"><span class="pre">MISSING</span></code></a>); <code class="docutils literal notranslate"><span class="pre">done</span></code> is True when
+no member is queued/running/cancelling. <code class="docutils literal notranslate"><span class="pre">cost</span></code> carries the sums with their
+honesty flags: <code class="docutils literal notranslate"><span class="pre">estimated_usd</span></code> is <code class="docutils literal notranslate"><span class="pre">None</span></code> if any member’s is unknown, and
+<code class="docutils literal notranslate"><span class="pre">actual_is_lower_bound</span></code> is True if any member’s is.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#dict" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></a> | <span class="highlight sphinx_autodoc_typehints-value"><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></a></span></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="nw.batches.wait">
+<span class="sig-prename descclassname"><span class="pre">nw.batches.</span></span><span class="sig-name descname"><span class="pre">wait</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">project</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">batch_id</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">timeout</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">poll_s</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.25</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">config</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">JobsConfig(n_min=3,</span> <span class="pre">sample_window_k=20,</span> <span class="pre">pct_ceil=99,</span> <span class="pre">overrun_factor=1.5,</span> <span class="pre">cache_hit_floor_s=0.5,</span> <span class="pre">dur_buckets_s=(4.0,</span> <span class="pre">8.0,</span> <span class="pre">12.0),</span> <span class="pre">prior_total_s={'image':</span> <span class="pre">12.0,</span> <span class="pre">'video':</span> <span class="pre">90.0,</span> <span class="pre">'audio':</span> <span class="pre">15.0},</span> <span class="pre">default_prior_total_s=30.0,</span> <span class="pre">stale_running_s=900.0,</span> <span class="pre">heartbeat_interval_s=20.0,</span> <span class="pre">heartbeat_stale_s=120.0,</span> <span class="pre">approval_threshold_usd=1.0,</span> <span class="pre">jobs_dirname='.nw/jobs')</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/nw/batches.html#wait"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nw.batches.wait" title="Link to this definition">#</a></dt>
+<dd><p>Block until the batch is done or <code class="docutils literal notranslate"><span class="pre">timeout</span></code> seconds pass (a hard cap).</p>
+<p><code class="docutils literal notranslate"><span class="pre">timeout</span></code> must be &gt;= 0. Wakes on job finish/cancel via <a class="reference internal" href="nw.jobs.html#nw.jobs.notify_change" title="nw.jobs.notify_change"><code class="xref py py-func docutils literal notranslate"><span class="pre">nw.jobs.notify_change()</span></code></a> (managed
+backend only; a custom <code class="docutils literal notranslate"><span class="pre">backend=</span></code> falls back to the <code class="docutils literal notranslate"><span class="pre">poll_s</span></code> re-read).</p>
+<p>Returns the <a class="reference internal" href="#nw.batches.status" title="nw.batches.status"><code class="xref py py-func docutils literal notranslate"><span class="pre">status()</span></code></a> aggregate with <code class="docutils literal notranslate"><span class="pre">timed_out</span></code> True when the cap hit
+first, so a caller can loop on it. <code class="docutils literal notranslate"><span class="pre">None</span></code> if the batch is unknown.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#dict" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></a> | <span class="highlight sphinx_autodoc_typehints-value"><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></a></span></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+
+        </article><button class="back-to-top" type="button">
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+    <path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12z"></path>
+  </svg>
+  <span>Back to top</span>
+</button><div class="navigation flex print:hidden"><div class="navigation-prev">
+    <a href="nw.checks.html">
+      <i class="i-lucide chevron-left"></i>
+      <div class="page-info">
+        <span>Previous</span><div class="title">nw.checks</div></div>
+    </a>
+  </div><div class="navigation-next">
+    <a href="nw.bodies.html">
+      <div class="page-info">
+        <span>Next</span>
+        <div class="title">nw.bodies</div>
+      </div>
+      <i class="i-lucide chevron-right"></i>
+    </a>
+  </div></div></div>
+    </div>
+  </main>
+</div>
+<footer class="sy-foot">
+  <div class="sy-foot-inner sy-container mx-auto">
+    <div class="sy-foot-reserved md:flex justify-between items-center">
+      <div class="sy-foot-copyright">
+  <p>
+    Made with
+    
+    <a href="https://shibuya.lepture.com">Shibuya theme</a>.
+  </p>
+</div>
+      <div class="sy-foot-socials">
+  <a href="https://github.com/thorwhalen/nw" aria-label="GitHub">
+    <iconify-icon icon="simple-icons:github"></iconify-icon>
+  </a></div>
+    </div>
+  </div>
+</footer>
+      <script src="../_static/documentation_options.js?v=5c6fbccc"></script>
+      <script src="../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
+      <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../_static/copybutton.js?v=fd10adb8"></script>
+      <script src="../_static/shibuya.js?v=50760d75"></script></body>
+</html>

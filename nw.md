@@ -1,4 +1,4 @@
-> built 2026-10-26 21:18 UTC from 851cf1b (main) · nw 0.0.79. Details: build_info.json
+> built 2026-10-27 00:53 UTC from e41beca (main) · nw 0.0.80. Details: build_info.json
 
 # index.html.md
 
@@ -689,6 +689,165 @@ Optional system tools: `ffmpeg` / `ffprobe` for audio slicing and QA reports.
 MIT — see [LICENSE]().
 
 <p class="epythet-aggregates">This documentation as a single file: <a href="nw.md">nw.md</a> (Markdown, for agents).</p>
+
+
+# _autosummary/nw.batches.html.md
+
+# nw.batches
+
+nw.batches — many jobs, one handle: submit / status / wait / output / cancel.
+
+An agent driving a 200-shot fan-out should not burn a turn per poll and track
+N job ids (reelee#261 B). A **batch** is a small durable record beside the job
+records (`<jobs_dirname>/batches/<batch_id>.json`: `batch_id`, the ordered
+`job_ids`, a `label`, `created_at`). Everything else is \*computed from the
+member jobs on read\* and never stored, so a batch cannot drift from its jobs:
+
+- [`enqueue_batch()`](_autosummary/nw.batches.html.md#nw.batches.enqueue_batch) enqueues each item through [`nw.jobs.enqueue()`](_autosummary/nw.jobs.html.md#nw.jobs.enqueue), so
+  idempotency, ETA, cost, heartbeat and the reaper stay per-job and unchanged.
+  The `batch_id` is a pure function of the ordered job ids, so re-submitting
+  the same batch returns the same batch (and, per job, the same live jobs).
+- [`status()`](_autosummary/nw.batches.html.md#nw.batches.status) — counts per job status, summed cost, `done`.
+- [`wait()`](_autosummary/nw.batches.html.md#nw.batches.wait) — blocks until every member is terminal or `timeout` elapses,
+  then returns the current aggregate with `timed_out`. Distinct from
+  [`status()`](_autosummary/nw.batches.html.md#nw.batches.status), which never blocks. Woken by [`nw.jobs.wait_for_change()`](_autosummary/nw.jobs.html.md#nw.jobs.wait_for_change)
+  > (job finish / cancel) and re-checking at `poll_s` regardless, because the
+  > reaper and cross-process workers change a job without notifying anyone here.
+- [`output()`](_autosummary/nw.batches.html.md#nw.batches.output) — a partially failed batch yields its successes *and* its
+  failures, never an all-or-nothing error.
+- [`estimate_batch()`](_autosummary/nw.batches.html.md#nw.batches.estimate_batch) — the cost gate: the sum of per-item
+  [`nw.jobs.estimate()`](_autosummary/nw.jobs.html.md#nw.jobs.estimate); an unknown item makes the whole batch unknown and
+  > therefore approval-requiring (`None` is never free).
+- [`cancel_batch()`](_autosummary/nw.batches.html.md#nw.batches.cancel_batch) — cancels every non-terminal member (job cancel is
+  idempotent and a no-op on a finished job).
+
+Items are mappings `{"kind": ..., "params": {...}}` (optionally `label`,
+`idempotency_key`); a batch-level `kind=` is the default for items that omit
+one. Item identity should be semantic (see `nw.transforms.fanout`’s
+`mapping_key`): the default idempotency key hashes `params`.
+
+Cost gating of the *spender* (a per-caller cap) belongs to the host’s
+`enqueue` door, exactly as for a single job; this module adds only the dry-run.
+
+### Module Attributes
+
+| [`BATCHES_DIRNAME`](_autosummary/nw.batches.html.md#nw.batches.BATCHES_DIRNAME)   | Sub-directory of `config.jobs_dirname` holding batch records.                                                    |
+|--------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------|
+| [`DEFAULT_POLL_S`](_autosummary/nw.batches.html.md#nw.batches.DEFAULT_POLL_S)    | How often [`wait()`](_autosummary/nw.batches.html.md#nw.batches.wait) re-reads the members when nothing notifies it. |
+| [`MISSING`](_autosummary/nw.batches.html.md#nw.batches.MISSING)           | Status key for a member whose job record is gone (it will never finish).                                         |
+
+### Functions
+
+| [`cancel_batch`](_autosummary/nw.batches.html.md#nw.batches.cancel_batch)(project, batch_id, \*[, config])      | Cancel every non-terminal member, then return [`status()`](_autosummary/nw.batches.html.md#nw.batches.status).   |
+|-----------------------------------------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------|
+| [`enqueue_batch`](_autosummary/nw.batches.html.md#nw.batches.enqueue_batch)(project, items, \*[, kind, ...])     | Enqueue every item as a job and record the batch.                                                          |
+| [`estimate_batch`](_autosummary/nw.batches.html.md#nw.batches.estimate_batch)(project, items, \*[, kind, config]) | Dry-run gate for a whole batch, without enqueueing anything.                                               |
+| [`get_batch`](_autosummary/nw.batches.html.md#nw.batches.get_batch)(project, batch_id, \*[, config])         | The stored batch record, or `None` if unknown.                                                             |
+| [`output`](_autosummary/nw.batches.html.md#nw.batches.output)(project, batch_id, \*[, config])            | Per-outcome results, in batch order within each bucket.                                                    |
+| [`status`](_autosummary/nw.batches.html.md#nw.batches.status)(project, batch_id, \*[, config])            | Aggregate of the member jobs, computed now.                                                                |
+| [`wait`](_autosummary/nw.batches.html.md#nw.batches.wait)(project, batch_id, timeout, \*[, ...])        | Block until the batch is done or `timeout` seconds pass (a hard cap).                                      |
+
+### Classes
+
+| [`BatchRecord`](_autosummary/nw.batches.html.md#nw.batches.BatchRecord)(batch_id, job_ids, label, created_at)   | The durable part of a batch.   |
+|------------------------------------------------------------------------------------------------------|--------------------------------|
+
+### nw.batches.BATCHES_DIRNAME *= 'batches'*
+
+Sub-directory of `config.jobs_dirname` holding batch records.
+
+### *class* nw.batches.BatchRecord(batch_id, job_ids, label, created_at)
+
+Bases: [`object`](https://docs.python.org/3/builtins/functions.html#object)
+
+The durable part of a batch. Everything else is derived from the jobs.
+
+### nw.batches.DEFAULT_POLL_S *= 0.25*
+
+How often [`wait()`](_autosummary/nw.batches.html.md#nw.batches.wait) re-reads the members when nothing notifies it.
+
+### nw.batches.MISSING *= 'missing'*
+
+Status key for a member whose job record is gone (it will never finish).
+
+### nw.batches.cancel_batch(project, batch_id, , config=JobsConfig(n_min=3, sample_window_k=20, pct_ceil=99, overrun_factor=1.5, cache_hit_floor_s=0.5, dur_buckets_s=(4.0, 8.0, 12.0), prior_total_s={'image': 12.0, 'video': 90.0, 'audio': 15.0}, default_prior_total_s=30.0, stale_running_s=900.0, heartbeat_interval_s=20.0, heartbeat_stale_s=120.0, approval_threshold_usd=1.0, jobs_dirname='.nw/jobs'))
+
+Cancel every non-terminal member, then return [`status()`](_autosummary/nw.batches.html.md#nw.batches.status). Idempotent.
+
+* **Return type:**
+  [`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict) | [`None`](https://docs.python.org/3/builtins/constants.html#None)
+
+### nw.batches.enqueue_batch(project, items, , kind=None, label=None, config=JobsConfig(n_min=3, sample_window_k=20, pct_ceil=99, overrun_factor=1.5, cache_hit_floor_s=0.5, dur_buckets_s=(4.0, 8.0, 12.0), prior_total_s={'image': 12.0, 'video': 90.0, 'audio': 15.0}, default_prior_total_s=30.0, stale_running_s=900.0, heartbeat_interval_s=20.0, heartbeat_stale_s=120.0, approval_threshold_usd=1.0, jobs_dirname='.nw/jobs'), \*\*enqueue_kwargs)
+
+Enqueue every item as a job and record the batch. Never blocks.
+
+`enqueue_kwargs` (`dispatch`, `on_event`, `secrets`,
+`capture_context`, `backend`) go to each [`nw.jobs.enqueue()`](_autosummary/nw.jobs.html.md#nw.jobs.enqueue) call
+unchanged. Every item is validated (keys, `kind` in `dispatch`,
+`units`) before the first one launches, so a bad item leaves nothing
+running. Re-submitting a batch that exists returns it without enqueueing.
+
+Items resolving to the same job collapse to one member (first position wins).
+
+* **Return type:**
+  [`BatchRecord`](_autosummary/nw.batches.html.md#nw.batches.BatchRecord)
+
+### nw.batches.estimate_batch(project, items, , kind=None, config=JobsConfig(n_min=3, sample_window_k=20, pct_ceil=99, overrun_factor=1.5, cache_hit_floor_s=0.5, dur_buckets_s=(4.0, 8.0, 12.0), prior_total_s={'image': 12.0, 'video': 90.0, 'audio': 15.0}, default_prior_total_s=30.0, stale_running_s=900.0, heartbeat_interval_s=20.0, heartbeat_stale_s=120.0, approval_threshold_usd=1.0, jobs_dirname='.nw/jobs'))
+
+Dry-run gate for a whole batch, without enqueueing anything.
+
+`{estimated_usd, has_unknown_costs, approval_threshold_usd,
+requires_approval, n_items, items}`. `estimated_usd` is the sum of the
+known per-item estimates and is `None` as soon as any item is unknown;
+unknown forces approval. The threshold applies to the *batch* total, and a
+single item that alone requires approval does too.
+
+* **Return type:**
+  [`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)
+
+### nw.batches.get_batch(project, batch_id, , config=JobsConfig(n_min=3, sample_window_k=20, pct_ceil=99, overrun_factor=1.5, cache_hit_floor_s=0.5, dur_buckets_s=(4.0, 8.0, 12.0), prior_total_s={'image': 12.0, 'video': 90.0, 'audio': 15.0}, default_prior_total_s=30.0, stale_running_s=900.0, heartbeat_interval_s=20.0, heartbeat_stale_s=120.0, approval_threshold_usd=1.0, jobs_dirname='.nw/jobs'))
+
+The stored batch record, or `None` if unknown.
+
+* **Return type:**
+  [`BatchRecord`](_autosummary/nw.batches.html.md#nw.batches.BatchRecord) | [`None`](https://docs.python.org/3/builtins/constants.html#None)
+
+### nw.batches.output(project, batch_id, , config=JobsConfig(n_min=3, sample_window_k=20, pct_ceil=99, overrun_factor=1.5, cache_hit_floor_s=0.5, dur_buckets_s=(4.0, 8.0, 12.0), prior_total_s={'image': 12.0, 'video': 90.0, 'audio': 15.0}, default_prior_total_s=30.0, stale_running_s=900.0, heartbeat_interval_s=20.0, heartbeat_stale_s=120.0, approval_threshold_usd=1.0, jobs_dirname='.nw/jobs'))
+
+Per-outcome results, in batch order within each bucket.
+
+`{succeeded: [{job_id, result}], failed: [{job_id, error, error_kind}],
+cancelled: [{job_id}], pending: [{job_id, status}]}`; a vanished member is
+listed under `failed` with `error_kind="missing"`. `None` if unknown.
+
+* **Return type:**
+  [`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict) | [`None`](https://docs.python.org/3/builtins/constants.html#None)
+
+### nw.batches.status(project, batch_id, , config=JobsConfig(n_min=3, sample_window_k=20, pct_ceil=99, overrun_factor=1.5, cache_hit_floor_s=0.5, dur_buckets_s=(4.0, 8.0, 12.0), prior_total_s={'image': 12.0, 'video': 90.0, 'audio': 15.0}, default_prior_total_s=30.0, stale_running_s=900.0, heartbeat_interval_s=20.0, heartbeat_stale_s=120.0, approval_threshold_usd=1.0, jobs_dirname='.nw/jobs'))
+
+Aggregate of the member jobs, computed now. `None` if the batch is unknown.
+
+`{batch_id, label, total, counts, done, cost, timed_out: False}`. `counts`
+has one entry per status present (plus [`MISSING`](_autosummary/nw.batches.html.md#nw.batches.MISSING)); `done` is True when
+no member is queued/running/cancelling. `cost` carries the sums with their
+honesty flags: `estimated_usd` is `None` if any member’s is unknown, and
+`actual_is_lower_bound` is True if any member’s is.
+
+* **Return type:**
+  [`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict) | [`None`](https://docs.python.org/3/builtins/constants.html#None)
+
+### nw.batches.wait(project, batch_id, timeout, , poll_s=0.25, config=JobsConfig(n_min=3, sample_window_k=20, pct_ceil=99, overrun_factor=1.5, cache_hit_floor_s=0.5, dur_buckets_s=(4.0, 8.0, 12.0), prior_total_s={'image': 12.0, 'video': 90.0, 'audio': 15.0}, default_prior_total_s=30.0, stale_running_s=900.0, heartbeat_interval_s=20.0, heartbeat_stale_s=120.0, approval_threshold_usd=1.0, jobs_dirname='.nw/jobs'))
+
+Block until the batch is done or `timeout` seconds pass (a hard cap).
+
+`timeout` must be >= 0. Wakes on job finish/cancel via [`nw.jobs.notify_change()`](_autosummary/nw.jobs.html.md#nw.jobs.notify_change) (managed
+backend only; a custom `backend=` falls back to the `poll_s` re-read).
+
+Returns the [`status()`](_autosummary/nw.batches.html.md#nw.batches.status) aggregate with `timed_out` True when the cap hit
+first, so a caller can loop on it. `None` if the batch is unknown.
+
+* **Return type:**
+  [`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict) | [`None`](https://docs.python.org/3/builtins/constants.html#None)
 
 
 # _autosummary/nw.bodies.character_ref.html.md
@@ -2977,6 +3136,7 @@ Public surface:
   as-of-then fact; reporting one as current under-quotes the run once falaw’s
   rate tables move, so read it back through here (nw#74).
 - `nw.jobs` — durable async render jobs over `au`. Loaded on first touch.
+- `nw.batches` — submit / status / wait / output / cancel over many jobs as one batch.
 - `nw.storyboard` — the storyboard bridge to `artful` (`open_storyboard`,
   `save_storyboard`, `storyboard_from_shots`, …). Needs the
   `nw[storyboard]` extra; loaded on first touch.
@@ -6410,6 +6570,7 @@ True
 |----------------------------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------|
 | [`inspect`](_autosummary/nw.inspect.html.md#module-nw.inspect)                         | QA helpers — typed reports about rendered shots.                                                                                |
 | [`checks`](_autosummary/nw.checks.html.md#module-nw.checks)                           | The checks nw itself ships — a small, honest default menu.                                                                      |
+| [`batches`](_autosummary/nw.batches.html.md#module-nw.batches)                         | nw.batches — many jobs, one handle: submit / status / wait / output / cancel.                                                   |
 | [`bodies`](_autosummary/nw.bodies.html.md#module-nw.bodies)                           | Body schemas for nw's project-graph annotations.                                                                                |
 | [`delivery`](_autosummary/nw.delivery.html.md#module-nw.delivery)                       | What a genre hands back when a human wants to *hold* what it made.                                                              |
 | [`experiment`](_autosummary/nw.experiment.html.md#module-nw.experiment)                   | Experiment helpers — clone projects, apply operations across siblings.                                                          |
@@ -6614,26 +6775,59 @@ the top of this module — no magic numbers below.
 
 ### Functions
 
-| [`cancel_job`](_autosummary/nw.jobs.html.md#nw.jobs.cancel_job)(project, job_id, \*[, config])         | Request cancellation.                                                                                       |
-|----------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------|
-| [`enqueue`](_autosummary/nw.jobs.html.md#nw.jobs.enqueue)(project, kind, params, \*[, ...])         | Enqueue a billable render as a background job.                                                              |
-| [`error_detail_of`](_autosummary/nw.jobs.html.md#nw.jobs.error_detail_of)(error, \*[, secrets])             | The refusal `error` carries as data, or `None`.                                                             |
-| [`error_kind_of`](_autosummary/nw.jobs.html.md#nw.jobs.error_kind_of)(error)                              | `"refused"` | `"cancelled"` | `"crashed"` for an exception a job raised.                                    |
-| [`estimate`](_autosummary/nw.jobs.html.md#nw.jobs.estimate)(project, kind, params, \*[, config])     | Dry-run cost gate **without enqueueing**.                                                                   |
-| [`get_job`](_autosummary/nw.jobs.html.md#nw.jobs.get_job)(project, job_id, \*[, config])            | One job (projecting the au status + mirrored index metadata).                                               |
-| [`list_jobs`](_autosummary/nw.jobs.html.md#nw.jobs.list_jobs)(project, \*[, status, limit, config])   | Jobs for this project, **newest first**, optionally filtered by status.                                     |
-| [`predict_total_s`](_autosummary/nw.jobs.html.md#nw.jobs.predict_total_s)(eta_candidates, output_kind, ...) | Predict the total render seconds for a job as `(p50, p90, confidence)`.                                     |
-| [`summarize`](_autosummary/nw.jobs.html.md#nw.jobs.summarize)(project_root, \*[, limit, config])      | This project's jobs **without provisioning it**.                                                            |
-| [`to_dict`](_autosummary/nw.jobs.html.md#nw.jobs.to_dict)(job)                                      | Serialize a [`Job`](_autosummary/nw.jobs.html.md#nw.jobs.Job) to the JSON contract (design report §7.4). |
+| [`cancel_job`](_autosummary/nw.jobs.html.md#nw.jobs.cancel_job)(project, job_id, \*[, config])         | Request cancellation.                                                                                                                                                  |
+|----------------------------------------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| [`change_count`](_autosummary/nw.jobs.html.md#nw.jobs.change_count)()                                    | A counter that [`notify_change()`](_autosummary/nw.jobs.html.md#nw.jobs.notify_change) advances.                                                                              |
+| [`check_job_spec`](_autosummary/nw.jobs.html.md#nw.jobs.check_job_spec)(params)                            | Raise what [`enqueue()`](_autosummary/nw.jobs.html.md#nw.jobs.enqueue) would raise for malformed `params` (`ValueError` on a bad `units`), before anything is launched. |
+| [`enqueue`](_autosummary/nw.jobs.html.md#nw.jobs.enqueue)(project, kind, params, \*[, ...])         | Enqueue a billable render as a background job.                                                                                                                         |
+| [`error_detail_of`](_autosummary/nw.jobs.html.md#nw.jobs.error_detail_of)(error, \*[, secrets])             | The refusal `error` carries as data, or `None`.                                                                                                                        |
+| [`error_kind_of`](_autosummary/nw.jobs.html.md#nw.jobs.error_kind_of)(error)                              | `"refused"` | `"cancelled"` | `"crashed"` for an exception a job raised.                                                                                               |
+| [`estimate`](_autosummary/nw.jobs.html.md#nw.jobs.estimate)(project, kind, params, \*[, config])     | Dry-run cost gate **without enqueueing**.                                                                                                                              |
+| [`get_job`](_autosummary/nw.jobs.html.md#nw.jobs.get_job)(project, job_id, \*[, config])            | One job (projecting the au status + mirrored index metadata).                                                                                                          |
+| [`job_id_for`](_autosummary/nw.jobs.html.md#nw.jobs.job_id_for)(project, kind, params, \*[, ...])      | The id [`enqueue()`](_autosummary/nw.jobs.html.md#nw.jobs.enqueue) would give this job, without enqueueing it.                                                          |
+| [`list_jobs`](_autosummary/nw.jobs.html.md#nw.jobs.list_jobs)(project, \*[, status, limit, config])   | Jobs for this project, **newest first**, optionally filtered by status.                                                                                                |
+| [`notify_change`](_autosummary/nw.jobs.html.md#nw.jobs.notify_change)()                                   | Wake [`wait_for_change()`](_autosummary/nw.jobs.html.md#nw.jobs.wait_for_change) waiters: some job reached a new state.                                                         |
+| `now_iso`()                                                                                        |                                                                                                                                                                        |
+| [`predict_total_s`](_autosummary/nw.jobs.html.md#nw.jobs.predict_total_s)(eta_candidates, output_kind, ...) | Predict the total render seconds for a job as `(p50, p90, confidence)`.                                                                                                |
+| [`summarize`](_autosummary/nw.jobs.html.md#nw.jobs.summarize)(project_root, \*[, limit, config])      | This project's jobs **without provisioning it**.                                                                                                                       |
+| [`to_dict`](_autosummary/nw.jobs.html.md#nw.jobs.to_dict)(job)                                      | Serialize a [`Job`](_autosummary/nw.jobs.html.md#nw.jobs.Job) to the JSON contract (design report §7.4).                                                            |
+| [`wait_for_change`](_autosummary/nw.jobs.html.md#nw.jobs.wait_for_change)(seen, timeout)                    | Block until the counter moves past `seen` or `timeout` seconds pass.                                                                                                   |
 
 ### Classes
 
-| [`DurationLearningMiddleware`](_autosummary/nw.jobs.html.md#nw.jobs.DurationLearningMiddleware)(\*, durations, ...)    | Keyed, percentile duration learner — a cousin of `au.MetricsMiddleware`.                                       |
+| [`AtomicJsonFiles`](_autosummary/nw.jobs.html.md#nw.jobs.AtomicJsonFiles)(rootdir)                          | A `{key: json-value}` directory store whose writes are **atomic**.                                             |
 |----------------------------------------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------|
+| [`DurationLearningMiddleware`](_autosummary/nw.jobs.html.md#nw.jobs.DurationLearningMiddleware)(\*, durations, ...)    | Keyed, percentile duration learner — a cousin of `au.MetricsMiddleware`.                                       |
 | [`Job`](_autosummary/nw.jobs.html.md#nw.jobs.Job)(job_id, kind, label, status, idempotency_key) | Projected, JSON-serializable view of one job (see [`to_dict()`](_autosummary/nw.jobs.html.md#nw.jobs.to_dict)). |
 | [`JobCost`](_autosummary/nw.jobs.html.md#nw.jobs.JobCost)([estimated_usd, actual_usd, ...])         |                                                                                                                |
 | [`JobProgress`](_autosummary/nw.jobs.html.md#nw.jobs.JobProgress)([stage_index, stage_count, ...])      |                                                                                                                |
 | [`JobsConfig`](_autosummary/nw.jobs.html.md#nw.jobs.JobsConfig)([n_min, sample_window_k, ...])         | Tunables for the job manager.                                                                                  |
+
+### *class* nw.jobs.AtomicJsonFiles(rootdir)
+
+Bases: [`MutableMapping`](https://docs.python.org/3/library/collections.abc.html#collections.abc.MutableMapping)
+
+A `{key: json-value}` directory store whose writes are **atomic**.
+
+Drop-in for the `dol.JsonFiles` it replaced — same on-disk layout, one
+plain-named file per key holding JSON — with the one difference this
+module needs (reelee#298): `__setitem__` serializes fully in memory,
+writes to a sibling temp file, and `os.replace`s it over the
+destination. `os.replace` is atomic on POSIX and Windows, so a
+concurrent reader observes either the old record or the new one — never
+a truncated or empty file.
+
+Why here: the job index is rewritten by the worker thread on every
+mirrored event (and even on reads, for the pct floor) while reelee’s API
+polls `get_job` concurrently. With a truncate-then-write store, a read
+can land in the window after `open(..., "w")` and before the bytes —
+`json.loads("")` — surfacing as an intermittent 500 precisely during a
+cancel, when clients poll hardest. The au store already writes this way;
+now every durable record this module owns does too.
+
+A failed serialization touches nothing: the old record survives and no
+temp file is left behind. Temp names start with `.` so iteration never
+lists an in-flight write as a key.
 
 ### *class* nw.jobs.DurationLearningMiddleware(, durations, index, lock, config=JobsConfig(n_min=3, sample_window_k=20, pct_ceil=99, overrun_factor=1.5, cache_hit_floor_s=0.5, dur_buckets_s=(4.0, 8.0, 12.0), prior_total_s={'image': 12.0, 'video': 90.0, 'audio': 15.0}, default_prior_total_s=30.0, stale_running_s=900.0, heartbeat_interval_s=20.0, heartbeat_stale_s=120.0, approval_threshold_usd=1.0, jobs_dirname='.nw/jobs'))
 
@@ -6898,6 +7092,23 @@ to change.
 * **Return type:**
   [`Job`](_autosummary/nw.jobs.html.md#nw.jobs.Job) | [`None`](https://docs.python.org/3/builtins/constants.html#None)
 
+### nw.jobs.change_count()
+
+A counter that [`notify_change()`](_autosummary/nw.jobs.html.md#nw.jobs.notify_change) advances. Read it BEFORE inspecting
+jobs and hand it to [`wait_for_change()`](_autosummary/nw.jobs.html.md#nw.jobs.wait_for_change), so a change landing between
+the read and the wait is not lost.
+
+* **Return type:**
+  [`int`](https://docs.python.org/3/builtins/functions.html#int)
+
+### nw.jobs.check_job_spec(params)
+
+Raise what [`enqueue()`](_autosummary/nw.jobs.html.md#nw.jobs.enqueue) would raise for malformed `params`
+(`ValueError` on a bad `units`), before anything is launched.
+
+* **Return type:**
+  [`None`](https://docs.python.org/3/builtins/constants.html#None)
+
 ### nw.jobs.enqueue(project, kind, params, , on_event=None, dispatch=None, backend=None, idempotency_key=None, label=None, capture_context=None, secrets=None, config=JobsConfig(n_min=3, sample_window_k=20, pct_ceil=99, overrun_factor=1.5, cache_hit_floor_s=0.5, dur_buckets_s=(4.0, 8.0, 12.0), prior_total_s={'image': 12.0, 'video': 90.0, 'audio': 15.0}, default_prior_total_s=30.0, stale_running_s=900.0, heartbeat_interval_s=20.0, heartbeat_stale_s=120.0, approval_threshold_usd=1.0, jobs_dirname='.nw/jobs'))
 
 Enqueue a billable render as a background job. Returns a [`Job`](_autosummary/nw.jobs.html.md#nw.jobs.Job)
@@ -7055,6 +7266,13 @@ unknown. Reaps a stale-RUNNING record on read.
 * **Return type:**
   [`Job`](_autosummary/nw.jobs.html.md#nw.jobs.Job) | [`None`](https://docs.python.org/3/builtins/constants.html#None)
 
+### nw.jobs.job_id_for(project, kind, params, , idempotency_key=None)
+
+The id [`enqueue()`](_autosummary/nw.jobs.html.md#nw.jobs.enqueue) would give this job, without enqueueing it.
+
+* **Return type:**
+  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
+
 ### nw.jobs.list_jobs(project, , status=None, limit=50, config=JobsConfig(n_min=3, sample_window_k=20, pct_ceil=99, overrun_factor=1.5, cache_hit_floor_s=0.5, dur_buckets_s=(4.0, 8.0, 12.0), prior_total_s={'image': 12.0, 'video': 90.0, 'audio': 15.0}, default_prior_total_s=30.0, stale_running_s=900.0, heartbeat_interval_s=20.0, heartbeat_stale_s=120.0, approval_threshold_usd=1.0, jobs_dirname='.nw/jobs'))
 
 Jobs for this project, **newest first**, optionally filtered by status.
@@ -7064,6 +7282,13 @@ whose missing-key-returns-PENDING gotcha makes membership meaningless).
 
 * **Return type:**
   [`list`](https://docs.python.org/3/builtins/stdtypes.html#list)[[`Job`](_autosummary/nw.jobs.html.md#nw.jobs.Job)]
+
+### nw.jobs.notify_change()
+
+Wake [`wait_for_change()`](_autosummary/nw.jobs.html.md#nw.jobs.wait_for_change) waiters: some job reached a new state.
+
+* **Return type:**
+  [`None`](https://docs.python.org/3/builtins/constants.html#None)
 
 ### nw.jobs.predict_total_s(eta_candidates, output_kind, , durations, expected_cache_hit=False, units=None, config=JobsConfig(n_min=3, sample_window_k=20, pct_ceil=99, overrun_factor=1.5, cache_hit_floor_s=0.5, dur_buckets_s=(4.0, 8.0, 12.0), prior_total_s={'image': 12.0, 'video': 90.0, 'audio': 15.0}, default_prior_total_s=30.0, stale_running_s=900.0, heartbeat_interval_s=20.0, heartbeat_stale_s=120.0, approval_threshold_usd=1.0, jobs_dirname='.nw/jobs'))
 
@@ -7128,6 +7353,17 @@ Serialize a [`Job`](_autosummary/nw.jobs.html.md#nw.jobs.Job) to the JSON contra
 
 * **Return type:**
   [`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)
+
+### nw.jobs.wait_for_change(seen, timeout)
+
+Block until the counter moves past `seen` or `timeout` seconds pass.
+
+A *hint*, not a guarantee: reaping and other processes’ workers change a job
+without calling [`notify_change()`](_autosummary/nw.jobs.html.md#nw.jobs.notify_change), so a caller must bound `timeout` and
+re-read.
+
+* **Return type:**
+  [`None`](https://docs.python.org/3/builtins/constants.html#None)
 
 
 # _autosummary/nw.media_catalog.html.md
@@ -9814,7 +10050,7 @@ produce different URLs. The local file paths are byte-stable.
 
 # About this build
 
-This documentation was built on **2026-10-26 21:18 UTC** from commit <a href="https://github.com/reeleehq/nw/commit/851cf1b166567998bbe67acd059d56f52b911b25"><code>851cf1b</code></a> on branch <code>main</code>, for **nw 0.0.79** (from <code>pyproject.toml</code>).
+This documentation was built on **2026-10-27 00:53 UTC** from commit <a href="https://github.com/reeleehq/nw/commit/e41becab9b311c22d16082391aaea2c0acf0fdcf"><code>e41beca</code></a> on branch <code>main</code>, for **nw 0.0.80** (from <code>pyproject.toml</code>).
 
 #### NOTE
 Nothing suggests a mismatch: the tree was clean at the commit above, and the documented version is the one on PyPI.
@@ -9823,9 +10059,9 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 
 |                     |                                                                                                                                                    |
 |---------------------|----------------------------------------------------------------------------------------------------------------------------------------------------|
-| Commit              | <a href="https://github.com/reeleehq/nw/commit/851cf1b166567998bbe67acd059d56f52b911b25"><code>851cf1b166567998bbe67acd059d56f52b911b25</code></a> |
+| Commit              | <a href="https://github.com/reeleehq/nw/commit/e41becab9b311c22d16082391aaea2c0acf0fdcf"><code>e41becab9b311c22d16082391aaea2c0acf0fdcf</code></a> |
 | Branch              | <code>main</code>                                                                                                                                  |
-| Tags at this commit | <code>0.0.79</code>                                                                                                                                |
+| Tags at this commit | <code>0.0.80</code>                                                                                                                                |
 | Working tree        | clean                                                                                                                                              |
 | Remote              | <code>https://github.com/reeleehq/nw</code>                                                                                                        |
 
@@ -9834,9 +10070,9 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 |              |                                                                                            |
 |--------------|--------------------------------------------------------------------------------------------|
 | Repository   | <code>reeleehq/nw</code>                                                                   |
-| Run          | <a href="https://github.com/reeleehq/nw/actions/runs/40402513551">40402513551</a>          |
+| Run          | <a href="https://github.com/reeleehq/nw/actions/runs/40428920334">40428920334</a>          |
 | Ref          | <code>refs/heads/main</code>                                                               |
-| Event commit | <code>bfc651fc3484e4583d5f821a08c3b9cb4c6a87b1</code> (in the history of the built commit) |
+| Event commit | <code>38f96af94876c9501b88fb103d804f10d9366b33</code> (in the history of the built commit) |
 
 ## Tools
 
@@ -9861,13 +10097,13 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 
 ## Package on PyPI
 
-Latest release: <a href="https://pypi.org/project/nw/0.0.79/">0.0.79</a>, the same as the documented version.
+Latest release: <a href="https://pypi.org/project/nw/0.0.80/">0.0.80</a>, the same as the documented version.
 
 ## Reproduce
 
 ```bash
 git clone https://github.com/reeleehq/nw && cd nw
-git checkout 851cf1b166567998bbe67acd059d56f52b911b25
+git checkout e41becab9b311c22d16082391aaea2c0acf0fdcf
 pip install "epythet==0.2.22"
 epythet quickstart . --ignore tests/ scrap/ examples/
 ```

@@ -1,0 +1,32 @@
+nw.batches
+==========
+
+.. automodule:: nw.batches
+
+   
+   .. rubric:: Module Attributes
+
+   .. autosummary::
+   
+      BATCHES_DIRNAME
+      DEFAULT_POLL_S
+      MISSING
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      cancel_batch
+      enqueue_batch
+      estimate_batch
+      get_batch
+      output
+      status
+      wait
+   
+   .. rubric:: Classes
+
+   .. autosummary::
+   
+      BatchRecord
+   

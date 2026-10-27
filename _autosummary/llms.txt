@@ -9,6 +9,7 @@
 - [nw.freshness](nw.freshness.html.md): Freshness with &#42;&#42;early cutoff&#42;&#42; — what is &#42;actually&#42; out of date.
 - [nw.inspect](nw.inspect.html.md): QA helpers — typed reports about rendered shots.
 - [nw.checks](nw.checks.html.md): The checks nw itself ships — a small, honest default menu.
+- [nw.batches](nw.batches.html.md): nw.batches — many jobs, one handle: submit / status / wait / output / cancel.
 - [nw.bodies](nw.bodies.html.md): Body schemas for nw’s project-graph annotations.
 - [nw.bodies.character_ref](nw.bodies.character_ref.html.md): Body schema for character refs — pointers to a character folder.
 - [nw.bodies.decision](nw.bodies.decision.html.md): Body schema for decision-log entries.

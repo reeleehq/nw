@@ -16,20 +16,27 @@ nw.jobs
    .. autosummary::
    
       cancel_job
+      change_count
+      check_job_spec
       enqueue
       error_detail_of
       error_kind_of
       estimate
       get_job
+      job_id_for
       list_jobs
+      notify_change
+      now_iso
       predict_total_s
       summarize
       to_dict
+      wait_for_change
    
    .. rubric:: Classes
 
    .. autosummary::
    
+      AtomicJsonFiles
       DurationLearningMiddleware
       Job
       JobCost

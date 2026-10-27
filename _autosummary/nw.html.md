@@ -31,6 +31,7 @@ Public surface:
   as-of-then fact; reporting one as current under-quotes the run once falaw’s
   rate tables move, so read it back through here (nw#74).
 - `nw.jobs` — durable async render jobs over `au`. Loaded on first touch.
+- `nw.batches` — submit / status / wait / output / cancel over many jobs as one batch.
 - `nw.storyboard` — the storyboard bridge to `artful` (`open_storyboard`,
   `save_storyboard`, `storyboard_from_shots`, …). Needs the
   `nw[storyboard]` extra; loaded on first touch.
@@ -3464,6 +3465,7 @@ True
 |----------------------------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------|
 | [`inspect`](nw.inspect.html.md#module-nw.inspect)                         | QA helpers — typed reports about rendered shots.                                                                                |
 | [`checks`](nw.checks.html.md#module-nw.checks)                           | The checks nw itself ships — a small, honest default menu.                                                                      |
+| [`batches`](nw.batches.html.md#module-nw.batches)                         | nw.batches — many jobs, one handle: submit / status / wait / output / cancel.                                                   |
 | [`bodies`](nw.bodies.html.md#module-nw.bodies)                           | Body schemas for nw's project-graph annotations.                                                                                |
 | [`delivery`](nw.delivery.html.md#module-nw.delivery)                       | What a genre hands back when a human wants to *hold* what it made.                                                              |
 | [`experiment`](nw.experiment.html.md#module-nw.experiment)                   | Experiment helpers — clone projects, apply operations across siblings.                                                          |

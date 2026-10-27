@@ -71,26 +71,59 @@ the top of this module — no magic numbers below.
 
 ### Functions
 
-| [`cancel_job`](#nw.jobs.cancel_job)(project, job_id, \*[, config])         | Request cancellation.                                                                                       |
-|----------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------|
-| [`enqueue`](#nw.jobs.enqueue)(project, kind, params, \*[, ...])         | Enqueue a billable render as a background job.                                                              |
-| [`error_detail_of`](#nw.jobs.error_detail_of)(error, \*[, secrets])             | The refusal `error` carries as data, or `None`.                                                             |
-| [`error_kind_of`](#nw.jobs.error_kind_of)(error)                              | `"refused"` | `"cancelled"` | `"crashed"` for an exception a job raised.                                    |
-| [`estimate`](#nw.jobs.estimate)(project, kind, params, \*[, config])     | Dry-run cost gate **without enqueueing**.                                                                   |
-| [`get_job`](#nw.jobs.get_job)(project, job_id, \*[, config])            | One job (projecting the au status + mirrored index metadata).                                               |
-| [`list_jobs`](#nw.jobs.list_jobs)(project, \*[, status, limit, config])   | Jobs for this project, **newest first**, optionally filtered by status.                                     |
-| [`predict_total_s`](#nw.jobs.predict_total_s)(eta_candidates, output_kind, ...) | Predict the total render seconds for a job as `(p50, p90, confidence)`.                                     |
-| [`summarize`](#nw.jobs.summarize)(project_root, \*[, limit, config])      | This project's jobs **without provisioning it**.                                                            |
-| [`to_dict`](#nw.jobs.to_dict)(job)                                      | Serialize a [`Job`](#nw.jobs.Job) to the JSON contract (design report §7.4). |
+| [`cancel_job`](#nw.jobs.cancel_job)(project, job_id, \*[, config])         | Request cancellation.                                                                                                                                                  |
+|----------------------------------------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| [`change_count`](#nw.jobs.change_count)()                                    | A counter that [`notify_change()`](#nw.jobs.notify_change) advances.                                                                              |
+| [`check_job_spec`](#nw.jobs.check_job_spec)(params)                            | Raise what [`enqueue()`](#nw.jobs.enqueue) would raise for malformed `params` (`ValueError` on a bad `units`), before anything is launched. |
+| [`enqueue`](#nw.jobs.enqueue)(project, kind, params, \*[, ...])         | Enqueue a billable render as a background job.                                                                                                                         |
+| [`error_detail_of`](#nw.jobs.error_detail_of)(error, \*[, secrets])             | The refusal `error` carries as data, or `None`.                                                                                                                        |
+| [`error_kind_of`](#nw.jobs.error_kind_of)(error)                              | `"refused"` | `"cancelled"` | `"crashed"` for an exception a job raised.                                                                                               |
+| [`estimate`](#nw.jobs.estimate)(project, kind, params, \*[, config])     | Dry-run cost gate **without enqueueing**.                                                                                                                              |
+| [`get_job`](#nw.jobs.get_job)(project, job_id, \*[, config])            | One job (projecting the au status + mirrored index metadata).                                                                                                          |
+| [`job_id_for`](#nw.jobs.job_id_for)(project, kind, params, \*[, ...])      | The id [`enqueue()`](#nw.jobs.enqueue) would give this job, without enqueueing it.                                                          |
+| [`list_jobs`](#nw.jobs.list_jobs)(project, \*[, status, limit, config])   | Jobs for this project, **newest first**, optionally filtered by status.                                                                                                |
+| [`notify_change`](#nw.jobs.notify_change)()                                   | Wake [`wait_for_change()`](#nw.jobs.wait_for_change) waiters: some job reached a new state.                                                         |
+| `now_iso`()                                                                                        |                                                                                                                                                                        |
+| [`predict_total_s`](#nw.jobs.predict_total_s)(eta_candidates, output_kind, ...) | Predict the total render seconds for a job as `(p50, p90, confidence)`.                                                                                                |
+| [`summarize`](#nw.jobs.summarize)(project_root, \*[, limit, config])      | This project's jobs **without provisioning it**.                                                                                                                       |
+| [`to_dict`](#nw.jobs.to_dict)(job)                                      | Serialize a [`Job`](#nw.jobs.Job) to the JSON contract (design report §7.4).                                                            |
+| [`wait_for_change`](#nw.jobs.wait_for_change)(seen, timeout)                    | Block until the counter moves past `seen` or `timeout` seconds pass.                                                                                                   |
 
 ### Classes
 
-| [`DurationLearningMiddleware`](#nw.jobs.DurationLearningMiddleware)(\*, durations, ...)    | Keyed, percentile duration learner — a cousin of `au.MetricsMiddleware`.                                       |
+| [`AtomicJsonFiles`](#nw.jobs.AtomicJsonFiles)(rootdir)                          | A `{key: json-value}` directory store whose writes are **atomic**.                                             |
 |----------------------------------------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------|
+| [`DurationLearningMiddleware`](#nw.jobs.DurationLearningMiddleware)(\*, durations, ...)    | Keyed, percentile duration learner — a cousin of `au.MetricsMiddleware`.                                       |
 | [`Job`](#nw.jobs.Job)(job_id, kind, label, status, idempotency_key) | Projected, JSON-serializable view of one job (see [`to_dict()`](#nw.jobs.to_dict)). |
 | [`JobCost`](#nw.jobs.JobCost)([estimated_usd, actual_usd, ...])         |                                                                                                                |
 | [`JobProgress`](#nw.jobs.JobProgress)([stage_index, stage_count, ...])      |                                                                                                                |
 | [`JobsConfig`](#nw.jobs.JobsConfig)([n_min, sample_window_k, ...])         | Tunables for the job manager.                                                                                  |
+
+### *class* nw.jobs.AtomicJsonFiles(rootdir)
+
+Bases: [`MutableMapping`](https://docs.python.org/3/library/collections.abc.html#collections.abc.MutableMapping)
+
+A `{key: json-value}` directory store whose writes are **atomic**.
+
+Drop-in for the `dol.JsonFiles` it replaced — same on-disk layout, one
+plain-named file per key holding JSON — with the one difference this
+module needs (reelee#298): `__setitem__` serializes fully in memory,
+writes to a sibling temp file, and `os.replace`s it over the
+destination. `os.replace` is atomic on POSIX and Windows, so a
+concurrent reader observes either the old record or the new one — never
+a truncated or empty file.
+
+Why here: the job index is rewritten by the worker thread on every
+mirrored event (and even on reads, for the pct floor) while reelee’s API
+polls `get_job` concurrently. With a truncate-then-write store, a read
+can land in the window after `open(..., "w")` and before the bytes —
+`json.loads("")` — surfacing as an intermittent 500 precisely during a
+cancel, when clients poll hardest. The au store already writes this way;
+now every durable record this module owns does too.
+
+A failed serialization touches nothing: the old record survives and no
+temp file is left behind. Temp names start with `.` so iteration never
+lists an in-flight write as a key.
 
 ### *class* nw.jobs.DurationLearningMiddleware(, durations, index, lock, config=JobsConfig(n_min=3, sample_window_k=20, pct_ceil=99, overrun_factor=1.5, cache_hit_floor_s=0.5, dur_buckets_s=(4.0, 8.0, 12.0), prior_total_s={'image': 12.0, 'video': 90.0, 'audio': 15.0}, default_prior_total_s=30.0, stale_running_s=900.0, heartbeat_interval_s=20.0, heartbeat_stale_s=120.0, approval_threshold_usd=1.0, jobs_dirname='.nw/jobs'))
 
@@ -355,6 +388,23 @@ to change.
 * **Return type:**
   [`Job`](#nw.jobs.Job) | [`None`](https://docs.python.org/3/builtins/constants.html#None)
 
+### nw.jobs.change_count()
+
+A counter that [`notify_change()`](#nw.jobs.notify_change) advances. Read it BEFORE inspecting
+jobs and hand it to [`wait_for_change()`](#nw.jobs.wait_for_change), so a change landing between
+the read and the wait is not lost.
+
+* **Return type:**
+  [`int`](https://docs.python.org/3/builtins/functions.html#int)
+
+### nw.jobs.check_job_spec(params)
+
+Raise what [`enqueue()`](#nw.jobs.enqueue) would raise for malformed `params`
+(`ValueError` on a bad `units`), before anything is launched.
+
+* **Return type:**
+  [`None`](https://docs.python.org/3/builtins/constants.html#None)
+
 ### nw.jobs.enqueue(project, kind, params, , on_event=None, dispatch=None, backend=None, idempotency_key=None, label=None, capture_context=None, secrets=None, config=JobsConfig(n_min=3, sample_window_k=20, pct_ceil=99, overrun_factor=1.5, cache_hit_floor_s=0.5, dur_buckets_s=(4.0, 8.0, 12.0), prior_total_s={'image': 12.0, 'video': 90.0, 'audio': 15.0}, default_prior_total_s=30.0, stale_running_s=900.0, heartbeat_interval_s=20.0, heartbeat_stale_s=120.0, approval_threshold_usd=1.0, jobs_dirname='.nw/jobs'))
 
 Enqueue a billable render as a background job. Returns a [`Job`](#nw.jobs.Job)
@@ -512,6 +562,13 @@ unknown. Reaps a stale-RUNNING record on read.
 * **Return type:**
   [`Job`](#nw.jobs.Job) | [`None`](https://docs.python.org/3/builtins/constants.html#None)
 
+### nw.jobs.job_id_for(project, kind, params, , idempotency_key=None)
+
+The id [`enqueue()`](#nw.jobs.enqueue) would give this job, without enqueueing it.
+
+* **Return type:**
+  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
+
 ### nw.jobs.list_jobs(project, , status=None, limit=50, config=JobsConfig(n_min=3, sample_window_k=20, pct_ceil=99, overrun_factor=1.5, cache_hit_floor_s=0.5, dur_buckets_s=(4.0, 8.0, 12.0), prior_total_s={'image': 12.0, 'video': 90.0, 'audio': 15.0}, default_prior_total_s=30.0, stale_running_s=900.0, heartbeat_interval_s=20.0, heartbeat_stale_s=120.0, approval_threshold_usd=1.0, jobs_dirname='.nw/jobs'))
 
 Jobs for this project, **newest first**, optionally filtered by status.
@@ -521,6 +578,13 @@ whose missing-key-returns-PENDING gotcha makes membership meaningless).
 
 * **Return type:**
   [`list`](https://docs.python.org/3/builtins/stdtypes.html#list)[[`Job`](#nw.jobs.Job)]
+
+### nw.jobs.notify_change()
+
+Wake [`wait_for_change()`](#nw.jobs.wait_for_change) waiters: some job reached a new state.
+
+* **Return type:**
+  [`None`](https://docs.python.org/3/builtins/constants.html#None)
 
 ### nw.jobs.predict_total_s(eta_candidates, output_kind, , durations, expected_cache_hit=False, units=None, config=JobsConfig(n_min=3, sample_window_k=20, pct_ceil=99, overrun_factor=1.5, cache_hit_floor_s=0.5, dur_buckets_s=(4.0, 8.0, 12.0), prior_total_s={'image': 12.0, 'video': 90.0, 'audio': 15.0}, default_prior_total_s=30.0, stale_running_s=900.0, heartbeat_interval_s=20.0, heartbeat_stale_s=120.0, approval_threshold_usd=1.0, jobs_dirname='.nw/jobs'))
 
@@ -585,3 +649,14 @@ Serialize a [`Job`](#nw.jobs.Job) to the JSON contract (design report §7.4).
 
 * **Return type:**
   [`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)
+
+### nw.jobs.wait_for_change(seen, timeout)
+
+Block until the counter moves past `seen` or `timeout` seconds pass.
+
+A *hint*, not a guarantee: reaping and other processes’ workers change a job
+without calling [`notify_change()`](#nw.jobs.notify_change), so a caller must bound `timeout` and
+re-read.
+
+* **Return type:**
+  [`None`](https://docs.python.org/3/builtins/constants.html#None)
