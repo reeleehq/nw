@@ -2034,16 +2034,15 @@ def _index_update_locked(rt, job_id, **fields) -> None:
     rt.index[job_id] = record
 
 
-def _index_update_if_run_locked(rt, job_id, run_token, **fields) -> bool:
+def _index_update_if_run_locked(rt, job_id, run_token, **fields) -> None:
     """Merge ``fields`` into ``job_id``'s record only while it carries
-    ``run_token``, in one read; return whether it wrote. Lets a run's own
-    threads stamp its record without touching a run that replaced it."""
+    ``run_token``, in one read. Lets a run's own threads stamp its record
+    without touching a run that replaced it."""
     record = _index_get_locked(rt, job_id)
     if record is None or record.get("run_token") != run_token:
-        return False
+        return
     record.update(fields)
     _index_set_locked(rt, job_id, record)
-    return True
 
 
 def _default_idempotency_key(project, kind, params) -> str:
