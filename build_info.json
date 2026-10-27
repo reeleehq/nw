@@ -1,34 +1,34 @@
 {
   "schema_version": 1,
-  "built_at": "2026-10-27T16:27:09Z",
+  "built_at": "2026-10-27T16:32:26Z",
   "package": {
     "name": "nw",
-    "version": "0.0.98",
+    "version": "0.0.99",
     "display_name": "nw",
     "source": "pyproject.toml"
   },
   "git": {
     "available": true,
-    "commit": "f09e70edffec302da735ece73c5fd1fc00de40b6",
-    "short_commit": "f09e70e",
+    "commit": "3f91b75e560547bf95c8c977ed87a5134212e127",
+    "short_commit": "3f91b75",
     "branch": "main",
     "tags": [
-      "0.0.98"
+      "0.0.99"
     ],
     "dirty": false,
     "remote_url": "https://github.com/reeleehq/nw",
-    "commit_url": "https://github.com/reeleehq/nw/commit/f09e70edffec302da735ece73c5fd1fc00de40b6",
+    "commit_url": "https://github.com/reeleehq/nw/commit/3f91b75e560547bf95c8c977ed87a5134212e127",
     "error": null
   },
   "ci": {
     "provider": "github",
     "repository": "reeleehq/nw",
-    "sha": "39fc85cb477d8bce201be00a6010185ff1dd0642",
+    "sha": "25e39b90888d37457753f2f3c5a9517ee8bb28ee",
     "sha_in_history": true,
     "ref": "refs/heads/main",
     "ref_name": "main",
-    "run_id": "40533137840",
-    "run_url": "https://github.com/reeleehq/nw/actions/runs/40533137840",
+    "run_id": "40538057800",
+    "run_url": "https://github.com/reeleehq/nw/actions/runs/40538057800",
     "server_url": "https://github.com"
   },
   "tools": {
@@ -62,11 +62,11 @@
   },
   "pypi": {
     "checked": true,
-    "latest": "0.0.98",
+    "latest": "0.0.99",
     "relation": "same",
     "error": null
   },
-  "reproduce": "git clone https://github.com/reeleehq/nw && cd nw\ngit checkout f09e70edffec302da735ece73c5fd1fc00de40b6\npip install \"epythet==0.2.22\"\nepythet quickstart . --ignore tests/ scrap/ examples/",
+  "reproduce": "git clone https://github.com/reeleehq/nw && cd nw\ngit checkout 3f91b75e560547bf95c8c977ed87a5134212e127\npip install \"epythet==0.2.22\"\nepythet quickstart . --ignore tests/ scrap/ examples/",
   "warnings": [],
   "alignment": {
     "aligned": true,
