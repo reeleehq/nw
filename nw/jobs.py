@@ -727,11 +727,11 @@ def _usable_usd(value: Any, *, what: str) -> float | None:
     later at debug level, because the same sender repeats it on every call.
     """
     try:
-        return checked_usd(value)
+        return checked_usd(value, name=what)
     except ValueError as exc:
         level = logging.DEBUG if what in _warned_unusable_usd else logging.WARNING
         _warned_unusable_usd.add(what)
-        _logger.log(level, "%s is unknown: %s", what, exc)
+        _logger.log(level, "%s; treated as unknown", exc)
         return None
 
 
@@ -739,7 +739,7 @@ _warned_unusable_usd: set[str] = set()
 """The ``what`` names :func:`_usable_usd` has already warned about."""
 
 
-def checked_usd(value: Any) -> float | None:
+def checked_usd(value: Any, *, name: str = "estimated_usd") -> float | None:
     """``value`` as a ``float`` if it is a price nw can gate on, else ``ValueError``.
 
     A ``float`` so that what is stored is JSON (a numpy scalar or a
@@ -749,7 +749,8 @@ def checked_usd(value: Any) -> float | None:
     an ``int``), and so is NaN: ``nan >= threshold`` is ``False``, so a NaN
     price would pass every approval gate as cheap. So is an ``int`` too large
     for a ``float``, as ``ValueError`` rather than ``OverflowError``, so a
-    caller that tolerates a bad price catches one exception type.
+    caller that tolerates a bad price catches one exception type. ``name``
+    is the figure the error message names.
     """
     if value is None:
         return None
@@ -759,7 +760,7 @@ def checked_usd(value: Any) -> float | None:
             usd = float(value)
     if not math.isfinite(usd) or usd < 0:
         raise ValueError(
-            "estimated_usd must be None or a finite, non-negative number, "
+            f"{name} must be None or a finite, non-negative number, "
             f"got {type(value).__name__} {reprlib.repr(value)}"
         )
     return usd
@@ -1479,10 +1480,6 @@ def _announcement_settled(record, run_token) -> bool:
     )
 
 
-_USD_COST_FIELDS = frozenset({"estimated_usd", "actual_usd", "cache_hit_savings_usd"})
-"""The ``cost`` fields that hold dollars (checked as prices); the rest are flags."""
-
-
 def _lease_is_live(claim) -> bool:
     """Whether ``claim`` (an ``announce_claim``) has not expired; an unreadable
     one reads expired, so a corrupt lease cannot hold a run forever."""
@@ -2045,30 +2042,30 @@ def _mirror_event_into_index(rt, job_id, ev) -> None:
                 if src in fields:
                     progress[dst] = fields[src]
                     break
-        cost_sources = {
+        usd_sources = {
             "estimated_usd": ("estimated_usd",),
             "actual_usd": ("actual_usd", "cost_usd"),
             "cache_hit_savings_usd": ("cache_hit_savings_usd",),
-            # The unknown-cost flag travels with the figure it qualifies, or
-            # the figure arrives alone and reads as exact.
-            "actual_is_lower_bound": ("has_unknown_costs",),
         }
         if cost.get("estimate_source") == ESTIMATE_FROM_HOST:
             # The host priced this job server-side; the render's own guess
             # must not replace the figure it was approved at (nw#144).
-            del cost_sources["estimated_usd"]
-        for dst, sources in cost_sources.items():
+            del usd_sources["estimated_usd"]
+        for dst, sources in usd_sources.items():
             for src in sources:
-                value = fields.get(src)
-                if value is not None and dst in _USD_COST_FIELDS:
-                    # A render is server code, but "None means unknown" holds
-                    # for its figures too: a NaN would poison every sum (nw#166).
-                    value = _usable_usd(value, what=f"a render event's {src!r}")
+                # A render is server code, but "None means unknown" holds for
+                # its figures too: a NaN would poison every sum (nw#166). An
+                # unusable one is skipped, so the field keeps what it had.
+                value = _usable_usd(fields.get(src), what=f"a render event's {src!r}")
                 if value is not None:
                     cost[dst] = value
                     if dst == "estimated_usd":
                         cost["estimate_source"] = ESTIMATE_FROM_RENDER
                     break
+        # The unknown-cost flag travels with the figure it qualifies, or the
+        # figure arrives alone and reads as exact.
+        if fields.get("has_unknown_costs") is not None:
+            cost["actual_is_lower_bound"] = fields["has_unknown_costs"]
 
         updates["progress"] = progress
         updates["cost"] = cost
@@ -2096,10 +2093,14 @@ def _reconcile_terminal(rt, job_id, result) -> None:
         updates: dict[str, Any] = {"finished_at": now_iso()}
         if isinstance(result, Mapping):
             cost = dict(record.get("cost") or {})
-            if result.get("cost_usd_actual") is not None:
-                cost["actual_usd"] = result["cost_usd_actual"]
-            if result.get("cache_hit_savings_usd") is not None:
-                cost["cache_hit_savings_usd"] = result["cache_hit_savings_usd"]
+            for dst, src in (
+                ("actual_usd", "cost_usd_actual"),
+                ("cache_hit_savings_usd", "cache_hit_savings_usd"),
+            ):
+                # The run's final figures, checked like its events' (nw#166).
+                value = _usable_usd(result.get(src), what=f"a render result's {src!r}")
+                if value is not None:
+                    cost[dst] = value
             if result.get("has_unknown_costs") is not None:
                 cost["actual_is_lower_bound"] = bool(result["has_unknown_costs"])
             updates["cost"] = cost
@@ -2357,7 +2358,8 @@ def _project_job(rt, record, au_result, config) -> Job:
     artifact_ref = record.get("artifact_ref")
     if status == SUCCEEDED:
         if isinstance(au_result.value, Mapping):
-            result_payload = dict(au_result.value)
+            # au's store keeps a NaN as is; served, it would break strict JSON.
+            result_payload = _finite_json(au_result.value)
             if artifact_ref is None:
                 artifact_ref = result_payload.get(
                     "animatic_artifact_id"
