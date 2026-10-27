@@ -476,9 +476,9 @@ def test_the_pre_marker_fallback_runs_only_when_todays_digest_misses(
     parent = _parent_with_derived_field(proj)
     _derived(proj, (parent.id,), body={"url": "x"})
     calls = []
-    real = freshness.value_digest_matches
+    real = freshness.digest_vouches
     monkeypatch.setattr(
-        freshness, "value_digest_matches", lambda *a, **k: calls.append(1) or real(*a, **k)
+        freshness, "digest_vouches", lambda *a, **k: calls.append(1) or real(*a, **k)
     )
     assert nw.all_stale(proj.root) == [] and calls == []  # today's digest matched
 
@@ -505,6 +505,108 @@ def test_rewriting_a_parent_keeps_a_pre_marker_child_fresh(tmp_path, derived_fie
 
     nw.rewrite_values(proj.root, rename)
     assert nw.all_stale(proj.root) == []
+
+
+TWO_MARKERS_URI = "annot://schema/freshness-second-marker/v1"
+
+
+class _OneMarker(BaseModel):
+    artifact_id: str = ""
+    asset_id: Annotated[str, Derived("artifact_id")] = ""
+    thumb: str = ""
+
+
+class _TwoMarkers(BaseModel):
+    artifact_id: str = ""
+    asset_id: Annotated[str, Derived("artifact_id")] = ""
+    thumb: Annotated[str, Derived("artifact_id")] = ""
+
+
+@pytest.fixture
+def one_marker_schema():
+    from lacing import schema as lacing_schema
+
+    lacing_schema.register_body_schema(TWO_MARKERS_URI, _OneMarker)
+    yield lacing_schema
+    lacing_schema._BODY_REGISTRY.pop(TWO_MARKERS_URI, None)
+
+
+def _marked_parent(proj, uri=TWO_MARKERS_URI) -> Annotation:
+    ann = _derived(proj, (), body={"artifact_id": "a", "asset_id": "h", "thumb": "t"})
+    return _rewrite_in_place(
+        proj, ann.model_copy(update={"body_schema_uri": uri}), body=ann.body
+    )
+
+
+def _upstream_entry_of(proj, child) -> dict:
+    (trace,) = [t for t in _traces(proj) if t.body["for_annotation_id"] == str(child.id)]
+    (entry,) = trace.body["upstream"]
+    return entry
+
+
+def test_a_trace_records_the_paths_its_digest_left_out(tmp_path, one_marker_schema):
+    """nw#180: the producer's exclusions travel with the digest, and only when
+    there are any, so a trace over unmarked schemas reads exactly as before."""
+    proj = nw.Project.init(tmp_path / "p")
+    marked_child = _derived(proj, (_marked_parent(proj).id,), body={"url": "x"})
+    plain_child = _derived(proj, (_authored(proj),), body={"url": "y"})
+    assert _upstream_entry_of(proj, marked_child)["excluded_paths"] == [["asset_id"]]
+    assert "excluded_paths" not in _upstream_entry_of(proj, plain_child)
+
+
+def test_a_schema_gaining_a_second_marker_keeps_the_child_fresh(
+    tmp_path, one_marker_schema
+):
+    """The trace was recorded under one marker; the schema now has two. The
+    digest is recomputed under the recorded exclusions (a subset of today's),
+    so an unchanged parent stays fresh and a real change is still a change."""
+    proj = nw.Project.init(tmp_path / "p")
+    parent = _marked_parent(proj)
+    child = _derived(proj, (parent.id,), body={"url": "x"})
+    one_marker_schema.register_body_schema(TWO_MARKERS_URI, _TwoMarkers)
+
+    assert nw.all_stale(proj.root) == []
+    _rewrite_in_place(proj, parent, body={"artifact_id": "b", "asset_id": "h", "thumb": "t"})
+    assert _ids(nw.all_stale(proj.root)) == {child.id}
+
+
+def test_a_marker_removed_since_is_never_trusted(tmp_path, one_marker_schema):
+    """The producer left ``asset_id`` out; it counts now. Its recorded digest
+    cannot vouch for it, so the trace is not reused (a miss, never a hit)."""
+    from lacing import schema as lacing_schema
+
+    proj = nw.Project.init(tmp_path / "p")
+    parent = _marked_parent(proj)
+    child = _derived(proj, (parent.id,), body={"url": "x"})
+
+    class _NoMarker(BaseModel):
+        artifact_id: str = ""
+        asset_id: str = ""
+        thumb: str = ""
+
+    lacing_schema.register_body_schema(TWO_MARKERS_URI, _NoMarker)
+    _rewrite_in_place(proj, parent, body={"artifact_id": "a", "asset_id": "other", "thumb": "t"})
+    assert _ids(nw.all_stale(proj.root)) == {child.id}
+
+
+def test_rewriting_re_records_the_exclusions_with_the_new_digest(
+    tmp_path, one_marker_schema
+):
+    """``rewrite_values`` re-stamps an entry recorded under fewer markers and
+    records today's exclusions beside its new digest (nw#180)."""
+    proj = nw.Project.init(tmp_path / "p")
+    parent = _marked_parent(proj)
+    child = _derived(proj, (parent.id,), body={"url": "x"})
+    one_marker_schema.register_body_schema(TWO_MARKERS_URI, _TwoMarkers)
+
+    def rename(body):
+        if isinstance(body, dict) and body.get("artifact_id") == "a":
+            return {**body, "artifact_id": "a-renamed"}
+        return body
+
+    nw.rewrite_values(proj.root, rename)
+    assert nw.all_stale(proj.root) == []
+    assert _upstream_entry_of(proj, child)["excluded_paths"] == [["asset_id"], ["thumb"]]
 
 
 def test_a_change_is_still_caught_under_an_older_scheme(tmp_path):

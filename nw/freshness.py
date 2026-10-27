@@ -110,10 +110,11 @@ from lacing import Annotation
 from lacing.digest import (
     VALUE_DIGEST_SCHEMES,
     annotation_value_digest,
-    value_digest_matches,
 )
 
 from .bodies.verifying_trace import (
+    digest_vouches,
+    recorded_exclusions,
     VERIFYING_TRACE_BODY_SCHEMA_URI,
     VerifyingTraceBodyV1,
 )
@@ -264,21 +265,23 @@ def _verdicts_for(
     traces = _traces_by_target(annotations)
 
     primary: dict[tuple[UUID, str], Optional[str]] = {}
-    fallback: dict[tuple[UUID, str, str], bool] = {}
+    fallback: dict[tuple, bool] = {}
 
-    def vouches(ann: Annotation, recorded: str, scheme: str) -> bool:
-        """Whether ``recorded`` (a digest a trace stored under ``scheme``) still
-        describes ``ann``'s value.
+    def vouches(
+        ann: Annotation, recorded: str, scheme: str, excluded: Optional[frozenset]
+    ) -> bool:
+        """Whether ``recorded`` (a digest a trace stored under ``scheme``,
+        leaving out the ``excluded`` paths) still describes ``ann``'s value.
 
         Today's digest first, memoized per ``(ann, scheme)``: nearly every
-        trace matches it. Only on a miss, ``lacing.value_digest_matches``
-        (lazy, memoized per recorded digest) also accepts what a producer
-        would have recorded before the body schema gained a ``Derived``
-        marker, or without registering it (nw#179, nw#182). Either drops
-        nothing the verifier counts, so accepting it is never a wrong hit. A
-        verifier registering *fewer* markers than the producer gets a spurious
-        miss, and so does a schema that already had one marker gaining a
-        second (nw#180). ``False`` when the body cannot be digested."""
+        trace matches it (nw#182). Only on a miss,
+        :func:`~nw.bodies.verifying_trace.digest_vouches` (memoized per
+        recorded digest) recomputes under the recorded exclusions while they
+        are a subset of today's markers (nw#180), and accepts what a producer
+        that knew no markers would have recorded (nw#179). None of these is a
+        wrong hit; a verifier registering *fewer* markers than the producer,
+        or a marker removed since, is a spurious miss. ``False`` when the body
+        cannot be digested."""
         key = (ann.id, scheme)
         if key not in primary:
             try:
@@ -293,10 +296,12 @@ def _verdicts_for(
             return False
         if recorded == primary[key]:
             return True
-        miss = (ann.id, scheme, recorded)
+        miss = (ann.id, scheme, recorded, excluded)
         if miss not in fallback:
             try:
-                fallback[miss] = value_digest_matches(ann, recorded, scheme=scheme)
+                fallback[miss] = digest_vouches(
+                    ann, recorded, scheme=scheme, excluded=excluded
+                )
             except Exception:  # same contract as above
                 fallback[miss] = False
         return fallback[miss]
@@ -335,7 +340,10 @@ def _verdicts_for(
             return FreshnessVerdict(ann, True, REASON_SCHEME_CHANGED)
         try:
             recorded = {
-                UUID(entry.annotation_id): entry.value_digest
+                UUID(entry.annotation_id): (
+                    entry.value_digest,
+                    recorded_exclusions(entry),
+                )
                 for entry in trace.upstream
             }
         except (ValueError, AttributeError, TypeError):
@@ -370,7 +378,8 @@ def _verdicts_for(
             # ``vouches`` is False for a body lacing refuses to digest, so the
             # undigestible case falls to "changed" by construction rather than
             # by a separate branch that no test could distinguish.
-            if not vouches(parent, recorded[pid], trace.digest_scheme):
+            digest, excluded = recorded[pid]
+            if not vouches(parent, digest, trace.digest_scheme, excluded):
                 return FreshnessVerdict(ann, True, REASON_UPSTREAM_CHANGED, pid)
         return FreshnessVerdict(ann, False, REASON_FRESH)
 
