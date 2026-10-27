@@ -274,8 +274,9 @@ flag is the authority for cancellation intent, so a job reads
 <code class="docutils literal notranslate"><span class="pre">ThreadBackend</span></code> thread later clobbers the store with COMPLETED. The key
 stays live until that thread has exited, in this process or any replica
 sharing the store: each run carries a <code class="docutils literal notranslate"><span class="pre">run_token</span></code>, its heartbeat stamps
-only its own record, and its worker writes <code class="docutils literal notranslate"><span class="pre">worker_exited_at</span></code> on the way
-out (nw#124, nw#141).</p></li>
+only its own record, and <code class="docutils literal notranslate"><span class="pre">worker_exited_at</span></code> is written once the run’s
+outcome is in au’s store — by the managed backend’s middleware, or by the
+worker on any other backend (nw#124, nw#141, nw#149).</p></li>
 <li><p><strong>A job’s end is announced</strong> to <a class="reference internal" href="#nw.jobs.register_terminal_hook" title="nw.jobs.register_terminal_hook"><code class="xref py py-func docutils literal notranslate"><span class="pre">register_terminal_hook()</span></code></a> hooks, so a
 host records a completion in one place instead of after every door (nw#151).</p></li>
 <li><p><strong>ETA is learned from observed wall-time</strong>, per <code class="docutils literal notranslate"><span class="pre">(model,</span> <span class="pre">operation,</span> <span class="pre">dur_bucket)</span></code>
@@ -498,12 +499,15 @@ reaper uses (a RUNNING au record whose key is not in <code class="docutils liter
 
 <dl class="py method">
 <dt class="sig sig-object py" id="nw.jobs.DurationLearningMiddleware.claim_locked">
-<span class="sig-name descname"><span class="pre">claim_locked</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">key</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/nw/jobs.html#DurationLearningMiddleware.claim_locked"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nw.jobs.DurationLearningMiddleware.claim_locked" title="Link to this definition">#</a></dt>
+<span class="sig-name descname"><span class="pre">claim_locked</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">key</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">run_token</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/nw/jobs.html#DurationLearningMiddleware.claim_locked"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nw.jobs.DurationLearningMiddleware.claim_locked" title="Link to this definition">#</a></dt>
 <dd><p>Mark <code class="docutils literal notranslate"><span class="pre">key</span></code> live before its worker thread has started (caller holds
 the lock). <code class="docutils literal notranslate"><span class="pre">before_compute</span></code> re-stamps the time; <code class="docutils literal notranslate"><span class="pre">after_compute</span></code> /
 <code class="docutils literal notranslate"><span class="pre">on_error</span></code> release it, <a class="reference internal" href="#nw.jobs.DurationLearningMiddleware.release_locked" title="nw.jobs.DurationLearningMiddleware.release_locked"><code class="xref py py-meth docutils literal notranslate"><span class="pre">release_locked()</span></code></a> undoes it if the launch
 itself fails. Without it a cancel plus a re-enqueue inside the window
 before the thread registers launched a second worker (nw#128).</p>
+<p><code class="docutils literal notranslate"><span class="pre">run_token</span></code> is the run whose <code class="docutils literal notranslate"><span class="pre">worker_exited_at</span></code> the end hooks stamp:
+they run after au’s terminal write, so a cancelled key is not freed for
+another replica before the old run’s outcome has landed (nw#149).</p>
 <dl class="field-list simple">
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><span class="highlight sphinx_autodoc_typehints-value"><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></a></span></span></p>
@@ -1281,7 +1285,7 @@ cannot silently claim one name.</p>
     </div>
   </div>
 </footer>
-      <script src="../_static/documentation_options.js?v=c4d1762f"></script>
+      <script src="../_static/documentation_options.js?v=5751785c"></script>
       <script src="../_static/doctools.js?v=fd6eb6e6"></script>
       <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script src="../_static/clipboard.min.js?v=a7894cd8"></script>

@@ -45,8 +45,9 @@ Design decisions (from the `nw.jobs`-on-`au` design report,
   `ThreadBackend` thread later clobbers the store with COMPLETED. The key
   stays live until that thread has exited, in this process or any replica
   sharing the store: each run carries a `run_token`, its heartbeat stamps
-  only its own record, and its worker writes `worker_exited_at` on the way
-  out (nw#124, nw#141).
+  only its own record, and `worker_exited_at` is written once the run’s
+  outcome is in au’s store — by the managed backend’s middleware, or by the
+  worker on any other backend (nw#124, nw#141, nw#149).
 - **A job’s end is announced** to [`register_terminal_hook()`](#nw.jobs.register_terminal_hook) hooks, so a
   host records a completion in one place instead of after every door (nw#151).
 - **ETA is learned from observed wall-time**, per `(model, operation, dur_bucket)`
@@ -189,13 +190,17 @@ Called before computation starts.
 * **Return type:**
   [`None`](https://docs.python.org/3/builtins/constants.html#None)
 
-#### claim_locked(key)
+#### claim_locked(key, , run_token)
 
 Mark `key` live before its worker thread has started (caller holds
 the lock). `before_compute` re-stamps the time; `after_compute` /
 `on_error` release it, [`release_locked()`](#nw.jobs.DurationLearningMiddleware.release_locked) undoes it if the launch
 itself fails. Without it a cancel plus a re-enqueue inside the window
 before the thread registers launched a second worker (nw#128).
+
+`run_token` is the run whose `worker_exited_at` the end hooks stamp:
+they run after au’s terminal write, so a cancelled key is not freed for
+another replica before the old run’s outcome has landed (nw#149).
 
 * **Return type:**
   [`None`](https://docs.python.org/3/builtins/constants.html#None)

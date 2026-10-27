@@ -1,4 +1,4 @@
-> built 2026-10-27 14:19 UTC from 3ff2b22 (main) · nw 0.0.94. Details: build_info.json
+> built 2026-10-27 15:23 UTC from 08493d6 (main) · nw 0.0.96. Details: build_info.json
 
 # index.html.md
 
@@ -6873,8 +6873,9 @@ Design decisions (from the `nw.jobs`-on-`au` design report,
   `ThreadBackend` thread later clobbers the store with COMPLETED. The key
   stays live until that thread has exited, in this process or any replica
   sharing the store: each run carries a `run_token`, its heartbeat stamps
-  only its own record, and its worker writes `worker_exited_at` on the way
-  out (nw#124, nw#141).
+  only its own record, and `worker_exited_at` is written once the run’s
+  outcome is in au’s store — by the managed backend’s middleware, or by the
+  worker on any other backend (nw#124, nw#141, nw#149).
 - **A job’s end is announced** to [`register_terminal_hook()`](_autosummary/nw.jobs.html.md#nw.jobs.register_terminal_hook) hooks, so a
   host records a completion in one place instead of after every door (nw#151).
 - **ETA is learned from observed wall-time**, per `(model, operation, dur_bucket)`
@@ -7017,13 +7018,17 @@ Called before computation starts.
 * **Return type:**
   [`None`](https://docs.python.org/3/builtins/constants.html#None)
 
-#### claim_locked(key)
+#### claim_locked(key, , run_token)
 
 Mark `key` live before its worker thread has started (caller holds
 the lock). `before_compute` re-stamps the time; `after_compute` /
 `on_error` release it, [`release_locked()`](_autosummary/nw.jobs.html.md#nw.jobs.DurationLearningMiddleware.release_locked) undoes it if the launch
 itself fails. Without it a cancel plus a re-enqueue inside the window
 before the thread registers launched a second worker (nw#128).
+
+`run_token` is the run whose `worker_exited_at` the end hooks stamp:
+they run after au’s terminal write, so a cancelled key is not freed for
+another replica before the old run’s outcome has landed (nw#149).
 
 * **Return type:**
   [`None`](https://docs.python.org/3/builtins/constants.html#None)
@@ -10535,7 +10540,7 @@ produce different URLs. The local file paths are byte-stable.
 
 # About this build
 
-This documentation was built on **2026-10-27 14:19 UTC** from commit <a href="https://github.com/reeleehq/nw/commit/3ff2b224db1123727a8acd1d53203a945bec6a0e"><code>3ff2b22</code></a> on branch <code>main</code>, for **nw 0.0.94** (from <code>pyproject.toml</code>).
+This documentation was built on **2026-10-27 15:23 UTC** from commit <a href="https://github.com/reeleehq/nw/commit/08493d63b96ff4799ae6e1ab4c3264588b6dbed9"><code>08493d6</code></a> on branch <code>main</code>, for **nw 0.0.96** (from <code>pyproject.toml</code>).
 
 #### NOTE
 Nothing suggests a mismatch: the tree was clean at the commit above, and the documented version is the one on PyPI.
@@ -10544,9 +10549,9 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 
 |                     |                                                                                                                                                    |
 |---------------------|----------------------------------------------------------------------------------------------------------------------------------------------------|
-| Commit              | <a href="https://github.com/reeleehq/nw/commit/3ff2b224db1123727a8acd1d53203a945bec6a0e"><code>3ff2b224db1123727a8acd1d53203a945bec6a0e</code></a> |
+| Commit              | <a href="https://github.com/reeleehq/nw/commit/08493d63b96ff4799ae6e1ab4c3264588b6dbed9"><code>08493d63b96ff4799ae6e1ab4c3264588b6dbed9</code></a> |
 | Branch              | <code>main</code>                                                                                                                                  |
-| Tags at this commit | <code>0.0.94</code>                                                                                                                                |
+| Tags at this commit | <code>0.0.96</code>                                                                                                                                |
 | Working tree        | clean                                                                                                                                              |
 | Remote              | <code>https://github.com/reeleehq/nw</code>                                                                                                        |
 
@@ -10555,9 +10560,9 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 |              |                                                                                            |
 |--------------|--------------------------------------------------------------------------------------------|
 | Repository   | <code>reeleehq/nw</code>                                                                   |
-| Run          | <a href="https://github.com/reeleehq/nw/actions/runs/40519540957">40519540957</a>          |
+| Run          | <a href="https://github.com/reeleehq/nw/actions/runs/40520743354">40520743354</a>          |
 | Ref          | <code>refs/heads/main</code>                                                               |
-| Event commit | <code>7c31351807def30c356bba3bbed06f3eb9fac0af</code> (in the history of the built commit) |
+| Event commit | <code>b346fc62a1520f80cc00e3ff054cf6cc3365bc9b</code> (in the history of the built commit) |
 
 ## Tools
 
@@ -10582,13 +10587,13 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 
 ## Package on PyPI
 
-Latest release: <a href="https://pypi.org/project/nw/0.0.94/">0.0.94</a>, the same as the documented version.
+Latest release: <a href="https://pypi.org/project/nw/0.0.96/">0.0.96</a>, the same as the documented version.
 
 ## Reproduce
 
 ```bash
 git clone https://github.com/reeleehq/nw && cd nw
-git checkout 3ff2b224db1123727a8acd1d53203a945bec6a0e
+git checkout 08493d63b96ff4799ae6e1ab4c3264588b6dbed9
 pip install "epythet==0.2.22"
 epythet quickstart . --ignore tests/ scrap/ examples/
 ```
