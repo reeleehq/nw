@@ -38,7 +38,7 @@ from __future__ import annotations
 import hashlib
 import json
 import time
-from collections.abc import Iterable, Mapping
+from collections.abc import Callable, Iterable, Mapping
 from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any
@@ -84,30 +84,35 @@ def enqueue_batch(
     kind: str | None = None,
     label: str | None = None,
     config: JobsConfig = DEFAULT_CONFIG,
+    enqueue: Callable[..., _jobs.Job] | None = None,
     **enqueue_kwargs,
 ) -> BatchRecord:
     """Enqueue every item as a job and record the batch. Never blocks.
 
     ``enqueue_kwargs`` (``dispatch``, ``on_event``, ``secrets``,
-    ``capture_context``, ``backend``) go to each :func:`nw.jobs.enqueue` call
-    unchanged. Every item is validated (keys, ``kind`` in ``dispatch``,
-    ``units``) before the first one launches, so a bad item leaves nothing
-    running. Re-submitting a batch that exists returns it without enqueueing.
+    ``capture_context``, ``backend``) go to each ``enqueue`` call unchanged.
+    Every item is validated (keys, ``kind`` in ``dispatch``, ``units``) before
+    the first one launches, so a bad item leaves nothing running. Re-submitting
+    a batch that exists returns it without enqueueing.
+
+    ``enqueue`` (default :func:`nw.jobs.enqueue`, called with the same
+    arguments) is the seam for a host's own single-job door, so a batch member
+    is enqueued exactly as a lone job would be. It must enqueue the job
+    the item names (it may add server-side params only if they do not change
+    the job id): a returned job whose id differs from the item's raises
+    ``ValueError`` and no batch is recorded, because the record would point at
+    the wrong job. That is a host bug, so it is raised loudly, not repaired:
+    the members enqueued before it keep running, and a retry may relaunch the
+    ones that have finished (and bill them again). With a custom ``enqueue``
+    and no ``dispatch``, the up-front ``kind``-in-``dispatch`` check is
+    skipped: the door owns its dispatch, so it owns that check.
 
     Items resolving to the same job collapse to one member (first position wins).
     """
     specs = _item_specs(items, kind, dispatch=enqueue_kwargs.get("dispatch"))
-    ids = tuple(
-        dict.fromkeys(  # ordered set: items resolving to one job collapse
-            _jobs.job_id_for(
-                project,
-                spec["kind"],
-                spec["params"],
-                idempotency_key=spec.get("idempotency_key"),
-            )
-            for spec in specs
-        )
-    )
+    spec_ids = _spec_job_ids(project, specs)
+    # ordered set: items resolving to one job collapse
+    ids = tuple(dict.fromkeys(spec_ids))
     batch_id = _batch_id(ids)
     store = _store(project.root, config, create=True)
     if batch_id in store:
@@ -115,8 +120,14 @@ def enqueue_batch(
         # ``enqueue`` re-launches a key whose job has finished and that would
         # bill the whole batch again.
         return _record_from(store[batch_id])
-    for spec in specs:
-        _jobs.enqueue(project, config=config, **spec, **enqueue_kwargs)
+    door = enqueue or _jobs.enqueue
+    for spec, expected in zip(specs, spec_ids):
+        job = door(project, config=config, **spec, **enqueue_kwargs)
+        if job.job_id != expected:
+            raise ValueError(
+                f"enqueue returned job {job.job_id!r} for a batch item that names "
+                f"{expected!r}: a batch's enqueue must not change the job's params"
+            )
     record = BatchRecord(
         batch_id=batch_id,
         job_ids=ids,
@@ -308,6 +319,19 @@ def _item_specs(
     if not specs:
         raise ValueError("a batch needs at least one item")
     return specs
+
+
+def _spec_job_ids(project, specs: list[dict]) -> list[str]:
+    """The job id each spec resolves to, in order."""
+    return [
+        _jobs.job_id_for(
+            project,
+            spec["kind"],
+            spec["params"],
+            idempotency_key=spec.get("idempotency_key"),
+        )
+        for spec in specs
+    ]
 
 
 def _batch_id(job_ids: tuple[str, ...]) -> str:

@@ -208,3 +208,33 @@ def test_cancel_wakes_a_waiting_batch(project):
     t0 = time.monotonic()
     st = batches.wait(project, b.batch_id, 5, poll_s=30)
     assert st["done"] and time.monotonic() - t0 < 2
+
+
+def test_a_host_enqueue_door_is_used_for_every_member(project):
+    """The ``enqueue=`` seam: a host routes members through its own single-job door."""
+    release = threading.Event()
+    release.set()
+    d = {"x": _stub(release)}
+    calls = []
+
+    def door(project, **kwargs):
+        calls.append(kwargs["params"]["n"])
+        return jobs.enqueue(project, **kwargs)
+
+    b = batches.enqueue_batch(project, _items(3), kind="x", dispatch=d, enqueue=door)
+    assert calls == [0, 1, 2]
+    assert batches.wait(project, b.batch_id, 5)["counts"] == {"succeeded": 3}
+
+
+def test_an_enqueue_that_changes_the_job_is_refused(project):
+    release = threading.Event()
+    release.set()
+    d = {"x": _stub(release)}
+
+    def rewriting_door(project, *, params, **kwargs):
+        return jobs.enqueue(project, params={**params, "n": params["n"] + 100}, **kwargs)
+
+    with pytest.raises(ValueError, match="must not change the job"):
+        batches.enqueue_batch(project, _items(1), kind="x", dispatch=d, enqueue=rewriting_door)
+    # the record would point at the wrong job, so none is written
+    assert list(batches._store(project.root, jobs.DEFAULT_CONFIG)) == []
