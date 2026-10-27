@@ -156,13 +156,10 @@ def is_verifiable_digest_scheme(scheme: str) -> bool:
 
     A trace is checked under the scheme it was *recorded* under (lacing keeps
     every released scheme computable), so a lacing upgrade does not turn old
-    traces stale. Only a scheme lacing does not know is unverifiable. A scheme
-    whose digest depends on registered body schemas (v2) needs the verifier to
-    register the same ``Derived`` markers as the producer, or the producer
-    none: a digest recorded before a marker existed (or without the schema
-    registered) is still accepted (``lacing.accepted_value_digests``, nw#179).
-    A verifier registering *fewer* markers gets a spurious miss, never a wrong
-    hit; so does a schema that already had one marker gaining a second.
+    traces stale. Only a scheme lacing does not know is unverifiable. Note
+    that a scheme whose digest depends on registered body schemas (v2) needs
+    the verifier to register the same ``Derived`` markers as the producer, or
+    the producer none (see ``accepted_of`` in the verdict walk, nw#179).
     """
     return scheme in VALUE_DIGEST_SCHEMES
 
@@ -270,8 +267,12 @@ def _verdicts_for(
     def accepted_of(ann: Annotation, scheme: str) -> frozenset[str]:
         """Memoized set of value digests under ``scheme`` that vouch for
         ``ann``'s current value (nw#179): today's, plus what a producer would
-        have recorded before the body schema gained a ``Derived`` marker.
-        Empty when the body cannot be digested."""
+        have recorded before the body schema gained a ``Derived`` marker (or
+        without registering it). Either drops nothing the verifier counts, so
+        accepting it is never a wrong hit. A verifier registering *fewer*
+        markers than the producer gets a spurious miss, and so does a schema
+        that already had one marker gaining a second (nw#180). Empty when the
+        body cannot be digested."""
         key = (ann.id, scheme)
         if key not in accepted:
             try:

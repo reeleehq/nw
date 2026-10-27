@@ -465,6 +465,27 @@ def test_a_trace_recorded_before_a_derived_marker_existed_still_verifies(
     assert _ids(nw.all_stale(proj.root)) == {child.id}
 
 
+def test_rewriting_a_parent_keeps_a_pre_marker_child_fresh(tmp_path, derived_field_schema):
+    """``rewrite_values`` re-stamps a trace whose digest predates the parent's
+    ``Derived`` marker too, or the rewrite would turn the child stale (nw#179)."""
+    from lacing import schema as lacing_schema
+
+    lacing_schema._BODY_REGISTRY.pop(DERIVED_FIELD_URI)
+    proj = nw.Project.init(tmp_path / "p")
+    parent = _parent_with_derived_field(proj)
+    _derived(proj, (parent.id,), body={"url": "x"})
+    lacing_schema.register_body_schema(DERIVED_FIELD_URI, _WithDerivedField)
+    assert nw.all_stale(proj.root) == []
+
+    def rename(body):
+        if isinstance(body, dict) and body.get("artifact_id") == "a":
+            return {**body, "artifact_id": "a-renamed"}
+        return body
+
+    nw.rewrite_values(proj.root, rename)
+    assert nw.all_stale(proj.root) == []
+
+
 def test_a_change_is_still_caught_under_an_older_scheme(tmp_path):
     """Verifying under the recorded scheme is not the same as not verifying."""
     proj, a_id, b, c = _chain(tmp_path)

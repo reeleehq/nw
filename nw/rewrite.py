@@ -42,7 +42,7 @@ from collections.abc import Callable, Mapping
 from typing import Any
 from uuid import UUID
 
-from lacing.digest import annotation_value_digest
+from lacing.digest import annotation_value_digest, value_digest_matches
 
 from .bodies.verifying_trace import VERIFYING_TRACE_BODY_SCHEMA_URI
 from .storage import ProjectLike, as_project_storage, project_lock
@@ -201,7 +201,9 @@ def _restamped_trace(ann: Any, plan: Mapping[UUID, tuple[Any, Any]]) -> Any:
     for entry in body.get("upstream") or ():
         try:
             old, new = plan[UUID(entry["annotation_id"])]
-            if entry["value_digest"] == annotation_value_digest(old, scheme=scheme):
+            # A digest recorded before the old body's schema gained a Derived
+            # marker still vouches for it (nw#179): it moves too.
+            if value_digest_matches(old, entry["value_digest"], scheme=scheme):
                 entry = {
                     **entry,
                     "value_digest": annotation_value_digest(new, scheme=scheme),
