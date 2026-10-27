@@ -233,14 +233,18 @@ def genre_status_of(
         if status is None:
             return None
         if not isinstance(status, dict):
-            raise TypeError(f"genre_status must return a dict, got {type(status).__name__}")
+            raise TypeError(
+                f"genre_status must return a dict, got {type(status).__name__}"
+            )
         text = json.dumps(status, allow_nan=False)
         if len(text.encode()) > max_bytes:
             raise ValueError(f"genre_status exceeds {max_bytes} bytes")
         status = json.loads(text)
         if refuse_root:
             root = getattr(project, "root", None)
-            roots = {str(root), str(Path(root).resolve())} if root is not None else set()
+            roots = (
+                {str(root), str(Path(root).resolve())} if root is not None else set()
+            )
             if any(_mentions_path(t, r) for t in _strings_in(status) for r in roots):
                 raise ValueError("genre_status leaks the project's absolute path")
     except Exception:  # noqa: BLE001 — a genre's bug is "no genre status", not a failure
@@ -249,7 +253,9 @@ def genre_status_of(
         _GENRE_STATUS_WARNED.add(type(project))
         _logger.log(
             logging.WARNING if first else logging.DEBUG,
-            "genre_status refused for %s", type(project).__name__, exc_info=True,
+            "genre_status refused for %s",
+            type(project).__name__,
+            exc_info=True,
         )
         return None
     return status
