@@ -35,7 +35,9 @@ kept, because a rename is not a change of look.
 
 from __future__ import annotations
 
+import copy
 import logging
+import re
 from collections.abc import Callable, Mapping
 from typing import Any
 from uuid import UUID
@@ -50,8 +52,23 @@ _logger = logging.getLogger(__name__)
 MARKER_PREFIX = ".nw/rewrites/"
 """Key prefix, in ``storage.docs``, of the success markers (``<prefix><name>.json``)."""
 
-LOCK_PREFIX = "rewrite-values:"
-"""Prefix of the :func:`~nw.storage.project_lock` name taken for a marker."""
+LOCK_NAME = "rewrite-values"
+"""The one :func:`~nw.storage.project_lock` every rewrite takes. Not per marker:
+two different rewrites planning from the same original bodies would each
+invalidate the other's digests."""
+
+MARKER_PATTERN = re.compile(r"[A-Za-z0-9][A-Za-z0-9_-]*")
+"""What a marker name may be: a slug, so it cannot escape :data:`MARKER_PREFIX`."""
+
+
+def is_value_row(ann: Any) -> bool:
+    """The default ``where``: every annotation except nw's verifying traces.
+
+    A trace's body is nw's bookkeeping (digests, ``for_annotation_id``), not a
+    stored value; a generic ``fn`` walking it would corrupt it, and the re-stamp
+    is what keeps it right.
+    """
+    return ann.body_schema_uri != VERIFYING_TRACE_BODY_SCHEMA_URI
 
 
 def rewrite_values(
@@ -59,6 +76,7 @@ def rewrite_values(
     fn: Callable[[Any], Any],
     *,
     marker: str | None = None,
+    where: Callable[[Any], bool] = is_value_row,
 ) -> int:
     """Apply ``fn(body) -> body`` to every stored annotation body; return how many changed.
 
@@ -68,17 +86,27 @@ def rewrite_values(
     every time, under a lock of its own name, with no marker (idempotent ``fn``
     makes that safe).
 
+    ``where(annotation) -> bool`` picks the rows ``fn`` sees (default: everything
+    but verifying traces; ``fn`` can branch on ``body_schema_uri`` / tier there
+    instead of guessing from field names). ``fn`` gets a private copy of the body,
+    so mutating it in place is safe; return the new body.
+
+    With ``marker=None`` there is no done-record, so a caller must retry a raised
+    failure itself: the trace pass lands first, and until the body pass finishes
+    dependents read stale. A writer that does not take this lock and lands a trace
+    mid-rewrite leaves that trace stale (conservative, never wrong-fresh).
+
     ``project`` is a path, a :class:`~nw.storage.ProjectStorage` or an
-    :class:`nw.Project`.
+    :class:`nw.Project`; ``marker`` a slug (:data:`MARKER_PATTERN`).
     """
-    storage = as_project_storage(getattr(project, "storage", project))
-    key = None if marker is None else f"{MARKER_PREFIX}{marker}.json"
+    key = _marker_key(marker) if marker is not None else None
+    storage = as_project_storage(project)
     if key is not None and key in storage.docs:
         return 0
-    with project_lock(storage, f"{LOCK_PREFIX}{marker or ''}"):
+    with project_lock(storage, LOCK_NAME):
         if key is not None and key in storage.docs:
             return 0
-        changed = _rewrite(storage, fn)
+        changed = _rewrite(storage, fn, where)
         if key is not None:
             storage.docs[key] = {"rewritten": changed}
     return changed
@@ -86,18 +114,38 @@ def rewrite_values(
 
 def is_rewritten(project: ProjectLike, marker: str) -> bool:
     """Whether the rewrite named ``marker`` has completed on this project."""
-    storage = as_project_storage(getattr(project, "storage", project))
-    return f"{MARKER_PREFIX}{marker}.json" in storage.docs
+    return _marker_key(marker) in as_project_storage(project).docs
 
 
-def _rewrite(storage, fn: Callable[[Any], Any]) -> int:
+def mark_rewritten(project: ProjectLike, marker: str) -> None:
+    """Record ``marker`` as done without scanning: for a project created already
+    in today's vocabulary, so opening it never pays for the scan."""
+    as_project_storage(project).docs[_marker_key(marker)] = {"rewritten": 0}
+
+
+def _marker_key(marker: str) -> str:
+    if not MARKER_PATTERN.fullmatch(marker):
+        raise ValueError(f"marker must match {MARKER_PATTERN.pattern!r}, got {marker!r}")
+    return f"{MARKER_PREFIX}{marker}.json"
+
+
+def _rewritten(ann: Any, fn, where) -> Any:
+    """``ann`` with ``fn`` applied to a private copy of its body, or ``None`` if
+    ``where`` skips it or the body comes back equal."""
+    if not where(ann):
+        return None
+    new_body = fn(copy.deepcopy(ann.body))
+    return None if new_body == ann.body else ann.model_copy(update={"body": new_body})
+
+
+def _rewrite(storage, fn: Callable[[Any], Any], where) -> int:
     plan: dict[UUID, tuple[Any, Any]] = {}  # id -> (old annotation, rewritten annotation)
     with storage.open_stores() as stores:
         for store in stores:
             for ann in store.all():
-                new_body = fn(ann.body)
-                if new_body != ann.body:
-                    plan[ann.id] = (ann, ann.model_copy(update={"body": new_body}))
+                new = _rewritten(ann, fn, where)
+                if new is not None:
+                    plan[ann.id] = (ann, new)
     if not plan:
         return 0
     with storage.open_stores() as stores:
@@ -106,13 +154,15 @@ def _rewrite(storage, fn: Callable[[Any], Any]) -> int:
                 restamped = _restamped_trace(ann, plan)
                 if restamped is not None:
                     store.update(restamped)
+    written = 0
     with storage.open_stores() as stores:
         for store in stores:
             for ann in list(store.all()):
-                new_body = fn(ann.body)
-                if new_body != ann.body:
-                    store.update(ann.model_copy(update={"body": new_body}))
-    return len(plan)
+                new = _rewritten(ann, fn, where)
+                if new is not None:
+                    store.update(new)
+                    written += 1
+    return written
 
 
 def _restamped_trace(ann: Any, plan: Mapping[UUID, tuple[Any, Any]]) -> Any:
