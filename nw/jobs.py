@@ -80,6 +80,7 @@ import logging
 import math
 import numbers
 import os
+import reprlib
 import statistics
 import tempfile
 import threading
@@ -328,6 +329,12 @@ class Job:
     raised (:func:`error_detail_of`), so a client acts on it without parsing
     ``error``. ``None`` otherwise."""
     run_id: str | None = None
+    """The job's correlation id, stamped on its events: the ``job_id``, the same
+    for every run of the key."""
+    run_token: str | None = None
+    """This *run's* identity: a re-run of the key gets a new one (nw#153), so a
+    host that dedupes terminal announcements keys on ``(job_id, run_token)``.
+    ``None`` for a record written before runs had tokens."""
     last_event_id: str | None = None
 
 
@@ -701,8 +708,29 @@ def _caller_estimated_usd(params) -> float | None:
 
     Reported, never trusted: when a plan is supplied this number loses to the
     re-quote, and nw cannot see where it came from.
+
+    A figure :func:`checked_usd` refuses (NaN, negative, a bool, a string) is
+    **unknown**, not an error (nw#155): a host's own ``estimated_usd=`` raises
+    because the host can fix it, but this one comes from a client, and raising
+    would break clients that send junk today. Unknown requires approval, so
+    junk loses the free pass instead of buying one (``nan >= threshold`` is
+    ``False``), and it never reaches the job's ``cost``. The warning is logged
+    once per process (later ones at debug level): a client that always sends
+    junk polls ``estimate`` on every change.
     """
-    return params.get("estimated_usd") if isinstance(params, Mapping) else None
+    global _warned_bad_caller_usd
+    value = params.get("estimated_usd") if isinstance(params, Mapping) else None
+    try:
+        return checked_usd(value)
+    except ValueError as exc:
+        level = logging.DEBUG if _warned_bad_caller_usd else logging.WARNING
+        _warned_bad_caller_usd = True
+        _logger.log(level, "params['estimated_usd'] is unknown: %s", exc)
+        return None
+
+
+_warned_bad_caller_usd = False
+"""Whether :func:`_caller_estimated_usd` has warned yet (it warns once)."""
 
 
 def checked_usd(value: Any) -> float | None:
@@ -713,21 +741,22 @@ def checked_usd(value: Any) -> float | None:
 
     ``None`` (unknown) or a finite, non-negative real. A bool is refused (it is
     an ``int``), and so is NaN: ``nan >= threshold`` is ``False``, so a NaN
-    price would pass every approval gate as cheap.
+    price would pass every approval gate as cheap. So is an ``int`` too large
+    for a ``float``, as ``ValueError`` rather than ``OverflowError``, so a
+    caller that tolerates a bad price catches one exception type.
     """
     if value is None:
         return None
-    if (
-        isinstance(value, bool)
-        or not isinstance(value, numbers.Real)
-        or not math.isfinite(value)
-        or value < 0
-    ):
+    usd = math.nan  # refused unless it is a real nw can hold as a float
+    if isinstance(value, numbers.Real) and not isinstance(value, bool):
+        with suppress(OverflowError):  # an int too large for a float
+            usd = float(value)
+    if not math.isfinite(usd) or usd < 0:
         raise ValueError(
             "estimated_usd must be None or a finite, non-negative number, "
-            f"got {type(value).__name__} {value!r}"
+            f"got {type(value).__name__} {reprlib.repr(value)}"
         )
-    return float(value)
+    return usd
 
 
 def _estimate(
@@ -801,8 +830,7 @@ def list_jobs(
     whose missing-key-returns-PENDING gotcha makes membership meaningless).
     """
     rt = _runtime(project, config)
-    with rt.lock:
-        records = [r for r in (_index_get_locked(rt, k) for k in list(rt.index)) if r]
+    records = [r for r in (_index_snapshot(rt, k) for k in list(rt.index)) if r]
     records.sort(key=lambda r: r.get("created_at") or "", reverse=True)
 
     jobs: list[Job] = []
@@ -900,8 +928,7 @@ def get_job(project, job_id: str, *, config: JobsConfig = DEFAULT_CONFIG) -> Job
     """One job (projecting the au status + mirrored index metadata). ``None`` if
     unknown. Reaps a stale-RUNNING record on read."""
     rt = _runtime(project, config)
-    with rt.lock:
-        record = _index_get_locked(rt, job_id)
+    record = _index_snapshot(rt, job_id)
     if record is None:
         return None
     return _read_job(rt, record, config, project=project)
@@ -976,6 +1003,7 @@ def to_dict(job: Job) -> dict:
         "status": job.status,
         "cached": job.cached,
         "run_id": job.run_id,
+        "run_token": job.run_token,
         "idempotency_key": job.idempotency_key,
         "params": job.params,
         "created_at": job.created_at,
@@ -1371,10 +1399,11 @@ def register_terminal_hook(
     - **Once, across replicas** sharing a jobs root on a lockable filesystem:
       the claim is a lease written on the run's record under the index lock
       (``JobsConfig.terminal_hook_lease_s``), so a run is announced by one
-      thread of one replica at a time. A host still dedupes for the two cases
-      that defeat it: a claimant that dies after a hook returned but before
-      recording it (the run is re-announced once its lease expires), and a
-      filesystem that refuses locks (nw logs a warning).
+      thread of one replica at a time. A host still dedupes, on
+      ``(job.job_id, job.run_token)`` since a re-run shares the ``job_id``, for
+      the two cases that defeat it: a claimant that dies after a hook returned
+      but before recording it (the run is re-announced once its lease
+      expires), and a filesystem that refuses locks (nw logs a warning).
 
     Runs recorded before this existed are never announced. Remove one with
     ``del terminal_hooks[name]``.
@@ -1396,11 +1425,8 @@ def _claim_announcement_locked(rt, record, *, run_token) -> str | None:
     :func:`_fire_terminal_hooks` releases it. The id is per claim, not per
     runtime, so a thread whose lease expired cannot release the one that took
     it over, even in the same process."""
-    if (
-        record is None
-        or record.get("run_token") != run_token
-        or record.get("terminal_announced") is not False
-        or _lease_is_live(record.get("announce_claim"))
+    if _announcement_settled(record, run_token) or _lease_is_live(
+        record.get("announce_claim")
     ):
         return None
     claim = uuid4().hex
@@ -1408,6 +1434,18 @@ def _claim_announcement_locked(rt, record, *, run_token) -> str | None:
     record["announce_claim"] = {"by": claim, "until": until}
     _index_set_locked(rt, record["job_id"], record)
     return claim
+
+
+def _announcement_settled(record, run_token) -> bool:
+    """Whether run ``run_token`` can no longer be announced from ``record``:
+    the record is gone, holds another run, was announced, or predates
+    announcing. Each only ever moves one way for a run, so a lock-free
+    snapshot that says "settled" stays right (nw#158)."""
+    return (
+        record is None
+        or record.get("run_token") != run_token
+        or record.get("terminal_announced") is not False
+    )
 
 
 def _lease_is_live(claim) -> bool:
@@ -1483,8 +1521,10 @@ def _this_run_locked(rt, job_id, run_token):
 def _announce_if_terminal(rt, project, job: Job, *, run_token) -> None:
     """Announce ``job`` if it reads terminal and run ``run_token`` — the run the
     read started from — is still the key's current, unannounced run."""
-    if job.status not in TERMINAL_STATUSES:
-        return
+    if job.status not in TERMINAL_STATUSES or _announcement_settled(
+        _index_snapshot(rt, job.job_id), run_token
+    ):
+        return  # without the lock: most terminal reads are of announced runs
     with rt.lock:
         claim = _claim_announcement_locked(
             rt, _index_get_locked(rt, job.job_id), run_token=run_token
@@ -1712,8 +1752,7 @@ def _bind_worker(
     captured_fal_key = _capture_fal_credentials()
 
     def should_cancel() -> bool:
-        with rt.lock:
-            record = _index_get_locked(rt, job_id)
+        record = _index_snapshot(rt, job_id)
         if record and record.get("cancel_requested"):
             return True
         try:
@@ -2057,8 +2096,7 @@ def _read_job(rt, record, config, *, project) -> Job:
         ComputationStatus.FAILED,
         ComputationStatus.CANCELLED,
     ):
-        with rt.lock:
-            record = _index_get_locked(rt, job_id) or record
+        record = _index_snapshot(rt, job_id) or record
     job = _project_job(rt, record, au_result, config)
     if job.status in (RUNNING, CANCELLING) and job.pct is not None:
         if record.get("pct_floor") is None or job.pct > record["pct_floor"]:
@@ -2341,6 +2379,7 @@ def _project_job(rt, record, au_result, config) -> Job:
         error_kind=error_kind,
         error_detail=error_detail,
         run_id=record["job_id"],
+        run_token=record.get("run_token"),
         last_event_id=record.get("last_event_id"),
     )
 
@@ -2476,6 +2515,32 @@ def _compute_pct_eta(elapsed_s, prediction: _Prediction, record, config):
 
 def _index_get_locked(rt, job_id):
     return rt.index.get(job_id)
+
+
+#: Whether :func:`_index_snapshot` still takes ``rt.lock``: on Windows a reader's
+#: open file makes a writer's ``os.replace`` fail, so these reads stay serialized
+#: there (other lock-free reads of the index, e.g. :func:`summarize`, do not).
+_SNAPSHOT_READS_LOCK = os.name == "nt"
+
+
+def _index_snapshot(rt, job_id):
+    """``job_id``'s record (``None`` if absent) as one whole snapshot, **without**
+    ``rt.lock`` (nw#158).
+
+    The index is an :class:`AtomicJsonFiles`: every write lands by
+    ``os.replace``, so a reader sees the old record or the new one, never a
+    torn one, and the lock adds nothing to a lone read. Taking it anyway made
+    every poll on every replica queue behind each other, and behind
+    heartbeats, for as long as a full :func:`list_jobs` scan.
+
+    Only for a read that no write depends on. A read-modify-write keeps
+    reading inside the ``with rt.lock:`` that covers the write
+    (:func:`_index_get_locked`).
+    """
+    if _SNAPSHOT_READS_LOCK:
+        with rt.lock:
+            return _index_get_locked(rt, job_id)
+    return _index_get_locked(rt, job_id)
 
 
 def _index_set_locked(rt, job_id, record) -> None:

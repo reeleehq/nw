@@ -8,6 +8,7 @@ progress/cost/eta/cancel machinery is exercised without spending money.
 import contextlib
 from pathlib import Path
 import contextvars
+import logging
 import threading
 import time
 
@@ -2346,7 +2347,7 @@ def test_estimate_says_where_its_figure_came_from(project):
     assert source({}) is None  # unknown, and nothing was given
 
 
-BAD_USD = (float("nan"), float("inf"), -1, True, "3")
+BAD_USD = (float("nan"), float("inf"), -1, True, "3", 10**400)
 
 
 @pytest.mark.parametrize("bad", BAD_USD, ids=repr)
@@ -2360,6 +2361,35 @@ def test_a_bad_host_estimate_is_refused_before_anything_is_written(project, bad)
     with pytest.raises(ValueError, match="estimated_usd"):
         jobs.estimate(project, "op", VIDEO_PARAMS, estimated_usd=bad)
     assert jobs.list_jobs(project) == [] and calls == []
+
+
+@pytest.mark.parametrize("bad", BAD_USD, ids=repr)
+def test_a_bad_caller_estimate_gates_as_unknown(
+    project, parked, caplog, monkeypatch, bad
+):
+    """A client's junk ``params["estimated_usd"]`` is unknown, not cheap and
+    not an error: the gate asks for approval and the job's cost never holds
+    it (nw#155)."""
+    monkeypatch.setattr(jobs, "_warned_bad_caller_usd", False)
+    params = {**VIDEO_PARAMS, "estimated_usd": bad}
+    with caplog.at_level(logging.DEBUG, logger=jobs.__name__):
+        out = jobs.estimate(project, "op", params)
+        jobs.estimate(project, "op", params)
+    assert out["estimated_usd"] is None and out["estimate_source"] is None
+    assert out["has_unknown_costs"] is True and out["requires_approval"] is True
+    # warned once, then quiet: a client sending junk polls estimate constantly
+    levels = [r.levelno for r in caplog.records if "is unknown" in r.message]
+    assert levels == [logging.WARNING, logging.DEBUG]
+
+    job = jobs.enqueue(project, "op", params, dispatch=parked)
+    rt = jobs._runtime(project)
+    with rt.lock:
+        cost = jobs._index_get_locked(rt, job.job_id)["cost"]
+    assert cost["estimated_usd"] is None and cost["estimate_source"] is None
+
+    # beside a plan's re-quote it is reported as "none given", not echoed
+    quoted = jobs.estimate(project, "op", {**_priced_plan_params(), "estimated_usd": bad})
+    assert quoted["quote"]["caller_estimated_usd"] is None
 
 
 def _emitting_an_estimate(usd):
@@ -2407,10 +2437,12 @@ def announced(project):
     class Seen(list):
         done = None
         projects = None
+        jobs = None
 
     seen = Seen()
     seen.done = threading.Event()
     seen.projects = []
+    seen.jobs = []
     root = Path(project.root).resolve()
 
     def hook(hook_project, job):
@@ -2418,6 +2450,7 @@ def announced(project):
             return
         seen.append((job.job_id, job.status))
         seen.projects.append(hook_project)
+        seen.jobs.append(job)
         seen.done.set()
 
     jobs.register_terminal_hook("test", hook)
@@ -2473,6 +2506,41 @@ def _terminal_record(rt, job_id, *, run_token="t", au_status=ComputationStatus.C
     rt.au_store[job_id] = ComputationResult({"ok": True}, au_status)
 
 
+@pytest.mark.skipif(jobs._SNAPSHOT_READS_LOCK, reason="reads stay locked on Windows")
+def test_reads_do_not_wait_for_the_index_lock(project):
+    """A poll never queues behind the cross-process index lock (nw#158): a
+    replica holding it for a long scan or a write must not stall every reader."""
+    rt = jobs._runtime(project)
+    _terminal_record(rt, "q", au_status=ComputationStatus.PENDING)  # queued
+    _terminal_record(rt, "done")
+    with rt.lock:  # finished and already announced: nothing left to claim
+        jobs._index_update_locked(rt, "done", terminal_announced=True)
+    held, release = threading.Event(), threading.Event()
+
+    def hold():
+        with rt.lock:
+            held.set()
+            release.wait(10)
+
+    holder = threading.Thread(target=hold)
+    holder.start()
+    assert held.wait(5)
+    try:
+        seen = []
+        reader = threading.Thread(
+            target=lambda: seen.append((jobs.get_job(project, "q"), jobs.list_jobs(project)))
+        )
+        reader.start()
+        reader.join(5)
+        assert seen, "a read waited for the index lock"
+    finally:
+        release.set()
+        holder.join()
+    job, listed = seen[0]
+    assert job.status == jobs.QUEUED
+    assert {j.job_id: j.status for j in listed} == {"q": jobs.QUEUED, "done": jobs.SUCCEEDED}
+
+
 def test_cancel_announces_once_even_after_the_worker_exits(project, announced):
     release = threading.Event()
     job = jobs.enqueue(project, "op", VIDEO_PARAMS, dispatch={"op": _blocking_stub(release)})
@@ -2516,6 +2584,11 @@ def test_a_rerun_of_the_key_is_announced_again(project, announced):
     jobs.enqueue(project, "op", VIDEO_PARAMS, dispatch=dispatch)
     assert announced.done.wait(5)
     assert announced == [(job.job_id, jobs.SUCCEEDED)] * 2
+    # one job, two runs: a host dedupes per (job_id, run_token), never job_id (nw#153)
+    first, second = announced.jobs
+    assert first.run_id == second.run_id == job.job_id
+    assert None is not first.run_token != second.run_token is not None
+    assert jobs.to_dict(second)["run_token"] == second.run_token
 
 
 def test_a_record_from_before_announcing_is_never_announced(project, announced):
@@ -2694,6 +2767,7 @@ def test_the_enqueue_door_announces_the_old_run_even_after_the_new_one_was(
         jobs._index_set_locked(rt, "k", record)
     jobs._fire_terminal_hooks(rt, project, old, run_token="T1", claim="door")
     assert announced == [("k", jobs.SUCCEEDED)]
+    assert announced.jobs[0].run_token == "T1"  # the run announced, not the new one
     with rt.lock:
         assert jobs._index_get_locked(rt, "k") == record  # T2's record untouched
 
