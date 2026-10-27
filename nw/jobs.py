@@ -80,6 +80,7 @@ import logging
 import math
 import numbers
 import os
+import reprlib
 import statistics
 import tempfile
 import threading
@@ -701,8 +702,29 @@ def _caller_estimated_usd(params) -> float | None:
 
     Reported, never trusted: when a plan is supplied this number loses to the
     re-quote, and nw cannot see where it came from.
+
+    A figure :func:`checked_usd` refuses (NaN, negative, a bool, a string) is
+    **unknown**, not an error (nw#155): a host's own ``estimated_usd=`` raises
+    because the host can fix it, but this one comes from a client, and raising
+    would break clients that send junk today. Unknown requires approval, so
+    junk loses the free pass instead of buying one (``nan >= threshold`` is
+    ``False``), and it never reaches the job's ``cost``. The warning is logged
+    once per process (later ones at debug level): a client that always sends
+    junk polls ``estimate`` on every change.
     """
-    return params.get("estimated_usd") if isinstance(params, Mapping) else None
+    global _warned_bad_caller_usd
+    value = params.get("estimated_usd") if isinstance(params, Mapping) else None
+    try:
+        return checked_usd(value)
+    except ValueError as exc:
+        level = logging.DEBUG if _warned_bad_caller_usd else logging.WARNING
+        _warned_bad_caller_usd = True
+        _logger.log(level, "params['estimated_usd'] is unknown: %s", exc)
+        return None
+
+
+_warned_bad_caller_usd = False
+"""Whether :func:`_caller_estimated_usd` has warned yet (it warns once)."""
 
 
 def checked_usd(value: Any) -> float | None:
@@ -713,21 +735,22 @@ def checked_usd(value: Any) -> float | None:
 
     ``None`` (unknown) or a finite, non-negative real. A bool is refused (it is
     an ``int``), and so is NaN: ``nan >= threshold`` is ``False``, so a NaN
-    price would pass every approval gate as cheap.
+    price would pass every approval gate as cheap. So is an ``int`` too large
+    for a ``float``, as ``ValueError`` rather than ``OverflowError``, so a
+    caller that tolerates a bad price catches one exception type.
     """
     if value is None:
         return None
-    if (
-        isinstance(value, bool)
-        or not isinstance(value, numbers.Real)
-        or not math.isfinite(value)
-        or value < 0
-    ):
+    usd = math.nan  # refused unless it is a real nw can hold as a float
+    if isinstance(value, numbers.Real) and not isinstance(value, bool):
+        with suppress(OverflowError):  # an int too large for a float
+            usd = float(value)
+    if not math.isfinite(usd) or usd < 0:
         raise ValueError(
             "estimated_usd must be None or a finite, non-negative number, "
-            f"got {type(value).__name__} {value!r}"
+            f"got {type(value).__name__} {reprlib.repr(value)}"
         )
-    return float(value)
+    return usd
 
 
 def _estimate(

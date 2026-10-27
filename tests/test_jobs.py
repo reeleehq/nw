@@ -8,6 +8,7 @@ progress/cost/eta/cancel machinery is exercised without spending money.
 import contextlib
 from pathlib import Path
 import contextvars
+import logging
 import threading
 import time
 
@@ -2244,7 +2245,7 @@ def test_estimate_says_where_its_figure_came_from(project):
     assert source({}) is None  # unknown, and nothing was given
 
 
-BAD_USD = (float("nan"), float("inf"), -1, True, "3")
+BAD_USD = (float("nan"), float("inf"), -1, True, "3", 10**400)
 
 
 @pytest.mark.parametrize("bad", BAD_USD, ids=repr)
@@ -2258,6 +2259,35 @@ def test_a_bad_host_estimate_is_refused_before_anything_is_written(project, bad)
     with pytest.raises(ValueError, match="estimated_usd"):
         jobs.estimate(project, "op", VIDEO_PARAMS, estimated_usd=bad)
     assert jobs.list_jobs(project) == [] and calls == []
+
+
+@pytest.mark.parametrize("bad", BAD_USD, ids=repr)
+def test_a_bad_caller_estimate_gates_as_unknown(
+    project, parked, caplog, monkeypatch, bad
+):
+    """A client's junk ``params["estimated_usd"]`` is unknown, not cheap and
+    not an error: the gate asks for approval and the job's cost never holds
+    it (nw#155)."""
+    monkeypatch.setattr(jobs, "_warned_bad_caller_usd", False)
+    params = {**VIDEO_PARAMS, "estimated_usd": bad}
+    with caplog.at_level(logging.DEBUG, logger=jobs.__name__):
+        out = jobs.estimate(project, "op", params)
+        jobs.estimate(project, "op", params)
+    assert out["estimated_usd"] is None and out["estimate_source"] is None
+    assert out["has_unknown_costs"] is True and out["requires_approval"] is True
+    # warned once, then quiet: a client sending junk polls estimate constantly
+    levels = [r.levelno for r in caplog.records if "is unknown" in r.message]
+    assert levels == [logging.WARNING, logging.DEBUG]
+
+    job = jobs.enqueue(project, "op", params, dispatch=parked)
+    rt = jobs._runtime(project)
+    with rt.lock:
+        cost = jobs._index_get_locked(rt, job.job_id)["cost"]
+    assert cost["estimated_usd"] is None and cost["estimate_source"] is None
+
+    # beside a plan's re-quote it is reported as "none given", not echoed
+    quoted = jobs.estimate(project, "op", {**_priced_plan_params(), "estimated_usd": bad})
+    assert quoted["quote"]["caller_estimated_usd"] is None
 
 
 def _emitting_an_estimate(usd):
