@@ -634,9 +634,7 @@ def fan_out_execute(
     pass_on_failure = accepts_keyword(transform.execute, "on_failure")
     pass_instance_id = accepts_keyword(transform.execute, "unit_instance_id")
     secrets = as_secrets(secrets)
-    pass_secrets = secrets is not None and accepts_keyword(
-        transform.execute, "secrets"
-    )
+    pass_secrets = secrets is not None and accepts_keyword(transform.execute, "secrets")
 
     results: list[FanOutItemResult] = []
     halted_by: Optional[str] = None

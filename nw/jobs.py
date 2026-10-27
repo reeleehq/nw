@@ -511,7 +511,10 @@ def enqueue(
                 # rates and its answer wins, so the tray never shows a frozen
                 # figure as this job's price (nw#74). Its source rides along so
                 # a render event cannot overwrite a host's own price (nw#144).
-                "cost": {"estimated_usd": estimated, "estimate_source": estimate_source},
+                "cost": {
+                    "estimated_usd": estimated,
+                    "estimate_source": estimate_source,
+                },
                 "artifact_ref": None,
                 "result": None,
                 "error": None,
