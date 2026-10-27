@@ -139,13 +139,21 @@ is not itself a sufficient key.
 
 Configuration for the model, should be a dictionary conforming to [`ConfigDict`][pydantic.config.ConfigDict].
 
-### *class* nw.bodies.UpstreamDigestV1(, annotation_id, value_digest)
+### *class* nw.bodies.UpstreamDigestV1(, annotation_id, value_digest, excluded_paths=None)
 
 Bases: `BaseModel`
 
 One `(upstream annotation, its value digest)` pair.
 
-#### model_config *: [ClassVar](https://docs.python.org/3/library/typing.html#typing.ClassVar)[ConfigDict]* *= {'extra': 'forbid', 'frozen': True}*
+Reading ignores fields it does not know (nw#180): an nw older than a
+trace’s writer then still verifies it with what it understands, instead
+of dropping the whole trace and reading its child stale. That is safe
+only under the rule this format keeps: \*\*a field that changes what a
+digest means bumps `digest_scheme``** (an unknown scheme is stale), so
+an ignored field can only be one that refines verification, like
+``excluded_paths`.
+
+#### model_config *: [ClassVar](https://docs.python.org/3/library/typing.html#typing.ClassVar)[ConfigDict]* *= {'extra': 'ignore', 'frozen': True}*
 
 Configuration for the model, should be a dictionary conforming to [`ConfigDict`][pydantic.config.ConfigDict].
 
@@ -162,7 +170,7 @@ under an older scheme is not comparable, so [`nw.freshness`](nw.freshness.html.m
 the mismatch as *unverifiable* (therefore stale) instead of comparing
 digests that mean different things.
 
-#### model_config *: [ClassVar](https://docs.python.org/3/library/typing.html#typing.ClassVar)[ConfigDict]* *= {'extra': 'forbid', 'frozen': True}*
+#### model_config *: [ClassVar](https://docs.python.org/3/library/typing.html#typing.ClassVar)[ConfigDict]* *= {'extra': 'ignore', 'frozen': True}*
 
 Configuration for the model, should be a dictionary conforming to [`ConfigDict`][pydantic.config.ConfigDict].
 

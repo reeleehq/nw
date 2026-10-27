@@ -200,196 +200,204 @@ data-aria-dark="Switch to auto color mode">
 </span><span data-line="42"><span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span>
 </span><span data-line="43"><span class="kn">from</span><span class="w"> </span><span class="nn">uuid</span><span class="w"> </span><span class="kn">import</span> <span class="n">UUID</span>
 </span><span data-line="44">
-</span><span data-line="45"><span class="kn">from</span><span class="w"> </span><span class="nn">lacing.digest</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotation_value_digest</span><span class="p">,</span> <span class="n">value_digest_matches</span>
-</span><span data-line="46">
-</span><span data-line="47"><span class="kn">from</span><span class="w"> </span><span class="nn">.bodies.verifying_trace</span><span class="w"> </span><span class="kn">import</span> <span class="n">VERIFYING_TRACE_BODY_SCHEMA_URI</span>
-</span><span data-line="48"><span class="kn">from</span><span class="w"> </span><span class="nn">.storage</span><span class="w"> </span><span class="kn">import</span> <span class="n">ProjectLike</span><span class="p">,</span> <span class="n">as_project_storage</span><span class="p">,</span> <span class="n">project_lock</span>
-</span><span data-line="49">
-</span><span data-line="50"><span class="n">_logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
-</span><span data-line="51">
-</span><span data-line="52"><span class="n">MARKER_PREFIX</span> <span class="o">=</span> <span class="s2">".nw/rewrites/"</span>
-</span><span data-line="53"><span class="sd">"""Key prefix, in ``storage.docs``, of the success markers (``&lt;prefix&gt;&lt;name&gt;.json``)."""</span>
-</span><span data-line="54">
-</span><span data-line="55"><span class="n">LOCK_NAME</span> <span class="o">=</span> <span class="s2">"rewrite-values"</span>
-</span><span data-line="56"><span class="sd">"""The one :func:`~nw.storage.project_lock` every rewrite takes. Not per marker:</span>
-</span><span data-line="57"><span class="sd">two different rewrites planning from the same original bodies would each</span>
-</span><span data-line="58"><span class="sd">invalidate the other's digests."""</span>
-</span><span data-line="59">
-</span><span data-line="60"><span class="n">MARKER_PATTERN</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s2">"[A-Za-z0-9][A-Za-z0-9_-]*"</span><span class="p">)</span>
-</span><span data-line="61"><span class="sd">"""What a marker name may be: a slug, so it cannot escape :data:`MARKER_PREFIX`."""</span>
-</span><span data-line="62">
+</span><span data-line="45">
+</span><span data-line="46"><span class="kn">from</span><span class="w"> </span><span class="nn">.bodies.verifying_trace</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+</span><span data-line="47">    <span class="n">VERIFYING_TRACE_BODY_SCHEMA_URI</span><span class="p">,</span>
+</span><span data-line="48">    <span class="n">digest_vouches</span><span class="p">,</span>
+</span><span data-line="49">    <span class="n">recorded_exclusions</span><span class="p">,</span>
+</span><span data-line="50">    <span class="n">upstream_entry</span><span class="p">,</span>
+</span><span data-line="51"><span class="p">)</span>
+</span><span data-line="52"><span class="kn">from</span><span class="w"> </span><span class="nn">.storage</span><span class="w"> </span><span class="kn">import</span> <span class="n">ProjectLike</span><span class="p">,</span> <span class="n">as_project_storage</span><span class="p">,</span> <span class="n">project_lock</span>
+</span><span data-line="53">
+</span><span data-line="54"><span class="n">_logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+</span><span data-line="55">
+</span><span data-line="56"><span class="n">MARKER_PREFIX</span> <span class="o">=</span> <span class="s2">".nw/rewrites/"</span>
+</span><span data-line="57"><span class="sd">"""Key prefix, in ``storage.docs``, of the success markers (``&lt;prefix&gt;&lt;name&gt;.json``)."""</span>
+</span><span data-line="58">
+</span><span data-line="59"><span class="n">LOCK_NAME</span> <span class="o">=</span> <span class="s2">"rewrite-values"</span>
+</span><span data-line="60"><span class="sd">"""The one :func:`~nw.storage.project_lock` every rewrite takes. Not per marker:</span>
+</span><span data-line="61"><span class="sd">two different rewrites planning from the same original bodies would each</span>
+</span><span data-line="62"><span class="sd">invalidate the other's digests."""</span>
 </span><span data-line="63">
+</span><span data-line="64"><span class="n">MARKER_PATTERN</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s2">"[A-Za-z0-9][A-Za-z0-9_-]*"</span><span class="p">)</span>
+</span><span data-line="65"><span class="sd">"""What a marker name may be: a slug, so it cannot escape :data:`MARKER_PREFIX`."""</span>
+</span><span data-line="66">
+</span><span data-line="67">
 <div class="viewcode-block" id="is_value_row">
 <a class="viewcode-back" href="../../_autosummary/nw.rewrite.html#nw.is_value_row">[docs]</a>
-</span><span data-line="64"><span class="k">def</span><span class="w"> </span><span class="nf">is_value_row</span><span class="p">(</span><span class="n">ann</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
-</span><span data-line="65"><span class="w">    </span><span class="sd">"""The default ``where``: every annotation except nw's verifying traces.</span>
-</span><span data-line="66">
-</span><span data-line="67"><span class="sd">    A trace's body is nw's bookkeeping (digests, ``for_annotation_id``), not a</span>
-</span><span data-line="68"><span class="sd">    stored value; a generic ``fn`` walking it would corrupt it, and the re-stamp</span>
-</span><span data-line="69"><span class="sd">    is what keeps it right.</span>
-</span><span data-line="70"><span class="sd">    """</span>
-</span><span data-line="71">    <span class="k">return</span> <span class="n">ann</span><span class="o">.</span><span class="n">body_schema_uri</span> <span class="o">!=</span> <span class="n">VERIFYING_TRACE_BODY_SCHEMA_URI</span></div>
+</span><span data-line="68"><span class="k">def</span><span class="w"> </span><span class="nf">is_value_row</span><span class="p">(</span><span class="n">ann</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+</span><span data-line="69"><span class="w">    </span><span class="sd">"""The default ``where``: every annotation except nw's verifying traces.</span>
+</span><span data-line="70">
+</span><span data-line="71"><span class="sd">    A trace's body is nw's bookkeeping (digests, ``for_annotation_id``), not a</span>
+</span><span data-line="72"><span class="sd">    stored value; a generic ``fn`` walking it would corrupt it, and the re-stamp</span>
+</span><span data-line="73"><span class="sd">    is what keeps it right.</span>
+</span><span data-line="74"><span class="sd">    """</span>
+</span><span data-line="75">    <span class="k">return</span> <span class="n">ann</span><span class="o">.</span><span class="n">body_schema_uri</span> <span class="o">!=</span> <span class="n">VERIFYING_TRACE_BODY_SCHEMA_URI</span></div>
 
-</span><span data-line="72">
-</span><span data-line="73">
+</span><span data-line="76">
+</span><span data-line="77">
 <div class="viewcode-block" id="rewrite_values">
 <a class="viewcode-back" href="../../_autosummary/nw.rewrite.html#nw.rewrite_values">[docs]</a>
-</span><span data-line="74"><span class="k">def</span><span class="w"> </span><span class="nf">rewrite_values</span><span class="p">(</span>
-</span><span data-line="75">    <span class="n">project</span><span class="p">:</span> <span class="n">ProjectLike</span><span class="p">,</span>
-</span><span data-line="76">    <span class="n">fn</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">Any</span><span class="p">],</span> <span class="n">Any</span><span class="p">],</span>
-</span><span data-line="77">    <span class="o">*</span><span class="p">,</span>
-</span><span data-line="78">    <span class="n">marker</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-</span><span data-line="79">    <span class="n">where</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">Any</span><span class="p">],</span> <span class="nb">bool</span><span class="p">]</span> <span class="o">=</span> <span class="n">is_value_row</span><span class="p">,</span>
-</span><span data-line="80"><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
-</span><span data-line="81"><span class="w">    </span><span class="sd">"""Apply ``fn(body) -&gt; body`` to every stored annotation body; return how many changed.</span>
-</span><span data-line="82">
-</span><span data-line="83"><span class="sd">    ``marker`` names a one-time rewrite: when its marker exists nothing runs</span>
-</span><span data-line="84"><span class="sd">    (``0``); otherwise the lock is taken, the marker re-checked, the rewrite run,</span>
-</span><span data-line="85"><span class="sd">    and the marker written only after the pass finished cleanly. ``None`` runs</span>
-</span><span data-line="86"><span class="sd">    every time, under a lock of its own name, with no marker (idempotent ``fn``</span>
-</span><span data-line="87"><span class="sd">    makes that safe).</span>
-</span><span data-line="88">
-</span><span data-line="89"><span class="sd">    ``where(annotation) -&gt; bool`` picks the rows ``fn`` sees (default: everything</span>
-</span><span data-line="90"><span class="sd">    but verifying traces; ``fn`` can branch on ``body_schema_uri`` / tier there</span>
-</span><span data-line="91"><span class="sd">    instead of guessing from field names). ``fn`` gets a private copy of the body,</span>
-</span><span data-line="92"><span class="sd">    so mutating it in place is safe; return the new body.</span>
-</span><span data-line="93">
-</span><span data-line="94"><span class="sd">    With ``marker=None`` there is no done-record, so a caller must retry a raised</span>
-</span><span data-line="95"><span class="sd">    failure itself: the trace pass lands first, and until the body pass finishes</span>
-</span><span data-line="96"><span class="sd">    dependents read stale. A writer that does not take this lock and lands a trace</span>
-</span><span data-line="97"><span class="sd">    mid-rewrite leaves that trace stale (conservative, never wrong-fresh).</span>
-</span><span data-line="98">
-</span><span data-line="99"><span class="sd">    ``project`` is a path, a :class:`~nw.storage.ProjectStorage` or an</span>
-</span><span data-line="100"><span class="sd">    :class:`nw.Project`; ``marker`` a slug (:data:`MARKER_PATTERN`).</span>
-</span><span data-line="101"><span class="sd">    """</span>
-</span><span data-line="102">    <span class="n">key</span> <span class="o">=</span> <span class="n">_marker_key</span><span class="p">(</span><span class="n">marker</span><span class="p">)</span> <span class="k">if</span> <span class="n">marker</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="kc">None</span>
-</span><span data-line="103">    <span class="n">storage</span> <span class="o">=</span> <span class="n">as_project_storage</span><span class="p">(</span><span class="n">project</span><span class="p">)</span>
-</span><span data-line="104">    <span class="k">if</span> <span class="n">key</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">storage</span><span class="o">.</span><span class="n">docs</span><span class="p">:</span>
-</span><span data-line="105">        <span class="k">return</span> <span class="mi">0</span>
-</span><span data-line="106">    <span class="k">with</span> <span class="n">project_lock</span><span class="p">(</span><span class="n">storage</span><span class="p">,</span> <span class="n">LOCK_NAME</span><span class="p">):</span>
-</span><span data-line="107">        <span class="k">if</span> <span class="n">key</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">storage</span><span class="o">.</span><span class="n">docs</span><span class="p">:</span>
-</span><span data-line="108">            <span class="k">return</span> <span class="mi">0</span>
-</span><span data-line="109">        <span class="n">changed</span> <span class="o">=</span> <span class="n">_rewrite</span><span class="p">(</span><span class="n">storage</span><span class="p">,</span> <span class="n">fn</span><span class="p">,</span> <span class="n">where</span><span class="p">)</span>
-</span><span data-line="110">        <span class="k">if</span> <span class="n">key</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-</span><span data-line="111">            <span class="n">storage</span><span class="o">.</span><span class="n">docs</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"rewritten"</span><span class="p">:</span> <span class="n">changed</span><span class="p">}</span>
-</span><span data-line="112">    <span class="k">return</span> <span class="n">changed</span></div>
+</span><span data-line="78"><span class="k">def</span><span class="w"> </span><span class="nf">rewrite_values</span><span class="p">(</span>
+</span><span data-line="79">    <span class="n">project</span><span class="p">:</span> <span class="n">ProjectLike</span><span class="p">,</span>
+</span><span data-line="80">    <span class="n">fn</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">Any</span><span class="p">],</span> <span class="n">Any</span><span class="p">],</span>
+</span><span data-line="81">    <span class="o">*</span><span class="p">,</span>
+</span><span data-line="82">    <span class="n">marker</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span data-line="83">    <span class="n">where</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">Any</span><span class="p">],</span> <span class="nb">bool</span><span class="p">]</span> <span class="o">=</span> <span class="n">is_value_row</span><span class="p">,</span>
+</span><span data-line="84"><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+</span><span data-line="85"><span class="w">    </span><span class="sd">"""Apply ``fn(body) -&gt; body`` to every stored annotation body; return how many changed.</span>
+</span><span data-line="86">
+</span><span data-line="87"><span class="sd">    ``marker`` names a one-time rewrite: when its marker exists nothing runs</span>
+</span><span data-line="88"><span class="sd">    (``0``); otherwise the lock is taken, the marker re-checked, the rewrite run,</span>
+</span><span data-line="89"><span class="sd">    and the marker written only after the pass finished cleanly. ``None`` runs</span>
+</span><span data-line="90"><span class="sd">    every time, under a lock of its own name, with no marker (idempotent ``fn``</span>
+</span><span data-line="91"><span class="sd">    makes that safe).</span>
+</span><span data-line="92">
+</span><span data-line="93"><span class="sd">    ``where(annotation) -&gt; bool`` picks the rows ``fn`` sees (default: everything</span>
+</span><span data-line="94"><span class="sd">    but verifying traces; ``fn`` can branch on ``body_schema_uri`` / tier there</span>
+</span><span data-line="95"><span class="sd">    instead of guessing from field names). ``fn`` gets a private copy of the body,</span>
+</span><span data-line="96"><span class="sd">    so mutating it in place is safe; return the new body.</span>
+</span><span data-line="97">
+</span><span data-line="98"><span class="sd">    With ``marker=None`` there is no done-record, so a caller must retry a raised</span>
+</span><span data-line="99"><span class="sd">    failure itself: the trace pass lands first, and until the body pass finishes</span>
+</span><span data-line="100"><span class="sd">    dependents read stale. A writer that does not take this lock and lands a trace</span>
+</span><span data-line="101"><span class="sd">    mid-rewrite leaves that trace stale (conservative, never wrong-fresh).</span>
+</span><span data-line="102">
+</span><span data-line="103"><span class="sd">    ``project`` is a path, a :class:`~nw.storage.ProjectStorage` or an</span>
+</span><span data-line="104"><span class="sd">    :class:`nw.Project`; ``marker`` a slug (:data:`MARKER_PATTERN`).</span>
+</span><span data-line="105"><span class="sd">    """</span>
+</span><span data-line="106">    <span class="n">key</span> <span class="o">=</span> <span class="n">_marker_key</span><span class="p">(</span><span class="n">marker</span><span class="p">)</span> <span class="k">if</span> <span class="n">marker</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="kc">None</span>
+</span><span data-line="107">    <span class="n">storage</span> <span class="o">=</span> <span class="n">as_project_storage</span><span class="p">(</span><span class="n">project</span><span class="p">)</span>
+</span><span data-line="108">    <span class="k">if</span> <span class="n">key</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">storage</span><span class="o">.</span><span class="n">docs</span><span class="p">:</span>
+</span><span data-line="109">        <span class="k">return</span> <span class="mi">0</span>
+</span><span data-line="110">    <span class="k">with</span> <span class="n">project_lock</span><span class="p">(</span><span class="n">storage</span><span class="p">,</span> <span class="n">LOCK_NAME</span><span class="p">):</span>
+</span><span data-line="111">        <span class="k">if</span> <span class="n">key</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">storage</span><span class="o">.</span><span class="n">docs</span><span class="p">:</span>
+</span><span data-line="112">            <span class="k">return</span> <span class="mi">0</span>
+</span><span data-line="113">        <span class="n">changed</span> <span class="o">=</span> <span class="n">_rewrite</span><span class="p">(</span><span class="n">storage</span><span class="p">,</span> <span class="n">fn</span><span class="p">,</span> <span class="n">where</span><span class="p">)</span>
+</span><span data-line="114">        <span class="k">if</span> <span class="n">key</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+</span><span data-line="115">            <span class="n">storage</span><span class="o">.</span><span class="n">docs</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"rewritten"</span><span class="p">:</span> <span class="n">changed</span><span class="p">}</span>
+</span><span data-line="116">    <span class="k">return</span> <span class="n">changed</span></div>
 
-</span><span data-line="113">
-</span><span data-line="114">
+</span><span data-line="117">
+</span><span data-line="118">
 <div class="viewcode-block" id="is_rewritten">
 <a class="viewcode-back" href="../../_autosummary/nw.rewrite.html#nw.is_rewritten">[docs]</a>
-</span><span data-line="115"><span class="k">def</span><span class="w"> </span><span class="nf">is_rewritten</span><span class="p">(</span><span class="n">project</span><span class="p">:</span> <span class="n">ProjectLike</span><span class="p">,</span> <span class="n">marker</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
-</span><span data-line="116"><span class="w">    </span><span class="sd">"""Whether the rewrite named ``marker`` has completed on this project."""</span>
-</span><span data-line="117">    <span class="k">return</span> <span class="n">_marker_key</span><span class="p">(</span><span class="n">marker</span><span class="p">)</span> <span class="ow">in</span> <span class="n">as_project_storage</span><span class="p">(</span><span class="n">project</span><span class="p">)</span><span class="o">.</span><span class="n">docs</span></div>
+</span><span data-line="119"><span class="k">def</span><span class="w"> </span><span class="nf">is_rewritten</span><span class="p">(</span><span class="n">project</span><span class="p">:</span> <span class="n">ProjectLike</span><span class="p">,</span> <span class="n">marker</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+</span><span data-line="120"><span class="w">    </span><span class="sd">"""Whether the rewrite named ``marker`` has completed on this project."""</span>
+</span><span data-line="121">    <span class="k">return</span> <span class="n">_marker_key</span><span class="p">(</span><span class="n">marker</span><span class="p">)</span> <span class="ow">in</span> <span class="n">as_project_storage</span><span class="p">(</span><span class="n">project</span><span class="p">)</span><span class="o">.</span><span class="n">docs</span></div>
 
-</span><span data-line="118">
-</span><span data-line="119">
+</span><span data-line="122">
+</span><span data-line="123">
 <div class="viewcode-block" id="mark_rewritten">
 <a class="viewcode-back" href="../../_autosummary/nw.rewrite.html#nw.mark_rewritten">[docs]</a>
-</span><span data-line="120"><span class="k">def</span><span class="w"> </span><span class="nf">mark_rewritten</span><span class="p">(</span><span class="n">project</span><span class="p">:</span> <span class="n">ProjectLike</span><span class="p">,</span> <span class="n">marker</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-</span><span data-line="121"><span class="w">    </span><span class="sd">"""Record ``marker`` as done without scanning: for a project created already</span>
-</span><span data-line="122"><span class="sd">    in today's vocabulary, so opening it never pays for the scan."""</span>
-</span><span data-line="123">    <span class="n">as_project_storage</span><span class="p">(</span><span class="n">project</span><span class="p">)</span><span class="o">.</span><span class="n">docs</span><span class="p">[</span><span class="n">_marker_key</span><span class="p">(</span><span class="n">marker</span><span class="p">)]</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"rewritten"</span><span class="p">:</span> <span class="mi">0</span><span class="p">}</span></div>
+</span><span data-line="124"><span class="k">def</span><span class="w"> </span><span class="nf">mark_rewritten</span><span class="p">(</span><span class="n">project</span><span class="p">:</span> <span class="n">ProjectLike</span><span class="p">,</span> <span class="n">marker</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+</span><span data-line="125"><span class="w">    </span><span class="sd">"""Record ``marker`` as done without scanning: for a project created already</span>
+</span><span data-line="126"><span class="sd">    in today's vocabulary, so opening it never pays for the scan."""</span>
+</span><span data-line="127">    <span class="n">as_project_storage</span><span class="p">(</span><span class="n">project</span><span class="p">)</span><span class="o">.</span><span class="n">docs</span><span class="p">[</span><span class="n">_marker_key</span><span class="p">(</span><span class="n">marker</span><span class="p">)]</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"rewritten"</span><span class="p">:</span> <span class="mi">0</span><span class="p">}</span></div>
 
-</span><span data-line="124">
-</span><span data-line="125">
+</span><span data-line="128">
+</span><span data-line="129">
 <div class="viewcode-block" id="unmark_rewritten">
 <a class="viewcode-back" href="../../_autosummary/nw.rewrite.html#nw.unmark_rewritten">[docs]</a>
-</span><span data-line="126"><span class="k">def</span><span class="w"> </span><span class="nf">unmark_rewritten</span><span class="p">(</span><span class="n">project</span><span class="p">:</span> <span class="n">ProjectLike</span><span class="p">,</span> <span class="n">marker</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-</span><span data-line="127"><span class="w">    </span><span class="sd">"""Forget that ``marker`` ran, so the next :func:`rewrite_values` with it scans</span>
-</span><span data-line="128"><span class="sd">    again (a test simulating a project made before the rename). Idempotent: an</span>
-</span><span data-line="129"><span class="sd">    absent marker is not an error and writes nothing. A present one is removed</span>
-</span><span data-line="130"><span class="sd">    under :data:`LOCK_NAME`, so a rewrite about to write it cannot undo the</span>
-</span><span data-line="131"><span class="sd">    removal; its value is never read, so a corrupt marker can be cleared too."""</span>
-</span><span data-line="132">    <span class="n">key</span> <span class="o">=</span> <span class="n">_marker_key</span><span class="p">(</span><span class="n">marker</span><span class="p">)</span>
-</span><span data-line="133">    <span class="n">storage</span> <span class="o">=</span> <span class="n">as_project_storage</span><span class="p">(</span><span class="n">project</span><span class="p">)</span>
-</span><span data-line="134">    <span class="k">if</span> <span class="n">key</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">storage</span><span class="o">.</span><span class="n">docs</span><span class="p">:</span>
-</span><span data-line="135">        <span class="k">return</span>
-</span><span data-line="136">    <span class="k">with</span> <span class="n">project_lock</span><span class="p">(</span><span class="n">storage</span><span class="p">,</span> <span class="n">LOCK_NAME</span><span class="p">):</span>
-</span><span data-line="137">        <span class="k">try</span><span class="p">:</span>
-</span><span data-line="138">            <span class="k">del</span> <span class="n">storage</span><span class="o">.</span><span class="n">docs</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
-</span><span data-line="139">        <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
-</span><span data-line="140">            <span class="c1"># dol reports any failed file delete as ``KeyError``; only a marker</span>
-</span><span data-line="141">            <span class="c1"># another unmark already removed may pass.</span>
-</span><span data-line="142">            <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">storage</span><span class="o">.</span><span class="n">docs</span><span class="p">:</span>
-</span><span data-line="143">                <span class="k">raise</span></div>
+</span><span data-line="130"><span class="k">def</span><span class="w"> </span><span class="nf">unmark_rewritten</span><span class="p">(</span><span class="n">project</span><span class="p">:</span> <span class="n">ProjectLike</span><span class="p">,</span> <span class="n">marker</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+</span><span data-line="131"><span class="w">    </span><span class="sd">"""Forget that ``marker`` ran, so the next :func:`rewrite_values` with it scans</span>
+</span><span data-line="132"><span class="sd">    again (a test simulating a project made before the rename). Idempotent: an</span>
+</span><span data-line="133"><span class="sd">    absent marker is not an error and writes nothing. A present one is removed</span>
+</span><span data-line="134"><span class="sd">    under :data:`LOCK_NAME`, so a rewrite about to write it cannot undo the</span>
+</span><span data-line="135"><span class="sd">    removal; its value is never read, so a corrupt marker can be cleared too."""</span>
+</span><span data-line="136">    <span class="n">key</span> <span class="o">=</span> <span class="n">_marker_key</span><span class="p">(</span><span class="n">marker</span><span class="p">)</span>
+</span><span data-line="137">    <span class="n">storage</span> <span class="o">=</span> <span class="n">as_project_storage</span><span class="p">(</span><span class="n">project</span><span class="p">)</span>
+</span><span data-line="138">    <span class="k">if</span> <span class="n">key</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">storage</span><span class="o">.</span><span class="n">docs</span><span class="p">:</span>
+</span><span data-line="139">        <span class="k">return</span>
+</span><span data-line="140">    <span class="k">with</span> <span class="n">project_lock</span><span class="p">(</span><span class="n">storage</span><span class="p">,</span> <span class="n">LOCK_NAME</span><span class="p">):</span>
+</span><span data-line="141">        <span class="k">try</span><span class="p">:</span>
+</span><span data-line="142">            <span class="k">del</span> <span class="n">storage</span><span class="o">.</span><span class="n">docs</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
+</span><span data-line="143">        <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+</span><span data-line="144">            <span class="c1"># dol reports any failed file delete as ``KeyError``; only a marker</span>
+</span><span data-line="145">            <span class="c1"># another unmark already removed may pass.</span>
+</span><span data-line="146">            <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">storage</span><span class="o">.</span><span class="n">docs</span><span class="p">:</span>
+</span><span data-line="147">                <span class="k">raise</span></div>
 
-</span><span data-line="144">
-</span><span data-line="145">
-</span><span data-line="146"><span class="k">def</span><span class="w"> </span><span class="nf">_marker_key</span><span class="p">(</span><span class="n">marker</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
-</span><span data-line="147">    <span class="k">if</span> <span class="ow">not</span> <span class="n">MARKER_PATTERN</span><span class="o">.</span><span class="n">fullmatch</span><span class="p">(</span><span class="n">marker</span><span class="p">):</span>
-</span><span data-line="148">        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-</span><span data-line="149">            <span class="sa">f</span><span class="s2">"marker must match </span><span class="si">{</span><span class="n">MARKER_PATTERN</span><span class="o">.</span><span class="n">pattern</span><span class="si">!r}</span><span class="s2">, got </span><span class="si">{</span><span class="n">marker</span><span class="si">!r}</span><span class="s2">"</span>
-</span><span data-line="150">        <span class="p">)</span>
-</span><span data-line="151">    <span class="k">return</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">MARKER_PREFIX</span><span class="si">}{</span><span class="n">marker</span><span class="si">}</span><span class="s2">.json"</span>
-</span><span data-line="152">
-</span><span data-line="153">
-</span><span data-line="154"><span class="k">def</span><span class="w"> </span><span class="nf">_rewritten</span><span class="p">(</span><span class="n">ann</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">fn</span><span class="p">,</span> <span class="n">where</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
-</span><span data-line="155"><span class="w">    </span><span class="sd">"""``ann`` with ``fn`` applied to a private copy of its body, or ``None`` if</span>
-</span><span data-line="156"><span class="sd">    ``where`` skips it or the body comes back equal."""</span>
-</span><span data-line="157">    <span class="k">if</span> <span class="ow">not</span> <span class="n">where</span><span class="p">(</span><span class="n">ann</span><span class="p">):</span>
-</span><span data-line="158">        <span class="k">return</span> <span class="kc">None</span>
-</span><span data-line="159">    <span class="n">new_body</span> <span class="o">=</span> <span class="n">fn</span><span class="p">(</span><span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">ann</span><span class="o">.</span><span class="n">body</span><span class="p">))</span>
-</span><span data-line="160">    <span class="k">return</span> <span class="kc">None</span> <span class="k">if</span> <span class="n">new_body</span> <span class="o">==</span> <span class="n">ann</span><span class="o">.</span><span class="n">body</span> <span class="k">else</span> <span class="n">ann</span><span class="o">.</span><span class="n">model_copy</span><span class="p">(</span><span class="n">update</span><span class="o">=</span><span class="p">{</span><span class="s2">"body"</span><span class="p">:</span> <span class="n">new_body</span><span class="p">})</span>
-</span><span data-line="161">
-</span><span data-line="162">
-</span><span data-line="163"><span class="k">def</span><span class="w"> </span><span class="nf">_rewrite</span><span class="p">(</span><span class="n">storage</span><span class="p">,</span> <span class="n">fn</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">Any</span><span class="p">],</span> <span class="n">Any</span><span class="p">],</span> <span class="n">where</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
-</span><span data-line="164">    <span class="n">plan</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span>
-</span><span data-line="165">        <span class="n">UUID</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span>
-</span><span data-line="166">    <span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>  <span class="c1"># id -&gt; (old annotation, rewritten annotation)</span>
-</span><span data-line="167">    <span class="k">with</span> <span class="n">storage</span><span class="o">.</span><span class="n">open_stores</span><span class="p">()</span> <span class="k">as</span> <span class="n">stores</span><span class="p">:</span>
-</span><span data-line="168">        <span class="k">for</span> <span class="n">store</span> <span class="ow">in</span> <span class="n">stores</span><span class="p">:</span>
-</span><span data-line="169">            <span class="k">for</span> <span class="n">ann</span> <span class="ow">in</span> <span class="n">store</span><span class="o">.</span><span class="n">all</span><span class="p">():</span>
-</span><span data-line="170">                <span class="n">new</span> <span class="o">=</span> <span class="n">_rewritten</span><span class="p">(</span><span class="n">ann</span><span class="p">,</span> <span class="n">fn</span><span class="p">,</span> <span class="n">where</span><span class="p">)</span>
-</span><span data-line="171">                <span class="k">if</span> <span class="n">new</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-</span><span data-line="172">                    <span class="n">plan</span><span class="p">[</span><span class="n">ann</span><span class="o">.</span><span class="n">id</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">ann</span><span class="p">,</span> <span class="n">new</span><span class="p">)</span>
-</span><span data-line="173">    <span class="k">if</span> <span class="ow">not</span> <span class="n">plan</span><span class="p">:</span>
-</span><span data-line="174">        <span class="k">return</span> <span class="mi">0</span>
-</span><span data-line="175">    <span class="k">with</span> <span class="n">storage</span><span class="o">.</span><span class="n">open_stores</span><span class="p">()</span> <span class="k">as</span> <span class="n">stores</span><span class="p">:</span>
-</span><span data-line="176">        <span class="k">for</span> <span class="n">store</span> <span class="ow">in</span> <span class="n">stores</span><span class="p">:</span>
-</span><span data-line="177">            <span class="k">for</span> <span class="n">ann</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="n">store</span><span class="o">.</span><span class="n">all</span><span class="p">()):</span>
-</span><span data-line="178">                <span class="n">restamped</span> <span class="o">=</span> <span class="n">_restamped_trace</span><span class="p">(</span><span class="n">ann</span><span class="p">,</span> <span class="n">plan</span><span class="p">)</span>
-</span><span data-line="179">                <span class="k">if</span> <span class="n">restamped</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-</span><span data-line="180">                    <span class="n">store</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">restamped</span><span class="p">)</span>
-</span><span data-line="181">    <span class="n">written</span> <span class="o">=</span> <span class="mi">0</span>
-</span><span data-line="182">    <span class="k">with</span> <span class="n">storage</span><span class="o">.</span><span class="n">open_stores</span><span class="p">()</span> <span class="k">as</span> <span class="n">stores</span><span class="p">:</span>
-</span><span data-line="183">        <span class="k">for</span> <span class="n">store</span> <span class="ow">in</span> <span class="n">stores</span><span class="p">:</span>
-</span><span data-line="184">            <span class="k">for</span> <span class="n">ann</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="n">store</span><span class="o">.</span><span class="n">all</span><span class="p">()):</span>
-</span><span data-line="185">                <span class="n">new</span> <span class="o">=</span> <span class="n">_rewritten</span><span class="p">(</span><span class="n">ann</span><span class="p">,</span> <span class="n">fn</span><span class="p">,</span> <span class="n">where</span><span class="p">)</span>
-</span><span data-line="186">                <span class="k">if</span> <span class="n">new</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-</span><span data-line="187">                    <span class="n">store</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">new</span><span class="p">)</span>
-</span><span data-line="188">                    <span class="n">written</span> <span class="o">+=</span> <span class="mi">1</span>
-</span><span data-line="189">    <span class="k">return</span> <span class="n">written</span>
-</span><span data-line="190">
-</span><span data-line="191">
-</span><span data-line="192"><span class="k">def</span><span class="w"> </span><span class="nf">_restamped_trace</span><span class="p">(</span><span class="n">ann</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">plan</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="n">UUID</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="n">Any</span><span class="p">]])</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
-</span><span data-line="193"><span class="w">    </span><span class="sd">"""``ann`` (a verifying trace) with each upstream digest of a rewritten annotation</span>
-</span><span data-line="194"><span class="sd">    moved from the old body's digest to the new one's; ``None`` when nothing moves."""</span>
-</span><span data-line="195">    <span class="k">if</span> <span class="n">ann</span><span class="o">.</span><span class="n">body_schema_uri</span> <span class="o">!=</span> <span class="n">VERIFYING_TRACE_BODY_SCHEMA_URI</span><span class="p">:</span>
-</span><span data-line="196">        <span class="k">return</span> <span class="kc">None</span>
-</span><span data-line="197">    <span class="n">body</span> <span class="o">=</span> <span class="n">ann</span><span class="o">.</span><span class="n">body</span>
-</span><span data-line="198">    <span class="n">scheme</span> <span class="o">=</span> <span class="n">body</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"digest_scheme"</span><span class="p">)</span>
-</span><span data-line="199">    <span class="n">upstream</span> <span class="o">=</span> <span class="p">[]</span>
-</span><span data-line="200">    <span class="n">moved</span> <span class="o">=</span> <span class="kc">False</span>
-</span><span data-line="201">    <span class="k">for</span> <span class="n">entry</span> <span class="ow">in</span> <span class="n">body</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"upstream"</span><span class="p">)</span> <span class="ow">or</span> <span class="p">():</span>
-</span><span data-line="202">        <span class="k">try</span><span class="p">:</span>
-</span><span data-line="203">            <span class="n">old</span><span class="p">,</span> <span class="n">new</span> <span class="o">=</span> <span class="n">plan</span><span class="p">[</span><span class="n">UUID</span><span class="p">(</span><span class="n">entry</span><span class="p">[</span><span class="s2">"annotation_id"</span><span class="p">])]</span>
-</span><span data-line="204">            <span class="c1"># A digest recorded before the old body's schema gained a Derived</span>
-</span><span data-line="205">            <span class="c1"># marker still vouches for it (nw#179): it moves too.</span>
-</span><span data-line="206">            <span class="k">if</span> <span class="n">value_digest_matches</span><span class="p">(</span><span class="n">old</span><span class="p">,</span> <span class="n">entry</span><span class="p">[</span><span class="s2">"value_digest"</span><span class="p">],</span> <span class="n">scheme</span><span class="o">=</span><span class="n">scheme</span><span class="p">):</span>
-</span><span data-line="207">                <span class="n">entry</span> <span class="o">=</span> <span class="p">{</span>
-</span><span data-line="208">                    <span class="o">**</span><span class="n">entry</span><span class="p">,</span>
-</span><span data-line="209">                    <span class="s2">"value_digest"</span><span class="p">:</span> <span class="n">annotation_value_digest</span><span class="p">(</span><span class="n">new</span><span class="p">,</span> <span class="n">scheme</span><span class="o">=</span><span class="n">scheme</span><span class="p">),</span>
-</span><span data-line="210">                <span class="p">}</span>
-</span><span data-line="211">                <span class="n">moved</span> <span class="o">=</span> <span class="kc">True</span>
-</span><span data-line="212">        <span class="k">except</span> <span class="p">(</span><span class="ne">KeyError</span><span class="p">,</span> <span class="ne">ValueError</span><span class="p">,</span> <span class="ne">TypeError</span><span class="p">):</span>
-</span><span data-line="213">            <span class="k">pass</span>
-</span><span data-line="214">        <span class="n">upstream</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">entry</span><span class="p">)</span>
-</span><span data-line="215">    <span class="k">return</span> <span class="p">(</span>
-</span><span data-line="216">        <span class="n">ann</span><span class="o">.</span><span class="n">model_copy</span><span class="p">(</span><span class="n">update</span><span class="o">=</span><span class="p">{</span><span class="s2">"body"</span><span class="p">:</span> <span class="p">{</span><span class="o">**</span><span class="n">body</span><span class="p">,</span> <span class="s2">"upstream"</span><span class="p">:</span> <span class="n">upstream</span><span class="p">}})</span>
-</span><span data-line="217">        <span class="k">if</span> <span class="n">moved</span>
-</span><span data-line="218">        <span class="k">else</span> <span class="kc">None</span>
-</span><span data-line="219">    <span class="p">)</span>
+</span><span data-line="148">
+</span><span data-line="149">
+</span><span data-line="150"><span class="k">def</span><span class="w"> </span><span class="nf">_marker_key</span><span class="p">(</span><span class="n">marker</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+</span><span data-line="151">    <span class="k">if</span> <span class="ow">not</span> <span class="n">MARKER_PATTERN</span><span class="o">.</span><span class="n">fullmatch</span><span class="p">(</span><span class="n">marker</span><span class="p">):</span>
+</span><span data-line="152">        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+</span><span data-line="153">            <span class="sa">f</span><span class="s2">"marker must match </span><span class="si">{</span><span class="n">MARKER_PATTERN</span><span class="o">.</span><span class="n">pattern</span><span class="si">!r}</span><span class="s2">, got </span><span class="si">{</span><span class="n">marker</span><span class="si">!r}</span><span class="s2">"</span>
+</span><span data-line="154">        <span class="p">)</span>
+</span><span data-line="155">    <span class="k">return</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">MARKER_PREFIX</span><span class="si">}{</span><span class="n">marker</span><span class="si">}</span><span class="s2">.json"</span>
+</span><span data-line="156">
+</span><span data-line="157">
+</span><span data-line="158"><span class="k">def</span><span class="w"> </span><span class="nf">_rewritten</span><span class="p">(</span><span class="n">ann</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">fn</span><span class="p">,</span> <span class="n">where</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
+</span><span data-line="159"><span class="w">    </span><span class="sd">"""``ann`` with ``fn`` applied to a private copy of its body, or ``None`` if</span>
+</span><span data-line="160"><span class="sd">    ``where`` skips it or the body comes back equal."""</span>
+</span><span data-line="161">    <span class="k">if</span> <span class="ow">not</span> <span class="n">where</span><span class="p">(</span><span class="n">ann</span><span class="p">):</span>
+</span><span data-line="162">        <span class="k">return</span> <span class="kc">None</span>
+</span><span data-line="163">    <span class="n">new_body</span> <span class="o">=</span> <span class="n">fn</span><span class="p">(</span><span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">ann</span><span class="o">.</span><span class="n">body</span><span class="p">))</span>
+</span><span data-line="164">    <span class="k">return</span> <span class="kc">None</span> <span class="k">if</span> <span class="n">new_body</span> <span class="o">==</span> <span class="n">ann</span><span class="o">.</span><span class="n">body</span> <span class="k">else</span> <span class="n">ann</span><span class="o">.</span><span class="n">model_copy</span><span class="p">(</span><span class="n">update</span><span class="o">=</span><span class="p">{</span><span class="s2">"body"</span><span class="p">:</span> <span class="n">new_body</span><span class="p">})</span>
+</span><span data-line="165">
+</span><span data-line="166">
+</span><span data-line="167"><span class="k">def</span><span class="w"> </span><span class="nf">_rewrite</span><span class="p">(</span><span class="n">storage</span><span class="p">,</span> <span class="n">fn</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">Any</span><span class="p">],</span> <span class="n">Any</span><span class="p">],</span> <span class="n">where</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+</span><span data-line="168">    <span class="n">plan</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span>
+</span><span data-line="169">        <span class="n">UUID</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span>
+</span><span data-line="170">    <span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>  <span class="c1"># id -&gt; (old annotation, rewritten annotation)</span>
+</span><span data-line="171">    <span class="k">with</span> <span class="n">storage</span><span class="o">.</span><span class="n">open_stores</span><span class="p">()</span> <span class="k">as</span> <span class="n">stores</span><span class="p">:</span>
+</span><span data-line="172">        <span class="k">for</span> <span class="n">store</span> <span class="ow">in</span> <span class="n">stores</span><span class="p">:</span>
+</span><span data-line="173">            <span class="k">for</span> <span class="n">ann</span> <span class="ow">in</span> <span class="n">store</span><span class="o">.</span><span class="n">all</span><span class="p">():</span>
+</span><span data-line="174">                <span class="n">new</span> <span class="o">=</span> <span class="n">_rewritten</span><span class="p">(</span><span class="n">ann</span><span class="p">,</span> <span class="n">fn</span><span class="p">,</span> <span class="n">where</span><span class="p">)</span>
+</span><span data-line="175">                <span class="k">if</span> <span class="n">new</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+</span><span data-line="176">                    <span class="n">plan</span><span class="p">[</span><span class="n">ann</span><span class="o">.</span><span class="n">id</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">ann</span><span class="p">,</span> <span class="n">new</span><span class="p">)</span>
+</span><span data-line="177">    <span class="k">if</span> <span class="ow">not</span> <span class="n">plan</span><span class="p">:</span>
+</span><span data-line="178">        <span class="k">return</span> <span class="mi">0</span>
+</span><span data-line="179">    <span class="k">with</span> <span class="n">storage</span><span class="o">.</span><span class="n">open_stores</span><span class="p">()</span> <span class="k">as</span> <span class="n">stores</span><span class="p">:</span>
+</span><span data-line="180">        <span class="k">for</span> <span class="n">store</span> <span class="ow">in</span> <span class="n">stores</span><span class="p">:</span>
+</span><span data-line="181">            <span class="k">for</span> <span class="n">ann</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="n">store</span><span class="o">.</span><span class="n">all</span><span class="p">()):</span>
+</span><span data-line="182">                <span class="n">restamped</span> <span class="o">=</span> <span class="n">_restamped_trace</span><span class="p">(</span><span class="n">ann</span><span class="p">,</span> <span class="n">plan</span><span class="p">)</span>
+</span><span data-line="183">                <span class="k">if</span> <span class="n">restamped</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+</span><span data-line="184">                    <span class="n">store</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">restamped</span><span class="p">)</span>
+</span><span data-line="185">    <span class="n">written</span> <span class="o">=</span> <span class="mi">0</span>
+</span><span data-line="186">    <span class="k">with</span> <span class="n">storage</span><span class="o">.</span><span class="n">open_stores</span><span class="p">()</span> <span class="k">as</span> <span class="n">stores</span><span class="p">:</span>
+</span><span data-line="187">        <span class="k">for</span> <span class="n">store</span> <span class="ow">in</span> <span class="n">stores</span><span class="p">:</span>
+</span><span data-line="188">            <span class="k">for</span> <span class="n">ann</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="n">store</span><span class="o">.</span><span class="n">all</span><span class="p">()):</span>
+</span><span data-line="189">                <span class="n">new</span> <span class="o">=</span> <span class="n">_rewritten</span><span class="p">(</span><span class="n">ann</span><span class="p">,</span> <span class="n">fn</span><span class="p">,</span> <span class="n">where</span><span class="p">)</span>
+</span><span data-line="190">                <span class="k">if</span> <span class="n">new</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+</span><span data-line="191">                    <span class="n">store</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">new</span><span class="p">)</span>
+</span><span data-line="192">                    <span class="n">written</span> <span class="o">+=</span> <span class="mi">1</span>
+</span><span data-line="193">    <span class="k">return</span> <span class="n">written</span>
+</span><span data-line="194">
+</span><span data-line="195">
+</span><span data-line="196"><span class="k">def</span><span class="w"> </span><span class="nf">_restamped_trace</span><span class="p">(</span><span class="n">ann</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">plan</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="n">UUID</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="n">Any</span><span class="p">]])</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
+</span><span data-line="197"><span class="w">    </span><span class="sd">"""``ann`` (a verifying trace) with each upstream digest of a rewritten annotation</span>
+</span><span data-line="198"><span class="sd">    moved from the old body's digest to the new one's; ``None`` when nothing moves."""</span>
+</span><span data-line="199">    <span class="k">if</span> <span class="n">ann</span><span class="o">.</span><span class="n">body_schema_uri</span> <span class="o">!=</span> <span class="n">VERIFYING_TRACE_BODY_SCHEMA_URI</span><span class="p">:</span>
+</span><span data-line="200">        <span class="k">return</span> <span class="kc">None</span>
+</span><span data-line="201">    <span class="n">body</span> <span class="o">=</span> <span class="n">ann</span><span class="o">.</span><span class="n">body</span>
+</span><span data-line="202">    <span class="n">scheme</span> <span class="o">=</span> <span class="n">body</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"digest_scheme"</span><span class="p">)</span>
+</span><span data-line="203">    <span class="n">upstream</span> <span class="o">=</span> <span class="p">[]</span>
+</span><span data-line="204">    <span class="n">moved</span> <span class="o">=</span> <span class="kc">False</span>
+</span><span data-line="205">    <span class="k">for</span> <span class="n">entry</span> <span class="ow">in</span> <span class="n">body</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"upstream"</span><span class="p">)</span> <span class="ow">or</span> <span class="p">():</span>
+</span><span data-line="206">        <span class="k">try</span><span class="p">:</span>
+</span><span data-line="207">            <span class="n">old</span><span class="p">,</span> <span class="n">new</span> <span class="o">=</span> <span class="n">plan</span><span class="p">[</span><span class="n">UUID</span><span class="p">(</span><span class="n">entry</span><span class="p">[</span><span class="s2">"annotation_id"</span><span class="p">])]</span>
+</span><span data-line="208">            <span class="c1"># Any digest that still vouches for the old body moves, including</span>
+</span><span data-line="209">            <span class="c1"># one recorded before a Derived marker or under fewer of them</span>
+</span><span data-line="210">            <span class="c1"># (nw#179, nw#180); it is re-recorded with today's exclusions.</span>
+</span><span data-line="211">            <span class="k">if</span> <span class="n">digest_vouches</span><span class="p">(</span>
+</span><span data-line="212">                <span class="n">old</span><span class="p">,</span>
+</span><span data-line="213">                <span class="n">entry</span><span class="p">[</span><span class="s2">"value_digest"</span><span class="p">],</span>
+</span><span data-line="214">                <span class="n">scheme</span><span class="o">=</span><span class="n">scheme</span><span class="p">,</span>
+</span><span data-line="215">                <span class="n">excluded</span><span class="o">=</span><span class="n">recorded_exclusions</span><span class="p">(</span><span class="n">entry</span><span class="p">),</span>
+</span><span data-line="216">            <span class="p">):</span>
+</span><span data-line="217">                <span class="n">kept</span> <span class="o">=</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="n">v</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">entry</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> <span class="k">if</span> <span class="n">k</span> <span class="o">!=</span> <span class="s2">"excluded_paths"</span><span class="p">}</span>
+</span><span data-line="218">                <span class="n">entry</span> <span class="o">=</span> <span class="p">{</span><span class="o">**</span><span class="n">kept</span><span class="p">,</span> <span class="o">**</span><span class="n">upstream_entry</span><span class="p">(</span><span class="n">new</span><span class="p">,</span> <span class="n">scheme</span><span class="o">=</span><span class="n">scheme</span><span class="p">)}</span>
+</span><span data-line="219">                <span class="n">moved</span> <span class="o">=</span> <span class="kc">True</span>
+</span><span data-line="220">        <span class="k">except</span> <span class="p">(</span><span class="ne">KeyError</span><span class="p">,</span> <span class="ne">ValueError</span><span class="p">,</span> <span class="ne">TypeError</span><span class="p">):</span>
+</span><span data-line="221">            <span class="k">pass</span>
+</span><span data-line="222">        <span class="n">upstream</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">entry</span><span class="p">)</span>
+</span><span data-line="223">    <span class="k">return</span> <span class="p">(</span>
+</span><span data-line="224">        <span class="n">ann</span><span class="o">.</span><span class="n">model_copy</span><span class="p">(</span><span class="n">update</span><span class="o">=</span><span class="p">{</span><span class="s2">"body"</span><span class="p">:</span> <span class="p">{</span><span class="o">**</span><span class="n">body</span><span class="p">,</span> <span class="s2">"upstream"</span><span class="p">:</span> <span class="n">upstream</span><span class="p">}})</span>
+</span><span data-line="225">        <span class="k">if</span> <span class="n">moved</span>
+</span><span data-line="226">        <span class="k">else</span> <span class="kc">None</span>
+</span><span data-line="227">    <span class="p">)</span>
 </span></pre></div>
         </article><button class="back-to-top" type="button">
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
@@ -417,7 +425,7 @@ data-aria-dark="Switch to auto color mode">
     </div>
   </div>
 </footer>
-      <script src="../../_static/documentation_options.js?v=6ba42da4"></script>
+      <script src="../../_static/documentation_options.js?v=83be8e66"></script>
       <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
       <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>

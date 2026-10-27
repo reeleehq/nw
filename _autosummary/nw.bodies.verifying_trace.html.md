@@ -53,8 +53,11 @@ zero-duration reference. This is the same shape with a typed payload.
 
 ### Functions
 
-| [`build_verifying_trace`](#nw.bodies.verifying_trace.build_verifying_trace)(\*, for_annotation_id, ...)   | Build the trace annotation for one derived annotation, or `None`.   |
-|------------------------------------------------------------------------------------------------------|---------------------------------------------------------------------|
+| [`build_verifying_trace`](#nw.bodies.verifying_trace.build_verifying_trace)(\*, for_annotation_id, ...)   | Build the trace annotation for one derived annotation, or `None`.                                                                                                                                                                                     |
+|------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| [`digest_vouches`](#nw.bodies.verifying_trace.digest_vouches)(parent, recorded, \*, scheme)        | Whether `recorded` (a digest a trace stored under `scheme`, with the `excluded` paths it left out) still describes `parent`'s value.                                                                                                                  |
+| [`recorded_exclusions`](#nw.bodies.verifying_trace.recorded_exclusions)(entry)                          | The `excluded_paths` an upstream entry (model or JSON dict) recorded, as a set of tuples; `None` when it recorded none (an older trace, or an unmarked schema).                                                                                       |
+| [`upstream_entry`](#nw.bodies.verifying_trace.upstream_entry)(parent, \*, scheme)                  | The `value_digest` (and `excluded_paths`, when there are any) to record for `parent` under `scheme`: computed under exactly the `Derived` paths recorded beside it, so the two cannot disagree even if the schema registry changes mid-call (nw#180). |
 
 ### Classes
 
@@ -62,13 +65,21 @@ zero-duration reference. This is the same shape with a typed payload.
 |------------------------------------------------------------------------------------------------------|-------------------------------------------------------|
 | [`VerifyingTraceBodyV1`](#nw.bodies.verifying_trace.VerifyingTraceBodyV1)(\*, for_annotation_id, ...)    | Body of a verifying-trace annotation.                 |
 
-### *class* nw.bodies.verifying_trace.UpstreamDigestV1(, annotation_id, value_digest)
+### *class* nw.bodies.verifying_trace.UpstreamDigestV1(, annotation_id, value_digest, excluded_paths=None)
 
 Bases: `BaseModel`
 
 One `(upstream annotation, its value digest)` pair.
 
-#### model_config *: [ClassVar](https://docs.python.org/3/library/typing.html#typing.ClassVar)[ConfigDict]* *= {'extra': 'forbid', 'frozen': True}*
+Reading ignores fields it does not know (nw#180): an nw older than a
+trace’s writer then still verifies it with what it understands, instead
+of dropping the whole trace and reading its child stale. That is safe
+only under the rule this format keeps: \*\*a field that changes what a
+digest means bumps `digest_scheme``** (an unknown scheme is stale), so
+an ignored field can only be one that refines verification, like
+``excluded_paths`.
+
+#### model_config *: [ClassVar](https://docs.python.org/3/library/typing.html#typing.ClassVar)[ConfigDict]* *= {'extra': 'ignore', 'frozen': True}*
 
 Configuration for the model, should be a dictionary conforming to [`ConfigDict`][pydantic.config.ConfigDict].
 
@@ -85,7 +96,7 @@ under an older scheme is not comparable, so [`nw.freshness`](nw.freshness.html.m
 the mismatch as *unverifiable* (therefore stale) instead of comparing
 digests that mean different things.
 
-#### model_config *: [ClassVar](https://docs.python.org/3/library/typing.html#typing.ClassVar)[ConfigDict]* *= {'extra': 'forbid', 'frozen': True}*
+#### model_config *: [ClassVar](https://docs.python.org/3/library/typing.html#typing.ClassVar)[ConfigDict]* *= {'extra': 'ignore', 'frozen': True}*
 
 Configuration for the model, should be a dictionary conforming to [`ConfigDict`][pydantic.config.ConfigDict].
 
@@ -118,3 +129,42 @@ Build the trace annotation for one derived annotation, or `None`.
   answer in both cases: [`nw.freshness`](nw.freshness.html.md#module-nw.freshness) reads *no trace* as
   *unverifiable*, so the annotation keeps today’s conservative
   reachability behaviour instead of being silently declared fresh.
+
+### nw.bodies.verifying_trace.digest_vouches(parent, recorded, , scheme, excluded=None)
+
+Whether `recorded` (a digest a trace stored under `scheme`, with the
+`excluded` paths it left out) still describes `parent`’s value.
+
+- Recorded exclusions `D'` that are a strict subset of today’s markers
+  `D`: recompute under exactly `D'` (nw#180; `D' == D` is today’s
+  digest, which the fallback checks). Equal means the bodies agree
+  outside `D'`, hence outside `D`, which is all today’s digest counts.
+  A `D'` with a path that is no longer marked is never used: that field
+  counts now, and the producer did not digest it.
+- Otherwise, or on a miss: `lacing.value_digest_matches`, today’s digest
+  plus what a producer that knew no markers would have recorded (nw#179).
+
+Neither is a wrong hit; what is left (a marker removed) is a spurious miss.
+
+* **Return type:**
+  [`bool`](https://docs.python.org/3/builtins/functions.html#bool)
+
+### nw.bodies.verifying_trace.recorded_exclusions(entry)
+
+The `excluded_paths` an upstream entry (model or JSON dict) recorded,
+as a set of tuples; `None` when it recorded none (an older trace, or
+an unmarked schema).
+
+* **Return type:**
+  [`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[[`frozenset`](https://docs.python.org/3/builtins/stdtypes.html#frozenset)]
+
+### nw.bodies.verifying_trace.upstream_entry(parent, , scheme)
+
+The `value_digest` (and `excluded_paths`, when there are any) to
+record for `parent` under `scheme`: computed under exactly the
+`Derived` paths recorded beside it, so the two cannot disagree even if
+the schema registry changes mid-call (nw#180). JSON-ready, so the trace
+builder and `nw.rewrite` record entries the same way.
+
+* **Return type:**
+  [`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)

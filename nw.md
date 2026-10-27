@@ -1,4 +1,4 @@
-> built 2026-10-27 18:49 UTC from dd8c6e0 (main) · nw 0.0.107. Details: build_info.json
+> built 2026-10-27 19:41 UTC from 73ab578 (main) · nw 0.0.108. Details: build_info.json
 
 # index.html.md
 
@@ -1188,13 +1188,21 @@ is not itself a sufficient key.
 
 Configuration for the model, should be a dictionary conforming to [`ConfigDict`][pydantic.config.ConfigDict].
 
-### *class* nw.bodies.UpstreamDigestV1(, annotation_id, value_digest)
+### *class* nw.bodies.UpstreamDigestV1(, annotation_id, value_digest, excluded_paths=None)
 
 Bases: `BaseModel`
 
 One `(upstream annotation, its value digest)` pair.
 
-#### model_config *: [ClassVar](https://docs.python.org/3/library/typing.html#typing.ClassVar)[ConfigDict]* *= {'extra': 'forbid', 'frozen': True}*
+Reading ignores fields it does not know (nw#180): an nw older than a
+trace’s writer then still verifies it with what it understands, instead
+of dropping the whole trace and reading its child stale. That is safe
+only under the rule this format keeps: \*\*a field that changes what a
+digest means bumps `digest_scheme``** (an unknown scheme is stale), so
+an ignored field can only be one that refines verification, like
+``excluded_paths`.
+
+#### model_config *: [ClassVar](https://docs.python.org/3/library/typing.html#typing.ClassVar)[ConfigDict]* *= {'extra': 'ignore', 'frozen': True}*
 
 Configuration for the model, should be a dictionary conforming to [`ConfigDict`][pydantic.config.ConfigDict].
 
@@ -1211,7 +1219,7 @@ under an older scheme is not comparable, so [`nw.freshness`](_autosummary/nw.fre
 the mismatch as *unverifiable* (therefore stale) instead of comparing
 digests that mean different things.
 
-#### model_config *: [ClassVar](https://docs.python.org/3/library/typing.html#typing.ClassVar)[ConfigDict]* *= {'extra': 'forbid', 'frozen': True}*
+#### model_config *: [ClassVar](https://docs.python.org/3/library/typing.html#typing.ClassVar)[ConfigDict]* *= {'extra': 'ignore', 'frozen': True}*
 
 Configuration for the model, should be a dictionary conforming to [`ConfigDict`][pydantic.config.ConfigDict].
 
@@ -1534,8 +1542,11 @@ zero-duration reference. This is the same shape with a typed payload.
 
 ### Functions
 
-| [`build_verifying_trace`](_autosummary/nw.bodies.verifying_trace.html.md#nw.bodies.verifying_trace.build_verifying_trace)(\*, for_annotation_id, ...)   | Build the trace annotation for one derived annotation, or `None`.   |
-|------------------------------------------------------------------------------------------------------|---------------------------------------------------------------------|
+| [`build_verifying_trace`](_autosummary/nw.bodies.verifying_trace.html.md#nw.bodies.verifying_trace.build_verifying_trace)(\*, for_annotation_id, ...)   | Build the trace annotation for one derived annotation, or `None`.                                                                                                                                                                                     |
+|------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| [`digest_vouches`](_autosummary/nw.bodies.verifying_trace.html.md#nw.bodies.verifying_trace.digest_vouches)(parent, recorded, \*, scheme)        | Whether `recorded` (a digest a trace stored under `scheme`, with the `excluded` paths it left out) still describes `parent`'s value.                                                                                                                  |
+| [`recorded_exclusions`](_autosummary/nw.bodies.verifying_trace.html.md#nw.bodies.verifying_trace.recorded_exclusions)(entry)                          | The `excluded_paths` an upstream entry (model or JSON dict) recorded, as a set of tuples; `None` when it recorded none (an older trace, or an unmarked schema).                                                                                       |
+| [`upstream_entry`](_autosummary/nw.bodies.verifying_trace.html.md#nw.bodies.verifying_trace.upstream_entry)(parent, \*, scheme)                  | The `value_digest` (and `excluded_paths`, when there are any) to record for `parent` under `scheme`: computed under exactly the `Derived` paths recorded beside it, so the two cannot disagree even if the schema registry changes mid-call (nw#180). |
 
 ### Classes
 
@@ -1543,13 +1554,21 @@ zero-duration reference. This is the same shape with a typed payload.
 |------------------------------------------------------------------------------------------------------|-------------------------------------------------------|
 | [`VerifyingTraceBodyV1`](_autosummary/nw.bodies.verifying_trace.html.md#nw.bodies.verifying_trace.VerifyingTraceBodyV1)(\*, for_annotation_id, ...)    | Body of a verifying-trace annotation.                 |
 
-### *class* nw.bodies.verifying_trace.UpstreamDigestV1(, annotation_id, value_digest)
+### *class* nw.bodies.verifying_trace.UpstreamDigestV1(, annotation_id, value_digest, excluded_paths=None)
 
 Bases: `BaseModel`
 
 One `(upstream annotation, its value digest)` pair.
 
-#### model_config *: [ClassVar](https://docs.python.org/3/library/typing.html#typing.ClassVar)[ConfigDict]* *= {'extra': 'forbid', 'frozen': True}*
+Reading ignores fields it does not know (nw#180): an nw older than a
+trace’s writer then still verifies it with what it understands, instead
+of dropping the whole trace and reading its child stale. That is safe
+only under the rule this format keeps: \*\*a field that changes what a
+digest means bumps `digest_scheme``** (an unknown scheme is stale), so
+an ignored field can only be one that refines verification, like
+``excluded_paths`.
+
+#### model_config *: [ClassVar](https://docs.python.org/3/library/typing.html#typing.ClassVar)[ConfigDict]* *= {'extra': 'ignore', 'frozen': True}*
 
 Configuration for the model, should be a dictionary conforming to [`ConfigDict`][pydantic.config.ConfigDict].
 
@@ -1566,7 +1585,7 @@ under an older scheme is not comparable, so [`nw.freshness`](_autosummary/nw.fre
 the mismatch as *unverifiable* (therefore stale) instead of comparing
 digests that mean different things.
 
-#### model_config *: [ClassVar](https://docs.python.org/3/library/typing.html#typing.ClassVar)[ConfigDict]* *= {'extra': 'forbid', 'frozen': True}*
+#### model_config *: [ClassVar](https://docs.python.org/3/library/typing.html#typing.ClassVar)[ConfigDict]* *= {'extra': 'ignore', 'frozen': True}*
 
 Configuration for the model, should be a dictionary conforming to [`ConfigDict`][pydantic.config.ConfigDict].
 
@@ -1599,6 +1618,45 @@ Build the trace annotation for one derived annotation, or `None`.
   answer in both cases: [`nw.freshness`](_autosummary/nw.freshness.html.md#module-nw.freshness) reads *no trace* as
   *unverifiable*, so the annotation keeps today’s conservative
   reachability behaviour instead of being silently declared fresh.
+
+### nw.bodies.verifying_trace.digest_vouches(parent, recorded, , scheme, excluded=None)
+
+Whether `recorded` (a digest a trace stored under `scheme`, with the
+`excluded` paths it left out) still describes `parent`’s value.
+
+- Recorded exclusions `D'` that are a strict subset of today’s markers
+  `D`: recompute under exactly `D'` (nw#180; `D' == D` is today’s
+  digest, which the fallback checks). Equal means the bodies agree
+  outside `D'`, hence outside `D`, which is all today’s digest counts.
+  A `D'` with a path that is no longer marked is never used: that field
+  counts now, and the producer did not digest it.
+- Otherwise, or on a miss: `lacing.value_digest_matches`, today’s digest
+  plus what a producer that knew no markers would have recorded (nw#179).
+
+Neither is a wrong hit; what is left (a marker removed) is a spurious miss.
+
+* **Return type:**
+  [`bool`](https://docs.python.org/3/builtins/functions.html#bool)
+
+### nw.bodies.verifying_trace.recorded_exclusions(entry)
+
+The `excluded_paths` an upstream entry (model or JSON dict) recorded,
+as a set of tuples; `None` when it recorded none (an older trace, or
+an unmarked schema).
+
+* **Return type:**
+  [`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[[`frozenset`](https://docs.python.org/3/builtins/stdtypes.html#frozenset)]
+
+### nw.bodies.verifying_trace.upstream_entry(parent, , scheme)
+
+The `value_digest` (and `excluded_paths`, when there are any) to
+record for `parent` under `scheme`: computed under exactly the
+`Derived` paths recorded beside it, so the two cannot disagree even if
+the schema registry changes mid-call (nw#180). JSON-ready, so the trace
+builder and `nw.rewrite` record entries the same way.
+
+* **Return type:**
+  [`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)
 
 
 # _autosummary/nw.checks.html.md
@@ -10729,20 +10787,18 @@ produce different URLs. The local file paths are byte-stable.
 
 # About this build
 
-This documentation was built on **2026-10-27 18:49 UTC** from commit <a href="https://github.com/reeleehq/nw/commit/dd8c6e0ff899babd078b5db020258e8d60ce5462"><code>dd8c6e0</code></a> on branch <code>main</code>, for **nw 0.0.107** (from <code>pyproject.toml</code>).
+This documentation was built on **2026-10-27 19:41 UTC** from commit <a href="https://github.com/reeleehq/nw/commit/73ab578e94b0396beff792bb94f8e8590de63ee8"><code>73ab578</code></a> on branch <code>main</code>, for **nw 0.0.108** (from <code>pyproject.toml</code>).
 
-#### WARNING
-The documentation and the package may be misaligned:
-
-- The documented version (0.0.107) is ahead of the latest release on PyPI (0.0.106): these docs describe unreleased code.
+#### NOTE
+Nothing suggests a mismatch: the tree was clean at the commit above, and the documented version is the one on PyPI.
 
 ## Source
 
 |                     |                                                                                                                                                    |
 |---------------------|----------------------------------------------------------------------------------------------------------------------------------------------------|
-| Commit              | <a href="https://github.com/reeleehq/nw/commit/dd8c6e0ff899babd078b5db020258e8d60ce5462"><code>dd8c6e0ff899babd078b5db020258e8d60ce5462</code></a> |
+| Commit              | <a href="https://github.com/reeleehq/nw/commit/73ab578e94b0396beff792bb94f8e8590de63ee8"><code>73ab578e94b0396beff792bb94f8e8590de63ee8</code></a> |
 | Branch              | <code>main</code>                                                                                                                                  |
-| Tags at this commit | <code>0.0.107</code>                                                                                                                               |
+| Tags at this commit | <code>0.0.108</code>                                                                                                                               |
 | Working tree        | clean                                                                                                                                              |
 | Remote              | <code>https://github.com/reeleehq/nw</code>                                                                                                        |
 
@@ -10751,9 +10807,9 @@ The documentation and the package may be misaligned:
 |              |                                                                                            |
 |--------------|--------------------------------------------------------------------------------------------|
 | Repository   | <code>reeleehq/nw</code>                                                                   |
-| Run          | <a href="https://github.com/reeleehq/nw/actions/runs/40561645361">40561645361</a>          |
+| Run          | <a href="https://github.com/reeleehq/nw/actions/runs/40565991670">40565991670</a>          |
 | Ref          | <code>refs/heads/main</code>                                                               |
-| Event commit | <code>a54ecad663e4780daac73b886760fe7595e771a8</code> (in the history of the built commit) |
+| Event commit | <code>e749262f6be1a6f9e259095809120f68251761af</code> (in the history of the built commit) |
 
 ## Tools
 
@@ -10778,13 +10834,13 @@ The documentation and the package may be misaligned:
 
 ## Package on PyPI
 
-Latest release: <a href="https://pypi.org/project/nw/0.0.106/">0.0.106</a>, older than the documented version (0.0.107).
+Latest release: <a href="https://pypi.org/project/nw/0.0.108/">0.0.108</a>, the same as the documented version.
 
 ## Reproduce
 
 ```bash
 git clone https://github.com/reeleehq/nw && cd nw
-git checkout dd8c6e0ff899babd078b5db020258e8d60ce5462
+git checkout 73ab578e94b0396beff792bb94f8e8590de63ee8
 pip install "epythet==0.2.22"
 epythet quickstart . --ignore tests/ scrap/ examples/
 ```

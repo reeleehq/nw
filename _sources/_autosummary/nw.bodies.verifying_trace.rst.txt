@@ -9,6 +9,9 @@ nw.bodies.verifying\_trace
    .. autosummary::
    
       build_verifying_trace
+      digest_vouches
+      recorded_exclusions
+      upstream_entry
    
    .. rubric:: Classes
 
