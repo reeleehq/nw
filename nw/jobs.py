@@ -328,6 +328,12 @@ class Job:
     raised (:func:`error_detail_of`), so a client acts on it without parsing
     ``error``. ``None`` otherwise."""
     run_id: str | None = None
+    """The job's correlation id, stamped on its events: the ``job_id``, the same
+    for every run of the key."""
+    run_token: str | None = None
+    """This *run's* identity: a re-run of the key gets a new one (nw#153), so a
+    host that dedupes terminal announcements keys on ``(job_id, run_token)``.
+    ``None`` for a record written before runs had tokens."""
     last_event_id: str | None = None
 
 
@@ -976,6 +982,7 @@ def to_dict(job: Job) -> dict:
         "status": job.status,
         "cached": job.cached,
         "run_id": job.run_id,
+        "run_token": job.run_token,
         "idempotency_key": job.idempotency_key,
         "params": job.params,
         "created_at": job.created_at,
@@ -1371,10 +1378,11 @@ def register_terminal_hook(
     - **Once, across replicas** sharing a jobs root on a lockable filesystem:
       the claim is a lease written on the run's record under the index lock
       (``JobsConfig.terminal_hook_lease_s``), so a run is announced by one
-      thread of one replica at a time. A host still dedupes for the two cases
-      that defeat it: a claimant that dies after a hook returned but before
-      recording it (the run is re-announced once its lease expires), and a
-      filesystem that refuses locks (nw logs a warning).
+      thread of one replica at a time. A host still dedupes, on
+      ``(job.job_id, job.run_token)`` since a re-run shares the ``job_id``, for
+      the two cases that defeat it: a claimant that dies after a hook returned
+      but before recording it (the run is re-announced once its lease
+      expires), and a filesystem that refuses locks (nw logs a warning).
 
     Runs recorded before this existed are never announced. Remove one with
     ``del terminal_hooks[name]``.
@@ -2308,6 +2316,7 @@ def _project_job(rt, record, au_result, config) -> Job:
         error_kind=error_kind,
         error_detail=error_detail,
         run_id=record["job_id"],
+        run_token=record.get("run_token"),
         last_event_id=record.get("last_event_id"),
     )
 
