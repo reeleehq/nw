@@ -2600,6 +2600,7 @@ def test_the_enqueue_door_announces_the_old_run_even_after_the_new_one_was(
         jobs._index_set_locked(rt, "k", record)
     jobs._fire_terminal_hooks(rt, project, old, run_token="T1", claim="door")
     assert announced == [("k", jobs.SUCCEEDED)]
+    assert announced.jobs[0].run_token == "T1"  # the run announced, not the new one
     with rt.lock:
         assert jobs._index_get_locked(rt, "k") == record  # T2's record untouched
 
