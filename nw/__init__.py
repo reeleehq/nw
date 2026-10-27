@@ -86,6 +86,7 @@ from .pricing import (
     unquotable,
 )
 from .project import CharacterImage, Project, genre_status_of
+from .plugins import NwTooOldError, require_fields
 from .rewrite import is_rewritten, mark_rewritten, rewrite_values, unmark_rewritten
 from .storage import (
     FolderStorage,
@@ -285,6 +286,8 @@ __all__ = [
     "is_rewritten",
     "mark_rewritten",
     "rewrite_values",
+    "require_fields",
+    "NwTooOldError",
     "unmark_rewritten",
     "ProjectGraph",
     "ProjectStorage",
