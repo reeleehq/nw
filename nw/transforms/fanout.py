@@ -531,7 +531,7 @@ class FanOutResult:
         }
 
 
-def _accepts_keyword(execute: Callable, name: str) -> bool:
+def accepts_keyword(execute: Callable, name: str) -> bool:
     """Whether ``execute`` accepts the keyword ``name``.
 
     The Protocol's own warning: ``runtime_checkable`` compares method names,
@@ -631,10 +631,10 @@ def fan_out_execute(
             "misattribute every instance id in the run record (and skip the "
             "executing transform's own impl_version stamp)."
         )
-    pass_on_failure = _accepts_keyword(transform.execute, "on_failure")
-    pass_instance_id = _accepts_keyword(transform.execute, "unit_instance_id")
+    pass_on_failure = accepts_keyword(transform.execute, "on_failure")
+    pass_instance_id = accepts_keyword(transform.execute, "unit_instance_id")
     secrets = as_secrets(secrets)
-    pass_secrets = secrets is not None and _accepts_keyword(
+    pass_secrets = secrets is not None and accepts_keyword(
         transform.execute, "secrets"
     )
 

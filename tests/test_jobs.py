@@ -2139,44 +2139,85 @@ def test_learning_reads_the_record_in_the_same_critical_section_as_the_pop(proje
 # ---------------------------------------------------------------------------
 
 
-def _parked(project):
-    """A dispatch whose render waits, so the record is read before it ends."""
+@pytest.fixture
+def parked():
+    """A dispatch whose render waits, so the record is read before it ends;
+    released on teardown even when the test fails."""
     release = threading.Event()
-    return release, {"op": _blocking_stub(release)}
+    yield {"op": _blocking_stub(release)}
+    release.set()
 
 
-def test_a_host_estimate_is_recorded_and_wins_over_the_clients(project):
-    release, dispatch = _parked(project)
+def _priced_plan_params(seconds=6.0):
+    """``params`` carrying a plan falaw can re-quote at today's rates."""
+    from falaw import CallPlan, Plan, catalogue_cost_basis, plan_to_dict
+
+    model = "fal-ai/flux/dev"
+    call = CallPlan(
+        tool="text_to_video",
+        application=model,
+        arguments={"prompt": "a tiger"},
+        output_kind="video",
+        estimated_cost_usd=0.25,
+        cost_basis=catalogue_cost_basis(model, seconds=seconds),
+    )
+    return {"plan": plan_to_dict(Plan(calls=(call,)))}
+
+
+def _run_to_the_end(project, job, *, timeout=5.0):
+    """Wait for ``job`` to finish and its worker to leave, so its key can re-run."""
+    done = _poll_until(project, job.job_id, lambda j: j.status in jobs.TERMINAL_STATUSES)
+    _wait_worker_exit(project, job.job_id, timeout=timeout)
+    return done
+
+
+def test_a_host_estimate_is_recorded_and_wins_over_the_clients(project, parked):
     params = {**VIDEO_PARAMS, "estimated_usd": 0.01}  # what a client chose
-    job = jobs.enqueue(project, "op", params, dispatch=dispatch, estimated_usd=2.5)
+    job = jobs.enqueue(project, "op", params, dispatch=parked, estimated_usd=2.5)
     assert job.cost.estimated_usd == 2.5
     assert jobs.get_job(project, job.job_id).cost.estimated_usd == 2.5
-    release.set()
 
 
-def test_a_host_estimate_never_enters_the_job_id(project):
-    release, dispatch = _parked(project)
+def test_a_host_estimate_wins_over_the_plan_requote(project, parked):
+    params = _priced_plan_params()
+    requote = jobs.estimate(project, "op", params)
+    assert requote["estimate_source"] == "plan" and requote["estimated_usd"] > 0
+    host = requote["estimated_usd"] * 3
+    gate = jobs.estimate(project, "op", params, estimated_usd=host)
+    assert (gate["estimated_usd"], gate["estimate_source"]) == (host, "host")
+    assert gate["quote"]["total_usd"] == requote["estimated_usd"]  # still reported
+    job = jobs.enqueue(project, "op", params, dispatch=parked, estimated_usd=host)
+    assert job.cost.estimated_usd == host
+
+
+def test_a_host_estimate_never_enters_the_job_id(project, parked):
     base = jobs.job_id_for(project, "op", VIDEO_PARAMS)
-    first = jobs.enqueue(project, "op", VIDEO_PARAMS, dispatch=dispatch, estimated_usd=1.0)
-    again = jobs.enqueue(project, "op", VIDEO_PARAMS, dispatch=dispatch, estimated_usd=9.0)
+    first = jobs.enqueue(project, "op", VIDEO_PARAMS, dispatch=parked, estimated_usd=1.0)
+    again = jobs.enqueue(project, "op", VIDEO_PARAMS, dispatch=parked, estimated_usd=9.0)
     assert first.job_id == again.job_id == base  # a drifted price still dedups
     assert again.cost.estimated_usd == 1.0  # onto the live job, with its figure
+
+
+def test_a_rerun_of_a_finished_job_takes_the_new_figure(project):
+    release = threading.Event()
     release.set()
+    dispatch = {"op": _blocking_stub(release)}
+    first = jobs.enqueue(project, "op", VIDEO_PARAMS, dispatch=dispatch, estimated_usd=1.0)
+    _run_to_the_end(project, first)
+    rerun = jobs.enqueue(project, "op", VIDEO_PARAMS, dispatch=dispatch, estimated_usd=4.0)
+    assert rerun.job_id == first.job_id and rerun.cost.estimated_usd == 4.0
+    _run_to_the_end(project, rerun)
 
 
-def test_an_explicit_none_records_unknown_not_the_clients_figure(project):
-    release, dispatch = _parked(project)
+def test_an_explicit_none_records_unknown_not_the_clients_figure(project, parked):
     params = {**VIDEO_PARAMS, "estimated_usd": 0.01}
-    job = jobs.enqueue(project, "op", params, dispatch=dispatch, estimated_usd=None)
+    job = jobs.enqueue(project, "op", params, dispatch=parked, estimated_usd=None)
     assert job.cost.estimated_usd is None
-    release.set()
 
 
-def test_omitting_it_keeps_the_old_estimate(project):
-    release, dispatch = _parked(project)
-    job = jobs.enqueue(project, "op", {**VIDEO_PARAMS, "estimated_usd": 0.3}, dispatch=dispatch)
+def test_omitting_it_keeps_the_old_estimate(project, parked):
+    job = jobs.enqueue(project, "op", {**VIDEO_PARAMS, "estimated_usd": 0.3}, dispatch=parked)
     assert job.cost.estimated_usd == 0.3
-    release.set()
 
 
 def test_estimate_gates_on_the_host_figure(project):
@@ -2184,3 +2225,49 @@ def test_estimate_gates_on_the_host_figure(project):
     assert out["estimated_usd"] == 500.0 and out["requires_approval"] is True
     unknown = jobs.estimate(project, "op", {"estimated_usd": 0.01}, estimated_usd=None)
     assert unknown["has_unknown_costs"] is True
+
+
+def test_estimate_says_where_its_figure_came_from(project):
+    def source(params, **kw):
+        return jobs.estimate(project, "op", params, **kw)["estimate_source"]
+
+    assert source({"estimated_usd": 0.2}, estimated_usd=None) == "host"
+    assert source(_priced_plan_params()) == "plan"
+    assert source({"estimated_usd": 0.2}) == "caller"
+    assert source({}) is None  # unknown, and nothing was given
+
+
+BAD_USD = (float("nan"), float("inf"), -1, True, "3")
+
+
+@pytest.mark.parametrize("bad", BAD_USD, ids=repr)
+def test_a_bad_host_estimate_is_refused_before_anything_is_written(project, bad):
+    calls = []
+    release = threading.Event()
+    release.set()
+    dispatch = {"op": _blocking_stub(release, calls=calls)}
+    with pytest.raises(ValueError, match="estimated_usd"):
+        jobs.enqueue(project, "op", VIDEO_PARAMS, dispatch=dispatch, estimated_usd=bad)
+    with pytest.raises(ValueError, match="estimated_usd"):
+        jobs.estimate(project, "op", VIDEO_PARAMS, estimated_usd=bad)
+    assert jobs.list_jobs(project) == [] and calls == []
+
+
+def _emitting_an_estimate(usd):
+    """A render that reports its own estimate mid-run, as a journey can."""
+
+    def render(project, params, *, on_event):
+        on_event({"kind": "journey.stage_started", "estimated_usd": usd})
+        return {"journey_status": "completed"}
+
+    return {"op": render}
+
+
+def test_a_render_event_does_not_overwrite_the_hosts_figure(project):
+    dispatch = _emitting_an_estimate(99.0)
+    hosted = jobs.enqueue(project, "op", VIDEO_PARAMS, dispatch=dispatch, estimated_usd=2.5)
+    assert _run_to_the_end(project, hosted).cost.estimated_usd == 2.5
+    # ...while an estimate nw made itself is still the render's to refine
+    params = {**VIDEO_PARAMS, "estimated_usd": 0.3}
+    own = jobs.enqueue(project, "op", params, dispatch=dispatch)
+    assert _run_to_the_end(project, own).cost.estimated_usd == 99.0

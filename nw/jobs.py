@@ -74,6 +74,8 @@ import dataclasses
 import hashlib
 import json
 import logging
+import math
+import numbers
 import os
 import statistics
 import tempfile
@@ -313,6 +315,13 @@ class Job:
 _UNSET = object()
 """``enqueue(estimated_usd=)`` not given: distinct from ``None`` (unknown)."""
 
+ESTIMATE_FROM_HOST = "host"
+ESTIMATE_FROM_PLAN = "plan"
+ESTIMATE_FROM_CALLER = "caller"
+"""Where a job's estimate came from (``estimate()["estimate_source"]``, and the
+record's ``cost["estimate_source"]``): the host's ``estimated_usd=``, the
+re-quoted ``params["plan"]``, or ``params["estimated_usd"]``. ``None`` = none."""
+
 
 @dataclass(frozen=True)
 class _Prediction:
@@ -418,8 +427,12 @@ def enqueue(
 
     Raises:
         KeyError: if ``kind`` is not in ``dispatch``.
-        ValueError: if ``params["units"]`` is present but not a positive ``int``.
+        ValueError: if ``params["units"]`` is present but not a positive ``int``,
+            or ``estimated_usd`` is neither ``None`` nor a finite, non-negative
+            number (see :func:`checked_usd`).
     """
+    if estimated_usd is not _UNSET:
+        checked_usd(estimated_usd)
     rt = _runtime(project, config)
     dispatch = dispatch or {}
     idempotency_key = idempotency_key or _default_idempotency_key(project, kind, params)
@@ -457,6 +470,7 @@ def enqueue(
                 )
 
             run_token = uuid4().hex
+            estimated, estimate_source = _estimate(params, host_usd=estimated_usd)
             record = {
                 "job_id": job_id,
                 "run_token": run_token,
@@ -482,8 +496,9 @@ def enqueue(
                 "progress": {},
                 # Same gate, same rule: a supplied plan is re-quoted at today's
                 # rates and its answer wins, so the tray never shows a frozen
-                # figure as this job's price (nw#74).
-                "cost": {"estimated_usd": _estimated_usd(params, host_usd=estimated_usd)},
+                # figure as this job's price (nw#74). Its source rides along so
+                # a render event cannot overwrite a host's own price (nw#144).
+                "cost": {"estimated_usd": estimated, "estimate_source": estimate_source},
                 "artifact_ref": None,
                 "result": None,
                 "error": None,
@@ -563,9 +578,9 @@ def estimate(
 ) -> dict:
     """Dry-run cost gate **without enqueueing**.
 
-    Returns ``{estimated_usd, has_unknown_costs, approval_threshold_usd,
-    requires_approval, quote}``. Unknown cost always requires approval
-    (preserves the one-price-per-clip gate).
+    Returns ``{estimated_usd, estimate_source, has_unknown_costs,
+    approval_threshold_usd, requires_approval, quote}``. Unknown cost always
+    requires approval (preserves the one-price-per-clip gate).
 
     **The gate quotes, it does not remember.** When ``params["plan"]`` is
     present its cost is re-quoted at today's rates through
@@ -590,14 +605,19 @@ def estimate(
 
     ``estimated_usd`` is a host's own price, gated on exactly as
     :func:`enqueue` records it (``None`` = unknown); the quote is still
-    reported beside it.
+    reported beside it. ``estimate_source`` says which figure won:
+    ``"host"``, ``"plan"`` (the re-quote) or ``"caller"``
+    (``params["estimated_usd"]``), and ``None`` when there was none to take.
 
-    Raises ``ValueError`` on a malformed ``params["units"]``, exactly as
-    :func:`enqueue` does, so the gate never approves what enqueue refuses.
+    Raises ``ValueError`` on a malformed ``params["units"]`` or
+    ``estimated_usd``, exactly as :func:`enqueue` does, so the gate never
+    approves what enqueue refuses.
     """
     _eta_units(params)
+    if estimated_usd is not _UNSET:
+        checked_usd(estimated_usd)
     quote = _quote_params(params)
-    estimated = _estimated_usd(params, quote=quote, host_usd=estimated_usd)
+    estimated, estimate_source = _estimate(params, quote=quote, host_usd=estimated_usd)
     has_unknown = estimated is None
     threshold = config.approval_threshold_usd
     requires_approval = has_unknown or (
@@ -605,6 +625,7 @@ def estimate(
     )
     return {
         "estimated_usd": estimated,
+        "estimate_source": estimate_source,
         "has_unknown_costs": has_unknown,
         "approval_threshold_usd": threshold,
         "requires_approval": requires_approval,
@@ -629,22 +650,47 @@ def _caller_estimated_usd(params) -> float | None:
     return params.get("estimated_usd") if isinstance(params, Mapping) else None
 
 
-def _estimated_usd(
+def checked_usd(value: Any) -> float | None:
+    """``value`` if it is a price nw can gate on, else ``ValueError``.
+
+    ``None`` (unknown) or a finite, non-negative real. A bool is refused (it is
+    an ``int``), and so is NaN: ``nan >= threshold`` is ``False``, so a NaN
+    price would pass every approval gate as cheap.
+    """
+    if value is None:
+        return None
+    if (
+        isinstance(value, bool)
+        or not isinstance(value, numbers.Real)
+        or not math.isfinite(value)
+        or value < 0
+    ):
+        raise ValueError(
+            "estimated_usd must be None or a finite, non-negative number, "
+            f"got {type(value).__name__} {value!r}"
+        )
+    return value
+
+
+def _estimate(
     params, *, quote: "PlanQuote | None" = None, host_usd: Any = _UNSET
-) -> float | None:
-    """This job's price today: the host's own figure when it gave one
-    (``host_usd``, nw#144), else the re-quoted plan, else the caller's figure.
+) -> tuple[float | None, str | None]:
+    """This job's price today and where it came from (``ESTIMATE_FROM_*``):
+    the host's own figure when it gave one (``host_usd``, nw#144), else the
+    re-quoted plan, else the caller's figure.
 
     ``None`` means unknown — never free, and never the stale number that came
     in with the plan. Pass ``quote`` to reuse one already computed for these
-    same ``params``; it is re-derived when omitted.
+    same ``params``; it is re-derived when omitted. One function answers both,
+    so the figure and its source cannot disagree.
     """
     if host_usd is not _UNSET:
-        return host_usd
+        return host_usd, ESTIMATE_FROM_HOST
     quote = quote if quote is not None else _quote_params(params)
     if quote is not None:
-        return quote.total_usd
-    return _caller_estimated_usd(params)
+        return quote.total_usd, ESTIMATE_FROM_PLAN
+    caller = _caller_estimated_usd(params)
+    return caller, (ESTIMATE_FROM_CALLER if caller is not None else None)
 
 
 UNREADABLE_PLAN_REASON = (
@@ -1594,6 +1640,10 @@ def _mirror_event_into_index(rt, job_id, ev) -> None:
             # the figure arrives alone and reads as exact.
             "actual_is_lower_bound": ("has_unknown_costs",),
         }
+        if cost.get("estimate_source") == ESTIMATE_FROM_HOST:
+            # The host priced this job server-side; the render's own guess
+            # must not replace the figure it was approved at (nw#144).
+            del cost_sources["estimated_usd"]
         for dst, sources in cost_sources.items():
             for src in sources:
                 if src in fields and fields[src] is not None:
