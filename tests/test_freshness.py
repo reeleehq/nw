@@ -445,6 +445,26 @@ def test_a_derived_field_edit_is_seen_under_v1_but_not_v2(
     assert nw.all_stale(proj2.root) == []
 
 
+def test_a_trace_recorded_before_a_derived_marker_existed_still_verifies(
+    tmp_path, derived_field_schema
+):
+    """nw#179: a parent's schema gaining a ``Derived`` marker after the trace
+    was recorded must not turn the child stale; the producer digested the
+    whole body (it had no marker), which still vouches for every field."""
+    from lacing import schema as lacing_schema
+
+    lacing_schema._BODY_REGISTRY.pop(DERIVED_FIELD_URI)  # before the marker
+    proj = nw.Project.init(tmp_path / "p")
+    parent = _parent_with_derived_field(proj)
+    child = _derived(proj, (parent.id,), body={"url": "x"})
+    lacing_schema.register_body_schema(DERIVED_FIELD_URI, _WithDerivedField)
+
+    assert nw.all_stale(proj.root) == []
+    # ...and a real change is still a change
+    _rewrite_in_place(proj, parent, body={"artifact_id": "b", "asset_id": "1"})
+    assert _ids(nw.all_stale(proj.root)) == {child.id}
+
+
 def test_a_change_is_still_caught_under_an_older_scheme(tmp_path):
     """Verifying under the recorded scheme is not the same as not verifying."""
     proj, a_id, b, c = _chain(tmp_path)
@@ -468,7 +488,7 @@ def test_an_undigestible_upstream_is_stale(tmp_path, monkeypatch):
     def _boom(_ann, **_):
         raise TypeError("body has a non-str key")
 
-    monkeypatch.setattr(freshness, "annotation_value_digest", _boom)
+    monkeypatch.setattr(freshness, "accepted_value_digests", _boom)
     assert _ids(nw.stale_after(proj.root, a_id)) == {b.id, c.id}
     assert _reason_for(proj, a_id, b.id) == REASON_UPSTREAM_CHANGED
 
