@@ -1789,7 +1789,9 @@ def test_reenqueue_over_a_cancelled_job_whose_thread_still_runs_is_deduped(proje
 
     dispatch = {"op": stub}
     job = jobs.enqueue(project, "op", VIDEO_PARAMS, dispatch=dispatch)
-    _poll_until(project, job.job_id, lambda j: j.status == jobs.RUNNING)
+    # The render itself, not just au's RUNNING (written before it is called):
+    # a cancel that lands before the stub starts means it never runs.
+    _poll_until(project, job.job_id, lambda j: calls)
     jobs.cancel_job(project, job.job_id)
 
     again = jobs.enqueue(project, "op", VIDEO_PARAMS, dispatch=dispatch)
