@@ -104,6 +104,12 @@ if TYPE_CHECKING:  # pragma: no cover — annotations only
 # ---------------------------------------------------------------------------
 
 
+class JobAborted(RuntimeError):
+    """A render raised something that is not an ``Exception`` (``KeyboardInterrupt``,
+    ``asyncio.CancelledError``, a custom ``BaseException``). The worker re-raises
+    it as this so au records the job FAILED instead of leaving it RUNNING forever."""
+
+
 @dataclass(frozen=True)
 class JobsConfig:
     """Tunables for the job manager. All keyword-configurable; sensible defaults.
@@ -483,6 +489,8 @@ def enqueue(
             try:
                 # Index first: a failed write then leaves the previous run whole.
                 _index_set_locked(rt, job_id, record)
+                if the_backend is rt.backend:  # a custom backend has no middleware to release it
+                    rt.middleware.claim_locked(job_id)
                 if existing is not None:
                     # A re-run of a terminal key: the previous run's au result
                     # would otherwise be what this call (and any poll) reads
@@ -493,6 +501,7 @@ def enqueue(
                 the_backend.launch(bound, (), {}, job_id, rt.au_store)
                 unentered = None  # a worker owns the context now
             except BaseException:
+                rt.middleware.release_locked(job_id)
                 # Undo the swap, whichever step failed. A record with no worker
                 # behind it reads as a live PENDING job to the next enqueue of
                 # this key (au's store answers PENDING for a missing entry) and
@@ -921,12 +930,15 @@ class DurationLearningMiddleware(Middleware):
                 self._index[key] = record
 
     def after_compute(self, key: str, result: ComputationResult) -> None:
+        now = time.monotonic()
+        # One critical section: popping ``_start`` frees the key for a re-enqueue,
+        # and a gap before the index read let the old run learn from the NEW
+        # record's ETA keys / units / cached flag (nw#128).
         with self._lock:
             start = self._start.pop(key, None)
-        if start is None:
-            return
-        elapsed = time.monotonic() - start
-        with self._lock:
+            if start is None:
+                return
+            elapsed = now - start
             record = self._index.get(key)
             if not record or record.get("cached"):
                 return  # cache-hit (or unknown) → do NOT learn
@@ -949,6 +961,17 @@ class DurationLearningMiddleware(Middleware):
     def on_error(self, key: str, error: Exception) -> None:
         with self._lock:
             self._start.pop(key, None)
+
+    def claim_locked(self, key: str) -> None:
+        """Mark ``key`` live before its worker thread has started (caller holds
+        the lock). ``before_compute`` re-stamps the time; ``after_compute`` /
+        ``on_error`` release it, :meth:`release_locked` undoes it if the launch
+        itself fails. Without it a cancel plus a re-enqueue inside the window
+        before the thread registers launched a second worker (nw#128)."""
+        self._start[key] = time.monotonic()
+
+    def release_locked(self, key: str) -> None:
+        self._start.pop(key, None)
 
     def is_running(self, key: str) -> bool:
         with self._lock:
@@ -1344,7 +1367,13 @@ def _bind_worker(
                     # `__context__` (a log integration walking suppressed
                     # context would otherwise still reach it).
                     scrubbed = redact_exception(e, secrets)
-                    if scrubbed is e:
+                    if not isinstance(e, Exception):
+                        # au's worker catches only ``Exception``: anything else
+                        # would leave the record RUNNING and ``_start`` set, so
+                        # the key could never be re-enqueued or reaped. Re-raise
+                        # it as an ordinary failure (nw#128).
+                        scrubbed = JobAborted(f"{type(e).__name__}: {scrubbed}")
+                    elif scrubbed is e:
                         raise
             if scrubbed is not None:
                 raise scrubbed
