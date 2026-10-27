@@ -125,7 +125,9 @@ def mark_rewritten(project: ProjectLike, marker: str) -> None:
 
 def _marker_key(marker: str) -> str:
     if not MARKER_PATTERN.fullmatch(marker):
-        raise ValueError(f"marker must match {MARKER_PATTERN.pattern!r}, got {marker!r}")
+        raise ValueError(
+            f"marker must match {MARKER_PATTERN.pattern!r}, got {marker!r}"
+        )
     return f"{MARKER_PREFIX}{marker}.json"
 
 
@@ -139,7 +141,9 @@ def _rewritten(ann: Any, fn, where) -> Any:
 
 
 def _rewrite(storage, fn: Callable[[Any], Any], where) -> int:
-    plan: dict[UUID, tuple[Any, Any]] = {}  # id -> (old annotation, rewritten annotation)
+    plan: dict[
+        UUID, tuple[Any, Any]
+    ] = {}  # id -> (old annotation, rewritten annotation)
     with storage.open_stores() as stores:
         for store in stores:
             for ann in store.all():
@@ -178,9 +182,16 @@ def _restamped_trace(ann: Any, plan: Mapping[UUID, tuple[Any, Any]]) -> Any:
         try:
             old, new = plan[UUID(entry["annotation_id"])]
             if entry["value_digest"] == annotation_value_digest(old, scheme=scheme):
-                entry = {**entry, "value_digest": annotation_value_digest(new, scheme=scheme)}
+                entry = {
+                    **entry,
+                    "value_digest": annotation_value_digest(new, scheme=scheme),
+                }
                 moved = True
         except (KeyError, ValueError, TypeError):
             pass
         upstream.append(entry)
-    return ann.model_copy(update={"body": {**body, "upstream": upstream}}) if moved else None
+    return (
+        ann.model_copy(update={"body": {**body, "upstream": upstream}})
+        if moved
+        else None
+    )
