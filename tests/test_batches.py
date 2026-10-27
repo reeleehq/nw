@@ -236,3 +236,5 @@ def test_an_enqueue_that_changes_the_job_is_refused(project):
 
     with pytest.raises(ValueError, match="must not change the job"):
         batches.enqueue_batch(project, _items(1), kind="x", dispatch=d, enqueue=rewriting_door)
+    # the record would point at the wrong job, so none is written
+    assert list(batches._store(project.root, jobs.DEFAULT_CONFIG)) == []

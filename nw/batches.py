@@ -84,7 +84,7 @@ def enqueue_batch(
     kind: str | None = None,
     label: str | None = None,
     config: JobsConfig = DEFAULT_CONFIG,
-    enqueue: Callable[..., Any] | None = None,
+    enqueue: Callable[..., _jobs.Job] | None = None,
     **enqueue_kwargs,
 ) -> BatchRecord:
     """Enqueue every item as a job and record the batch. Never blocks.
@@ -101,14 +101,18 @@ def enqueue_batch(
     the item names (it may add server-side params only if they do not change
     the job id): a returned job whose id differs from the item's raises
     ``ValueError`` and no batch is recorded, because the record would point at
-    the wrong job. That is a host bug, so it is raised loudly, not repaired —
-    the members enqueued before it are left running.
+    the wrong job. That is a host bug, so it is raised loudly, not repaired:
+    the members enqueued before it keep running, and a retry may relaunch the
+    ones that have finished (and bill them again). With a custom ``enqueue``
+    and no ``dispatch``, the up-front ``kind``-in-``dispatch`` check is
+    skipped: the door owns its dispatch, so it owns that check.
 
     Items resolving to the same job collapse to one member (first position wins).
     """
     specs = _item_specs(items, kind, dispatch=enqueue_kwargs.get("dispatch"))
+    spec_ids = _spec_job_ids(project, specs)
     # ordered set: items resolving to one job collapse
-    ids = tuple(dict.fromkeys(_spec_job_ids(project, specs)))
+    ids = tuple(dict.fromkeys(spec_ids))
     batch_id = _batch_id(ids)
     store = _store(project.root, config, create=True)
     if batch_id in store:
@@ -117,9 +121,9 @@ def enqueue_batch(
         # bill the whole batch again.
         return _record_from(store[batch_id])
     door = enqueue or _jobs.enqueue
-    for spec, expected in zip(specs, _spec_job_ids(project, specs)):
+    for spec, expected in zip(specs, spec_ids):
         job = door(project, config=config, **spec, **enqueue_kwargs)
-        if getattr(job, "job_id", expected) != expected:
+        if job.job_id != expected:
             raise ValueError(
                 f"enqueue returned job {job.job_id!r} for a batch item that names "
                 f"{expected!r}: a batch's enqueue must not change the job's params"
