@@ -167,8 +167,8 @@ def project_lock(storage: ProjectStorage, name: str) -> Iterator[None]:
     re-entrant. Works on any :class:`ProjectStorage`, whatever its backend.
 
     The store is opened as for a read (:func:`open_graph_for_read`), so that
-    taking a lock never writes; only a project with no graph yet falls back to
-    the creating open. A :class:`MappingStorage` locks per store instance
+    taking a lock never writes; a project with no graph yet falls back to the
+    creating open, and one on an older store schema migrates (nw#139). A :class:`MappingStorage` locks per store instance
     (``MemoryStore`` semantics), not per mapping: two storages over one mapping
     do not exclude.
     """
