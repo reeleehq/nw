@@ -2360,7 +2360,29 @@ def test_a_hook_that_raises_is_retried_on_the_next_read_then_announced_once(
     finally:
         del jobs.terminal_hooks["flaky"]
     assert calls == ["j", "j"]
-    assert announced == [("j", jobs.SUCCEEDED)] * 2  # at least once, not at most
+    assert announced == [("j", jobs.SUCCEEDED)]  # only the failed hook is retried
+
+
+def test_a_hook_that_always_raises_is_given_up_on_and_never_re_fires_the_others(
+    project, announced, caplog
+):
+    """One broken host hook must not turn every poll into a re-announcement."""
+    calls = []
+
+    def broken(project, job):
+        calls.append(job.job_id)
+        raise RuntimeError("host bug")
+
+    jobs.register_terminal_hook("broken", broken)
+    try:
+        _terminal_record(jobs._runtime(project), "j")
+        for _ in range(jobs.DEFAULT_CONFIG.terminal_hook_attempts + 3):
+            jobs.list_jobs(project)
+    finally:
+        del jobs.terminal_hooks["broken"]
+    assert len(calls) == jobs.DEFAULT_CONFIG.terminal_hook_attempts
+    assert announced == [("j", jobs.SUCCEEDED)]
+    assert "giving up on terminal hooks ['broken']" in caplog.text
 
 
 def test_concurrent_readers_announce_each_job_exactly_once(project, announced):

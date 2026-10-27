@@ -45,12 +45,8 @@ Design decisions (from the ``nw.jobs``-on-``au`` design report,
   sharing the store: each run carries a ``run_token``, its heartbeat stamps
   only its own record, and its worker writes ``worker_exited_at`` on the way
   out (nw#124, nw#141).
-- **A job's end is announced.** :func:`register_terminal_hook` hooks get
-  ``(project, job)`` when a run is first read terminal — by its worker
-  (managed backend), :func:`cancel_job`, the reaper, any read, or the
-  :func:`enqueue` replacing it — so a host records a completion in one place
-  instead of after every door (nw#151). At least once: the run is marked
-  announced only after its hooks returned.
+- **A job's end is announced** to :func:`register_terminal_hook` hooks, so a
+  host records a completion in one place instead of after every door (nw#151).
 - **ETA is learned from observed wall-time**, per ``(model, operation, dur_bucket)``
   with back-off, median (not mean), honest "estimating…" before enough
   history, and **cache-hits excluded from learning**.
@@ -166,6 +162,11 @@ class JobsConfig:
     thread, and a render holding the GIL in a C extension can delay it well
     past one interval. The asymmetry is deliberate — a late beat costs a
     slower reap, while an eager one destroys a live job's record."""
+    terminal_hook_attempts: int = 3
+    """How many announcements of one run a failing terminal hook gets before
+    nw gives up on it (logged once). Hooks that already succeeded for the run
+    are not called again, so a broken hook never makes the healthy ones re-fire
+    on every poll."""
     approval_threshold_usd: float = 1.0
     """Estimated cost at/above which a render requires explicit approval."""
     jobs_dirname: str = ".nw/jobs"
@@ -1235,10 +1236,13 @@ def register_terminal_hook(
       may still add cost.
     - **On the reading thread**, outside nw's locks (a hook may call back into
       ``nw.jobs``). Inside :func:`list_jobs` it adds to that poll's latency.
-    - **At least once.** A run is marked announced only after every hook
-      returned; a hook that raises is logged, never propagated, and the run is
-      announced again on a later read. Replicas sharing a store can race too,
-      so a host dedupes.
+    - **At least once, per hook.** A hook that raises is logged, never
+      propagated, and called again on a later read, up to
+      ``JobsConfig.terminal_hook_attempts`` announcements of that run; the hooks
+      that already returned are not called again. Replicas sharing a store can
+      race, so a host dedupes. The exception is :func:`enqueue` replacing a
+      finished run: that run's record is gone, so a hook failing there is not
+      retried.
 
     Runs recorded before this existed are never announced. Remove one with
     ``del terminal_hooks[name]``.
@@ -1268,24 +1272,45 @@ def _claim_announcement_locked(rt, record, *, run_token) -> bool:
 
 
 def _fire_terminal_hooks(rt, project, job: Job, *, run_token) -> None:
-    """Run every hook for a claimed run, then mark it announced only if they all
-    returned and the record is still that run's; release the claim either way,
-    so a failed announcement is retried by the next read."""
-    ok = True
+    """Run the hooks a claimed run has not yet been announced to, record which
+    returned, and mark the run announced once none is left owing (or the failing
+    ones are out of attempts); release the claim either way, so what failed is
+    retried by the next read."""
+    with rt.lock:
+        record = _index_get_locked(rt, job.job_id) or {}
+        done = set(record.get("announced_to") or ())
+    failed = []
     for name, hook in list(terminal_hooks.items()):
+        if name in done:
+            continue
         try:
             hook(project, job)
+            done.add(name)
         except Exception:  # noqa: BLE001 — a host's hook must not break a read
-            ok = False
+            failed.append(name)
             _logger.exception(
                 "nw.jobs: terminal hook %r failed for %s", name, job.job_id
             )
     with rt.lock:
-        record = _index_get_locked(rt, job.job_id)
-        if ok and record is not None and record.get("run_token") == run_token:
-            record["terminal_announced"] = True
+        try:
+            record = _index_get_locked(rt, job.job_id)
+            if record is None or record.get("run_token") != run_token:
+                return
+            attempts = record.get("announce_attempts", 0) + 1
+            given_up = bool(failed) and attempts >= rt.config.terminal_hook_attempts
+            if given_up:
+                _logger.warning(
+                    "nw.jobs: giving up on terminal hooks %s for %s after %d attempts",
+                    failed, job.job_id, attempts,
+                )
+            record.update(
+                announced_to=sorted(done),
+                announce_attempts=attempts,
+                terminal_announced=not failed or given_up,
+            )
             _index_set_locked(rt, job.job_id, record)
-        rt.announcing.discard((job.job_id, run_token))
+        finally:
+            rt.announcing.discard((job.job_id, run_token))
 
 
 def _announce_if_terminal(rt, project, job: Job, *, run_token) -> None:
