@@ -509,7 +509,7 @@ def enqueue(
                 "kind": kind,
                 "label": label,
                 "idempotency_key": idempotency_key,
-                "params": params,
+                "params": _finite_json(params),
                 "created_at": now_iso(),
                 "started_at": None,
                 "finished_at": None,
@@ -714,23 +714,29 @@ def _caller_estimated_usd(params) -> float | None:
     because the host can fix it, but this one comes from a client, and raising
     would break clients that send junk today. Unknown requires approval, so
     junk loses the free pass instead of buying one (``nan >= threshold`` is
-    ``False``), and it never reaches the job's ``cost``. The warning is logged
-    once per process (later ones at debug level): a client that always sends
-    junk polls ``estimate`` on every change.
+    ``False``), and it never reaches the job's ``cost``.
     """
-    global _warned_bad_caller_usd
     value = params.get("estimated_usd") if isinstance(params, Mapping) else None
+    return _usable_usd(value, what="params['estimated_usd']")
+
+
+def _usable_usd(value: Any, *, what: str) -> float | None:
+    """:func:`checked_usd` for a figure nw takes from someone it cannot make
+    fix it (a client, a render's event): a refused value is **unknown**
+    (``None``) instead of an error. Warned once per ``what`` per process,
+    later at debug level, because the same sender repeats it on every call.
+    """
     try:
         return checked_usd(value)
     except ValueError as exc:
-        level = logging.DEBUG if _warned_bad_caller_usd else logging.WARNING
-        _warned_bad_caller_usd = True
-        _logger.log(level, "params['estimated_usd'] is unknown: %s", exc)
+        level = logging.DEBUG if what in _warned_unusable_usd else logging.WARNING
+        _warned_unusable_usd.add(what)
+        _logger.log(level, "%s is unknown: %s", what, exc)
         return None
 
 
-_warned_bad_caller_usd = False
-"""Whether :func:`_caller_estimated_usd` has warned yet (it warns once)."""
+_warned_unusable_usd: set[str] = set()
+"""The ``what`` names :func:`_usable_usd` has already warned about."""
 
 
 def checked_usd(value: Any) -> float | None:
@@ -1231,6 +1237,27 @@ def predict_total_s(
 # ---------------------------------------------------------------------------
 
 
+def _finite_json(value: Any) -> Any:
+    """``value`` with every non-finite float (NaN, ±inf) replaced by ``None``.
+
+    JSON has no such numbers: Python's ``json`` writes a bare ``NaN`` token
+    that strict parsers (a browser's ``JSON.parse``) reject, so one NaN in a
+    client's ``params`` or a render's progress made the job unservable
+    (nw#166). Mappings and sequences are walked; anything else is returned
+    as is (tuples come back as lists, as JSON would make them).
+
+    >>> _finite_json({"a": float("nan"), "b": [1.5, float("inf")], "c": "x"})
+    {'a': None, 'b': [1.5, None], 'c': 'x'}
+    """
+    if isinstance(value, float):
+        return value if math.isfinite(value) else None
+    if isinstance(value, Mapping):
+        return {k: _finite_json(v) for k, v in value.items()}
+    if isinstance(value, (list, tuple)):
+        return [_finite_json(v) for v in value]
+    return value
+
+
 class AtomicJsonFiles(MutableMapping):
     """A ``{key: json-value}`` directory store whose writes are **atomic**.
 
@@ -1276,7 +1303,11 @@ class AtomicJsonFiles(MutableMapping):
 
     def __setitem__(self, key: str, value) -> None:
         path = self._path(key)
-        data = json.dumps(value).encode("utf-8")  # serialize BEFORE touching disk
+        try:  # serialize BEFORE touching disk
+            data = json.dumps(value, allow_nan=False)
+        except ValueError:  # NaN/inf: JSON has none, so store them as null
+            data = json.dumps(_finite_json(value), allow_nan=False)
+        data = data.encode("utf-8")
         fd, tmp = tempfile.mkstemp(dir=self._rootdir, prefix=f".{key}.", suffix=".tmp")
         try:
             with os.fdopen(fd, "wb") as f:
@@ -1446,6 +1477,10 @@ def _announcement_settled(record, run_token) -> bool:
         or record.get("run_token") != run_token
         or record.get("terminal_announced") is not False
     )
+
+
+_USD_COST_FIELDS = frozenset({"estimated_usd", "actual_usd", "cache_hit_savings_usd"})
+"""The ``cost`` fields that hold dollars (checked as prices); the rest are flags."""
 
 
 def _lease_is_live(claim) -> bool:
@@ -2024,8 +2059,13 @@ def _mirror_event_into_index(rt, job_id, ev) -> None:
             del cost_sources["estimated_usd"]
         for dst, sources in cost_sources.items():
             for src in sources:
-                if src in fields and fields[src] is not None:
-                    cost[dst] = fields[src]
+                value = fields.get(src)
+                if value is not None and dst in _USD_COST_FIELDS:
+                    # A render is server code, but "None means unknown" holds
+                    # for its figures too: a NaN would poison every sum (nw#166).
+                    value = _usable_usd(value, what=f"a render event's {src!r}")
+                if value is not None:
+                    cost[dst] = value
                     if dst == "estimated_usd":
                         cost["estimate_source"] = ESTIMATE_FROM_RENDER
                     break

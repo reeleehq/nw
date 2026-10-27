@@ -2370,7 +2370,7 @@ def test_a_bad_caller_estimate_gates_as_unknown(
     """A client's junk ``params["estimated_usd"]`` is unknown, not cheap and
     not an error: the gate asks for approval and the job's cost never holds
     it (nw#155)."""
-    monkeypatch.setattr(jobs, "_warned_bad_caller_usd", False)
+    monkeypatch.setattr(jobs, "_warned_unusable_usd", set())
     params = {**VIDEO_PARAMS, "estimated_usd": bad}
     with caplog.at_level(logging.DEBUG, logger=jobs.__name__):
         out = jobs.estimate(project, "op", params)
@@ -2414,6 +2414,49 @@ def test_a_render_event_does_not_overwrite_the_hosts_figure(project):
     with rt.lock:
         source = jobs._index_get_locked(rt, own.job_id)["cost"]["estimate_source"]
     assert source == jobs.ESTIMATE_FROM_RENDER  # the record says whose figure it is
+
+
+def _emitting(fields):
+    """A render that reports ``fields`` in one event mid-run."""
+
+    def render(project, params, *, on_event):
+        on_event({"kind": "journey.stage_started", **fields})
+        return {"journey_status": "completed"}
+
+    return {"op": render}
+
+
+def test_a_renders_unusable_cost_figure_is_unknown_not_stored(project, monkeypatch):
+    """A render's NaN, negative or non-number figure never reaches ``cost``: it
+    would poison every sum (nw#166). The next source for the field still
+    counts (``actual_usd`` falls back to ``cost_usd``)."""
+    monkeypatch.setattr(jobs, "_warned_unusable_usd", set())
+    dispatch = _emitting(
+        {"estimated_usd": float("nan"), "actual_usd": "lots", "cost_usd": 0.4,
+         "cache_hit_savings_usd": -1}
+    )
+    job = jobs.enqueue(project, "op", VIDEO_PARAMS, dispatch=dispatch)
+    cost = _run_to_the_end(project, job).cost
+    assert cost.estimated_usd is None and cost.cache_hit_savings_usd is None
+    assert cost.actual_usd == 0.4
+
+
+def test_a_nan_in_params_or_progress_is_stored_as_null(project):
+    """JSON has no NaN: a client's NaN param or a render's NaN progress is
+    stored and served as ``null``, so the record stays parseable by a strict
+    reader such as a browser's ``JSON.parse`` (nw#166)."""
+    import json
+
+    params = {**VIDEO_PARAMS, "seed": float("nan"), "weights": [1.0, float("inf")]}
+    dispatch = _emitting({"fraction": float("nan")})
+    job = jobs.enqueue(project, "op", params, dispatch=dispatch)
+    assert job.params["seed"] is None  # what enqueue returns matches the store
+    done = _run_to_the_end(project, job)
+    rt = jobs._runtime(project)
+    raw = (rt.index._rootdir / job.job_id).read_text()
+    assert "NaN" not in raw and "Infinity" not in raw
+    json.dumps(jobs.to_dict(done), allow_nan=False)  # servable as strict JSON
+    assert done.params["weights"] == [1.0, None]
 
 
 def test_a_non_json_number_is_stored_as_a_float(project, parked):
