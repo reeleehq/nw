@@ -554,6 +554,31 @@ def test_a_trace_records_the_paths_its_digest_left_out(tmp_path, one_marker_sche
     assert "excluded_paths" not in _upstream_entry_of(proj, plain_child)
 
 
+def test_an_older_reader_ignores_fields_it_does_not_know():
+    """nw#180: a trace from a newer nw still parses (and verifies with what
+    the reader understands) instead of being dropped, which reads stale."""
+    entry = {"annotation_id": "x", "value_digest": "d", "from_the_future": 1}
+    body = VerifyingTraceBodyV1.model_validate(
+        {"for_annotation_id": "y", "digest_scheme": VALUE_DIGEST_SCHEME,
+         "upstream": [entry], "also_new": True}
+    )
+    assert body.upstream[0].value_digest == "d"
+
+
+def test_no_exclusions_are_recorded_under_v1(one_marker_schema):
+    from nw.bodies.verifying_trace import upstream_entry
+
+    proj_parent = Annotation(
+        id=uuid4(), tier="t",
+        reference=MediaRef(asset_id="a" * 64, interval=_iv(0, 0)),
+        body={"artifact_id": "a", "asset_id": "h"}, body_schema_uri=TWO_MARKERS_URI,
+        provenance=Provenance(was_generated_by="x", was_attributed_to="y",
+                              generated_at_time=RationalTime.now()),
+    )
+    assert "excluded_paths" not in upstream_entry(proj_parent, scheme=VALUE_DIGEST_SCHEMES[0])
+    assert upstream_entry(proj_parent, scheme=VALUE_DIGEST_SCHEME)["excluded_paths"]
+
+
 def test_a_schema_gaining_a_second_marker_keeps_the_child_fresh(
     tmp_path, one_marker_schema
 ):

@@ -59,6 +59,7 @@ from pydantic import BaseModel, Field
 from lacing import Annotation, MediaRef, Provenance, RationalTime, TimeInterval
 from lacing.digest import (
     VALUE_DIGEST_SCHEME,
+    VALUE_DIGEST_SCHEMES,
     annotation_value_digest,
     registered_derived_paths,
     value_digest_matches,
@@ -72,9 +73,18 @@ VERIFYING_TRACE_TIER = "verifying-trace"
 
 
 class UpstreamDigestV1(BaseModel):
-    """One ``(upstream annotation, its value digest)`` pair."""
+    """One ``(upstream annotation, its value digest)`` pair.
 
-    model_config = {"frozen": True, "extra": "forbid"}
+    Reading ignores fields it does not know (nw#180): an nw older than a
+    trace's writer then still verifies it with what it understands, instead
+    of dropping the whole trace and reading its child stale. That is safe
+    only under the rule this format keeps: **a field that changes what a
+    digest means bumps ``digest_scheme``** (an unknown scheme is stale), so
+    an ignored field can only be one that refines verification, like
+    ``excluded_paths``.
+    """
+
+    model_config = {"frozen": True, "extra": "ignore"}
 
     annotation_id: str = Field(
         ..., description="UUID (as a string) of the upstream annotation."
@@ -109,7 +119,7 @@ class VerifyingTraceBodyV1(BaseModel):
     digests that mean different things.
     """
 
-    model_config = {"frozen": True, "extra": "forbid"}
+    model_config = {"frozen": True, "extra": "ignore"}  # see UpstreamDigestV1
 
     for_annotation_id: str = Field(
         ..., description="UUID (as a string) of the annotation this trace describes."
@@ -151,7 +161,11 @@ def upstream_entry(parent: Annotation, *, scheme: str) -> dict:
     ``Derived`` paths recorded beside it, so the two cannot disagree even if
     the schema registry changes mid-call (nw#180). JSON-ready, so the trace
     builder and ``nw.rewrite`` record entries the same way."""
-    excluded = registered_derived_paths(parent.body_schema_uri)
+    excluded = (
+        frozenset()  # v1 digests the whole body: it leaves nothing out
+        if scheme == VALUE_DIGEST_SCHEMES[0]
+        else registered_derived_paths(parent.body_schema_uri)
+    )
     digest = annotation_value_digest(
         parent, scheme=scheme, resolve_derived=lambda _uri: excluded
     )
@@ -188,8 +202,9 @@ def digest_vouches(
     """Whether ``recorded`` (a digest a trace stored under ``scheme``, with the
     ``excluded`` paths it left out) still describes ``parent``'s value.
 
-    - Recorded exclusions ``D'`` that are a subset of today's markers ``D``:
-      recompute under exactly ``D'`` (nw#180). Equal means the bodies agree
+    - Recorded exclusions ``D'`` that are a strict subset of today's markers
+      ``D``: recompute under exactly ``D'`` (nw#180; ``D' == D`` is today's
+      digest, which the fallback checks). Equal means the bodies agree
       outside ``D'``, hence outside ``D``, which is all today's digest counts.
       A ``D'`` with a path that is no longer marked is never used: that field
       counts now, and the producer did not digest it.
@@ -198,7 +213,7 @@ def digest_vouches(
 
     Neither is a wrong hit; what is left (a marker removed) is a spurious miss.
     """
-    if excluded is not None and excluded <= registered_derived_paths(
+    if excluded is not None and excluded < registered_derived_paths(
         parent.body_schema_uri
     ):
         if recorded == annotation_value_digest(
