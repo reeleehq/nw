@@ -155,8 +155,9 @@ Whether a trace recorded under `scheme` can still be verified.
 A trace is checked under the scheme it was *recorded* under (lacing keeps
 every released scheme computable), so a lacing upgrade does not turn old
 traces stale. Only a scheme lacing does not know is unverifiable. Note
-that a scheme whose digest depends on registered body schemas (v2) is
-only as good as the producer and verifier registering the same ones.
+that a scheme whose digest depends on registered body schemas (v2) needs
+the verifier to register the same `Derived` markers as the producer, or
+the producer none (see `accepted_of` in the verdict walk, nw#179).
 
 * **Return type:**
   [`bool`](https://docs.python.org/3/builtins/functions.html#bool)
