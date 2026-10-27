@@ -2271,3 +2271,16 @@ def test_a_render_event_does_not_overwrite_the_hosts_figure(project):
     params = {**VIDEO_PARAMS, "estimated_usd": 0.3}
     own = jobs.enqueue(project, "op", params, dispatch=dispatch)
     assert _run_to_the_end(project, own).cost.estimated_usd == 99.0
+    rt = jobs._runtime(project)
+    with rt.lock:
+        source = jobs._index_get_locked(rt, own.job_id)["cost"]["estimate_source"]
+    assert source == jobs.ESTIMATE_FROM_RENDER  # the record says whose figure it is
+
+
+def test_a_non_json_number_is_stored_as_a_float(project, parked):
+    from fractions import Fraction
+
+    job = jobs.enqueue(
+        project, "op", VIDEO_PARAMS, dispatch=parked, estimated_usd=Fraction(1, 4)
+    )
+    assert job.cost.estimated_usd == 0.25 and type(job.cost.estimated_usd) is float

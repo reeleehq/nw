@@ -342,7 +342,7 @@ def _item_specs(
         _jobs.check_job_spec(spec["params"])
         if "estimated_usd" in spec:
             try:
-                _jobs.checked_usd(spec["estimated_usd"])
+                spec["estimated_usd"] = _jobs.checked_usd(spec["estimated_usd"])
             except ValueError as e:
                 raise ValueError(f"batch item {i}: {e}") from e
         specs.append(spec)

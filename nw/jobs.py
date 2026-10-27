@@ -318,9 +318,11 @@ _UNSET = object()
 ESTIMATE_FROM_HOST = "host"
 ESTIMATE_FROM_PLAN = "plan"
 ESTIMATE_FROM_CALLER = "caller"
+ESTIMATE_FROM_RENDER = "render"
 """Where a job's estimate came from (``estimate()["estimate_source"]``, and the
 record's ``cost["estimate_source"]``): the host's ``estimated_usd=``, the
-re-quoted ``params["plan"]``, or ``params["estimated_usd"]``. ``None`` = none."""
+re-quoted ``params["plan"]``, ``params["estimated_usd"]``, or (record only) a
+render event that replaced a non-host figure. ``None`` = none."""
 
 
 @dataclass(frozen=True)
@@ -432,7 +434,7 @@ def enqueue(
             number (see :func:`checked_usd`).
     """
     if estimated_usd is not _UNSET:
-        checked_usd(estimated_usd)
+        estimated_usd = checked_usd(estimated_usd)
     rt = _runtime(project, config)
     dispatch = dispatch or {}
     idempotency_key = idempotency_key or _default_idempotency_key(project, kind, params)
@@ -615,7 +617,7 @@ def estimate(
     """
     _eta_units(params)
     if estimated_usd is not _UNSET:
-        checked_usd(estimated_usd)
+        estimated_usd = checked_usd(estimated_usd)
     quote = _quote_params(params)
     estimated, estimate_source = _estimate(params, quote=quote, host_usd=estimated_usd)
     has_unknown = estimated is None
@@ -651,7 +653,10 @@ def _caller_estimated_usd(params) -> float | None:
 
 
 def checked_usd(value: Any) -> float | None:
-    """``value`` if it is a price nw can gate on, else ``ValueError``.
+    """``value`` as a ``float`` if it is a price nw can gate on, else ``ValueError``.
+
+    A ``float`` so that what is stored is JSON (a numpy scalar or a
+    ``Fraction`` passes the check and would fail the index write).
 
     ``None`` (unknown) or a finite, non-negative real. A bool is refused (it is
     an ``int``), and so is NaN: ``nan >= threshold`` is ``False``, so a NaN
@@ -669,7 +674,7 @@ def checked_usd(value: Any) -> float | None:
             "estimated_usd must be None or a finite, non-negative number, "
             f"got {type(value).__name__} {value!r}"
         )
-    return value
+    return float(value)
 
 
 def _estimate(
@@ -1648,6 +1653,8 @@ def _mirror_event_into_index(rt, job_id, ev) -> None:
             for src in sources:
                 if src in fields and fields[src] is not None:
                     cost[dst] = fields[src]
+                    if dst == "estimated_usd":
+                        cost["estimate_source"] = ESTIMATE_FROM_RENDER
                     break
 
         updates["progress"] = progress
