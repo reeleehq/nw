@@ -1253,7 +1253,7 @@ def test_the_reaper_decides_on_the_record_as_it_is_now(project, meanwhile, expec
 
 def test_the_reaper_still_reaps_a_record_that_is_dead_now(project):
     """The negative control for the test above: nothing landed, so it reaps,
-    and the index carries the error before au says FAILED."""
+    and the index carries the error."""
     config = JobsConfig(stale_running_s=0.0, heartbeat_stale_s=60.0)
     rt = jobs._runtime(project)
     snapshot = _stale_running_record(rt, "j")
