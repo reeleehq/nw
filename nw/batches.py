@@ -25,7 +25,8 @@ member jobs on read* and never stored, so a batch cannot drift from its jobs:
   idempotent and a no-op on a finished job).
 
 Items are mappings ``{"kind": ..., "params": {...}}`` (optionally ``label``,
-``idempotency_key``); a batch-level ``kind=`` is the default for items that omit
+``idempotency_key``, and ``estimated_usd`` — a host's own price for that
+member, kept out of its job id, nw#144); a batch-level ``kind=`` is the default for items that omit
 one. Item identity should be semantic (see :mod:`nw.transforms.fanout`'s
 ``mapping_key``): the default idempotency key hashes ``params``.
 
@@ -45,6 +46,7 @@ from typing import Any
 
 from nw import jobs as _jobs
 from nw.jobs import DEFAULT_CONFIG, JobsConfig
+from nw.transforms.fanout import accepts_keyword
 
 BATCHES_DIRNAME = "batches"
 """Sub-directory of ``config.jobs_dirname`` holding batch records."""
@@ -108,8 +110,20 @@ def enqueue_batch(
     skipped: the door owns its dispatch, so it owns that check.
 
     Items resolving to the same job collapse to one member (first position wins).
+    An ``enqueue_kwargs`` key that is also an item key (:data:`ITEM_KEYS`), or
+    an item ``estimated_usd`` that a custom ``enqueue`` does not accept, raises
+    ``TypeError`` before anything launches, rather than on a later member
+    after the first ones are running.
     """
+    clash = ITEM_KEYS & enqueue_kwargs.keys()
+    if clash:
+        raise TypeError(
+            f"{sorted(clash)} are per-item keys: set them on each batch item, "
+            "not on enqueue_batch"
+        )
     specs = _item_specs(items, kind, dispatch=enqueue_kwargs.get("dispatch"))
+    if enqueue is not None:
+        _check_door_accepts(enqueue, specs)
     spec_ids = _spec_job_ids(project, specs)
     # ordered set: items resolving to one job collapse
     ids = tuple(dict.fromkeys(spec_ids))
@@ -154,7 +168,13 @@ def estimate_batch(
     single item that alone requires approval does too.
     """
     per_item = [
-        _jobs.estimate(project, spec["kind"], spec["params"], config=config)
+        _jobs.estimate(
+            project,
+            spec["kind"],
+            spec["params"],
+            config=config,
+            **{k: spec[k] for k in _ESTIMATE_KEYS & spec.keys()},
+        )
         for spec in _item_specs(items, kind)
     ]
     has_unknown = any(e["has_unknown_costs"] for e in per_item)
@@ -292,7 +312,12 @@ def cancel_batch(
 # ---------------------------------------------------------------------------
 
 
-ITEM_KEYS = frozenset({"kind", "params", "label", "idempotency_key"})
+ITEM_KEYS = frozenset({"kind", "params", "label", "idempotency_key", "estimated_usd"})
+"""A batch item's keys: :func:`nw.jobs.enqueue`'s per-job arguments."""
+
+_ESTIMATE_KEYS = frozenset({"estimated_usd"})
+"""The optional item keys :func:`nw.jobs.estimate` takes too, so a member is
+gated on exactly what it will be enqueued with."""
 
 
 def _item_specs(
@@ -315,10 +340,26 @@ def _item_specs(
         if dispatch is not None and spec["kind"] not in dispatch:
             raise KeyError(f"batch item {i}: kind {spec['kind']!r} is not in dispatch")
         _jobs.check_job_spec(spec["params"])
+        if "estimated_usd" in spec:
+            try:
+                spec["estimated_usd"] = _jobs.checked_usd(spec["estimated_usd"])
+            except ValueError as e:
+                raise ValueError(f"batch item {i}: {e}") from e
         specs.append(spec)
     if not specs:
         raise ValueError("a batch needs at least one item")
     return specs
+
+
+def _check_door_accepts(door: Callable, specs: list[dict]) -> None:
+    """Refuse a custom ``enqueue`` door that cannot take the ``estimated_usd``
+    some item carries (a door predating nw#144), before any member launches."""
+    key = "estimated_usd"
+    if any(key in spec for spec in specs) and not accepts_keyword(door, key):
+        raise TypeError(
+            f"some batch items carry {key!r} but the enqueue door does not "
+            "accept it; add the keyword (or **kwargs) to the door"
+        )
 
 
 def _spec_job_ids(project, specs: list[dict]) -> list[str]:
