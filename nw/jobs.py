@@ -701,8 +701,25 @@ def _caller_estimated_usd(params) -> float | None:
 
     Reported, never trusted: when a plan is supplied this number loses to the
     re-quote, and nw cannot see where it came from.
+
+    A figure :func:`checked_usd` refuses (NaN, negative, a bool, a string) is
+    **unknown**, not an error (nw#155): a host's own ``estimated_usd=`` raises
+    because the host can fix it, but this one comes from a client, and raising
+    would break clients that send junk today. Unknown requires approval, so
+    junk loses the free pass instead of buying one (``nan >= threshold`` is
+    ``False``), and it never reaches the job index.
     """
-    return params.get("estimated_usd") if isinstance(params, Mapping) else None
+    value = params.get("estimated_usd") if isinstance(params, Mapping) else None
+    try:
+        return checked_usd(value)
+    except ValueError:
+        _logger.warning(
+            "params['estimated_usd'] is not a usable price (%s %r); "
+            "treating the cost as unknown",
+            type(value).__name__,
+            value,
+        )
+        return None
 
 
 def checked_usd(value: Any) -> float | None:

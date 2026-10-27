@@ -2260,6 +2260,28 @@ def test_a_bad_host_estimate_is_refused_before_anything_is_written(project, bad)
     assert jobs.list_jobs(project) == [] and calls == []
 
 
+@pytest.mark.parametrize("bad", BAD_USD, ids=repr)
+def test_a_bad_caller_estimate_gates_as_unknown(project, parked, caplog, bad):
+    """A client's junk ``params["estimated_usd"]`` is unknown, not cheap and
+    not an error: the gate asks for approval and the index never stores it
+    (nw#155)."""
+    params = {**VIDEO_PARAMS, "estimated_usd": bad}
+    out = jobs.estimate(project, "op", params)
+    assert out["estimated_usd"] is None and out["estimate_source"] is None
+    assert out["has_unknown_costs"] is True and out["requires_approval"] is True
+    assert "not a usable price" in caplog.text
+
+    job = jobs.enqueue(project, "op", params, dispatch=parked)
+    rt = jobs._runtime(project)
+    with rt.lock:
+        cost = jobs._index_get_locked(rt, job.job_id)["cost"]
+    assert cost["estimated_usd"] is None and cost["estimate_source"] is None
+
+    # beside a plan's re-quote it is reported as "none given", not echoed
+    quoted = jobs.estimate(project, "op", {**_priced_plan_params(), "estimated_usd": bad})
+    assert quoted["quote"]["caller_estimated_usd"] is None
+
+
 def _emitting_an_estimate(usd):
     """A render that reports its own estimate mid-run, as a journey can."""
 
