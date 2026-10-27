@@ -1281,7 +1281,7 @@ def _bind_worker(
     config,
     extra_ctx=None,
     secrets=None,
-    run_token=None,
+    run_token,
 ):
     """Bind the render callable into a zero-arg worker body that (a) re-establishes
     request context (fal credentials + project + any caller-supplied context), (b)
@@ -1716,16 +1716,12 @@ def _beat_while_running(rt, job_id, run_token, config, stop: threading.Event) ->
     while not stop.is_set():
         try:
             with rt.lock:
-                if _is_this_run_locked(rt, job_id, run_token):
-                    _index_update_locked(rt, job_id, heartbeat_at=now_iso())
+                _index_update_if_run_locked(
+                    rt, job_id, run_token, heartbeat_at=now_iso()
+                )
         except Exception:  # noqa: BLE001 — reporting must not break the render
             pass
         stop.wait(config.heartbeat_interval_s)
-
-
-def _is_this_run_locked(rt, job_id, run_token) -> bool:
-    record = _index_get_locked(rt, job_id)
-    return record is not None and record.get("run_token") == run_token
 
 
 def _mark_worker_exited(rt, job_id, run_token) -> None:
@@ -1733,8 +1729,9 @@ def _mark_worker_exited(rt, job_id, run_token) -> None:
     stamp leaves a cancelled key held only until its heartbeat goes stale."""
     try:
         with rt.lock:
-            if _is_this_run_locked(rt, job_id, run_token):
-                _index_update_locked(rt, job_id, worker_exited_at=now_iso())
+            _index_update_if_run_locked(
+                rt, job_id, run_token, worker_exited_at=now_iso()
+            )
     except Exception:  # noqa: BLE001 — reporting must not break the render
         pass
 
@@ -2035,6 +2032,18 @@ def _index_update_locked(rt, job_id, **fields) -> None:
         return
     record.update(fields)
     rt.index[job_id] = record
+
+
+def _index_update_if_run_locked(rt, job_id, run_token, **fields) -> bool:
+    """Merge ``fields`` into ``job_id``'s record only while it carries
+    ``run_token``, in one read; return whether it wrote. Lets a run's own
+    threads stamp its record without touching a run that replaced it."""
+    record = _index_get_locked(rt, job_id)
+    if record is None or record.get("run_token") != run_token:
+        return False
+    record.update(fields)
+    _index_set_locked(rt, job_id, record)
+    return True
 
 
 def _default_idempotency_key(project, kind, params) -> str:
