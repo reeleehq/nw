@@ -110,6 +110,52 @@ class ProjectStorage(Protocol):
 ProjectLike = Union[str, Path, ProjectStorage]
 
 
+def open_graph_for_read(
+    storage: ProjectStorage,
+) -> Optional[IntervalAnnotationStore]:
+    """Open ``storage``'s graph for a read without writing; ``None`` if there is none.
+
+    A read-write open ensures tiers, which writes on every open, so a read
+    contended with any live writer. Measured with a writer holding ``BEGIN
+    IMMEDIATE``, a read of one project's genre envelope took **5.4 s** and then
+    raised — and because callers of ``resolved_genre`` catch per project, what
+    a user saw was a listing that stalled for five seconds per contended
+    project and then quietly lost that project's metadata. So this opens
+    read-only, with two fallbacks, each preserving a guarantee the read-write
+    open makes:
+
+    - **No graph on disk returns ``None``**, and the caller decides: a reader
+      returns its empty answer (creating a store to discover it has no
+      sections is the write this exists to avoid), a lock creates the graph.
+    - **A store on an older schema gets the read-write open**, which migrates
+      it: the read-only open refuses (``SchemaMismatchError``) rather than
+      migrates, and passing that up would strand every pre-D5 project until
+      something wrote to it (nw#139). So the rare case pays the lock and the
+      common case does not.
+
+    The caller owns the returned store and closes it (:func:`close_quietly`).
+    """
+    from lacing.store.sqlite import SchemaMismatchError
+
+    try:
+        return storage.open_graph_readonly()
+    except FileNotFoundError:
+        return None
+    except SchemaMismatchError:
+        return storage.open_graph()
+
+
+def close_quietly(store: Any) -> None:
+    """Close ``store`` if it can be closed, never raising: a failed close must
+    not replace the exception (or the result) of the block that used it."""
+    close = getattr(store, "close", None)
+    if callable(close):
+        try:
+            close()
+        except Exception:
+            pass
+
+
 @contextmanager
 def project_lock(storage: ProjectStorage, name: str) -> Iterator[None]:
     """Hold the exclusive lock ``name`` on ``storage``'s project (nw#113).
@@ -120,27 +166,20 @@ def project_lock(storage: ProjectStorage, name: str) -> Iterator[None]:
     exclude each other, a holder that dies releases it, and it is not
     re-entrant. Works on any :class:`ProjectStorage`, whatever its backend.
 
-    The store is opened read-only so that taking a lock never writes (a
-    read-write open ensures tiers, which contends with a live writer); only a
-    project with no graph yet, or one on an older store schema (which the
-    read-only open refuses rather than migrates), falls back to the creating,
-    migrating open, as :class:`~nw.graph.ProjectGraph` reads do. A
-    :class:`MappingStorage` locks per store instance (``MemoryStore``
-    semantics), not per mapping: two storages over one mapping do not exclude.
+    The store is opened as for a read (:func:`open_graph_for_read`), so that
+    taking a lock never writes; only a project with no graph yet falls back to
+    the creating open. A :class:`MappingStorage` locks per store instance
+    (``MemoryStore`` semantics), not per mapping: two storages over one mapping
+    do not exclude.
     """
-    from lacing.store.sqlite import SchemaMismatchError
-
-    try:
-        store = storage.open_graph_readonly()
-    except (FileNotFoundError, SchemaMismatchError):
+    store = open_graph_for_read(storage)
+    if store is None:
         store = storage.open_graph()
     try:
         with store.lock(name):
             yield
     finally:
-        close = getattr(store, "close", None)
-        if callable(close):
-            close()
+        close_quietly(store)
 
 
 # ---------------------------------------------------------------------------
@@ -507,6 +546,7 @@ __all__ = [
     "tenant_id_of",
     "TENANT_KEY",
     "json_docs",
+    "open_graph_for_read",
     "project_storages",
     "register_project_storage",
 ]

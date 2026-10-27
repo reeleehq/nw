@@ -71,10 +71,11 @@ def test_lock_opens_a_graph_on_an_older_store_schema(tmp_path):
     the migrating open instead of raising (nw#139), as ``ProjectGraph`` reads do."""
     import sqlite3
 
-    from nw.migrate import project_graph_db_path
-
     from lacing import RationalTime, TimeInterval
+    from lacing.store.sqlite import SCHEMA_VERSION
+
     from nw.bodies import SectionBodyV1
+    from nw.migrate import project_graph_db_path
 
     proj = _project(tmp_path)
     proj.graph.upsert_section(
@@ -90,4 +91,4 @@ def test_lock_opens_a_graph_on_an_older_store_schema(tmp_path):
         (stamped,) = conn.execute(
             "SELECT value FROM meta WHERE key = 'schema_version'"
         ).fetchone()
-    assert int(stamped) >= 2
+    assert int(stamped) == SCHEMA_VERSION
