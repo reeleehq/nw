@@ -1,4 +1,4 @@
-> built 2026-10-30 07:27 UTC from 93c76d0 (main) · nw 0.0.109. Details: build_info.json
+> built 2026-10-30 07:49 UTC from 4299259 (main) · nw 0.0.110. Details: build_info.json
 
 # index.html.md
 
@@ -3312,6 +3312,9 @@ are recorded as linked artifacts), see
 | [`parse_ref`](_autosummary/nw.html.md#nw.parse_ref)(text)                                   | The ordinal in a spoken reference, or `None` if it isn't one.                                                                                                                     |
 |----------------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | [`format_ref`](_autosummary/nw.html.md#nw.format_ref)(n)                                     | The one spelling we print.                                                                                                                                                        |
+| [`stage_overview`](_autosummary/nw.html.md#nw.stage_overview)(genre, project, \*[, quote, ...])  | The one JSON-able answer: stages with state and price, "Step N of M", and the total still to spend.                                                                               |
+| [`stage_prices`](_autosummary/nw.html.md#nw.stage_prices)(stages[, quote])                     | Compose each stage's price now.                                                                                                                                                   |
+| [`stage_states`](_autosummary/nw.html.md#nw.stage_states)(stages, project, \*[, ...])          | Where `project` stands in each of `stages`, read from its graph.                                                                                                                  |
 | [`genre_catalog`](_autosummary/nw.html.md#nw.genre_catalog)()                                   | Every registered genre as a JSON-able catalog entry (sorted by slug).                                                                                                             |
 | [`describe_genre`](_autosummary/nw.html.md#nw.describe_genre)(slug)                              | One genre's catalog entry (raises [`KeyError`](https://docs.python.org/3/builtins/exceptions.html#KeyError) if the slug is unknown).                                              |
 | [`recommend_genre`](_autosummary/nw.html.md#nw.recommend_genre)(kind)                             | The slug of the genre whose `intake_kinds` contains `kind` (first in slug order), or `None` when `kind` is falsy / unmatched.                                                     |
@@ -3406,6 +3409,7 @@ are recorded as linked artifacts), see
 | [`Gap`](_autosummary/nw.html.md#nw.Gap)(\*, after_shot_id, before_shot_id, ...)        | A gap on the timeline between two shots.                                                                                    |
 | [`Genre`](_autosummary/nw.html.md#nw.Genre)(slug, title[, description, ...])             | A reusable definition of a *production kind* over the nw substrate.                                                         |
 | [`Template`](_autosummary/nw.html.md#nw.Template)(slug, title[, description, params])       | A named preset ("subgenre") *within* a genre — a filled-in default config.                                                  |
+| [`Stage`](_autosummary/nw.html.md#nw.Stage)(slug, name[, free, transform_names, ...])    | One plain-English step of a genre.                                                                                          |
 | [`GenreOp`](_autosummary/nw.html.md#nw.GenreOp)(name, fn, title[, description, ...])       | One operation a genre offers on its projects — a row a host builds surfaces from.                                           |
 | [`Project`](_autosummary/nw.html.md#nw.Project)(root, \*[, storage, auto_migrate])         | A folder-backed nw project.                                                                                                 |
 | [`ProjectGraph`](_autosummary/nw.html.md#nw.ProjectGraph)(project)                              | Typed read/write facade over the project's lacing graph store.                                                              |
@@ -3957,7 +3961,7 @@ A gap on the timeline between two shots.
 
 Configuration for the model, should be a dictionary conforming to [`ConfigDict`][pydantic.config.ConfigDict].
 
-### *class* nw.Genre(slug, title, description='', body_schema_uris=(), transform_names=(), strategy_names=(), projection_entrypoint=None, folder_conventions=dict(), status='available', templates=(), intake_kinds=(), cost_profile=None, defaults=dict())
+### *class* nw.Genre(slug, title, description='', body_schema_uris=(), transform_names=(), strategy_names=(), projection_entrypoint=None, folder_conventions=dict(), status='available', templates=(), intake_kinds=(), cost_profile=None, defaults=dict(), stages=())
 
 Bases: [`object`](https://docs.python.org/3/builtins/functions.html#object)
 
@@ -4037,6 +4041,12 @@ Declared `transform_names` not (yet) present in `nw.transforms`.
 
 * **Return type:**
   [`list`](https://docs.python.org/3/builtins/stdtypes.html#list)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]
+
+#### stages *: [tuple](https://docs.python.org/3/builtins/stdtypes.html#tuple)[[Stage](_autosummary/nw.stages.html.md#nw.stages.Stage), ...]* *= ()*
+
+The plain-English stages of this kind of production, in order (reelee#458;
+[`nw.stages`](_autosummary/nw.stages.html.md#module-nw.stages) is the spec). Declared here once so the step list, “Step N
+of M” and the remaining-cost total all read the engine, never an app’s text.
 
 #### template(slug)
 
@@ -4962,6 +4972,33 @@ Compatible with muvid’s SongInfo by field name and type.
 #### model_config *: [ClassVar](https://docs.python.org/3/library/typing.html#typing.ClassVar)[ConfigDict]* *= {'extra': 'ignore'}*
 
 Configuration for the model, should be a dictionary conforming to [`ConfigDict`][pydantic.config.ConfigDict].
+
+### *class* nw.Stage(slug, name, free=False, transform_names=(), body_schema_uris=(), description='')
+
+Bases: [`object`](https://docs.python.org/3/builtins/functions.html#object)
+
+One plain-English step of a genre. Pure data; see the module docstring.
+
+#### body_schema_uris *: [tuple](https://docs.python.org/3/builtins/stdtypes.html#tuple)[[str](https://docs.python.org/3/builtins/stdtypes.html#str), ...]* *= ()*
+
+Body schemas that evidence the stage when no transform makes it (an idea the
+person typed in). Matched on the annotation’s `body_schema_uri`.
+
+#### free *: [bool](https://docs.python.org/3/builtins/functions.html#bool)* *= False*
+
+it never spends, so its price is `0.0` without asking anyone.
+
+* **Type:**
+  Declared free
+
+#### *property* is_derivable *: [bool](https://docs.python.org/3/builtins/functions.html#bool)*
+
+Whether the graph can show this stage at all.
+
+#### transform_names *: [tuple](https://docs.python.org/3/builtins/stdtypes.html#tuple)[[str](https://docs.python.org/3/builtins/stdtypes.html#str), ...]* *= ()*
+
+Transforms that carry the stage out; an output is theirs when its
+`was_generated_by` is `transform:<name>@...`.
 
 ### *class* nw.StoredUnproducedOutput(annotation_id, body)
 
@@ -6594,6 +6631,39 @@ Inspect `shots/<shot_id>/output.mp4` and return a typed report.
 * **Returns:**
   A [`ShotReport`](_autosummary/nw.html.md#nw.ShotReport).
 
+### nw.stage_overview(genre, project, , quote=None, active_transforms=())
+
+The one JSON-able answer: stages with state and price, “Step N of M”, and the
+total still to spend. `genre` is an [`nw.Genre`](_autosummary/nw.html.md#nw.Genre) or its slug.
+
+`step` is the 1-based position of the first stage not `done` (`of` when all
+are). `remaining_total_usd` sums the price of every stage not `done` and is
+`None` when any of them is unknown.
+
+* **Return type:**
+  [`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)
+
+### nw.stage_prices(stages, quote=None)
+
+Compose each stage’s price now. `quote(stage)` returns USD, an
+[`nw.PlanQuote`](_autosummary/nw.html.md#nw.PlanQuote) (its `total_usd`), or `None`; no `quote` means every
+paid stage is unknown. A raising quoter is unknown too: a price we could not
+work out is not a price.
+
+* **Return type:**
+  [`list`](https://docs.python.org/3/builtins/stdtypes.html#list)[[`StagePrice`](_autosummary/nw.stages.html.md#nw.stages.StagePrice)]
+
+### nw.stage_states(stages, project, , active_transforms=())
+
+Where `project` stands in each of `stages`, read from its graph.
+
+`project` is anything the graph surfaces accept (a path, a storage, a
+`nw.Project`). `active_transforms` are transform names with a job running
+now, which the graph cannot know; a stage that owns one is `in_progress`.
+
+* **Return type:**
+  [`list`](https://docs.python.org/3/builtins/stdtypes.html#list)[[`StageState`](_autosummary/nw.stages.html.md#nw.stages.StageState)]
+
 ### nw.stale_after(project_root, changed_id)
 
 Return every annotation that `changed_id` actually invalidated.
@@ -6866,6 +6936,7 @@ True
 | [`schema`](_autosummary/nw.schema.html.md#module-nw.schema)                           | Schema for an nw project — narrative-workflow SSOT data shapes.                                                                 |
 | [`script_segmentation`](_autosummary/nw.script_segmentation.html.md#module-nw.script_segmentation) | `nw.script_segmentation` — narrow LLM-backed helper that converts a free-form script into a list of storyboard-panel proposals. |
 | [`secrets`](_autosummary/nw.secrets.html.md#module-nw.secrets)                         | Execution secrets — credentials that reach `execute` and nothing else.                                                          |
+| [`stages`](_autosummary/nw.stages.html.md#module-nw.stages)                           | Stages: the plain-English steps of a kind of production, owned by the engine (reelee#458).                                      |
 | [`storage`](_autosummary/nw.storage.html.md#module-nw.storage)                         | Where a project's state lives: the project-storage seam (nw#101).                                                               |
 | [`transforms`](_autosummary/nw.transforms.html.md#nw.transforms)                          | A typed dict-backed plugin registry.                                                                                            |
 | [`validation`](_autosummary/nw.validation.html.md#module-nw.validation)                   | Pluggable validation of finished work — the seam, not the checks.                                                               |
@@ -10039,6 +10110,161 @@ so the `with` shape stays uniform.
   [`AbstractContextManager`](https://docs.python.org/3/library/contextlib.html#contextlib.AbstractContextManager)[[`Any`](https://docs.python.org/3/library/typing.html#typing.Any)]
 
 
+# _autosummary/nw.stages.html.md
+
+# nw.stages
+
+Stages: the plain-English steps of a kind of production, owned by the engine (reelee#458).
+
+A *stage* is a fact about a **kind of production** (short film, music video,
+podcast), not about a screen: “Make the reference images” is several transforms, and
+a person means the whole. Before this module the stage list existed only as display
+text in an app, so “Step 3 of 6”, the stage list and the banner total could disagree
+and none of them was real.
+
+One source, three derived facts, each with a single owner:
+
+- **Declaration** — [`Stage`](_autosummary/nw.stages.html.md#nw.stages.Stage), on [`nw.Genre.stages`](_autosummary/nw.html.md#nw.Genre.stages) (pure data: a
+  plain-English `name`, whether it is `free`, and the `transform_names` /
+  `body_schema_uris` that carry it out or evidence it).
+- **State** — [`stage_states()`](_autosummary/nw.stages.html.md#nw.stages.stage_states), *derived from the graph and never stored*:
+  `not_started` (nothing produced), `in_progress` (something produced but stale,
+  or a job for one of its transforms is running), `done` (produced, none stale), or
+  `unknown` (the stage names nothing the graph could show, so we do not guess).
+  Staleness is [`nw.freshness.stale_verdicts_all()`](_autosummary/nw.freshness.html.md#nw.freshness.stale_verdicts_all)’s; the rule is not restated.
+  The graph cannot say how many outputs a stage *should* have (how many shots), so
+  `done` means “has output and none of it is out of date”, and the app can pass
+  `active_transforms` to say a stage is mid-run.
+- **Price** — [`stage_prices()`](_autosummary/nw.stages.html.md#nw.stages.stage_prices), composed **at ask time** from a caller-supplied
+  `quote` (the app builds the plan; [`nw.current_quote()`](_autosummary/nw.html.md#nw.current_quote) re-prices it, the
+  nw#74 rule). A free stage is `0.0` because it was *declared* free; a stage
+  nobody can quote is `None` — **unknown, never free**.
+
+[`stage_overview()`](_autosummary/nw.stages.html.md#nw.stages.stage_overview) is the one JSON-able answer every surface reads, so the step
+list, “Step N of M” and the banner total cannot disagree. The remaining total is
+`None` when any unfinished paid stage is unknown: a missing total beats a wrong
+one (reelee-web#305).
+
+```pycon
+>>> from nw.genres import Genre
+>>> g = Genre(slug="demo_stages", title="Demo", transform_names=("a.t",),
+...           stages=(Stage("idea", "The idea", free=True),
+...                   Stage("make", "Make it", transform_names=("a.t",))))
+>>> [s.name for s in g.stages]
+['The idea', 'Make it']
+>>> stage_prices(g.stages, lambda s: 1.5)[1].total_usd
+1.5
+>>> stage_prices(g.stages, lambda s: None)[1].status
+'unknown'
+```
+
+### Module Attributes
+
+| [`STAGE_STATES`](_autosummary/nw.stages.html.md#nw.stages.STAGE_STATES)   | `not_started` / `in_progress` / `done` / `unknown` — see the module docstring.   |
+|-----------------------------------------------------------------|----------------------------------------------------------------------------------|
+
+### Functions
+
+| [`stage_overview`](_autosummary/nw.stages.html.md#nw.stages.stage_overview)(genre, project, \*[, quote, ...])   | The one JSON-able answer: stages with state and price, "Step N of M", and the total still to spend.       |
+|-----------------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------|
+| [`stage_prices`](_autosummary/nw.stages.html.md#nw.stages.stage_prices)(stages[, quote])                      | Compose each stage's price now.                                                                           |
+| [`stage_states`](_autosummary/nw.stages.html.md#nw.stages.stage_states)(stages, project, \*[, ...])           | Where `project` stands in each of `stages`, read from its graph.                                          |
+| [`validate_stages`](_autosummary/nw.stages.html.md#nw.stages.validate_stages)(genre_slug, stages, known)         | Raise `ValueError` unless `stages` are well-formed against the genre's own `known` transforms/strategies. |
+
+### Classes
+
+| [`Stage`](_autosummary/nw.stages.html.md#nw.stages.Stage)(slug, name[, free, transform_names, ...])   | One plain-English step of a genre.   |
+|----------------------------------------------------------------------------------------------------|--------------------------------------|
+| [`StagePrice`](_autosummary/nw.stages.html.md#nw.stages.StagePrice)(total_usd, status)                     | A stage's price today.               |
+| [`StageState`](_autosummary/nw.stages.html.md#nw.stages.StageState)(stage, state[, produced, stale])       |                                      |
+
+### nw.stages.STAGE_STATES *= ('not_started', 'in_progress', 'done', 'unknown')*
+
+`not_started` / `in_progress` / `done` / `unknown` — see the module docstring.
+
+### *class* nw.stages.Stage(slug, name, free=False, transform_names=(), body_schema_uris=(), description='')
+
+Bases: [`object`](https://docs.python.org/3/builtins/functions.html#object)
+
+One plain-English step of a genre. Pure data; see the module docstring.
+
+#### body_schema_uris *: [tuple](https://docs.python.org/3/builtins/stdtypes.html#tuple)[[str](https://docs.python.org/3/builtins/stdtypes.html#str), ...]* *= ()*
+
+Body schemas that evidence the stage when no transform makes it (an idea the
+person typed in). Matched on the annotation’s `body_schema_uri`.
+
+#### free *: [bool](https://docs.python.org/3/builtins/functions.html#bool)* *= False*
+
+it never spends, so its price is `0.0` without asking anyone.
+
+* **Type:**
+  Declared free
+
+#### *property* is_derivable *: [bool](https://docs.python.org/3/builtins/functions.html#bool)*
+
+Whether the graph can show this stage at all.
+
+#### transform_names *: [tuple](https://docs.python.org/3/builtins/stdtypes.html#tuple)[[str](https://docs.python.org/3/builtins/stdtypes.html#str), ...]* *= ()*
+
+Transforms that carry the stage out; an output is theirs when its
+`was_generated_by` is `transform:<name>@...`.
+
+### *class* nw.stages.StagePrice(total_usd, status)
+
+Bases: [`object`](https://docs.python.org/3/builtins/functions.html#object)
+
+A stage’s price today. `total_usd is None` means unknown, never free.
+
+#### status *: [str](https://docs.python.org/3/builtins/stdtypes.html#str)*
+
+`"free"` (declared), `"quoted"`, or `"unknown"`.
+
+### *class* nw.stages.StageState(stage, state, produced=0, stale=0)
+
+Bases: [`object`](https://docs.python.org/3/builtins/functions.html#object)
+
+### nw.stages.stage_overview(genre, project, , quote=None, active_transforms=())
+
+The one JSON-able answer: stages with state and price, “Step N of M”, and the
+total still to spend. `genre` is an [`nw.Genre`](_autosummary/nw.html.md#nw.Genre) or its slug.
+
+`step` is the 1-based position of the first stage not `done` (`of` when all
+are). `remaining_total_usd` sums the price of every stage not `done` and is
+`None` when any of them is unknown.
+
+* **Return type:**
+  [`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)
+
+### nw.stages.stage_prices(stages, quote=None)
+
+Compose each stage’s price now. `quote(stage)` returns USD, an
+[`nw.PlanQuote`](_autosummary/nw.html.md#nw.PlanQuote) (its `total_usd`), or `None`; no `quote` means every
+paid stage is unknown. A raising quoter is unknown too: a price we could not
+work out is not a price.
+
+* **Return type:**
+  [`list`](https://docs.python.org/3/builtins/stdtypes.html#list)[[`StagePrice`](_autosummary/nw.stages.html.md#nw.stages.StagePrice)]
+
+### nw.stages.stage_states(stages, project, , active_transforms=())
+
+Where `project` stands in each of `stages`, read from its graph.
+
+`project` is anything the graph surfaces accept (a path, a storage, a
+`nw.Project`). `active_transforms` are transform names with a job running
+now, which the graph cannot know; a stage that owns one is `in_progress`.
+
+* **Return type:**
+  [`list`](https://docs.python.org/3/builtins/stdtypes.html#list)[[`StageState`](_autosummary/nw.stages.html.md#nw.stages.StageState)]
+
+### nw.stages.validate_stages(genre_slug, stages, known)
+
+Raise `ValueError` unless `stages` are well-formed against the genre’s own
+`known` transforms/strategies. Called by [`nw.Genre`](_autosummary/nw.html.md#nw.Genre).
+
+* **Return type:**
+  [`None`](https://docs.python.org/3/builtins/constants.html#None)
+
+
 # _autosummary/nw.storage.html.md
 
 # nw.storage
@@ -10942,7 +11168,7 @@ produce different URLs. The local file paths are byte-stable.
 
 # About this build
 
-This documentation was built on **2026-10-30 07:27 UTC** from commit <a href="https://github.com/reeleehq/nw/commit/93c76d02bf9d6c8d2fd939dbb96082a66bb500dc"><code>93c76d0</code></a> on branch <code>main</code>, for **nw 0.0.109** (from <code>pyproject.toml</code>).
+This documentation was built on **2026-10-30 07:49 UTC** from commit <a href="https://github.com/reeleehq/nw/commit/429925971988f711f5bbef3bd42fb029f1dda9a6"><code>4299259</code></a> on branch <code>main</code>, for **nw 0.0.110** (from <code>pyproject.toml</code>).
 
 #### NOTE
 Nothing suggests a mismatch: the tree was clean at the commit above, and the documented version is the one on PyPI.
@@ -10951,9 +11177,9 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 
 |                     |                                                                                                                                                    |
 |---------------------|----------------------------------------------------------------------------------------------------------------------------------------------------|
-| Commit              | <a href="https://github.com/reeleehq/nw/commit/93c76d02bf9d6c8d2fd939dbb96082a66bb500dc"><code>93c76d02bf9d6c8d2fd939dbb96082a66bb500dc</code></a> |
+| Commit              | <a href="https://github.com/reeleehq/nw/commit/429925971988f711f5bbef3bd42fb029f1dda9a6"><code>429925971988f711f5bbef3bd42fb029f1dda9a6</code></a> |
 | Branch              | <code>main</code>                                                                                                                                  |
-| Tags at this commit | <code>0.0.109</code>                                                                                                                               |
+| Tags at this commit | <code>0.0.110</code>                                                                                                                               |
 | Working tree        | clean                                                                                                                                              |
 | Remote              | <code>https://github.com/reeleehq/nw</code>                                                                                                        |
 
@@ -10962,9 +11188,9 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 |              |                                                                                            |
 |--------------|--------------------------------------------------------------------------------------------|
 | Repository   | <code>reeleehq/nw</code>                                                                   |
-| Run          | <a href="https://github.com/reeleehq/nw/actions/runs/41019889320">41019889320</a>          |
+| Run          | <a href="https://github.com/reeleehq/nw/actions/runs/41022187534">41022187534</a>          |
 | Ref          | <code>refs/heads/main</code>                                                               |
-| Event commit | <code>d00383978954f3ef490558890313cee64af0dc1c</code> (in the history of the built commit) |
+| Event commit | <code>47397704ec073e49558eb2735ae6cd8925c9ba87</code> (in the history of the built commit) |
 
 ## Tools
 
@@ -10989,13 +11215,13 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 
 ## Package on PyPI
 
-Latest release: <a href="https://pypi.org/project/nw/0.0.109/">0.0.109</a>, the same as the documented version.
+Latest release: <a href="https://pypi.org/project/nw/0.0.110/">0.0.110</a>, the same as the documented version.
 
 ## Reproduce
 
 ```bash
 git clone https://github.com/reeleehq/nw && cd nw
-git checkout 93c76d02bf9d6c8d2fd939dbb96082a66bb500dc
+git checkout 429925971988f711f5bbef3bd42fb029f1dda9a6
 pip install "epythet==0.2.22"
 epythet quickstart . --ignore tests/ scrap/ examples/
 ```

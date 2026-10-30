@@ -1,0 +1,29 @@
+nw.stages
+=========
+
+.. automodule:: nw.stages
+
+   
+   .. rubric:: Module Attributes
+
+   .. autosummary::
+   
+      STAGE_STATES
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      stage_overview
+      stage_prices
+      stage_states
+      validate_stages
+   
+   .. rubric:: Classes
+
+   .. autosummary::
+   
+      Stage
+      StagePrice
+      StageState
+   

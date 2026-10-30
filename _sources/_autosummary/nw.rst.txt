@@ -10,6 +10,9 @@
    
       parse_ref
       format_ref
+      stage_overview
+      stage_prices
+      stage_states
       genre_catalog
       describe_genre
       recommend_genre
@@ -105,6 +108,7 @@
       Gap
       Genre
       Template
+      Stage
       GenreOp
       Project
       ProjectGraph
@@ -177,6 +181,7 @@
    schema
    script_segmentation
    secrets
+   stages
    storage
    storyboard
    transforms

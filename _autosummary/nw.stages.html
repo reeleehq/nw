@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="en" data-accent-color="grass" data-content_root="../">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"><title>nw.stages - nw</title><link rel="index" title="Index" href="../genindex.html" /><link rel="search" title="Search" href="../search.html" /><link rel="next" title="nw.storage" href="nw.storage.html" /><link rel="prev" title="nw.secrets" href="nw.secrets.html" /><script>
+    function setColorMode(t){let e=document.documentElement;e.setAttribute("data-color-mode",t);let a=window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches,s=t;"auto"===t&&(s=a?"dark":"light"),"light"===s?(e.classList.remove("dark"),e.classList.add("light")):(e.classList.remove("light"),e.classList.add("dark"))}
+    setColorMode(localStorage._theme||"auto");
+  </script><link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=d88b86f9" />
+    <link rel="stylesheet" type="text/css" href="../_static/shibuya.css?v=2ceb65ce" />
+    <link rel="stylesheet" type="text/css" href="../_static/sphinx_autodoc_typehints.css?v=057ac668" />
+    <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
+    <link media="print" rel="stylesheet" type="text/css" href="../_static/print.css?v=20ff2c19" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --sy-f-text: "Inter", var(--sy-f-sys), var(--sy-f-cjk), sans-serif;
+  --sy-f-heading: "Inter", var(--sy-f-sys), var(--sy-f-cjk), sans-serif;
+}
+</style>
+    
+  <meta property="og:type" content="website"/><meta property="og:title" content="nw.stages"/>
+    <meta name="twitter:card" content="summary"/>
+  
+<link rel="alternate" type="text/markdown" href="nw.stages.html.md">
+<link rel="describedby" href="../llms.txt" type="text/markdown">
+</head>
+<body><div class="sy-head">
+  <div class="sy-head-blur"></div>
+  <div class="sy-head-inner sy-container mx-auto">
+    <a class="sy-head-brand" href="../index.html">
+      
+      
+      <strong>nw</strong>
+    </a>
+    <div class="sy-head-nav" id="head-nav">
+      <nav class="sy-head-links"></nav>
+      <div class="sy-head-extra flex items-center print:hidden"><form class="searchbox flex items-center" action="../search.html" method="get">
+  <input type="text" name="q" placeholder="Search" />
+  <kbd>/</kbd>
+</form><div class="sy-head-socials">
+  <a href="https://github.com/thorwhalen/nw" aria-label="GitHub">
+    <iconify-icon icon="simple-icons:github"></iconify-icon>
+  </a></div></div>
+    </div>
+    <div class="sy-head-actions flex items-center shrink-0 print:hidden"><button class="js-theme theme-switch flex items-center"
+data-aria-auto="Switch to light color mode"
+data-aria-light="Switch to dark color mode"
+data-aria-dark="Switch to auto color mode">
+<i class="i-lucide theme-icon"></i>
+</button><button class="md:hidden flex items-center js-menu" aria-label="Menu" type="button" aria-controls="head-nav" aria-expanded="false">
+        <div class="hamburger">
+          <span class="hamburger_1"></span>
+          <span class="hamburger_2"></span>
+          <span class="hamburger_3"></span>
+        </div>
+      </button>
+    </div>
+  </div>
+</div>
+<div class="sy-page sy-container flex mx-auto">
+  <aside id="lside" class="sy-lside md:w-72 md:shrink-0 print:hidden">
+    <div class="sy-lside-inner md:sticky">
+      <div class="sy-scrollbar p-6">
+        <div class="globaltoc" data-expand-depth="0"><ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="../api.html">API reference</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="nw.html">nw</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="nw.freshness.html">nw.freshness</a></li>
+<li class="toctree-l3"><a class="reference internal" href="nw.inspect.html">nw.inspect</a></li>
+<li class="toctree-l3"><a class="reference internal" href="nw.checks.html">nw.checks</a></li>
+<li class="toctree-l3"><a class="reference internal" href="nw.batches.html">nw.batches</a></li>
+<li class="toctree-l3"><a class="reference internal" href="nw.bodies.html">nw.bodies</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="nw.bodies.character_ref.html">nw.bodies.character_ref</a></li>
+<li class="toctree-l4"><a class="reference internal" href="nw.bodies.decision.html">nw.bodies.decision</a></li>
+<li class="toctree-l4"><a class="reference internal" href="nw.bodies.environment_ref.html">nw.bodies.environment_ref</a></li>
+<li class="toctree-l4"><a class="reference internal" href="nw.bodies.genre_envelope.html">nw.bodies.genre_envelope</a></li>
+<li class="toctree-l4"><a class="reference internal" href="nw.bodies.render_result.html">nw.bodies.render_result</a></li>
+<li class="toctree-l4"><a class="reference internal" href="nw.bodies.section.html">nw.bodies.section</a></li>
+<li class="toctree-l4"><a class="reference internal" href="nw.bodies.shot.html">nw.bodies.shot</a></li>
+<li class="toctree-l4"><a class="reference internal" href="nw.bodies.unproduced_output.html">nw.bodies.unproduced_output</a></li>
+<li class="toctree-l4"><a class="reference internal" href="nw.bodies.verifying_trace.html">nw.bodies.verifying_trace</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="nw.compat.html">nw.compat</a></li>
+<li class="toctree-l3"><a class="reference internal" href="nw.delivery.html">nw.delivery</a></li>
+<li class="toctree-l3"><a class="reference internal" href="nw.experiment.html">nw.experiment</a></li>
+<li class="toctree-l3"><a class="reference internal" href="nw.genres.html">nw.genres</a></li>
+<li class="toctree-l3"><a class="reference internal" href="nw.graph.html">nw.graph</a></li>
+<li class="toctree-l3"><a class="reference internal" href="nw.graph_backend.html">nw.graph_backend</a></li>
+<li class="toctree-l3"><a class="reference internal" href="nw.jobs.html">nw.jobs</a></li>
+<li class="toctree-l3"><a class="reference internal" href="nw.media_catalog.html">nw.media_catalog</a></li>
+<li class="toctree-l3"><a class="reference internal" href="nw.media_store.html">nw.media_store</a></li>
+<li class="toctree-l3"><a class="reference internal" href="nw.migrate.html">nw.migrate</a></li>
+<li class="toctree-l3"><a class="reference internal" href="nw.pricing.html">nw.pricing</a></li>
+<li class="toctree-l3"><a class="reference internal" href="nw.project.html">nw.project</a></li>
+<li class="toctree-l3"><a class="reference internal" href="nw.renderers.html">nw.renderers</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="nw.renderers.composite_lipsync.html">nw.renderers.composite_lipsync</a></li>
+<li class="toctree-l4"><a class="reference internal" href="nw.renderers.image_to_video.html">nw.renderers.image_to_video</a></li>
+<li class="toctree-l4"><a class="reference internal" href="nw.renderers.lipsync.html">nw.renderers.lipsync</a></li>
+<li class="toctree-l4"><a class="reference internal" href="nw.renderers.still.html">nw.renderers.still</a></li>
+<li class="toctree-l4"><a class="reference internal" href="nw.renderers.text_to_video.html">nw.renderers.text_to_video</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="nw.rewrite.html">nw.rewrite</a></li>
+<li class="toctree-l3"><a class="reference internal" href="nw.schema.html">nw.schema</a></li>
+<li class="toctree-l3"><a class="reference internal" href="nw.script_segmentation.html">nw.script_segmentation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="nw.secrets.html">nw.secrets</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">nw.stages</a></li>
+<li class="toctree-l3"><a class="reference internal" href="nw.storage.html">nw.storage</a></li>
+<li class="toctree-l3"><a class="reference internal" href="nw.transforms.html">nw.transforms</a></li>
+<li class="toctree-l3"><a class="reference internal" href="nw.validation.html">nw.validation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="nw.workflow.html">nw.workflow</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../ai-agents.html">For AI agents</a></li>
+</ul>
+
+        </div>
+      </div>
+    </div>
+  </aside>
+  <div class="lside-overlay js-menu" role="button" aria-label="Close left sidebar" aria-controls="lside" aria-expanded="false"></div>
+  <aside id="rside" class="sy-rside pb-3 w-64 shrink-0 order-last">
+    <button class="rside-close js-menu xl:hidden" aria-label="Close Table of Contents" type="button" aria-controls="rside" aria-expanded="false">
+      <i class="i-lucide close"></i>
+    </button>
+    <div class="sy-scrollbar sy-rside-inner px-6 xl:top-16 xl:sticky xl:pl-0 pt-6 pb-4"><div class="localtoc"><h3>On this page</h3><ul>
+<li><a class="reference internal" href="#nw.stages.STAGE_STATES"><code class="docutils literal notranslate"><span class="pre">STAGE_STATES</span></code></a></li>
+<li><a class="reference internal" href="#nw.stages.Stage"><code class="docutils literal notranslate"><span class="pre">Stage</span></code></a><ul>
+<li><a class="reference internal" href="#nw.stages.Stage.body_schema_uris"><code class="docutils literal notranslate"><span class="pre">Stage.body_schema_uris</span></code></a></li>
+<li><a class="reference internal" href="#nw.stages.Stage.free"><code class="docutils literal notranslate"><span class="pre">Stage.free</span></code></a></li>
+<li><a class="reference internal" href="#nw.stages.Stage.is_derivable"><code class="docutils literal notranslate"><span class="pre">Stage.is_derivable</span></code></a></li>
+<li><a class="reference internal" href="#nw.stages.Stage.transform_names"><code class="docutils literal notranslate"><span class="pre">Stage.transform_names</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#nw.stages.StagePrice"><code class="docutils literal notranslate"><span class="pre">StagePrice</span></code></a><ul>
+<li><a class="reference internal" href="#nw.stages.StagePrice.status"><code class="docutils literal notranslate"><span class="pre">StagePrice.status</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#nw.stages.StageState"><code class="docutils literal notranslate"><span class="pre">StageState</span></code></a></li>
+<li><a class="reference internal" href="#nw.stages.stage_overview"><code class="docutils literal notranslate"><span class="pre">stage_overview()</span></code></a></li>
+<li><a class="reference internal" href="#nw.stages.stage_prices"><code class="docutils literal notranslate"><span class="pre">stage_prices()</span></code></a></li>
+<li><a class="reference internal" href="#nw.stages.stage_states"><code class="docutils literal notranslate"><span class="pre">stage_states()</span></code></a></li>
+<li><a class="reference internal" href="#nw.stages.validate_stages"><code class="docutils literal notranslate"><span class="pre">validate_stages()</span></code></a></li>
+</ul>
+</div><div id="ethical-ad-placement" data-ea-publisher="readthedocs"></div></div>
+  </aside>
+  <div class="rside-overlay js-menu" role="button" aria-label="Close Table of Contents" aria-controls="rside" aria-expanded="false"></div>
+  <main class="sy-main w-full max-sm:max-w-full print:pt-6">
+<div class="sy-breadcrumbs" role="navigation">
+  <div class="sy-breadcrumbs-inner flex items-center">
+    <div class="md:hidden mr-3">
+      <button class="js-menu" aria-label="Menu" type="button" aria-controls="lside" aria-expanded="false">
+        <i class="i-lucide menu"></i>
+      </button>
+    </div>
+    <ol class="flex-1" itemscope itemtype="https://schema.org/BreadcrumbList"><li itemprop="itemListElement" itemscope itemtype="https://schema.org/ListItem">
+        <a itemprop="item" href="../index.html"><span itemprop="name">nw</span></a>
+        <span>/</span>
+        <meta itemprop="position" content="1" />
+      </li><li itemprop="itemListElement" itemscope itemtype="https://schema.org/ListItem">
+        <a itemprop="item" href="../api.html"><span itemprop="name">API reference</span></a>
+        <span>/</span>
+        <meta itemprop="position" content="2" />
+      </li><li itemprop="itemListElement" itemscope itemtype="https://schema.org/ListItem">
+        <a itemprop="item" href="nw.html"><span itemprop="name">nw</span></a>
+        <span>/</span>
+        <meta itemprop="position" content="3" />
+      </li><li itemprop="itemListElement" itemscope itemtype="https://schema.org/ListItem">
+        <strong itemprop="name">nw.stages</strong>
+        <meta itemprop="position" content="4" />
+      </li></ol>
+    <div class="xl:hidden ml-1">
+      <button class="js-menu" aria-label="Show table of contents" type="button" aria-controls="rside"
+        aria-expanded="false">
+        <i class="i-lucide outdent"></i>
+      </button>
+    </div>
+  </div>
+</div><div class="flex flex-col break-words justify-between">
+      <div class="relative min-w-0 max-w-6xl px-6 pb-6 pt-8 xl:px-12">
+  <article class="yue dark-code" role="main">
+          <section id="module-nw.stages">
+<span id="nw-stages"></span><h1>nw.stages<a class="headerlink" href="#module-nw.stages" title="Link to this heading">#</a></h1>
+<p>Stages: the plain-English steps of a kind of production, owned by the engine (reelee#458).</p>
+<p>A <em>stage</em> is a fact about a <strong>kind of production</strong> (short film, music video,
+podcast), not about a screen: “Make the reference images” is several transforms, and
+a person means the whole. Before this module the stage list existed only as display
+text in an app, so “Step 3 of 6”, the stage list and the banner total could disagree
+and none of them was real.</p>
+<p>One source, three derived facts, each with a single owner:</p>
+<ul class="simple">
+<li><p><strong>Declaration</strong> — <a class="reference internal" href="#nw.stages.Stage" title="nw.stages.Stage"><code class="xref py py-class docutils literal notranslate"><span class="pre">Stage</span></code></a>, on <a class="reference internal" href="nw.html#nw.Genre.stages" title="nw.Genre.stages"><code class="xref py py-attr docutils literal notranslate"><span class="pre">nw.Genre.stages</span></code></a> (pure data: a
+plain-English <code class="docutils literal notranslate"><span class="pre">name</span></code>, whether it is <code class="docutils literal notranslate"><span class="pre">free</span></code>, and the <code class="docutils literal notranslate"><span class="pre">transform_names</span></code> /
+<code class="docutils literal notranslate"><span class="pre">body_schema_uris</span></code> that carry it out or evidence it).</p></li>
+<li><p><strong>State</strong> — <a class="reference internal" href="#nw.stages.stage_states" title="nw.stages.stage_states"><code class="xref py py-func docutils literal notranslate"><span class="pre">stage_states()</span></code></a>, <em>derived from the graph and never stored</em>:
+<code class="docutils literal notranslate"><span class="pre">not_started</span></code> (nothing produced), <code class="docutils literal notranslate"><span class="pre">in_progress</span></code> (something produced but stale,
+or a job for one of its transforms is running), <code class="docutils literal notranslate"><span class="pre">done</span></code> (produced, none stale), or
+<code class="docutils literal notranslate"><span class="pre">unknown</span></code> (the stage names nothing the graph could show, so we do not guess).
+Staleness is <a class="reference internal" href="nw.freshness.html#nw.freshness.stale_verdicts_all" title="nw.freshness.stale_verdicts_all"><code class="xref py py-func docutils literal notranslate"><span class="pre">nw.freshness.stale_verdicts_all()</span></code></a>’s; the rule is not restated.
+The graph cannot say how many outputs a stage <em>should</em> have (how many shots), so
+<code class="docutils literal notranslate"><span class="pre">done</span></code> means “has output and none of it is out of date”, and the app can pass
+<code class="docutils literal notranslate"><span class="pre">active_transforms</span></code> to say a stage is mid-run.</p></li>
+<li><p><strong>Price</strong> — <a class="reference internal" href="#nw.stages.stage_prices" title="nw.stages.stage_prices"><code class="xref py py-func docutils literal notranslate"><span class="pre">stage_prices()</span></code></a>, composed <strong>at ask time</strong> from a caller-supplied
+<code class="docutils literal notranslate"><span class="pre">quote</span></code> (the app builds the plan; <a class="reference internal" href="nw.html#nw.current_quote" title="nw.current_quote"><code class="xref py py-func docutils literal notranslate"><span class="pre">nw.current_quote()</span></code></a> re-prices it, the
+nw#74 rule). A free stage is <code class="docutils literal notranslate"><span class="pre">0.0</span></code> because it was <em>declared</em> free; a stage
+nobody can quote is <code class="docutils literal notranslate"><span class="pre">None</span></code> — <strong>unknown, never free</strong>.</p></li>
+</ul>
+<p><a class="reference internal" href="#nw.stages.stage_overview" title="nw.stages.stage_overview"><code class="xref py py-func docutils literal notranslate"><span class="pre">stage_overview()</span></code></a> is the one JSON-able answer every surface reads, so the step
+list, “Step N of M” and the banner total cannot disagree. The remaining total is
+<code class="docutils literal notranslate"><span class="pre">None</span></code> when any unfinished paid stage is unknown: a missing total beats a wrong
+one (reelee-web#305).</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span data-line="1"><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">nw.genres</span><span class="w"> </span><span class="kn">import</span> <span class="n">Genre</span>
+</span><span data-line="2"><span class="gp">&gt;&gt;&gt; </span><span class="n">g</span> <span class="o">=</span> <span class="n">Genre</span><span class="p">(</span><span class="n">slug</span><span class="o">=</span><span class="s2">"demo_stages"</span><span class="p">,</span> <span class="n">title</span><span class="o">=</span><span class="s2">"Demo"</span><span class="p">,</span> <span class="n">transform_names</span><span class="o">=</span><span class="p">(</span><span class="s2">"a.t"</span><span class="p">,),</span>
+</span><span data-line="3"><span class="gp">... </span>          <span class="n">stages</span><span class="o">=</span><span class="p">(</span><span class="n">Stage</span><span class="p">(</span><span class="s2">"idea"</span><span class="p">,</span> <span class="s2">"The idea"</span><span class="p">,</span> <span class="n">free</span><span class="o">=</span><span class="kc">True</span><span class="p">),</span>
+</span><span data-line="4"><span class="gp">... </span>                  <span class="n">Stage</span><span class="p">(</span><span class="s2">"make"</span><span class="p">,</span> <span class="s2">"Make it"</span><span class="p">,</span> <span class="n">transform_names</span><span class="o">=</span><span class="p">(</span><span class="s2">"a.t"</span><span class="p">,))))</span>
+</span><span data-line="5"><span class="gp">&gt;&gt;&gt; </span><span class="p">[</span><span class="n">s</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">g</span><span class="o">.</span><span class="n">stages</span><span class="p">]</span>
+</span><span data-line="6"><span class="go">['The idea', 'Make it']</span>
+</span><span data-line="7"><span class="gp">&gt;&gt;&gt; </span><span class="n">stage_prices</span><span class="p">(</span><span class="n">g</span><span class="o">.</span><span class="n">stages</span><span class="p">,</span> <span class="k">lambda</span> <span class="n">s</span><span class="p">:</span> <span class="mf">1.5</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">total_usd</span>
+</span><span data-line="8"><span class="go">1.5</span>
+</span><span data-line="9"><span class="gp">&gt;&gt;&gt; </span><span class="n">stage_prices</span><span class="p">(</span><span class="n">g</span><span class="o">.</span><span class="n">stages</span><span class="p">,</span> <span class="k">lambda</span> <span class="n">s</span><span class="p">:</span> <span class="kc">None</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">status</span>
+</span><span data-line="10"><span class="go">'unknown'</span>
+</span></pre></div>
+</div>
+<p class="rubric">Module Attributes</p>
+<div class="table-wrapper autosummary longtable docutils container">
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#nw.stages.STAGE_STATES" title="nw.stages.STAGE_STATES"><code class="xref py py-obj docutils literal notranslate"><span class="pre">STAGE_STATES</span></code></a></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">not_started</span></code> / <code class="docutils literal notranslate"><span class="pre">in_progress</span></code> / <code class="docutils literal notranslate"><span class="pre">done</span></code> / <code class="docutils literal notranslate"><span class="pre">unknown</span></code> — see the module docstring.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p class="rubric">Functions</p>
+<div class="table-wrapper autosummary longtable docutils container">
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#nw.stages.stage_overview" title="nw.stages.stage_overview"><code class="xref py py-obj docutils literal notranslate"><span class="pre">stage_overview</span></code></a>(genre, project, *[, quote, ...])</p></td>
+<td><p>The one JSON-able answer: stages with state and price, &quot;Step N of M&quot;, and the total still to spend.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#nw.stages.stage_prices" title="nw.stages.stage_prices"><code class="xref py py-obj docutils literal notranslate"><span class="pre">stage_prices</span></code></a>(stages[, quote])</p></td>
+<td><p>Compose each stage's price now.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#nw.stages.stage_states" title="nw.stages.stage_states"><code class="xref py py-obj docutils literal notranslate"><span class="pre">stage_states</span></code></a>(stages, project, *[, ...])</p></td>
+<td><p>Where <code class="docutils literal notranslate"><span class="pre">project</span></code> stands in each of <code class="docutils literal notranslate"><span class="pre">stages</span></code>, read from its graph.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#nw.stages.validate_stages" title="nw.stages.validate_stages"><code class="xref py py-obj docutils literal notranslate"><span class="pre">validate_stages</span></code></a>(genre_slug, stages, known)</p></td>
+<td><p>Raise <code class="docutils literal notranslate"><span class="pre">ValueError</span></code> unless <code class="docutils literal notranslate"><span class="pre">stages</span></code> are well-formed against the genre's own <code class="docutils literal notranslate"><span class="pre">known</span></code> transforms/strategies.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p class="rubric">Classes</p>
+<div class="table-wrapper autosummary longtable docutils container">
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#nw.stages.Stage" title="nw.stages.Stage"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Stage</span></code></a>(slug, name[, free, transform_names, ...])</p></td>
+<td><p>One plain-English step of a genre.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#nw.stages.StagePrice" title="nw.stages.StagePrice"><code class="xref py py-obj docutils literal notranslate"><span class="pre">StagePrice</span></code></a>(total_usd, status)</p></td>
+<td><p>A stage's price today.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#nw.stages.StageState" title="nw.stages.StageState"><code class="xref py py-obj docutils literal notranslate"><span class="pre">StageState</span></code></a>(stage, state[, produced, stale])</p></td>
+<td><p></p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<dl class="py data">
+<dt class="sig sig-object py" id="nw.stages.STAGE_STATES">
+<span class="sig-prename descclassname"><span class="pre">nw.stages.</span></span><span class="sig-name descname"><span class="pre">STAGE_STATES</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">('not_started',</span> <span class="pre">'in_progress',</span> <span class="pre">'done',</span> <span class="pre">'unknown')</span></span><a class="headerlink" href="#nw.stages.STAGE_STATES" title="Link to this definition">#</a></dt>
+<dd><p><code class="docutils literal notranslate"><span class="pre">not_started</span></code> / <code class="docutils literal notranslate"><span class="pre">in_progress</span></code> / <code class="docutils literal notranslate"><span class="pre">done</span></code> / <code class="docutils literal notranslate"><span class="pre">unknown</span></code> — see the module docstring.</p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="nw.stages.Stage">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">nw.stages.</span></span><span class="sig-name descname"><span class="pre">Stage</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">slug</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">free</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">transform_names</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">()</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">body_schema_uris</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">()</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">description</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/nw/stages.html#Stage"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nw.stages.Stage" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/builtins/functions.html#object" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>One plain-English step of a genre. Pure data; see the module docstring.</p>
+<dl class="field-list simple">
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="nw.stages.Stage.body_schema_uris">
+<span class="sig-name descname"><span class="pre">body_schema_uris</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#tuple" title="(in Python v3.15)"><span class="pre">tuple</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="p"><span class="pre">...</span></span><span class="p"><span class="pre">]</span></span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">()</span></span><a class="headerlink" href="#nw.stages.Stage.body_schema_uris" title="Link to this definition">#</a></dt>
+<dd><p>Body schemas that evidence the stage when no transform makes it (an idea the
+person typed in). Matched on the annotation’s <code class="docutils literal notranslate"><span class="pre">body_schema_uri</span></code>.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="nw.stages.Stage.free">
+<span class="sig-name descname"><span class="pre">free</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#bool" title="(in Python v3.15)"><span class="pre">bool</span></a></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">False</span></span><a class="headerlink" href="#nw.stages.Stage.free" title="Link to this definition">#</a></dt>
+<dd><p>it never spends, so its price is <code class="docutils literal notranslate"><span class="pre">0.0</span></code> without asking anyone.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Declared free</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="nw.stages.Stage.is_derivable">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">is_derivable</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#bool" title="(in Python v3.15)"><span class="pre">bool</span></a></span><a class="headerlink" href="#nw.stages.Stage.is_derivable" title="Link to this definition">#</a></dt>
+<dd><p>Whether the graph can show this stage at all.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="nw.stages.Stage.transform_names">
+<span class="sig-name descname"><span class="pre">transform_names</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#tuple" title="(in Python v3.15)"><span class="pre">tuple</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="p"><span class="pre">...</span></span><span class="p"><span class="pre">]</span></span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">()</span></span><a class="headerlink" href="#nw.stages.Stage.transform_names" title="Link to this definition">#</a></dt>
+<dd><p>Transforms that carry the stage out; an output is theirs when its
+<code class="docutils literal notranslate"><span class="pre">was_generated_by</span></code> is <code class="docutils literal notranslate"><span class="pre">transform:&lt;name&gt;&#64;...</span></code>.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="nw.stages.StagePrice">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">nw.stages.</span></span><span class="sig-name descname"><span class="pre">StagePrice</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">total_usd</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">status</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/nw/stages.html#StagePrice"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nw.stages.StagePrice" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/builtins/functions.html#object" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>A stage’s price today. <code class="docutils literal notranslate"><span class="pre">total_usd</span> <span class="pre">is</span> <span class="pre">None</span></code> means unknown, never free.</p>
+<dl class="field-list simple">
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="nw.stages.StagePrice.status">
+<span class="sig-name descname"><span class="pre">status</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><span class="pre">str</span></a></span><a class="headerlink" href="#nw.stages.StagePrice.status" title="Link to this definition">#</a></dt>
+<dd><p><code class="docutils literal notranslate"><span class="pre">&quot;free&quot;</span></code> (declared), <code class="docutils literal notranslate"><span class="pre">&quot;quoted&quot;</span></code>, or <code class="docutils literal notranslate"><span class="pre">&quot;unknown&quot;</span></code>.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="nw.stages.StageState">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">nw.stages.</span></span><span class="sig-name descname"><span class="pre">StageState</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">stage</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">state</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">produced</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stale</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/nw/stages.html#StageState"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nw.stages.StageState" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/builtins/functions.html#object" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<dl class="field-list simple">
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="nw.stages.stage_overview">
+<span class="sig-prename descclassname"><span class="pre">nw.stages.</span></span><span class="sig-name descname"><span class="pre">stage_overview</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">genre</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">project</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">quote</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">active_transforms</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">()</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/nw/stages.html#stage_overview"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nw.stages.stage_overview" title="Link to this definition">#</a></dt>
+<dd><p>The one JSON-able answer: stages with state and price, “Step N of M”, and the
+total still to spend. <code class="docutils literal notranslate"><span class="pre">genre</span></code> is an <a class="reference internal" href="nw.html#nw.Genre" title="nw.Genre"><code class="xref py py-class docutils literal notranslate"><span class="pre">nw.Genre</span></code></a> or its slug.</p>
+<p><code class="docutils literal notranslate"><span class="pre">step</span></code> is the 1-based position of the first stage not <code class="docutils literal notranslate"><span class="pre">done</span></code> (<code class="docutils literal notranslate"><span class="pre">of</span></code> when all
+are). <code class="docutils literal notranslate"><span class="pre">remaining_total_usd</span></code> sums the price of every stage not <code class="docutils literal notranslate"><span class="pre">done</span></code> and is
+<code class="docutils literal notranslate"><span class="pre">None</span></code> when any of them is unknown.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#dict" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></a></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="nw.stages.stage_prices">
+<span class="sig-prename descclassname"><span class="pre">nw.stages.</span></span><span class="sig-name descname"><span class="pre">stage_prices</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">stages</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">quote</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/nw/stages.html#stage_prices"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nw.stages.stage_prices" title="Link to this definition">#</a></dt>
+<dd><p>Compose each stage’s price now. <code class="docutils literal notranslate"><span class="pre">quote(stage)</span></code> returns USD, an
+<a class="reference internal" href="nw.html#nw.PlanQuote" title="nw.PlanQuote"><code class="xref py py-class docutils literal notranslate"><span class="pre">nw.PlanQuote</span></code></a> (its <code class="docutils literal notranslate"><span class="pre">total_usd</span></code>), or <code class="docutils literal notranslate"><span class="pre">None</span></code>; no <code class="docutils literal notranslate"><span class="pre">quote</span></code> means every
+paid stage is unknown. A raising quoter is unknown too: a price we could not
+work out is not a price.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#list" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code></a>[<a class="reference internal" href="#nw.stages.StagePrice" title="nw.stages.StagePrice"><code class="xref py py-class docutils literal notranslate"><span class="pre">StagePrice</span></code></a>]</span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="nw.stages.stage_states">
+<span class="sig-prename descclassname"><span class="pre">nw.stages.</span></span><span class="sig-name descname"><span class="pre">stage_states</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">stages</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">project</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">active_transforms</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">()</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/nw/stages.html#stage_states"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nw.stages.stage_states" title="Link to this definition">#</a></dt>
+<dd><p>Where <code class="docutils literal notranslate"><span class="pre">project</span></code> stands in each of <code class="docutils literal notranslate"><span class="pre">stages</span></code>, read from its graph.</p>
+<p><code class="docutils literal notranslate"><span class="pre">project</span></code> is anything the graph surfaces accept (a path, a storage, a
+<code class="docutils literal notranslate"><span class="pre">nw.Project</span></code>). <code class="docutils literal notranslate"><span class="pre">active_transforms</span></code> are transform names with a job running
+now, which the graph cannot know; a stage that owns one is <code class="docutils literal notranslate"><span class="pre">in_progress</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#list" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code></a>[<a class="reference internal" href="#nw.stages.StageState" title="nw.stages.StageState"><code class="xref py py-class docutils literal notranslate"><span class="pre">StageState</span></code></a>]</span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="nw.stages.validate_stages">
+<span class="sig-prename descclassname"><span class="pre">nw.stages.</span></span><span class="sig-name descname"><span class="pre">validate_stages</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">genre_slug</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stages</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">known</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/nw/stages.html#validate_stages"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nw.stages.validate_stages" title="Link to this definition">#</a></dt>
+<dd><p>Raise <code class="docutils literal notranslate"><span class="pre">ValueError</span></code> unless <code class="docutils literal notranslate"><span class="pre">stages</span></code> are well-formed against the genre’s own
+<code class="docutils literal notranslate"><span class="pre">known</span></code> transforms/strategies. Called by <a class="reference internal" href="nw.html#nw.Genre" title="nw.Genre"><code class="xref py py-class docutils literal notranslate"><span class="pre">nw.Genre</span></code></a>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><span class="highlight sphinx_autodoc_typehints-value"><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></a></span></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+
+        </article><button class="back-to-top" type="button">
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+    <path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12z"></path>
+  </svg>
+  <span>Back to top</span>
+</button><div class="navigation flex print:hidden"><div class="navigation-prev">
+    <a href="nw.secrets.html">
+      <i class="i-lucide chevron-left"></i>
+      <div class="page-info">
+        <span>Previous</span><div class="title">nw.secrets</div></div>
+    </a>
+  </div><div class="navigation-next">
+    <a href="nw.storage.html">
+      <div class="page-info">
+        <span>Next</span>
+        <div class="title">nw.storage</div>
+      </div>
+      <i class="i-lucide chevron-right"></i>
+    </a>
+  </div></div></div>
+    </div>
+  </main>
+</div>
+<footer class="sy-foot">
+  <div class="sy-foot-inner sy-container mx-auto">
+    <div class="sy-foot-reserved md:flex justify-between items-center">
+      <div class="sy-foot-copyright">
+  <p>
+    Made with
+    
+    <a href="https://shibuya.lepture.com">Shibuya theme</a>.
+  </p>
+</div>
+      <div class="sy-foot-socials">
+  <a href="https://github.com/thorwhalen/nw" aria-label="GitHub">
+    <iconify-icon icon="simple-icons:github"></iconify-icon>
+  </a></div>
+    </div>
+  </div>
+</footer>
+      <script src="../_static/documentation_options.js?v=c4e26d2d"></script>
+      <script src="../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
+      <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../_static/copybutton.js?v=fd10adb8"></script>
+      <script src="../_static/shibuya.js?v=50760d75"></script></body>
+</html>
