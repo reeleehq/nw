@@ -51,9 +51,8 @@ every id 404 while the write reported success — the defect this module exists 
 remove, reintroduced one layer up. :class:`HostArtifactCatalog` checks it on every
 registration unless told the caller already has.
 
-**What comes next** is nw#95: one content-addressed store shared by every genre and
-the host, replacing each project's private ``blobs/``. Its design is open; when it
-lands it changes where :class:`HostArtifactCatalog` writes, not who calls it.
+**The shared store** (nw#95, :mod:`nw.media_store`) is the ``store=`` keyword of
+:class:`HostArtifactCatalog`: opt-in, default ``None`` (the layout above, unchanged).
 """
 
 from __future__ import annotations
@@ -67,7 +66,10 @@ import shutil
 import time
 from dataclasses import KW_ONLY, dataclass, field
 from pathlib import Path
-from typing import Iterator, Mapping, Optional
+from typing import TYPE_CHECKING, Iterator, Mapping, Optional
+
+if TYPE_CHECKING:
+    from .media_store import SharedMediaStore
 
 #: Where the host keeps a project's artifact store, relative to the project root:
 #: lacing's layout, the host's directory name.
@@ -324,6 +326,14 @@ class HostArtifactCatalog:
     allow_cross_device_copy: bool = False
     check_backend: bool = True
     subpath: tuple[str, ...] = DELIVERY_CATALOG_SUBPATH
+    #: nw#95: a :class:`nw.media_store.SharedMediaStore`. ``None`` (default) keeps the
+    #: historical behaviour, bytes hardlinked from the media into the project's own
+    #: ``blobs/``. Given a store, the bytes go to the store first and the project's
+    #: ``blobs/<sha256>`` becomes a hardlink *to the store's blob*, so the host reads
+    #: exactly what it did, no second copy exists, and every host naming the same
+    #: store shares one inode. The catalog is registered with the store so its GC
+    #: marks from this catalog's rows too.
+    store: Optional["SharedMediaStore"] = None
 
     def __post_init__(self):
         object.__setattr__(self, "project_root", Path(self.project_root))
@@ -453,7 +463,14 @@ class HostArtifactCatalog:
         if blob.exists():
             self._confirm_blob(blob, src, aid)
             report.blobs_present += 1
+            if self.store is not None:
+                self.store.register_catalog(self.rows_dir)
+                self.store.clear_mark(aid)
             return
+        if self.store is not None:
+            # Store first (it clears any GC mark), then link the project to it.
+            src = self.store.blob_path(self.store.put(src, artifact_id=aid))
+            self.store.register_catalog(self.rows_dir)
         try:
             os.link(src, blob)
         except FileExistsError:
