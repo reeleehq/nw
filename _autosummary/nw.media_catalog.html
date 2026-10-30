@@ -2,7 +2,7 @@
 <html lang="en" data-accent-color="grass" data-content_root="../">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"><title>nw.media_catalog - nw</title><link rel="index" title="Index" href="../genindex.html" /><link rel="search" title="Search" href="../search.html" /><link rel="next" title="nw.migrate" href="nw.migrate.html" /><link rel="prev" title="nw.jobs" href="nw.jobs.html" /><script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"><title>nw.media_catalog - nw</title><link rel="index" title="Index" href="../genindex.html" /><link rel="search" title="Search" href="../search.html" /><link rel="next" title="nw.media_store" href="nw.media_store.html" /><link rel="prev" title="nw.jobs" href="nw.jobs.html" /><script>
     function setColorMode(t){let e=document.documentElement;e.setAttribute("data-color-mode",t);let a=window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches,s=t;"auto"===t&&(s=a?"dark":"light"),"light"===s?(e.classList.remove("dark"),e.classList.add("light")):(e.classList.remove("light"),e.classList.add("dark"))}
     setColorMode(localStorage._theme||"auto");
   </script><link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=d88b86f9" />
@@ -90,6 +90,7 @@ data-aria-dark="Switch to auto color mode">
 <li class="toctree-l3"><a class="reference internal" href="nw.graph_backend.html">nw.graph_backend</a></li>
 <li class="toctree-l3"><a class="reference internal" href="nw.jobs.html">nw.jobs</a></li>
 <li class="toctree-l3 current"><a class="current reference internal" href="#">nw.media_catalog</a></li>
+<li class="toctree-l3"><a class="reference internal" href="nw.media_store.html">nw.media_store</a></li>
 <li class="toctree-l3"><a class="reference internal" href="nw.migrate.html">nw.migrate</a></li>
 <li class="toctree-l3"><a class="reference internal" href="nw.pricing.html">nw.pricing</a></li>
 <li class="toctree-l3"><a class="reference internal" href="nw.project.html">nw.project</a></li>
@@ -149,6 +150,7 @@ data-aria-dark="Switch to auto color mode">
 <li><a class="reference internal" href="#nw.media_catalog.HostArtifactCatalog.iter_rows"><code class="docutils literal notranslate"><span class="pre">HostArtifactCatalog.iter_rows()</span></code></a></li>
 <li><a class="reference internal" href="#nw.media_catalog.HostArtifactCatalog.register"><code class="docutils literal notranslate"><span class="pre">HostArtifactCatalog.register()</span></code></a></li>
 <li><a class="reference internal" href="#nw.media_catalog.HostArtifactCatalog.registered_ids"><code class="docutils literal notranslate"><span class="pre">HostArtifactCatalog.registered_ids()</span></code></a></li>
+<li><a class="reference internal" href="#nw.media_catalog.HostArtifactCatalog.store"><code class="docutils literal notranslate"><span class="pre">HostArtifactCatalog.store</span></code></a></li>
 </ul>
 </li>
 <li><a class="reference internal" href="#nw.media_catalog.assert_local_backend"><code class="docutils literal notranslate"><span class="pre">assert_local_backend()</span></code></a></li>
@@ -242,9 +244,8 @@ next to a project whose host reads its artifacts from an object store would make
 every id 404 while the write reported success — the defect this module exists to
 remove, reintroduced one layer up. <a class="reference internal" href="#nw.media_catalog.HostArtifactCatalog" title="nw.media_catalog.HostArtifactCatalog"><code class="xref py py-class docutils literal notranslate"><span class="pre">HostArtifactCatalog</span></code></a> checks it on every
 registration unless told the caller already has.</p>
-<p><strong>What comes next</strong> is nw#95: one content-addressed store shared by every genre and
-the host, replacing each project’s private <code class="docutils literal notranslate"><span class="pre">blobs/</span></code>. Its design is open; when it
-lands it changes where <a class="reference internal" href="#nw.media_catalog.HostArtifactCatalog" title="nw.media_catalog.HostArtifactCatalog"><code class="xref py py-class docutils literal notranslate"><span class="pre">HostArtifactCatalog</span></code></a> writes, not who calls it.</p>
+<p><strong>The shared store</strong> (nw#95, <a class="reference internal" href="nw.media_store.html#module-nw.media_store" title="nw.media_store"><code class="xref py py-mod docutils literal notranslate"><span class="pre">nw.media_store</span></code></a>) is the <code class="docutils literal notranslate"><span class="pre">store=</span></code> keyword of
+<a class="reference internal" href="#nw.media_catalog.HostArtifactCatalog" title="nw.media_catalog.HostArtifactCatalog"><code class="xref py py-class docutils literal notranslate"><span class="pre">HostArtifactCatalog</span></code></a>: opt-in, default <code class="docutils literal notranslate"><span class="pre">None</span></code> (the layout above, unchanged).</p>
 <p class="rubric">Module Attributes</p>
 <div class="table-wrapper autosummary longtable docutils container">
 <table class="autosummary longtable docutils align-default">
@@ -453,7 +454,7 @@ lacing’s layout, the host’s directory name.</p>
 
 <dl class="py class">
 <dt class="sig sig-object py" id="nw.media_catalog.HostArtifactCatalog">
-<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">nw.media_catalog.</span></span><span class="sig-name descname"><span class="pre">HostArtifactCatalog</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">project_root</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">allow_cross_device_copy</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">check_backend</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">subpath</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">('.reelee',</span> <span class="pre">'artifacts')</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/nw/media_catalog.html#HostArtifactCatalog"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nw.media_catalog.HostArtifactCatalog" title="Link to this definition">#</a></dt>
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">nw.media_catalog.</span></span><span class="sig-name descname"><span class="pre">HostArtifactCatalog</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">project_root</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">allow_cross_device_copy</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">check_backend</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">subpath</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">('.reelee',</span> <span class="pre">'artifacts')</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">store</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/nw/media_catalog.html#HostArtifactCatalog"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nw.media_catalog.HostArtifactCatalog" title="Link to this definition">#</a></dt>
 <dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/builtins/functions.html#object" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
 <p>The artifact catalog of the project at <code class="docutils literal notranslate"><span class="pre">project_root</span></code>, in the host’s layout.</p>
 <p><code class="docutils literal notranslate"><span class="pre">allow_cross_device_copy</span></code> pays for a copy where a hardlink is impossible
@@ -540,6 +541,23 @@ let a rewrite out there change the bytes under a digest that names them.</p>
 </dl>
 </dd></dl>
 
+<dl class="py attribute">
+<dt class="sig sig-object py" id="nw.media_catalog.HostArtifactCatalog.store">
+<span class="sig-name descname"><span class="pre">store</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.15)"><span class="pre">Optional</span></a><span class="p"><span class="pre">[</span></span><a class="reference internal" href="nw.media_store.html#nw.media_store.SharedMediaStore" title="nw.media_store.SharedMediaStore"><span class="pre">SharedMediaStore</span></a><span class="p"><span class="pre">]</span></span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></span><a class="headerlink" href="#nw.media_catalog.HostArtifactCatalog.store" title="Link to this definition">#</a></dt>
+<dd><p>a <a class="reference internal" href="nw.media_store.html#nw.media_store.SharedMediaStore" title="nw.media_store.SharedMediaStore"><code class="xref py py-class docutils literal notranslate"><span class="pre">nw.media_store.SharedMediaStore</span></code></a>. <code class="docutils literal notranslate"><span class="pre">None</span></code> (default) keeps the
+historical behaviour, bytes hardlinked from the media into the project’s own
+<code class="docutils literal notranslate"><span class="pre">blobs/</span></code>. Given a store, the bytes go to the store first and the project’s
+<code class="docutils literal notranslate"><span class="pre">blobs/&lt;sha256&gt;</span></code> becomes a hardlink <em>to the store’s blob</em>, so the host reads
+exactly what it did, no second copy exists, and every host naming the same
+store shares one inode. The catalog is registered with the store so its GC
+marks from this catalog’s rows too.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>nw#95</p>
+</dd>
+</dl>
+</dd></dl>
+
 </dd></dl>
 
 <dl class="py function">
@@ -614,10 +632,10 @@ here so the writer can be reasoned about without the graph layer.</p>
         <span>Previous</span><div class="title">nw.jobs</div></div>
     </a>
   </div><div class="navigation-next">
-    <a href="nw.migrate.html">
+    <a href="nw.media_store.html">
       <div class="page-info">
         <span>Next</span>
-        <div class="title">nw.migrate</div>
+        <div class="title">nw.media_store</div>
       </div>
       <i class="i-lucide chevron-right"></i>
     </a>
@@ -642,7 +660,7 @@ here so the writer can be reasoned about without the graph layer.</p>
     </div>
   </div>
 </footer>
-      <script src="../_static/documentation_options.js?v=83be8e66"></script>
+      <script src="../_static/documentation_options.js?v=27c60a7f"></script>
       <script src="../_static/doctools.js?v=fd6eb6e6"></script>
       <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script src="../_static/clipboard.min.js?v=a7894cd8"></script>

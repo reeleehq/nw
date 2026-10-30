@@ -30,6 +30,7 @@
 - [nw.graph_backend](_autosummary/nw.graph_backend.html.md): Config-driven backend selection for nw’s annotation graph stores.
 - [nw.jobs](_autosummary/nw.jobs.html.md): nw.jobs — a project-scoped async &#42;&#42;job&#42;&#42; facade over &#96;au&#96;.
 - [nw.media_catalog](_autosummary/nw.media_catalog.html.md): Make a genre project’s media &#42;retrievable&#42; from its host — the host’s artifact catalog.
+- [nw.media_store](_autosummary/nw.media_store.html.md): One content-addressed blob store per user, shared by every genre and host (nw#95).
 - [nw.migrate](_autosummary/nw.migrate.html.md): Idempotent migration: project.json (sections/shots/refs) → lacing graph.
 - [nw.pricing](_autosummary/nw.pricing.html.md): Re-quoting a persisted plan at today’s rates (nw#74).
 - [nw.project](_autosummary/nw.project.html.md): Project facade: a folder on disk → typed reads, typed writes, typed summary.
@@ -48,7 +49,7 @@
 - [nw.validation](_autosummary/nw.validation.html.md): Pluggable validation of finished work — the seam, not the checks.
 - [nw.workflow](_autosummary/nw.workflow.html.md): Workflow: prepare → plan → execute, for a &#42;&#42;video shot&#42;&#42;.
 - [For AI agents](ai-agents.html.md): &#96;nw&#96; ships artifacts for coding agents alongside its code. This page lists
-- [About this build](about-this-build.html.md): This documentation was built on &#42;&#42;2026-10-27 19:41 UTC&#42;&#42; from commit &lt;a href="https://github.com/ree...
+- [About this build](about-this-build.html.md): This documentation was built on &#42;&#42;2026-10-30 07:27 UTC&#42;&#42; from commit &lt;a href="https://github.com/ree...
 
 ## Optional
 

@@ -3597,6 +3597,7 @@ True
 | [`graph_backend`](nw.graph_backend.html.md#module-nw.graph_backend)             | Config-driven backend selection for nw's annotation graph stores.                                                               |
 | [`jobs`](nw.jobs.html.md#module-nw.jobs)                               | nw.jobs — a project-scoped async **job** facade over `au`.                                                                      |
 | [`media_catalog`](nw.media_catalog.html.md#module-nw.media_catalog)             | Make a genre project's media *retrievable* from its host — the host's artifact catalog.                                         |
+| [`media_store`](nw.media_store.html.md#module-nw.media_store)                 | One content-addressed blob store per user, shared by every genre and host (nw#95).                                              |
 | [`migrate`](nw.migrate.html.md#module-nw.migrate)                         | Idempotent migration: project.json (sections/shots/refs) → lacing graph.                                                        |
 | [`pricing`](nw.pricing.html.md#module-nw.pricing)                         | Re-quoting a persisted plan at today's rates (nw#74).                                                                           |
 | [`project`](nw.project.html.md#module-nw.project)                         | Project facade: a folder on disk → typed reads, typed writes, typed summary.                                                    |

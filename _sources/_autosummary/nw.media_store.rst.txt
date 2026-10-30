@@ -1,0 +1,26 @@
+nw.media\_store
+===============
+
+.. automodule:: nw.media_store
+
+   
+   .. rubric:: Module Attributes
+
+   .. autosummary::
+   
+      DEFAULT_STORE_ROOT
+      DEFAULT_GRACE_S
+   
+   .. rubric:: Classes
+
+   .. autosummary::
+   
+      SharedMediaStore
+      SweepReport
+   
+   .. rubric:: Exceptions
+
+   .. autosummary::
+   
+      StoreCatalogUnreadable
+   

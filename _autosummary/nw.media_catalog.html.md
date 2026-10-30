@@ -53,9 +53,8 @@ every id 404 while the write reported success — the defect this module exists 
 remove, reintroduced one layer up. [`HostArtifactCatalog`](#nw.media_catalog.HostArtifactCatalog) checks it on every
 registration unless told the caller already has.
 
-**What comes next** is nw#95: one content-addressed store shared by every genre and
-the host, replacing each project’s private `blobs/`. Its design is open; when it
-lands it changes where [`HostArtifactCatalog`](#nw.media_catalog.HostArtifactCatalog) writes, not who calls it.
+**The shared store** (nw#95, [`nw.media_store`](nw.media_store.html.md#module-nw.media_store)) is the `store=` keyword of
+[`HostArtifactCatalog`](#nw.media_catalog.HostArtifactCatalog): opt-in, default `None` (the layout above, unchanged).
 
 ### Module Attributes
 
@@ -197,7 +196,7 @@ The project’s blob store cannot hardlink the media (another filesystem).
 Where the host keeps a project’s artifact store, relative to the project root:
 lacing’s layout, the host’s directory name.
 
-### *class* nw.media_catalog.HostArtifactCatalog(project_root, , allow_cross_device_copy=False, check_backend=True, subpath=('.reelee', 'artifacts'))
+### *class* nw.media_catalog.HostArtifactCatalog(project_root, , allow_cross_device_copy=False, check_backend=True, subpath=('.reelee', 'artifacts'), store=None)
 
 Bases: [`object`](https://docs.python.org/3/builtins/functions.html#object)
 
@@ -269,6 +268,19 @@ Every artifact id this catalog currently has a row for.
 
 * **Return type:**
   [`frozenset`](https://docs.python.org/3/builtins/stdtypes.html#frozenset)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]
+
+#### store *: [Optional](https://docs.python.org/3/library/typing.html#typing.Optional)[[SharedMediaStore](nw.media_store.html.md#nw.media_store.SharedMediaStore)]* *= None*
+
+a [`nw.media_store.SharedMediaStore`](nw.media_store.html.md#nw.media_store.SharedMediaStore). `None` (default) keeps the
+historical behaviour, bytes hardlinked from the media into the project’s own
+`blobs/`. Given a store, the bytes go to the store first and the project’s
+`blobs/<sha256>` becomes a hardlink *to the store’s blob*, so the host reads
+exactly what it did, no second copy exists, and every host naming the same
+store shares one inode. The catalog is registered with the store so its GC
+marks from this catalog’s rows too.
+
+* **Type:**
+  nw#95
 
 ### nw.media_catalog.assert_local_backend(env=None, , remedy='skip registration deliberately')
 

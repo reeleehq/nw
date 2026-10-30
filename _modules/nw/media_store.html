@@ -1,0 +1,904 @@
+<!DOCTYPE html>
+<html lang="en" data-accent-color="grass" data-content_root="../../">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"><title>nw.media_store - nw</title><link rel="index" title="Index" href="../../genindex.html" /><link rel="search" title="Search" href="../../search.html" /><script>
+    function setColorMode(t){let e=document.documentElement;e.setAttribute("data-color-mode",t);let a=window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches,s=t;"auto"===t&&(s=a?"dark":"light"),"light"===s?(e.classList.remove("dark"),e.classList.add("light")):(e.classList.remove("light"),e.classList.add("dark"))}
+    setColorMode(localStorage._theme||"auto");
+  </script><link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=d88b86f9" />
+    <link rel="stylesheet" type="text/css" href="../../_static/shibuya.css?v=2ceb65ce" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sphinx_autodoc_typehints.css?v=057ac668" />
+    <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css?v=76b2166b" />
+    <link media="print" rel="stylesheet" type="text/css" href="../../_static/print.css?v=20ff2c19" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --sy-f-text: "Inter", var(--sy-f-sys), var(--sy-f-cjk), sans-serif;
+  --sy-f-heading: "Inter", var(--sy-f-sys), var(--sy-f-cjk), sans-serif;
+}
+</style>
+    
+  <meta property="og:type" content="website"/><meta property="og:title" content="nw.media_store"/>
+    <meta name="twitter:card" content="summary"/>
+  </head>
+<body><div class="sy-head">
+  <div class="sy-head-blur"></div>
+  <div class="sy-head-inner sy-container mx-auto">
+    <a class="sy-head-brand" href="../../index.html">
+      
+      
+      <strong>nw</strong>
+    </a>
+    <div class="sy-head-nav" id="head-nav">
+      <nav class="sy-head-links"></nav>
+      <div class="sy-head-extra flex items-center print:hidden"><form class="searchbox flex items-center" action="../../search.html" method="get">
+  <input type="text" name="q" placeholder="Search" />
+  <kbd>/</kbd>
+</form><div class="sy-head-socials">
+  <a href="https://github.com/thorwhalen/nw" aria-label="GitHub">
+    <iconify-icon icon="simple-icons:github"></iconify-icon>
+  </a></div></div>
+    </div>
+    <div class="sy-head-actions flex items-center shrink-0 print:hidden"><button class="js-theme theme-switch flex items-center"
+data-aria-auto="Switch to light color mode"
+data-aria-light="Switch to dark color mode"
+data-aria-dark="Switch to auto color mode">
+<i class="i-lucide theme-icon"></i>
+</button><button class="md:hidden flex items-center js-menu" aria-label="Menu" type="button" aria-controls="head-nav" aria-expanded="false">
+        <div class="hamburger">
+          <span class="hamburger_1"></span>
+          <span class="hamburger_2"></span>
+          <span class="hamburger_3"></span>
+        </div>
+      </button>
+    </div>
+  </div>
+</div>
+<div class="sy-page sy-container flex mx-auto">
+  <aside id="lside" class="sy-lside md:w-72 md:shrink-0 print:hidden">
+    <div class="sy-lside-inner md:sticky">
+      <div class="sy-scrollbar p-6">
+        <div class="globaltoc" data-expand-depth="0"><ul>
+<li class="toctree-l1"><a class="reference internal" href="../../api.html">API reference</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../_autosummary/nw.html">nw</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../_autosummary/nw.freshness.html">nw.freshness</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../_autosummary/nw.inspect.html">nw.inspect</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../_autosummary/nw.checks.html">nw.checks</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../_autosummary/nw.batches.html">nw.batches</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../_autosummary/nw.bodies.html">nw.bodies</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../_autosummary/nw.bodies.character_ref.html">nw.bodies.character_ref</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../_autosummary/nw.bodies.decision.html">nw.bodies.decision</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../_autosummary/nw.bodies.environment_ref.html">nw.bodies.environment_ref</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../_autosummary/nw.bodies.genre_envelope.html">nw.bodies.genre_envelope</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../_autosummary/nw.bodies.render_result.html">nw.bodies.render_result</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../_autosummary/nw.bodies.section.html">nw.bodies.section</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../_autosummary/nw.bodies.shot.html">nw.bodies.shot</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../_autosummary/nw.bodies.unproduced_output.html">nw.bodies.unproduced_output</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../_autosummary/nw.bodies.verifying_trace.html">nw.bodies.verifying_trace</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../_autosummary/nw.compat.html">nw.compat</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../_autosummary/nw.delivery.html">nw.delivery</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../_autosummary/nw.experiment.html">nw.experiment</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../_autosummary/nw.genres.html">nw.genres</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../_autosummary/nw.graph.html">nw.graph</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../_autosummary/nw.graph_backend.html">nw.graph_backend</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../_autosummary/nw.jobs.html">nw.jobs</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../_autosummary/nw.media_catalog.html">nw.media_catalog</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../_autosummary/nw.media_store.html">nw.media_store</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../_autosummary/nw.migrate.html">nw.migrate</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../_autosummary/nw.pricing.html">nw.pricing</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../_autosummary/nw.project.html">nw.project</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../_autosummary/nw.renderers.html">nw.renderers</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../_autosummary/nw.renderers.composite_lipsync.html">nw.renderers.composite_lipsync</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../_autosummary/nw.renderers.image_to_video.html">nw.renderers.image_to_video</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../_autosummary/nw.renderers.lipsync.html">nw.renderers.lipsync</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../_autosummary/nw.renderers.still.html">nw.renderers.still</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../_autosummary/nw.renderers.text_to_video.html">nw.renderers.text_to_video</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../_autosummary/nw.rewrite.html">nw.rewrite</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../_autosummary/nw.schema.html">nw.schema</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../_autosummary/nw.script_segmentation.html">nw.script_segmentation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../_autosummary/nw.secrets.html">nw.secrets</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../_autosummary/nw.storage.html">nw.storage</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../_autosummary/nw.transforms.html">nw.transforms</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../_autosummary/nw.validation.html">nw.validation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../_autosummary/nw.workflow.html">nw.workflow</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../ai-agents.html">For AI agents</a></li>
+</ul>
+
+        </div>
+      </div>
+    </div>
+  </aside>
+  <div class="lside-overlay js-menu" role="button" aria-label="Close left sidebar" aria-controls="lside" aria-expanded="false"></div>
+  <aside id="rside" class="sy-rside pb-3 w-64 shrink-0 order-last">
+    <button class="rside-close js-menu xl:hidden" aria-label="Close Table of Contents" type="button" aria-controls="rside" aria-expanded="false">
+      <i class="i-lucide close"></i>
+    </button>
+    <div class="sy-scrollbar sy-rside-inner px-6 xl:top-16 xl:sticky xl:pl-0 pt-6 pb-4"><div id="ethical-ad-placement" data-ea-publisher="readthedocs"></div></div>
+  </aside>
+  <div class="rside-overlay js-menu" role="button" aria-label="Close Table of Contents" aria-controls="rside" aria-expanded="false"></div>
+  <main class="sy-main w-full max-sm:max-w-full print:pt-6">
+<div class="sy-breadcrumbs" role="navigation">
+  <div class="sy-breadcrumbs-inner flex items-center">
+    <div class="md:hidden mr-3">
+      <button class="js-menu" aria-label="Menu" type="button" aria-controls="lside" aria-expanded="false">
+        <i class="i-lucide menu"></i>
+      </button>
+    </div>
+    <ol class="flex-1" itemscope itemtype="https://schema.org/BreadcrumbList"><li itemprop="itemListElement" itemscope itemtype="https://schema.org/ListItem">
+        <a itemprop="item" href="../../index.html"><span itemprop="name">nw</span></a>
+        <span>/</span>
+        <meta itemprop="position" content="1" />
+      </li><li itemprop="itemListElement" itemscope itemtype="https://schema.org/ListItem">
+        <a itemprop="item" href="../index.html"><span itemprop="name">Module code</span></a>
+        <span>/</span>
+        <meta itemprop="position" content="2" />
+      </li><li itemprop="itemListElement" itemscope itemtype="https://schema.org/ListItem">
+        <strong itemprop="name">nw.media_store</strong>
+        <meta itemprop="position" content="3" />
+      </li></ol>
+    <div class="xl:hidden ml-1">
+      <button class="js-menu" aria-label="Show table of contents" type="button" aria-controls="rside"
+        aria-expanded="false">
+        <i class="i-lucide outdent"></i>
+      </button>
+    </div>
+  </div>
+</div><div class="flex flex-col break-words justify-between">
+      <div class="relative min-w-0 max-w-6xl px-6 pb-6 pt-8 xl:px-12">
+  <article class="yue dark-code" role="main">
+          <h1>Source code for nw.media_store</h1><div class="highlight"><pre>
+<span></span><span data-line="1"><span class="sd">"""One content-addressed blob store per user, shared by every genre and host (nw#95).</span>
+</span><span data-line="2">
+</span><span data-line="3"><span class="sd">Before this, each genre kept its own copy of a project's media (``~/.local/share/</span>
+</span><span data-line="4"><span class="sd">{muvid,braidio,reelee*}``) and each host instance (staging, dev) held a full copy of</span>
+</span><span data-line="5"><span class="sd">the same project. This module is the one place the bytes live.</span>
+</span><span data-line="6">
+</span><span data-line="7"><span class="sd">Decisions (owner-confirmed on reeleehq/nw#104; recommendations in nw#95):</span>
+</span><span data-line="8">
+</span><span data-line="9"><span class="sd">1. **Layout** — ``&lt;root&gt;/&lt;tenant&gt;/&lt;lifecycle_class&gt;/&lt;sha256&gt;``, with ``root`` =</span>
+</span><span data-line="10"><span class="sd">   ``~/.local/share/nw/media`` (nw owns the writer, so nw owns the data home).</span>
+</span><span data-line="11"><span class="sd">   ``tenant`` is ``local`` on a workstation and a caller's hashed id when hosted.</span>
+</span><span data-line="12"><span class="sd">2. **Blobs are keyed by content; rows are not.** Five renders with identical bytes</span>
+</span><span data-line="13"><span class="sd">   are one blob and five rows, each with its own name, project and provenance.</span>
+</span><span data-line="14"><span class="sd">   Nothing a user sees collapses; only the disk copy does. (This is the amendment to</span>
+</span><span data-line="15"><span class="sd">   reelee's ``docs/adr_asset_surfaces.md`` §6.)</span>
+</span><span data-line="16"><span class="sd">3. **Hosts share blobs, keep a catalog each.** A host opts in by naming the store</span>
+</span><span data-line="17"><span class="sd">   (``HostArtifactCatalog(..., store=...)``). The host keeps reading its own</span>
+</span><span data-line="18"><span class="sd">   ``blobs/&lt;sha256&gt;``; that entry is a hardlink to the store's blob, so nothing is</span>
+</span><span data-line="19"><span class="sd">   copied and the host is unchanged.</span>
+</span><span data-line="20">
+</span><span data-line="21"><span class="sd">**Garbage collection** (:meth:`SharedMediaStore.sweep`) marks from *every* catalog</span>
+</span><span data-line="22"><span class="sd">registered with the store, never one host's. It is two-phase: a blob with no live row</span>
+</span><span data-line="23"><span class="sd">anywhere is first *marked* (a timestamp), and only removed by a later sweep once it</span>
+</span><span data-line="24"><span class="sd">has stayed unreferenced for ``grace_s``; a row appearing in the meantime clears the</span>
+</span><span data-line="25"><span class="sd">mark. It is a dry run unless ``apply=True``. It refuses to run if a registered</span>
+</span><span data-line="26"><span class="sd">catalog's rows directory is missing or unreadable, because an unreadable catalog</span>
+</span><span data-line="27"><span class="sd">cannot vouch for its blobs (``unregister_catalog`` is the explicit way to retire one).</span>
+</span><span data-line="28"><span class="sd">Reference count = the number of live rows naming a blob (:meth:`references`).</span>
+</span><span data-line="29">
+</span><span data-line="30"><span class="sd">&gt;&gt;&gt; import tempfile, pathlib</span>
+</span><span data-line="31"><span class="sd">&gt;&gt;&gt; with tempfile.TemporaryDirectory() as d:</span>
+</span><span data-line="32"><span class="sd">...     store = SharedMediaStore(pathlib.Path(d, "store"))</span>
+</span><span data-line="33"><span class="sd">...     src = pathlib.Path(d, "a.bin"); _ = src.write_bytes(b"abc")</span>
+</span><span data-line="34"><span class="sd">...     aid = store.put(src)</span>
+</span><span data-line="35"><span class="sd">...     store.has(aid), store.blob_path(aid).parent.parts[-2:]</span>
+</span><span data-line="36"><span class="sd">(True, ('local', 'project'))</span>
+</span><span data-line="37"><span class="sd">"""</span>
+</span><span data-line="38">
+</span><span data-line="39"><span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
+</span><span data-line="40">
+</span><span data-line="41"><span class="kn">import</span><span class="w"> </span><span class="nn">errno</span>
+</span><span data-line="42"><span class="kn">import</span><span class="w"> </span><span class="nn">hashlib</span>
+</span><span data-line="43"><span class="kn">import</span><span class="w"> </span><span class="nn">json</span>
+</span><span data-line="44"><span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
+</span><span data-line="45"><span class="kn">import</span><span class="w"> </span><span class="nn">re</span>
+</span><span data-line="46"><span class="kn">import</span><span class="w"> </span><span class="nn">shutil</span>
+</span><span data-line="47"><span class="kn">import</span><span class="w"> </span><span class="nn">time</span>
+</span><span data-line="48"><span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">KW_ONLY</span><span class="p">,</span> <span class="n">dataclass</span><span class="p">,</span> <span class="n">field</span>
+</span><span data-line="49"><span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+</span><span data-line="50"><span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Optional</span>
+</span><span data-line="51">
+</span><span data-line="52"><span class="c1">#: The store's data home, under nw's (not any genre's).</span>
+</span><span data-line="53"><span class="n">DEFAULT_STORE_ROOT</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="s2">"~/.local/share/nw/media"</span><span class="p">)</span>
+</span><span data-line="54"><span class="n">DEFAULT_TENANT</span> <span class="o">=</span> <span class="s2">"local"</span>
+</span><span data-line="55"><span class="n">DEFAULT_LIFECYCLE_CLASS</span> <span class="o">=</span> <span class="s2">"project"</span>
+</span><span data-line="56"><span class="c1">#: Seconds a blob must stay unreferenced, across two sweeps, before it is removed.</span>
+</span><span data-line="57"><span class="n">DEFAULT_GRACE_S</span> <span class="o">=</span> <span class="mi">7</span> <span class="o">*</span> <span class="mi">24</span> <span class="o">*</span> <span class="mf">3600.0</span>
+</span><span data-line="58">
+</span><span data-line="59"><span class="n">_IS_DIGEST</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s2">"[0-9a-f]</span><span class="si">{64}</span><span class="s2">"</span><span class="p">)</span>
+</span><span data-line="60"><span class="c1">#: Tenant / class names are path segments: no separators, no dots-only, no reserved.</span>
+</span><span data-line="61"><span class="n">_SEGMENT</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s2">"[A-Za-z0-9][A-Za-z0-9_.-]*"</span><span class="p">)</span>
+</span><span data-line="62"><span class="n">_SENTINEL</span> <span class="o">=</span> <span class="s2">".nw-store-catalog"</span>
+</span><span data-line="63"><span class="n">_META_DIR</span> <span class="o">=</span> <span class="s2">"_nw"</span>  <span class="c1"># per-tenant bookkeeping, beside the lifecycle-class dirs</span>
+</span><span data-line="64"><span class="n">_LINK_REFUSALS</span> <span class="o">=</span> <span class="p">(</span><span class="n">errno</span><span class="o">.</span><span class="n">EXDEV</span><span class="p">,</span> <span class="n">errno</span><span class="o">.</span><span class="n">EMLINK</span><span class="p">,</span> <span class="n">errno</span><span class="o">.</span><span class="n">EPERM</span><span class="p">)</span>
+</span><span data-line="65">
+</span><span data-line="66">
+<div class="viewcode-block" id="StoreCatalogUnreadable">
+<a class="viewcode-back" href="../../_autosummary/nw.media_store.html#nw.media_store.StoreCatalogUnreadable">[docs]</a>
+</span><span data-line="67"><span class="k">class</span><span class="w"> </span><span class="nc">StoreCatalogUnreadable</span><span class="p">(</span><span class="ne">RuntimeError</span><span class="p">):</span>
+</span><span data-line="68"><span class="w">    </span><span class="sd">"""A registered catalog cannot be read, so a sweep cannot know what it holds."""</span></div>
+
+</span><span data-line="69">
+</span><span data-line="70">
+</span><span data-line="71"><span class="k">def</span><span class="w"> </span><span class="nf">_segment</span><span class="p">(</span><span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">what</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+</span><span data-line="72">    <span class="k">if</span> <span class="ow">not</span> <span class="n">_SEGMENT</span><span class="o">.</span><span class="n">fullmatch</span><span class="p">(</span><span class="n">name</span> <span class="ow">or</span> <span class="s2">""</span><span class="p">)</span> <span class="ow">or</span> <span class="n">name</span> <span class="o">==</span> <span class="n">_META_DIR</span> <span class="ow">or</span> <span class="s2">".."</span> <span class="ow">in</span> <span class="n">name</span><span class="p">:</span>
+</span><span data-line="73">        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">what</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">name</span><span class="si">!r}</span><span class="s2"> is not a safe single path segment"</span><span class="p">)</span>
+</span><span data-line="74">    <span class="k">return</span> <span class="n">name</span>
+</span><span data-line="75">
+</span><span data-line="76">
+</span><span data-line="77"><span class="k">def</span><span class="w"> </span><span class="nf">_hash_file</span><span class="p">(</span><span class="n">path</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+</span><span data-line="78">    <span class="n">h</span> <span class="o">=</span> <span class="n">hashlib</span><span class="o">.</span><span class="n">sha256</span><span class="p">()</span>
+</span><span data-line="79">    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="s2">"rb"</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+</span><span data-line="80">        <span class="k">while</span> <span class="n">chunk</span> <span class="o">:=</span> <span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="mi">1</span> <span class="o">&lt;&lt;</span> <span class="mi">20</span><span class="p">):</span>
+</span><span data-line="81">            <span class="n">h</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">chunk</span><span class="p">)</span>
+</span><span data-line="82">    <span class="k">return</span> <span class="n">h</span><span class="o">.</span><span class="n">hexdigest</span><span class="p">()</span>
+</span><span data-line="83">
+</span><span data-line="84">
+</span><span data-line="85"><span class="k">def</span><span class="w"> </span><span class="nf">_atomic_write</span><span class="p">(</span><span class="n">path</span><span class="p">:</span> <span class="n">Path</span><span class="p">,</span> <span class="n">text</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+</span><span data-line="86">    <span class="n">path</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">parents</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</span><span data-line="87">    <span class="n">tmp</span> <span class="o">=</span> <span class="n">path</span><span class="o">.</span><span class="n">with_name</span><span class="p">(</span><span class="sa">f</span><span class="s2">".</span><span class="si">{</span><span class="n">path</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">.</span><span class="si">{</span><span class="n">os</span><span class="o">.</span><span class="n">getpid</span><span class="p">()</span><span class="si">}</span><span class="s2">.</span><span class="si">{</span><span class="n">time</span><span class="o">.</span><span class="n">monotonic_ns</span><span class="p">()</span><span class="si">}</span><span class="s2">.tmp"</span><span class="p">)</span>
+</span><span data-line="88">    <span class="k">try</span><span class="p">:</span>
+</span><span data-line="89">        <span class="n">tmp</span><span class="o">.</span><span class="n">write_text</span><span class="p">(</span><span class="n">text</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s2">"utf-8"</span><span class="p">)</span>
+</span><span data-line="90">        <span class="n">os</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="n">tmp</span><span class="p">,</span> <span class="n">path</span><span class="p">)</span>
+</span><span data-line="91">    <span class="k">finally</span><span class="p">:</span>
+</span><span data-line="92">        <span class="n">tmp</span><span class="o">.</span><span class="n">unlink</span><span class="p">(</span><span class="n">missing_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</span><span data-line="93">
+</span><span data-line="94">
+<div class="viewcode-block" id="SweepReport">
+<a class="viewcode-back" href="../../_autosummary/nw.media_store.html#nw.media_store.SweepReport">[docs]</a>
+</span><span data-line="95"><span class="nd">@dataclass</span>
+</span><span data-line="96"><span class="k">class</span><span class="w"> </span><span class="nc">SweepReport</span><span class="p">:</span>
+</span><span data-line="97"><span class="w">    </span><span class="sd">"""What a sweep saw and (if applied) did."""</span>
+</span><span data-line="98">
+</span><span data-line="99">    <span class="n">applied</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
+</span><span data-line="100">    <span class="n">live</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span>
+</span><span data-line="101">    <span class="n">marked</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="nb">list</span><span class="p">)</span>
+</span><span data-line="102">    <span class="n">still_in_grace</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="nb">list</span><span class="p">)</span>
+</span><span data-line="103">    <span class="n">removed</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="nb">list</span><span class="p">)</span>
+</span><span data-line="104">    <span class="n">unmarked</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="nb">list</span><span class="p">)</span></div>
+
+</span><span data-line="105">
+</span><span data-line="106">
+<div class="viewcode-block" id="SharedMediaStore">
+<a class="viewcode-back" href="../../_autosummary/nw.media_store.html#nw.media_store.SharedMediaStore">[docs]</a>
+</span><span data-line="107"><span class="nd">@dataclass</span><span class="p">(</span><span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</span><span data-line="108"><span class="k">class</span><span class="w"> </span><span class="nc">SharedMediaStore</span><span class="p">:</span>
+</span><span data-line="109"><span class="w">    </span><span class="sd">"""The blob store at ``root`` for one ``tenant`` and ``lifecycle_class``."""</span>
+</span><span data-line="110">
+</span><span data-line="111">    <span class="n">root</span><span class="p">:</span> <span class="n">Path</span> <span class="o">=</span> <span class="n">DEFAULT_STORE_ROOT</span>
+</span><span data-line="112">    <span class="n">_</span><span class="p">:</span> <span class="n">KW_ONLY</span>
+</span><span data-line="113">    <span class="n">tenant</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">DEFAULT_TENANT</span>
+</span><span data-line="114">    <span class="n">lifecycle_class</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">DEFAULT_LIFECYCLE_CLASS</span>
+</span><span data-line="115">    <span class="n">allow_cross_device_copy</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
+</span><span data-line="116">
+</span><span data-line="117">    <span class="k">def</span><span class="w"> </span><span class="nf">__post_init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+</span><span data-line="118">        <span class="nb">object</span><span class="o">.</span><span class="fm">__setattr__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">"root"</span><span class="p">,</span> <span class="n">Path</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">root</span><span class="p">)</span><span class="o">.</span><span class="n">expanduser</span><span class="p">())</span>
+</span><span data-line="119">        <span class="n">_segment</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">tenant</span><span class="p">,</span> <span class="s2">"tenant"</span><span class="p">)</span>
+</span><span data-line="120">        <span class="n">_segment</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">lifecycle_class</span><span class="p">,</span> <span class="s2">"lifecycle_class"</span><span class="p">)</span>
+</span><span data-line="121">
+</span><span data-line="122">    <span class="c1"># -- layout ---------------------------------------------------------------</span>
+</span><span data-line="123">
+</span><span data-line="124">    <span class="nd">@property</span>
+</span><span data-line="125">    <span class="k">def</span><span class="w"> </span><span class="nf">blobs_dir</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Path</span><span class="p">:</span>
+</span><span data-line="126">        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">root</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">tenant</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">lifecycle_class</span>
+</span><span data-line="127">
+</span><span data-line="128">    <span class="nd">@property</span>
+</span><span data-line="129">    <span class="k">def</span><span class="w"> </span><span class="nf">_meta</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Path</span><span class="p">:</span>
+</span><span data-line="130">        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">root</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">tenant</span> <span class="o">/</span> <span class="n">_META_DIR</span>
+</span><span data-line="131">
+</span><span data-line="132">    <span class="nd">@property</span>
+</span><span data-line="133">    <span class="k">def</span><span class="w"> </span><span class="nf">_catalogs_dir</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Path</span><span class="p">:</span>
+</span><span data-line="134">        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_meta</span> <span class="o">/</span> <span class="s2">"catalogs"</span>
+</span><span data-line="135">
+</span><span data-line="136">    <span class="nd">@property</span>
+</span><span data-line="137">    <span class="k">def</span><span class="w"> </span><span class="nf">_marks_dir</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Path</span><span class="p">:</span>
+</span><span data-line="138">        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_meta</span> <span class="o">/</span> <span class="s2">"gc-marks"</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">lifecycle_class</span>
+</span><span data-line="139">
+<div class="viewcode-block" id="SharedMediaStore.blob_path">
+<a class="viewcode-back" href="../../_autosummary/nw.media_store.html#nw.media_store.SharedMediaStore.blob_path">[docs]</a>
+</span><span data-line="140">    <span class="k">def</span><span class="w"> </span><span class="nf">blob_path</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">artifact_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Path</span><span class="p">]:</span>
+</span><span data-line="141"><span class="w">        </span><span class="sd">"""Where ``artifact_id``'s bytes are, or ``None`` if not stored."""</span>
+</span><span data-line="142">        <span class="k">if</span> <span class="ow">not</span> <span class="n">_IS_DIGEST</span><span class="o">.</span><span class="n">fullmatch</span><span class="p">(</span><span class="n">artifact_id</span> <span class="ow">or</span> <span class="s2">""</span><span class="p">):</span>
+</span><span data-line="143">            <span class="k">return</span> <span class="kc">None</span>
+</span><span data-line="144">        <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">blobs_dir</span> <span class="o">/</span> <span class="n">artifact_id</span>
+</span><span data-line="145">        <span class="k">return</span> <span class="n">p</span> <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">is_file</span><span class="p">()</span> <span class="k">else</span> <span class="kc">None</span></div>
+
+</span><span data-line="146">
+</span><span data-line="147">    <span class="k">def</span><span class="w"> </span><span class="nf">has</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">artifact_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+</span><span data-line="148">        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">blob_path</span><span class="p">(</span><span class="n">artifact_id</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+</span><span data-line="149">
+</span><span data-line="150">    <span class="c1"># -- writing --------------------------------------------------------------</span>
+</span><span data-line="151">
+<div class="viewcode-block" id="SharedMediaStore.put">
+<a class="viewcode-back" href="../../_autosummary/nw.media_store.html#nw.media_store.SharedMediaStore.put">[docs]</a>
+</span><span data-line="152">    <span class="k">def</span><span class="w"> </span><span class="nf">put</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">path</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">artifact_id</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+</span><span data-line="153"><span class="w">        </span><span class="sd">"""Store ``path``'s bytes; return the digest. Idempotent.</span>
+</span><span data-line="154">
+</span><span data-line="155"><span class="sd">        Hardlinks when it can (the media is already on this filesystem), refuses</span>
+</span><span data-line="156"><span class="sd">        a cross-device store unless ``allow_cross_device_copy``. A blob already</span>
+</span><span data-line="157"><span class="sd">        there is size-checked, not re-hashed.</span>
+</span><span data-line="158"><span class="sd">        """</span>
+</span><span data-line="159">        <span class="n">src</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+</span><span data-line="160">        <span class="n">aid</span> <span class="o">=</span> <span class="n">artifact_id</span> <span class="k">if</span> <span class="n">artifact_id</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">_hash_file</span><span class="p">(</span><span class="n">src</span><span class="p">)</span>
+</span><span data-line="161">        <span class="k">if</span> <span class="ow">not</span> <span class="n">_IS_DIGEST</span><span class="o">.</span><span class="n">fullmatch</span><span class="p">(</span><span class="n">aid</span> <span class="ow">or</span> <span class="s2">""</span><span class="p">):</span>
+</span><span data-line="162">            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+</span><span data-line="163">                <span class="sa">f</span><span class="s2">"artifact_id </span><span class="si">{</span><span class="n">aid</span><span class="si">!r}</span><span class="s2"> is not a 64-char lowercase hex digest"</span>
+</span><span data-line="164">            <span class="p">)</span>
+</span><span data-line="165">        <span class="n">blob</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">blobs_dir</span> <span class="o">/</span> <span class="n">aid</span>
+</span><span data-line="166">        <span class="bp">self</span><span class="o">.</span><span class="n">blobs_dir</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">parents</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</span><span data-line="167">        <span class="k">if</span> <span class="n">blob</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+</span><span data-line="168">            <span class="k">if</span> <span class="n">blob</span><span class="o">.</span><span class="n">stat</span><span class="p">()</span><span class="o">.</span><span class="n">st_size</span> <span class="o">!=</span> <span class="n">src</span><span class="o">.</span><span class="n">stat</span><span class="p">()</span><span class="o">.</span><span class="n">st_size</span><span class="p">:</span>
+</span><span data-line="169">                <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span>
+</span><span data-line="170">                    <span class="sa">f</span><span class="s2">"store blob </span><span class="si">{</span><span class="n">aid</span><span class="si">}</span><span class="s2"> is </span><span class="si">{</span><span class="n">blob</span><span class="o">.</span><span class="n">stat</span><span class="p">()</span><span class="o">.</span><span class="n">st_size</span><span class="si">}</span><span class="s2"> bytes but </span><span class="si">{</span><span class="n">src</span><span class="si">}</span><span class="s2"> is "</span>
+</span><span data-line="171">                    <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">src</span><span class="o">.</span><span class="n">stat</span><span class="p">()</span><span class="o">.</span><span class="n">st_size</span><span class="si">}</span><span class="s2">: remove the blob and put again."</span>
+</span><span data-line="172">                <span class="p">)</span>
+</span><span data-line="173">            <span class="bp">self</span><span class="o">.</span><span class="n">clear_mark</span><span class="p">(</span><span class="n">aid</span><span class="p">)</span>
+</span><span data-line="174">            <span class="k">return</span> <span class="n">aid</span>
+</span><span data-line="175">        <span class="k">try</span><span class="p">:</span>
+</span><span data-line="176">            <span class="n">os</span><span class="o">.</span><span class="n">link</span><span class="p">(</span><span class="n">src</span><span class="p">,</span> <span class="n">blob</span><span class="p">)</span>
+</span><span data-line="177">        <span class="k">except</span> <span class="ne">FileExistsError</span><span class="p">:</span>
+</span><span data-line="178">            <span class="k">pass</span>
+</span><span data-line="179">        <span class="k">except</span> <span class="ne">OSError</span> <span class="k">as</span> <span class="n">exc</span><span class="p">:</span>
+</span><span data-line="180">            <span class="k">if</span> <span class="n">exc</span><span class="o">.</span><span class="n">errno</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">_LINK_REFUSALS</span><span class="p">:</span>
+</span><span data-line="181">                <span class="k">raise</span>
+</span><span data-line="182">            <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">allow_cross_device_copy</span><span class="p">:</span>
+</span><span data-line="183">                <span class="k">raise</span> <span class="ne">OSError</span><span class="p">(</span>
+</span><span data-line="184">                    <span class="n">exc</span><span class="o">.</span><span class="n">errno</span><span class="p">,</span>
+</span><span data-line="185">                    <span class="sa">f</span><span class="s2">"cannot hardlink </span><span class="si">{</span><span class="n">src</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2"> into the shared store at "</span>
+</span><span data-line="186">                    <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">blobs_dir</span><span class="si">}</span><span class="s2">: another filesystem. Keep the store on the "</span>
+</span><span data-line="187">                    <span class="s2">"media's filesystem or pass allow_cross_device_copy=True."</span><span class="p">,</span>
+</span><span data-line="188">                <span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">exc</span>
+</span><span data-line="189">            <span class="n">tmp</span> <span class="o">=</span> <span class="n">blob</span><span class="o">.</span><span class="n">with_name</span><span class="p">(</span><span class="sa">f</span><span class="s2">".</span><span class="si">{</span><span class="n">aid</span><span class="si">}</span><span class="s2">.</span><span class="si">{</span><span class="n">os</span><span class="o">.</span><span class="n">getpid</span><span class="p">()</span><span class="si">}</span><span class="s2">.tmp"</span><span class="p">)</span>
+</span><span data-line="190">            <span class="k">try</span><span class="p">:</span>
+</span><span data-line="191">                <span class="n">shutil</span><span class="o">.</span><span class="n">copy2</span><span class="p">(</span><span class="n">src</span><span class="p">,</span> <span class="n">tmp</span><span class="p">)</span>
+</span><span data-line="192">                <span class="n">os</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="n">tmp</span><span class="p">,</span> <span class="n">blob</span><span class="p">)</span>
+</span><span data-line="193">            <span class="k">finally</span><span class="p">:</span>
+</span><span data-line="194">                <span class="n">tmp</span><span class="o">.</span><span class="n">unlink</span><span class="p">(</span><span class="n">missing_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</span><span data-line="195">        <span class="bp">self</span><span class="o">.</span><span class="n">clear_mark</span><span class="p">(</span><span class="n">aid</span><span class="p">)</span>
+</span><span data-line="196">        <span class="k">if</span> <span class="ow">not</span> <span class="n">blob</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>  <span class="c1"># a concurrent sweep removed it just before the clear</span>
+</span><span data-line="197">            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="n">src</span><span class="p">,</span> <span class="n">artifact_id</span><span class="o">=</span><span class="n">aid</span><span class="p">)</span>
+</span><span data-line="198">        <span class="k">return</span> <span class="n">aid</span></div>
+
+</span><span data-line="199">
+</span><span data-line="200">    <span class="c1"># -- catalog registry (what GC marks from) --------------------------------</span>
+</span><span data-line="201">
+<div class="viewcode-block" id="SharedMediaStore.register_catalog">
+<a class="viewcode-back" href="../../_autosummary/nw.media_store.html#nw.media_store.SharedMediaStore.register_catalog">[docs]</a>
+</span><span data-line="202">    <span class="k">def</span><span class="w"> </span><span class="nf">register_catalog</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">rows_dir</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+</span><span data-line="203"><span class="w">        </span><span class="sd">"""Record that the catalog whose rows live in ``rows_dir`` references this store."""</span>
+</span><span data-line="204">        <span class="n">rows_dir</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">rows_dir</span><span class="p">)</span><span class="o">.</span><span class="n">resolve</span><span class="p">()</span>
+</span><span data-line="205">        <span class="n">rows_dir</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">parents</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</span><span data-line="206">        <span class="c1"># A sentinel, so an emptied-and-recreated or unmounted rows dir is told</span>
+</span><span data-line="207">        <span class="c1"># apart from one that really holds no rows (see ``references``).</span>
+</span><span data-line="208">        <span class="p">(</span><span class="n">rows_dir</span> <span class="o">/</span> <span class="n">_SENTINEL</span><span class="p">)</span><span class="o">.</span><span class="n">touch</span><span class="p">()</span>
+</span><span data-line="209">        <span class="n">key</span> <span class="o">=</span> <span class="n">hashlib</span><span class="o">.</span><span class="n">sha256</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">rows_dir</span><span class="p">)</span><span class="o">.</span><span class="n">encode</span><span class="p">())</span><span class="o">.</span><span class="n">hexdigest</span><span class="p">()[:</span><span class="mi">24</span><span class="p">]</span>
+</span><span data-line="210">        <span class="n">_atomic_write</span><span class="p">(</span>
+</span><span data-line="211">            <span class="bp">self</span><span class="o">.</span><span class="n">_catalogs_dir</span> <span class="o">/</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s2">.json"</span><span class="p">,</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">({</span><span class="s2">"rows_dir"</span><span class="p">:</span> <span class="nb">str</span><span class="p">(</span><span class="n">rows_dir</span><span class="p">)})</span>
+</span><span data-line="212">        <span class="p">)</span></div>
+
+</span><span data-line="213">
+<div class="viewcode-block" id="SharedMediaStore.unregister_catalog">
+<a class="viewcode-back" href="../../_autosummary/nw.media_store.html#nw.media_store.SharedMediaStore.unregister_catalog">[docs]</a>
+</span><span data-line="214">    <span class="k">def</span><span class="w"> </span><span class="nf">unregister_catalog</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">rows_dir</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+</span><span data-line="215"><span class="w">        </span><span class="sd">"""Retire a catalog (e.g. its project was deleted). Its blobs become sweepable."""</span>
+</span><span data-line="216">        <span class="n">rows_dir</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">rows_dir</span><span class="p">)</span><span class="o">.</span><span class="n">resolve</span><span class="p">()</span>
+</span><span data-line="217">        <span class="n">key</span> <span class="o">=</span> <span class="n">hashlib</span><span class="o">.</span><span class="n">sha256</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">rows_dir</span><span class="p">)</span><span class="o">.</span><span class="n">encode</span><span class="p">())</span><span class="o">.</span><span class="n">hexdigest</span><span class="p">()[:</span><span class="mi">24</span><span class="p">]</span>
+</span><span data-line="218">        <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_catalogs_dir</span> <span class="o">/</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s2">.json"</span>
+</span><span data-line="219">        <span class="n">existed</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">exists</span><span class="p">()</span>
+</span><span data-line="220">        <span class="n">p</span><span class="o">.</span><span class="n">unlink</span><span class="p">(</span><span class="n">missing_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</span><span data-line="221">        <span class="k">return</span> <span class="n">existed</span></div>
+
+</span><span data-line="222">
+</span><span data-line="223">    <span class="k">def</span><span class="w"> </span><span class="nf">registered_catalogs</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="n">Path</span><span class="p">]:</span>
+</span><span data-line="224">        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_catalogs_dir</span><span class="o">.</span><span class="n">is_dir</span><span class="p">():</span>
+</span><span data-line="225">            <span class="k">return</span> <span class="p">[]</span>
+</span><span data-line="226">        <span class="n">out</span> <span class="o">=</span> <span class="p">[]</span>
+</span><span data-line="227">        <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_catalogs_dir</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="s2">"*.json"</span><span class="p">)):</span>
+</span><span data-line="228">            <span class="n">out</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">Path</span><span class="p">(</span><span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">read_text</span><span class="p">(</span><span class="n">encoding</span><span class="o">=</span><span class="s2">"utf-8"</span><span class="p">))[</span><span class="s2">"rows_dir"</span><span class="p">]))</span>
+</span><span data-line="229">        <span class="k">return</span> <span class="n">out</span>
+</span><span data-line="230">
+<div class="viewcode-block" id="SharedMediaStore.references">
+<a class="viewcode-back" href="../../_autosummary/nw.media_store.html#nw.media_store.SharedMediaStore.references">[docs]</a>
+</span><span data-line="231">    <span class="k">def</span><span class="w"> </span><span class="nf">references</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">]:</span>
+</span><span data-line="232"><span class="w">        </span><span class="sd">"""``{sha256: live rows naming it}`` across every registered catalog."""</span>
+</span><span data-line="233">        <span class="n">counts</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+</span><span data-line="234">        <span class="k">for</span> <span class="n">rows_dir</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">registered_catalogs</span><span class="p">():</span>
+</span><span data-line="235">            <span class="k">try</span><span class="p">:</span>
+</span><span data-line="236">                <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="n">rows_dir</span> <span class="o">/</span> <span class="n">_SENTINEL</span><span class="p">)</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+</span><span data-line="237">                    <span class="k">raise</span> <span class="ne">FileNotFoundError</span><span class="p">(</span><span class="n">_SENTINEL</span><span class="p">)</span>
+</span><span data-line="238">                <span class="n">names</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">listdir</span><span class="p">(</span><span class="n">rows_dir</span><span class="p">)</span>  <span class="c1"># raises on permission, unlike glob</span>
+</span><span data-line="239">            <span class="k">except</span> <span class="ne">OSError</span> <span class="k">as</span> <span class="n">exc</span><span class="p">:</span>
+</span><span data-line="240">                <span class="k">raise</span> <span class="n">StoreCatalogUnreadable</span><span class="p">(</span>
+</span><span data-line="241">                    <span class="sa">f</span><span class="s2">"registered catalog </span><span class="si">{</span><span class="n">rows_dir</span><span class="si">}</span><span class="s2"> is missing, unreadable or was "</span>
+</span><span data-line="242">                    <span class="sa">f</span><span class="s2">"recreated empty (</span><span class="si">{</span><span class="n">exc</span><span class="si">}</span><span class="s2">); a sweep cannot tell what it "</span>
+</span><span data-line="243">                    <span class="s2">"references. Restore it or unregister_catalog() it."</span>
+</span><span data-line="244">                <span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">exc</span>
+</span><span data-line="245">            <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">names</span><span class="p">:</span>
+</span><span data-line="246">                <span class="n">stem</span><span class="p">,</span> <span class="n">ext</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">splitext</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+</span><span data-line="247">                <span class="k">if</span> <span class="n">ext</span> <span class="o">==</span> <span class="s2">".json"</span> <span class="ow">and</span> <span class="n">_IS_DIGEST</span><span class="o">.</span><span class="n">fullmatch</span><span class="p">(</span><span class="n">stem</span><span class="p">):</span>
+</span><span data-line="248">                    <span class="n">counts</span><span class="p">[</span><span class="n">stem</span><span class="p">]</span> <span class="o">=</span> <span class="n">counts</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">stem</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span>
+</span><span data-line="249">        <span class="k">return</span> <span class="n">counts</span></div>
+
+</span><span data-line="250">
+</span><span data-line="251">    <span class="c1"># -- GC -------------------------------------------------------------------</span>
+</span><span data-line="252">
+<div class="viewcode-block" id="SharedMediaStore.sweep">
+<a class="viewcode-back" href="../../_autosummary/nw.media_store.html#nw.media_store.SharedMediaStore.sweep">[docs]</a>
+</span><span data-line="253">    <span class="k">def</span><span class="w"> </span><span class="nf">sweep</span><span class="p">(</span>
+</span><span data-line="254">        <span class="bp">self</span><span class="p">,</span>
+</span><span data-line="255">        <span class="o">*</span><span class="p">,</span>
+</span><span data-line="256">        <span class="n">apply</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+</span><span data-line="257">        <span class="n">grace_s</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">DEFAULT_GRACE_S</span><span class="p">,</span>
+</span><span data-line="258">        <span class="n">now</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span data-line="259">    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">SweepReport</span><span class="p">:</span>
+</span><span data-line="260"><span class="w">        </span><span class="sd">"""Mark unreferenced blobs; remove those unreferenced for ``grace_s``.</span>
+</span><span data-line="261">
+</span><span data-line="262"><span class="sd">        Dry run unless ``apply``. See the module docstring for the guarantees.</span>
+</span><span data-line="263"><span class="sd">        """</span>
+</span><span data-line="264">        <span class="n">now</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="k">if</span> <span class="n">now</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">now</span>
+</span><span data-line="265">        <span class="n">refs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">references</span><span class="p">()</span>  <span class="c1"># raises before anything is touched</span>
+</span><span data-line="266">        <span class="n">rep</span> <span class="o">=</span> <span class="n">SweepReport</span><span class="p">(</span><span class="n">applied</span><span class="o">=</span><span class="n">apply</span><span class="p">)</span>
+</span><span data-line="267">        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">blobs_dir</span><span class="o">.</span><span class="n">is_dir</span><span class="p">():</span>
+</span><span data-line="268">            <span class="k">return</span> <span class="n">rep</span>
+</span><span data-line="269">        <span class="k">for</span> <span class="n">blob</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">blobs_dir</span><span class="o">.</span><span class="n">iterdir</span><span class="p">()):</span>
+</span><span data-line="270">            <span class="n">aid</span> <span class="o">=</span> <span class="n">blob</span><span class="o">.</span><span class="n">name</span>
+</span><span data-line="271">            <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="n">blob</span><span class="o">.</span><span class="n">is_file</span><span class="p">()</span> <span class="ow">and</span> <span class="n">_IS_DIGEST</span><span class="o">.</span><span class="n">fullmatch</span><span class="p">(</span><span class="n">aid</span><span class="p">)):</span>
+</span><span data-line="272">                <span class="k">continue</span>
+</span><span data-line="273">            <span class="n">mark</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_marks_dir</span> <span class="o">/</span> <span class="n">aid</span>
+</span><span data-line="274">            <span class="k">if</span> <span class="n">refs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">aid</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+</span><span data-line="275">                <span class="n">rep</span><span class="o">.</span><span class="n">live</span> <span class="o">+=</span> <span class="mi">1</span>
+</span><span data-line="276">                <span class="k">if</span> <span class="n">mark</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+</span><span data-line="277">                    <span class="n">rep</span><span class="o">.</span><span class="n">unmarked</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">aid</span><span class="p">)</span>
+</span><span data-line="278">                    <span class="k">if</span> <span class="n">apply</span><span class="p">:</span>
+</span><span data-line="279">                        <span class="n">mark</span><span class="o">.</span><span class="n">unlink</span><span class="p">(</span><span class="n">missing_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</span><span data-line="280">                <span class="k">continue</span>
+</span><span data-line="281">            <span class="n">since</span> <span class="o">=</span> <span class="kc">None</span>
+</span><span data-line="282">            <span class="k">try</span><span class="p">:</span>
+</span><span data-line="283">                <span class="n">since</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">mark</span><span class="o">.</span><span class="n">read_text</span><span class="p">())</span>
+</span><span data-line="284">            <span class="k">except</span> <span class="p">(</span><span class="ne">OSError</span><span class="p">,</span> <span class="ne">ValueError</span><span class="p">):</span>
+</span><span data-line="285">                <span class="k">pass</span>
+</span><span data-line="286">            <span class="k">if</span> <span class="n">since</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+</span><span data-line="287">                <span class="n">rep</span><span class="o">.</span><span class="n">marked</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">aid</span><span class="p">)</span>
+</span><span data-line="288">                <span class="k">if</span> <span class="n">apply</span><span class="p">:</span>
+</span><span data-line="289">                    <span class="n">_atomic_write</span><span class="p">(</span><span class="n">mark</span><span class="p">,</span> <span class="nb">repr</span><span class="p">(</span><span class="n">now</span><span class="p">))</span>
+</span><span data-line="290">            <span class="k">elif</span> <span class="n">now</span> <span class="o">-</span> <span class="n">since</span> <span class="o">&gt;=</span> <span class="n">grace_s</span><span class="p">:</span>
+</span><span data-line="291">                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_referenced_now</span><span class="p">(</span><span class="n">aid</span><span class="p">):</span>  <span class="c1"># a row appeared since the snapshot</span>
+</span><span data-line="292">                    <span class="n">rep</span><span class="o">.</span><span class="n">unmarked</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">aid</span><span class="p">)</span>
+</span><span data-line="293">                    <span class="k">if</span> <span class="n">apply</span><span class="p">:</span>
+</span><span data-line="294">                        <span class="n">mark</span><span class="o">.</span><span class="n">unlink</span><span class="p">(</span><span class="n">missing_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</span><span data-line="295">                    <span class="k">continue</span>
+</span><span data-line="296">                <span class="n">rep</span><span class="o">.</span><span class="n">removed</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">aid</span><span class="p">)</span>
+</span><span data-line="297">                <span class="k">if</span> <span class="n">apply</span><span class="p">:</span>
+</span><span data-line="298">                    <span class="n">blob</span><span class="o">.</span><span class="n">unlink</span><span class="p">(</span><span class="n">missing_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</span><span data-line="299">                    <span class="n">mark</span><span class="o">.</span><span class="n">unlink</span><span class="p">(</span><span class="n">missing_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</span><span data-line="300">            <span class="k">else</span><span class="p">:</span>
+</span><span data-line="301">                <span class="n">rep</span><span class="o">.</span><span class="n">still_in_grace</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">aid</span><span class="p">)</span>
+</span><span data-line="302">        <span class="k">return</span> <span class="n">rep</span></div>
+
+</span><span data-line="303">
+</span><span data-line="304">    <span class="k">def</span><span class="w"> </span><span class="nf">_referenced_now</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">aid</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+</span><span data-line="305">        <span class="k">return</span> <span class="nb">any</span><span class="p">(</span>
+</span><span data-line="306">            <span class="p">(</span><span class="n">rows_dir</span> <span class="o">/</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">aid</span><span class="si">}</span><span class="s2">.json"</span><span class="p">)</span><span class="o">.</span><span class="n">exists</span><span class="p">()</span>
+</span><span data-line="307">            <span class="k">for</span> <span class="n">rows_dir</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">registered_catalogs</span><span class="p">()</span>
+</span><span data-line="308">        <span class="p">)</span>
+</span><span data-line="309">
+<div class="viewcode-block" id="SharedMediaStore.clear_mark">
+<a class="viewcode-back" href="../../_autosummary/nw.media_store.html#nw.media_store.SharedMediaStore.clear_mark">[docs]</a>
+</span><span data-line="310">    <span class="k">def</span><span class="w"> </span><span class="nf">clear_mark</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">aid</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+</span><span data-line="311"><span class="w">        </span><span class="sd">"""Forget that ``aid`` was unreferenced (a host just used it)."""</span>
+</span><span data-line="312">        <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_marks_dir</span> <span class="o">/</span> <span class="n">aid</span><span class="p">)</span><span class="o">.</span><span class="n">unlink</span><span class="p">(</span><span class="n">missing_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span></div>
+</div>
+
+</span><span data-line="313">
+</span><span data-line="314">
+</span><span data-line="315"><span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span>
+</span><span data-line="316">    <span class="s2">"DEFAULT_GRACE_S"</span><span class="p">,</span>
+</span><span data-line="317">    <span class="s2">"DEFAULT_LIFECYCLE_CLASS"</span><span class="p">,</span>
+</span><span data-line="318">    <span class="s2">"DEFAULT_STORE_ROOT"</span><span class="p">,</span>
+</span><span data-line="319">    <span class="s2">"DEFAULT_TENANT"</span><span class="p">,</span>
+</span><span data-line="320">    <span class="s2">"SharedMediaStore"</span><span class="p">,</span>
+</span><span data-line="321">    <span class="s2">"StoreCatalogUnreadable"</span><span class="p">,</span>
+</span><span data-line="322">    <span class="s2">"SweepReport"</span><span class="p">,</span>
+</span><span data-line="323"><span class="p">]</span>
+</span></pre></div>
+        </article><button class="back-to-top" type="button">
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+    <path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12z"></path>
+  </svg>
+  <span>Back to top</span>
+</button><div class="navigation flex print:hidden"></div></div>
+    </div>
+  </main>
+</div>
+<footer class="sy-foot">
+  <div class="sy-foot-inner sy-container mx-auto">
+    <div class="sy-foot-reserved md:flex justify-between items-center">
+      <div class="sy-foot-copyright">
+  <p>
+    Made with
+    
+    <a href="https://shibuya.lepture.com">Shibuya theme</a>.
+  </p>
+</div>
+      <div class="sy-foot-socials">
+  <a href="https://github.com/thorwhalen/nw" aria-label="GitHub">
+    <iconify-icon icon="simple-icons:github"></iconify-icon>
+  </a></div>
+    </div>
+  </div>
+</footer>
+      <script src="../../_static/documentation_options.js?v=27c60a7f"></script>
+      <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+      <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../_static/copybutton.js?v=fd10adb8"></script>
+      <script src="../../_static/shibuya.js?v=50760d75"></script>
+      <script type="module">import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11.12.1/dist/mermaid.esm.min.mjs";
+
+
+
+
+
+const initStyles = () => {
+    const defaultStyle = document.createElement('style');
+    defaultStyle.textContent = "pre.mermaid {\n    /* Same as .mermaid-container > pre */\n    display: block;\n    width: 100%;\n}\n\npre.mermaid > svg {\n    /* Same as .mermaid-container > pre > svg */\n    height: 500px;\n    width: 100%;\n    max-width: 100% !important;\n}";
+    document.head.appendChild(defaultStyle);
+
+    const fullscreenStyle = document.createElement('style');
+    fullscreenStyle.textContent = ".mermaid-container {\n    position: relative;\n    display: flex;\n    flex-direction: row;\n    width: 100%;\n}\n\n.mermaid-container > pre {\n    display: block;\n    width: 100%;\n}\n\n.mermaid-container > pre > svg {\n    height: 500px;\n    width: 100%;\n    max-width: 100% !important;\n}\n\n.mermaid-fullscreen-btn {\n    position: absolute;\n    width: 28px;\n    height: 28px;\n    background: rgba(255, 255, 255, 0.95);\n    border: 1px solid rgba(0, 0, 0, 0.3);\n    border-radius: 4px;\n    cursor: pointer;\n    display: flex;\n    align-items: center;\n    justify-content: center;\n    transition: all 0.2s;\n    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);\n    font-size: 14px;\n    line-height: 1;\n    padding: 0;\n    color: #333;\n}\n\n.mermaid-fullscreen-btn:hover {\n    opacity: 100% !important;\n    background: rgba(255, 255, 255, 1);\n    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.3);\n    transform: scale(1.1);\n}\n\n.mermaid-fullscreen-btn.dark-theme {\n    background: rgba(50, 50, 50, 0.95);\n    border: 1px solid rgba(255, 255, 255, 0.3);\n    color: #e0e0e0;\n}\n\n.mermaid-fullscreen-btn.dark-theme:hover {\n    background: rgba(60, 60, 60, 1);\n    box-shadow: 0 3px 10px rgba(255, 255, 255, 0.2);\n}\n\n.mermaid-fullscreen-modal {\n    display: none;\n    position: fixed !important;\n    top: 0 !important;\n    left: 0 !important;\n    width: 95vw;\n    height: 100vh;\n    background: rgba(255, 255, 255, 0.98);\n    z-index: 9999;\n    padding: 20px;\n    overflow: auto;\n}\n\n.mermaid-fullscreen-modal.dark-theme {\n    background: rgba(0, 0, 0, 0.98);\n}\n\n.mermaid-fullscreen-modal.active {\n    display: flex;\n    align-items: center;\n    justify-content: center;\n}\n\n.mermaid-container-fullscreen {\n    position: relative;\n    width: 95vw;\n    height: 90vh;\n    max-width: 95vw;\n    max-height: 90vh;\n    background: white;\n    border-radius: 8px;\n    padding: 20px;\n    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);\n    overflow: auto;\n    display: flex;\n    align-items: center;\n    justify-content: center;\n}\n\n.mermaid-container-fullscreen.dark-theme {\n    background: #1a1a1a;\n    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.8);\n}\n\n.mermaid-container-fullscreen pre.mermaid {\n    width: 100%;\n    height: 100%;\n    display: flex;\n    align-items: center;\n    justify-content: center;\n}\n\n.mermaid-container-fullscreen .mermaid svg {\n    height: 100% !important;\n    width: 100% !important;\n    cursor: grab;\n}\n\n.mermaid-fullscreen-close {\n    position: fixed !important;\n    top: 20px !important;\n    right: 20px !important;\n    width: 40px;\n    height: 40px;\n    background: rgba(255, 255, 255, 0.95);\n    border: 1px solid rgba(0, 0, 0, 0.2);\n    border-radius: 50%;\n    cursor: pointer;\n    z-index: 10000;\n    display: flex;\n    align-items: center;\n    justify-content: center;\n    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);\n    transition: all 0.2s;\n    font-size: 24px;\n    line-height: 1;\n    color: #333;\n}\n\n.mermaid-fullscreen-close:hover {\n    background: white;\n    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);\n    transform: scale(1.1);\n}\n\n.mermaid-fullscreen-close.dark-theme {\n    background: rgba(50, 50, 50, 0.95);\n    border: 1px solid rgba(255, 255, 255, 0.2);\n    color: #e0e0e0;\n}\n\n.mermaid-fullscreen-close.dark-theme:hover {\n    background: rgba(60, 60, 60, 1);\n    box-shadow: 0 6px 16px rgba(255, 255, 255, 0.2);\n}\n\n.mermaid-fullscreen-modal .mermaid-fullscreen-btn {\n    display: none !important;\n}";
+    document.head.appendChild(fullscreenStyle);
+}
+
+// Detect if page has dark background
+const isDarkTheme = () => {
+    // We use a set of heuristics:
+    // 1. Check for common dark mode classes or attributes
+    // 2. Check computed background color brightness
+    if (document.documentElement.classList.contains('dark') ||
+        document.documentElement.getAttribute('data-theme') === 'dark' ||
+        document.body.classList.contains('dark') ||
+        document.body.getAttribute('data-theme') === 'dark') {
+        // console.log("Dark theme detected via class/attribute");
+        return true;
+    }
+    if (document.documentElement.classList.contains('light') ||
+        document.documentElement.getAttribute('data-theme') === 'light' ||
+        document.body.classList.contains('light') ||
+        document.body.getAttribute('data-theme') === 'light') {
+        // console.log("Light theme detected via class/attribute");
+        return false;
+    }
+    if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+        // console.log("Dark theme detected via prefers-color-scheme");
+        return true;
+    }
+    const bgColor = window.getComputedStyle(document.body).backgroundColor;
+    const match = bgColor.match(/rgb\((\d+),\s*(\d+),\s*(\d+)/);
+    if (match) {
+        const r = parseInt(match[1]);
+        const g = parseInt(match[2]);
+        const b = parseInt(match[3]);
+        const brightness = (r * 299 + g * 587 + b * 114) / 1000;
+        // console.log("Background color brightness:", brightness);
+        return brightness < 128;
+    }
+    // console.log("No dark or light theme detected, defaulting to light theme");
+    return false;
+};
+
+let darkTheme = isDarkTheme();
+let modal = null;
+let modalContent = null;
+let previousScrollOffset = [window.scrollX, window.scrollY];
+let _lazyObserver = null;
+let _renderQueue = Promise.resolve();
+let closeModal = () => {};
+
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && modal?.classList.contains('active')) {
+        closeModal();
+    }
+});
+
+// Apply d3 zoom to each SVG. Idempotent: an SVG already wrapped is skipped,
+// so this is safe to call both for the initial batch and for diagrams that
+// render lazily once they become visible.
+const addZoomToSvgs = (svgs) => {
+    svgs.each(function() {
+        if (this.getAttribute('data-zoom-applied') === 'true') return;
+        var svg = d3.select(this);
+        svg.html("<g class='wrapper'>" + svg.html() + "</g>");
+        var inner = svg.select("g");
+        var zoom = d3.zoom().on("zoom", function(event) {
+            inner.attr("transform", event.transform);
+        });
+        svg.call(zoom);
+        this.setAttribute('data-zoom-applied', 'true');
+    });
+};
+
+const runMermaid = async (rerun) => {
+    console.log("Running mermaid diagrams, rerun =", rerun);
+    // clear all existing mermaid charts
+    let all_mermaids = document.querySelectorAll(".mermaid");
+
+    if (rerun) {
+        // Disconnect any previous lazy rendering observer
+        if (_lazyObserver) {
+            _lazyObserver.disconnect();
+            _lazyObserver = null;
+        }
+
+        all_mermaids.forEach((el) => {
+            el.removeAttribute('data-mermaid-deferred');
+            el.removeAttribute('data-mermaid-render-failed');
+            if(!el.hasAttribute("data-original-code")) {
+                // store original code
+                // console.log(`Storing original code for first run: `, el.innerHTML);
+                el.setAttribute('data-original-code', el.innerHTML);
+            }
+            if(el.getAttribute("data-processed") === "true") {
+                // remove and restore original
+                el.removeAttribute("data-processed");
+                // console.log(`Restoring original code for re-run: `, el.getAttribute('data-original-code'));
+                el.innerHTML = el.getAttribute('data-original-code');
+            } else {
+                // store original code
+                // console.log(`Storing original code for re-run: `, el.innerHTML);
+                el.setAttribute('data-original-code', el.innerHTML);
+            }
+        });
+
+        // Separate visible and hidden elements. Mermaid's layout engine measures
+        // text dimensions via the DOM, which fails for elements hidden by a parent
+        // (e.g., Reveal.js non-active slides, sphinx-design unopened tabs),
+        // producing broken SVGs. Render visible elements now, defer hidden ones.
+        const visible = [];
+        const hidden = [];
+        all_mermaids.forEach((el) => {
+            // offsetParent is null for display:none ancestors.
+            // getClientRects().length > 0 catches position:fixed elements
+            // (which also have null offsetParent but are still visible).
+            if (el.offsetParent !== null || el.getClientRects().length > 0) {
+                visible.push(el);
+            } else {
+                hidden.push(el);
+                el.setAttribute('data-mermaid-deferred', 'true');
+            }
+        });
+
+        if (visible.length > 0) {
+            try {
+                await mermaid.run({ nodes: visible });
+            } catch (e) {
+                console.error("Mermaid rendering failed:", e);
+            }
+        }
+
+        // Lazily render hidden elements when they become visible.
+        // Uses a promise chain (_renderQueue) to serialize rendering,
+        // since IntersectionObserver may report multiple entries at once
+        // and mermaid.run() is not safe to call concurrently.
+        if (hidden.length > 0) {
+            if (typeof IntersectionObserver === 'undefined') {
+                console.warn("IntersectionObserver not available; hidden mermaid diagrams will not render.");
+            } else {
+                _renderQueue = Promise.resolve();
+                _lazyObserver = new IntersectionObserver((entries) => {
+                    for (const entry of entries) {
+                        if (entry.isIntersecting && entry.target.getAttribute("data-processed") !== "true") {
+                            _lazyObserver.unobserve(entry.target);
+                            const el = entry.target;
+                            _renderQueue = _renderQueue.then(async () => {
+                                try {
+                                    await mermaid.run({ nodes: [el] });
+                                    el.removeAttribute('data-mermaid-deferred');
+                                    // Apply zoom to the now-rendered diagram, matching
+                                    // the decoration visible diagrams receive.
+                                    if (false) {
+                                        addZoomToSvgs(d3.selectAll("").select(function() {
+                                            return this.querySelector("svg");
+                                        }));
+                                    }
+                                } catch (e) {
+                                    console.error("Mermaid deferred rendering failed:", e);
+                                    el.removeAttribute('data-mermaid-deferred');
+                                    el.setAttribute('data-mermaid-render-failed', 'true');
+                                }
+                            });
+                        }
+                    }
+                });
+                hidden.forEach((el) => _lazyObserver.observe(el));
+            }
+        }
+    }
+
+    all_mermaids = document.querySelectorAll(".mermaid");
+    // Exclude deferred (hidden) and render-failed elements from completion checks
+    const mermaids_active = document.querySelectorAll(".mermaid:not([data-mermaid-deferred]):not([data-mermaid-render-failed])");
+    const mermaids_processed = document.querySelectorAll(".mermaid:not([data-mermaid-deferred]):not([data-mermaid-render-failed])[data-processed='true']");
+
+    if (false) {
+        const mermaids_to_add_zoom = 0 === -1 ? mermaids_active.length : 0;
+        if(mermaids_to_add_zoom > 0) {
+            var svgs = d3.selectAll("").select(function() {
+                return this.querySelector("svg");
+            });
+            // Wait until every active (visible) diagram has rendered. Deferred
+            // diagrams are excluded, so a fixed d3_node_count that counts a
+            // hidden diagram no longer loops forever waiting for its SVG.
+            if(mermaids_active.length !== mermaids_processed.length) {
+                setTimeout(() => runMermaid(false), 200);
+                return;
+            }
+            addZoomToSvgs(svgs);
+        }
+    } else if(mermaids_active.length !== mermaids_processed.length) {
+        // Wait for mermaid to process all diagrams
+        setTimeout(() => runMermaid(false), 200);
+        return;
+    }
+
+    // Stop here if not adding fullscreen capability
+    if (!true) return;
+
+    if (modal !== null ) {
+        // Destroy existing modal
+        modal.remove();
+        modal = null;
+        modalContent = null;
+    }
+
+    modal = document.createElement('div');
+    modal.className = 'mermaid-fullscreen-modal' + (darkTheme ? ' dark-theme' : '');
+    modal.setAttribute('role', 'dialog');
+    modal.setAttribute('aria-modal', 'true');
+    modal.setAttribute('aria-label', 'Fullscreen diagram viewer');
+    modal.innerHTML = `
+        <button class="mermaid-fullscreen-close${darkTheme ? ' dark-theme' : ''}" aria-label="Close fullscreen">✕</button>
+        <div class="mermaid-container-fullscreen${darkTheme ? ' dark-theme' : ''}"></div>
+    `;
+    document.body.appendChild(modal);
+
+    modalContent = modal.querySelector('.mermaid-container-fullscreen');
+    const closeBtn = modal.querySelector('.mermaid-fullscreen-close');
+
+    closeModal = () => {
+        modal.classList.remove('active');
+        modalContent.innerHTML = '';
+        document.body.style.overflow = ''
+        window.scrollTo({left: previousScrollOffset[0], top: previousScrollOffset[1], behavior: 'instant'});
+    };
+
+    closeBtn.addEventListener('click', closeModal);
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) closeModal();
+    });
+    document.querySelectorAll('.mermaid').forEach((mermaidDiv) => {
+        if (mermaidDiv.parentNode.classList.contains('mermaid-container') ||
+            mermaidDiv.closest('.mermaid-fullscreen-modal')) {
+            // Already processed, adjust button class if needed
+            const existingBtn = mermaidDiv.parentNode.querySelector('.mermaid-fullscreen-btn');
+            if (existingBtn) {
+                existingBtn.className = 'mermaid-fullscreen-btn' + (darkTheme ? ' dark-theme' : '');
+            }
+            return;
+        }
+
+        const container = document.createElement('div');
+        container.className = 'mermaid-container';
+        mermaidDiv.parentNode.insertBefore(container, mermaidDiv);
+        container.appendChild(mermaidDiv);
+
+        const fullscreenBtn = document.createElement('button');
+        fullscreenBtn.className = 'mermaid-fullscreen-btn' + (darkTheme ? ' dark-theme' : '');
+        fullscreenBtn.setAttribute('aria-label', 'View diagram in fullscreen');
+        fullscreenBtn.textContent = "\u26f6";
+        fullscreenBtn.style.opacity = "50%";
+
+        // Calculate dynamic position based on diagram's margin and padding
+        const diagramStyle = window.getComputedStyle(mermaidDiv);
+        const marginTop = parseFloat(diagramStyle.marginTop) || 0;
+        const marginRight = parseFloat(diagramStyle.marginRight) || 0;
+        const paddingTop = parseFloat(diagramStyle.paddingTop) || 0;
+        const paddingRight = parseFloat(diagramStyle.paddingRight) || 0;
+        fullscreenBtn.style.top = `${marginTop + paddingTop + 4}px`;
+        fullscreenBtn.style.right = `${marginRight + paddingRight + 4}px`;
+
+        fullscreenBtn.addEventListener('click', () => {
+            previousScrollOffset = [window.scrollX, window.scrollY];
+            const clone = mermaidDiv.cloneNode(true);
+            modalContent.innerHTML = '';
+            modalContent.appendChild(clone);
+
+            const svg = clone.querySelector('svg');
+            if (svg) {
+                svg.removeAttribute('width');
+                svg.removeAttribute('height');
+                svg.style.width = '100%';
+                svg.style.height = 'auto';
+                svg.style.maxWidth = '100%';
+                svg.style.display = 'block';
+
+                if (false) {
+                    setTimeout(() => {
+                        const g = svg.querySelector('g');
+                        if (g) {
+                            var svgD3 = d3.select(svg);
+                            svgD3.html("<g class='wrapper'>" + svgD3.html() + "</g>");
+                            var inner = svgD3.select("g");
+                            var zoom = d3.zoom().on("zoom", function(event) {
+                                inner.attr("transform", event.transform);
+                            });
+                            svgD3.call(zoom);
+                        }
+                    }, 100);
+                }
+            }
+
+            modal.classList.add('active');
+            document.body.style.overflow = 'hidden';
+        });
+        container.appendChild(fullscreenBtn);
+    });
+};
+
+
+
+const load = async () => {
+    initStyles();
+
+
+    await runMermaid(true);
+
+    const reRunIfThemeChanges = async () => {
+        const newDarkTheme = isDarkTheme();
+        if (newDarkTheme !== darkTheme) {
+            darkTheme = newDarkTheme;
+            console.log("Theme change detected, re-running mermaid with", darkTheme ? "dark" : "default", "theme");
+            await mermaid.initialize(
+                {...{"startOnLoad": false},
+                ...{ darkMode: darkTheme, theme: darkTheme ? "dark" : "default" },
+                }
+            );
+            await runMermaid(true);
+        }
+    };
+
+    // Update theme classes when theme changes
+    const themeObserver = new MutationObserver(reRunIfThemeChanges);
+    themeObserver.observe(document.documentElement, {
+        attributes: true,
+        attributeFilter: ['class', 'style', 'data-theme']
+    });
+    themeObserver.observe(document.body, {
+        attributes: true,
+        attributeFilter: ['class', 'style', 'data-theme']
+    });
+};
+
+
+
+
+
+console.log("Initializing mermaid with", darkTheme ? "dark" : "default", "theme");
+mermaid.initialize(
+    {...{"startOnLoad": false},
+    ...{ darkMode: darkTheme, theme: darkTheme ? "dark" : "default" },
+    }
+);
+
+window.addEventListener("load", load);
+window.runMermaid = runMermaid;</script></body>
+</html>

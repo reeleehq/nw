@@ -168,6 +168,7 @@
    graph_backend
    jobs
    media_catalog
+   media_store
    migrate
    pricing
    project
