@@ -165,6 +165,7 @@ from .transforms import (
 )
 from . import delivery  # noqa: F401  — `nw.delivery.Deliverable` (the genre->host seam)
 from .delivery import Deliverable, Lister, Resolver, format_ref, parse_ref
+from .stages import Stage, stage_overview, stage_prices, stage_states
 from .genres import (
     GENRE_STATUSES,
     Genre,
@@ -247,6 +248,10 @@ __all__ = [
     "GENRE_STATUSES",
     "Genre",
     "Template",
+    "Stage",
+    "stage_overview",
+    "stage_prices",
+    "stage_states",
     "GenreResolver",
     "genre_catalog",
     "describe_genre",
