@@ -159,7 +159,9 @@ class SharedMediaStore:
         src = Path(path)
         aid = artifact_id if artifact_id is not None else _hash_file(src)
         if not _IS_DIGEST.fullmatch(aid or ""):
-            raise ValueError(f"artifact_id {aid!r} is not a 64-char lowercase hex digest")
+            raise ValueError(
+                f"artifact_id {aid!r} is not a 64-char lowercase hex digest"
+            )
         blob = self.blobs_dir / aid
         self.blobs_dir.mkdir(parents=True, exist_ok=True)
         if blob.exists():
@@ -301,7 +303,8 @@ class SharedMediaStore:
 
     def _referenced_now(self, aid: str) -> bool:
         return any(
-            (rows_dir / f"{aid}.json").exists() for rows_dir in self.registered_catalogs()
+            (rows_dir / f"{aid}.json").exists()
+            for rows_dir in self.registered_catalogs()
         )
 
     def clear_mark(self, aid: str) -> None:
