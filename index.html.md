@@ -682,6 +682,6 @@ Optional system tools: `ffmpeg` / `ffprobe` for audio slicing and QA reports.
 
 ## License
 
-MIT — see [LICENSE]().
+Apache-2.0 — see [LICENSE]().
 
 <p class="epythet-aggregates">This documentation as a single file: <a href="nw.md">nw.md</a> (Markdown, for agents).</p>

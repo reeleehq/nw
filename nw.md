@@ -1,4 +1,4 @@
-> built 2026-10-30 07:49 UTC from 4299259 (main) · nw 0.0.110. Details: build_info.json
+> built 2026-10-30 12:55 UTC from ce6b68a (main) · nw 0.0.111. Details: build_info.json
 
 # index.html.md
 
@@ -686,7 +686,7 @@ Optional system tools: `ffmpeg` / `ffprobe` for audio slicing and QA reports.
 
 ## License
 
-MIT — see [LICENSE]().
+Apache-2.0 — see [LICENSE]().
 
 <p class="epythet-aggregates">This documentation as a single file: <a href="nw.md">nw.md</a> (Markdown, for agents).</p>
 
@@ -11168,18 +11168,20 @@ produce different URLs. The local file paths are byte-stable.
 
 # About this build
 
-This documentation was built on **2026-10-30 07:49 UTC** from commit <a href="https://github.com/reeleehq/nw/commit/429925971988f711f5bbef3bd42fb029f1dda9a6"><code>4299259</code></a> on branch <code>main</code>, for **nw 0.0.110** (from <code>pyproject.toml</code>).
+This documentation was built on **2026-10-30 12:55 UTC** from commit <a href="https://github.com/reeleehq/nw/commit/ce6b68acc5bbf14ac86ca57a4602d6bdea565af9"><code>ce6b68a</code></a> on branch <code>main</code>, for **nw 0.0.111** (from <code>pyproject.toml</code>).
 
-#### NOTE
-Nothing suggests a mismatch: the tree was clean at the commit above, and the documented version is the one on PyPI.
+#### WARNING
+The documentation and the package may be misaligned:
+
+- The documented version (0.0.111) is ahead of the latest release on PyPI (0.0.110): these docs describe unreleased code.
 
 ## Source
 
 |                     |                                                                                                                                                    |
 |---------------------|----------------------------------------------------------------------------------------------------------------------------------------------------|
-| Commit              | <a href="https://github.com/reeleehq/nw/commit/429925971988f711f5bbef3bd42fb029f1dda9a6"><code>429925971988f711f5bbef3bd42fb029f1dda9a6</code></a> |
+| Commit              | <a href="https://github.com/reeleehq/nw/commit/ce6b68acc5bbf14ac86ca57a4602d6bdea565af9"><code>ce6b68acc5bbf14ac86ca57a4602d6bdea565af9</code></a> |
 | Branch              | <code>main</code>                                                                                                                                  |
-| Tags at this commit | <code>0.0.110</code>                                                                                                                               |
+| Tags at this commit | <code>0.0.111</code>                                                                                                                               |
 | Working tree        | clean                                                                                                                                              |
 | Remote              | <code>https://github.com/reeleehq/nw</code>                                                                                                        |
 
@@ -11188,9 +11190,9 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 |              |                                                                                            |
 |--------------|--------------------------------------------------------------------------------------------|
 | Repository   | <code>reeleehq/nw</code>                                                                   |
-| Run          | <a href="https://github.com/reeleehq/nw/actions/runs/41022187534">41022187534</a>          |
+| Run          | <a href="https://github.com/reeleehq/nw/actions/runs/41058716851">41058716851</a>          |
 | Ref          | <code>refs/heads/main</code>                                                               |
-| Event commit | <code>47397704ec073e49558eb2735ae6cd8925c9ba87</code> (in the history of the built commit) |
+| Event commit | <code>38296f5aee4570debf931c732d56957f6e9205df</code> (in the history of the built commit) |
 
 ## Tools
 
@@ -11215,13 +11217,13 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 
 ## Package on PyPI
 
-Latest release: <a href="https://pypi.org/project/nw/0.0.110/">0.0.110</a>, the same as the documented version.
+Latest release: <a href="https://pypi.org/project/nw/0.0.110/">0.0.110</a>, older than the documented version (0.0.111).
 
 ## Reproduce
 
 ```bash
 git clone https://github.com/reeleehq/nw && cd nw
-git checkout 429925971988f711f5bbef3bd42fb029f1dda9a6
+git checkout ce6b68acc5bbf14ac86ca57a4602d6bdea565af9
 pip install "epythet==0.2.22"
 epythet quickstart . --ignore tests/ scrap/ examples/
 ```
