@@ -54,6 +54,8 @@ from typing import TYPE_CHECKING, Any, Callable, Optional, Union
 
 from xdol import Registry
 
+from .stages import Stage, validate_stages
+
 if TYPE_CHECKING:  # runtime-free: only for the GenreInitializer type hint
     from .project import Project
 
@@ -177,6 +179,10 @@ class Genre:
     #: The "start from scratch" params for this genre (same opaque shape as a
     #: :class:`Template`'s ``params``) — used when no template is chosen.
     defaults: Mapping[str, Any] = field(default_factory=dict, compare=False)
+    #: The plain-English stages of this kind of production, in order (reelee#458;
+    #: :mod:`nw.stages` is the spec). Declared here once so the step list, "Step N
+    #: of M" and the remaining-cost total all read the engine, never an app's text.
+    stages: tuple[Stage, ...] = ()
 
     def __post_init__(self) -> None:
         # Normalize every sequence field to a tuple up front — symmetrically with
@@ -190,6 +196,7 @@ class Genre:
             "strategy_names",
             "templates",
             "intake_kinds",
+            "stages",
         ):
             _value = getattr(self, _name)
             if not isinstance(_value, tuple):
@@ -236,6 +243,11 @@ class Genre:
             )
         if not isinstance(self.defaults, MappingProxyType):
             object.__setattr__(self, "defaults", MappingProxyType(dict(self.defaults)))
+        validate_stages(
+            self.slug,
+            self.stages,
+            (*self.transform_names, *self.strategy_names),
+        )
 
     def template(self, slug: str) -> Template:
         """Look up one of this genre's :class:`Template`\\ s by slug (KeyError if absent)."""
@@ -266,6 +278,7 @@ class Genre:
             "cost_profile": self.cost_profile,
             "defaults": dict(self.defaults),
             "templates": [t.to_dict() for t in self.templates],
+            "stages": [st.to_dict() for st in self.stages],
         }
 
     def missing_transforms(self) -> list[str]:

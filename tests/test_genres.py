@@ -306,6 +306,7 @@ def test_genre_to_dict_shape():
         "cost_profile",
         "defaults",
         "templates",
+        "stages",
     }
 
 
