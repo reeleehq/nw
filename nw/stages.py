@@ -91,14 +91,18 @@ class Stage:
         }
 
 
-def validate_stages(genre_slug: str, stages: Sequence[Stage], known: Iterable[str]) -> None:
+def validate_stages(
+    genre_slug: str, stages: Sequence[Stage], known: Iterable[str]
+) -> None:
     """Raise ``ValueError`` unless ``stages`` are well-formed against the genre's own
     ``known`` transforms/strategies. Called by :class:`nw.Genre`."""
     if not all(isinstance(s, Stage) for s in stages):
         raise ValueError(f"Genre {genre_slug!r}: stages must all be nw.Stage")
     slugs = [s.slug for s in stages]
     if len(slugs) != len(set(slugs)):
-        raise ValueError(f"Genre {genre_slug!r}: stage slugs must be unique, got {slugs}")
+        raise ValueError(
+            f"Genre {genre_slug!r}: stage slugs must be unique, got {slugs}"
+        )
     known = set(known)
     for s in stages:
         stray = [t for t in s.transform_names if t not in known]
@@ -243,7 +247,9 @@ def stage_overview(
         "of": total,
         "complete": bool(rows) and not todo,
         "stages": rows,
-        "remaining_total_usd": None if unknown else sum(r["price"]["usd"] for r in todo),
+        "remaining_total_usd": None
+        if unknown
+        else sum(r["price"]["usd"] for r in todo),
         "remaining_status": "unknown" if unknown else "quoted",
     }
 
