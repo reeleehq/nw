@@ -59,6 +59,7 @@ DEFAULT_GRACE_S = 7 * 24 * 3600.0
 _IS_DIGEST = re.compile(r"[0-9a-f]{64}")
 #: Tenant / class names are path segments: no separators, no dots-only, no reserved.
 _SEGMENT = re.compile(r"[A-Za-z0-9][A-Za-z0-9_.-]*")
+_SENTINEL = ".nw-store-catalog"
 _META_DIR = "_nw"  # per-tenant bookkeeping, beside the lifecycle-class dirs
 _LINK_REFUSALS = (errno.EXDEV, errno.EMLINK, errno.EPERM)
 
@@ -167,7 +168,7 @@ class SharedMediaStore:
                     f"store blob {aid} is {blob.stat().st_size} bytes but {src} is "
                     f"{src.stat().st_size}: remove the blob and put again."
                 )
-            self._clear_mark(aid)
+            self.clear_mark(aid)
             return aid
         try:
             os.link(src, blob)
@@ -189,7 +190,9 @@ class SharedMediaStore:
                 os.replace(tmp, blob)
             finally:
                 tmp.unlink(missing_ok=True)
-        self._clear_mark(aid)
+        self.clear_mark(aid)
+        if not blob.exists():  # a concurrent sweep removed it just before the clear
+            return self.put(src, artifact_id=aid)
         return aid
 
     # -- catalog registry (what GC marks from) --------------------------------
@@ -197,6 +200,10 @@ class SharedMediaStore:
     def register_catalog(self, rows_dir) -> None:
         """Record that the catalog whose rows live in ``rows_dir`` references this store."""
         rows_dir = Path(rows_dir).resolve()
+        rows_dir.mkdir(parents=True, exist_ok=True)
+        # A sentinel, so an emptied-and-recreated or unmounted rows dir is told
+        # apart from one that really holds no rows (see ``references``).
+        (rows_dir / _SENTINEL).touch()
         key = hashlib.sha256(str(rows_dir).encode()).hexdigest()[:24]
         _atomic_write(
             self._catalogs_dir / f"{key}.json", json.dumps({"rows_dir": str(rows_dir)})
@@ -223,14 +230,20 @@ class SharedMediaStore:
         """``{sha256: live rows naming it}`` across every registered catalog."""
         counts: dict[str, int] = {}
         for rows_dir in self.registered_catalogs():
-            if not rows_dir.is_dir():
+            try:
+                if not (rows_dir / _SENTINEL).exists():
+                    raise FileNotFoundError(_SENTINEL)
+                names = os.listdir(rows_dir)  # raises on permission, unlike glob
+            except OSError as exc:
                 raise StoreCatalogUnreadable(
-                    f"registered catalog {rows_dir} is missing; a sweep cannot tell "
-                    "what it references. Restore it or unregister_catalog() it."
-                )
-            for p in rows_dir.glob("*.json"):
-                if _IS_DIGEST.fullmatch(p.stem):
-                    counts[p.stem] = counts.get(p.stem, 0) + 1
+                    f"registered catalog {rows_dir} is missing, unreadable or was "
+                    f"recreated empty ({exc}); a sweep cannot tell what it "
+                    "references. Restore it or unregister_catalog() it."
+                ) from exc
+            for name in names:
+                stem, ext = os.path.splitext(name)
+                if ext == ".json" and _IS_DIGEST.fullmatch(stem):
+                    counts[stem] = counts.get(stem, 0) + 1
         return counts
 
     # -- GC -------------------------------------------------------------------
@@ -273,6 +286,11 @@ class SharedMediaStore:
                 if apply:
                     _atomic_write(mark, repr(now))
             elif now - since >= grace_s:
+                if self._referenced_now(aid):  # a row appeared since the snapshot
+                    rep.unmarked.append(aid)
+                    if apply:
+                        mark.unlink(missing_ok=True)
+                    continue
                 rep.removed.append(aid)
                 if apply:
                     blob.unlink(missing_ok=True)
@@ -281,7 +299,13 @@ class SharedMediaStore:
                 rep.still_in_grace.append(aid)
         return rep
 
-    def _clear_mark(self, aid: str) -> None:
+    def _referenced_now(self, aid: str) -> bool:
+        return any(
+            (rows_dir / f"{aid}.json").exists() for rows_dir in self.registered_catalogs()
+        )
+
+    def clear_mark(self, aid: str) -> None:
+        """Forget that ``aid`` was unreferenced (a host just used it)."""
         (self._marks_dir / aid).unlink(missing_ok=True)
 
 

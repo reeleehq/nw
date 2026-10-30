@@ -107,3 +107,45 @@ def test_sweep_refuses_when_a_catalog_is_missing(tmp_path):
     assert store.unregister_catalog(c.rows_dir)
     store.sweep(apply=True, grace_s=0, now=0.0)
     assert store.sweep(apply=True, grace_s=0, now=1.0).removed == [aid]
+
+
+def test_reregister_of_present_blob_clears_a_stale_mark(tmp_path):
+    store = SharedMediaStore(tmp_path / "s")
+    p, f = _project(tmp_path, "a")
+    c = HostArtifactCatalog(p, store=store)
+    aid = c.register(f, kind="audio")
+    row = c.rows_dir / f"{aid}.json"
+    saved = row.read_text()
+    row.unlink()
+    store.sweep(apply=True, grace_s=10, now=0.0)  # marked
+    c.register(f, kind="audio")  # exists-branch; must clear the mark
+    row.unlink()
+    assert store.sweep(apply=True, grace_s=10, now=1000.0).removed == []
+
+
+def test_recreated_empty_rows_dir_is_not_trusted(tmp_path):
+    import shutil
+
+    store = SharedMediaStore(tmp_path / "s")
+    p, f = _project(tmp_path, "a")
+    c = HostArtifactCatalog(p, store=store)
+    c.register(f, kind="audio")
+    shutil.rmtree(c.rows_dir)
+    c.rows_dir.mkdir(parents=True)
+    with pytest.raises(StoreCatalogUnreadable):
+        store.sweep(apply=True, grace_s=0)
+
+
+def test_row_added_after_snapshot_blocks_removal(tmp_path, monkeypatch):
+    store = SharedMediaStore(tmp_path / "s")
+    p, f = _project(tmp_path, "a")
+    c = HostArtifactCatalog(p, store=store)
+    aid = c.register(f, kind="audio")
+    row = c.rows_dir / f"{aid}.json"
+    saved = row.read_text()
+    row.unlink()
+    store.sweep(apply=True, grace_s=10, now=0.0)
+    monkeypatch.setattr(SharedMediaStore, "references", lambda self: {})  # stale snapshot
+    row.write_text(saved)
+    rep = store.sweep(apply=True, grace_s=10, now=100.0)
+    assert rep.removed == [] and store.has(aid)

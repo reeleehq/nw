@@ -465,6 +465,7 @@ class HostArtifactCatalog:
             report.blobs_present += 1
             if self.store is not None:
                 self.store.register_catalog(self.rows_dir)
+                self.store.clear_mark(aid)
             return
         if self.store is not None:
             # Store first (it clears any GC mark), then link the project to it.
