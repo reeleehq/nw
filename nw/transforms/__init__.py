@@ -15,7 +15,10 @@ Two-phase, mirroring ``nw.workflow`` (prepare → plan → execute):
 2. :meth:`Transform.execute` — runs the Plan via ``falaw.execute_plan``,
    completes the skeleton annotations with real artifact references, writes
    them to the project graph, and returns a :class:`TransformResult` with
-   *actual* cost and cache savings.
+   *actual* cost and cache savings. A completed output whose equivalent node
+   is already in the graph and verified fresh is *not* written again — the
+   existing node is returned instead (:func:`nw.freshness.fresh_equivalents`,
+   nw#203), so re-running on unchanged inputs adds nothing.
 
 ``execute``'s two cache knobs are a read half and a write half, not one
 switch: ``force=True`` skips the cache **read** and keeps the **write** (so a
@@ -166,7 +169,13 @@ class TransformResult:
     """The outputs of a Transform's :meth:`~Transform.execute`."""
 
     annotations: tuple[Annotation, ...]
-    """The completed output annotation(s), written to the project graph."""
+    """The completed output annotation(s), as they stand in the project graph.
+
+    Usually the annotations this run wrote. When an output's node already
+    exists — same value and parents, verified fresh, as after a re-run served
+    from falaw's cache — that **existing** node is returned in its place and
+    nothing is written (nw#203), so its ``id`` is not the skeleton's. Read
+    ids from here, never from the skeleton."""
 
     artifacts: tuple[Artifact, ...] = ()
     """The ``lacing.Artifact``\\ s produced (images, videos, audio, json …).
@@ -553,10 +562,26 @@ class BaseTransform:
         # returning early. `call_index`/`unit_instance_id` are the identity a
         # matching unproduced-output record is retired by (nw#44) — passed
         # through so a retry's success clears its own record.
-        for i, ann in zip(completed_indices, completed):
-            project.graph.add_annotation(
-                ann, instance_id=unit_instance_id, call_index=i
-            )
+        #
+        # A success whose node already exists — same value, same parents,
+        # verified fresh (a re-run served from falaw's cache) — is not written
+        # again: the existing node is returned in its place, and the record
+        # its success settles is still retired (nw#203).
+        equivalents = _fresh_equivalents_of(project, completed)
+        produced: list[Annotation] = []
+        for i, ann, existing in zip(
+            completed_indices, completed, equivalents, strict=True
+        ):
+            if existing is None:
+                project.graph.add_annotation(
+                    ann, instance_id=unit_instance_id, call_index=i
+                )
+                produced.append(ann)
+            else:
+                project.graph.settle_unproduced_outputs(
+                    ann, instance_id=unit_instance_id, call_index=i
+                )
+                produced.append(existing)
         # A failed/blocked output's reason otherwise lives only in this
         # in-memory result — gone the moment the caller drops it, and
         # unexplained again on reload (nw#44).
@@ -574,7 +599,7 @@ class BaseTransform:
                 call_index=i,
             )
         return TransformResult(
-            annotations=tuple(completed),
+            annotations=tuple(produced),
             artifacts=tuple(report.produced),
             cost_usd_actual=report.estimated_spend_usd,
             cache_hit_savings_usd=report.cache_hit_savings_usd,
@@ -622,6 +647,24 @@ class BaseTransform:
             )
         new_body = {**skeleton.body, "artifact_id": artifact.asset_id}
         return skeleton.model_copy(update={"body": new_body})
+
+
+def _fresh_equivalents_of(
+    project, completed: list[Annotation]
+) -> tuple[Optional[Annotation], ...]:
+    """The stored node each of ``completed`` would only duplicate, or ``None``.
+
+    :meth:`nw.graph.ProjectGraph.fresh_equivalents` (the rule:
+    :func:`nw.freshness.fresh_equivalents`), asked once for the whole batch so
+    every skeleton of one ``execute`` call shares at most one freshness walk.
+    A ``project.graph`` that does not offer it — a test double, or a host's
+    duck-typed graph that predates nw#203 — reuses nothing, which is exactly
+    the behaviour before reuse existed.
+    """
+    find = getattr(project.graph, "fresh_equivalents", None)
+    if find is None or not completed:
+        return tuple(None for _ in completed)
+    return tuple(find(completed))
 
 
 # ---------------------------------------------------------------------------

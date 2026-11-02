@@ -519,6 +519,48 @@ class ProjectGraph:
             if retire_key is not None:
                 _retire_unproduced_outputs(store, retire_key)
 
+    def fresh_equivalents(
+        self, annotations: Iterable[Annotation]
+    ) -> tuple[Optional[Annotation], ...]:
+        """For each of ``annotations``, the stored node it would only duplicate.
+
+        :func:`nw.freshness.fresh_equivalents` over this graph's project — the
+        rule (and its cost: at most one freshness walk per call) is stated
+        there. Read-only. The write side of a reuse is
+        :meth:`settle_unproduced_outputs`.
+        """
+        from .freshness import fresh_equivalents  # freshness imports this module
+
+        return fresh_equivalents(self.storage, annotations)
+
+    def settle_unproduced_outputs(
+        self,
+        ann: Annotation,
+        *,
+        instance_id: Optional[str] = None,
+        call_index: Optional[int] = None,
+    ) -> None:
+        """Retire the unproduced-output records ``ann``'s success settles, and
+        write nothing else.
+
+        The retirement half of :meth:`add_annotation`, for a success that is
+        **not** written because an equivalent node already exists
+        (:meth:`fresh_equivalents`, nw#203): the output was produced all the
+        same, so a record saying it is missing must go. Pass the annotation
+        *this run* completed (not the reused node): the record was built from
+        this run's skeleton, so its ``upstream`` is this run's
+        ``was_derived_from`` — which, since nw#55, may carry asset ids an
+        older reused node lacks. Same key and same arguments as
+        :meth:`add_annotation`; a no-op for an annotation no Transform made.
+        """
+        retire_key = _unproduced_output_key_for(
+            ann, instance_id=instance_id, call_index=call_index
+        )
+        if retire_key is None:
+            return
+        with self._open() as store:
+            _retire_unproduced_outputs(store, retire_key)
+
     def remove_annotation(self, annotation_id: UUID) -> bool:
         """Remove one annotation from the project graph, with its verifying traces.
 

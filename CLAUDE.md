@@ -49,6 +49,14 @@ it. Layering: `lacing → nw → falaw.Plan → backends` — nothing above
   answer "what is stale *right now*". Invariants: unverifiable means stale;
   parentless annotations are never stale; the module docstring states the
   exact rule and the four cases it deliberately does not catch.
+  `fresh_equivalents(project, anns)` (nw#203) is the write-side question:
+  the stored node each new annotation would only duplicate (same tier,
+  schema, reference, *annotation* parents, JSON-equal body, **verified
+  fresh** — equal parent ids are not enough, braidio#51); at most one walk
+  per call, none without a candidate. `BaseTransform.execute` returns that
+  node instead of writing a duplicate (and still retires the unproduced
+  record its success settles), so `result.annotations[i].id` may differ from
+  the skeleton's.
 - **Graph** (`nw/graph.py`) — `ProjectGraph` over lacing stores.
   `add_annotation` is **the single choke point every derived annotation
   passes through** and records the verifying trace at persist time; bypass

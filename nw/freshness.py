@@ -97,16 +97,30 @@ Stated so nobody reads more into the number than is there:
   trusted as-is: whether that artifact still exists, or has been superseded,
   is not checked. An artifact parent counts toward "the trace's upstream set
   is exactly ``was_derived_from``" like any other parent.
+
+Reuse: the fresh equivalent of a new output
+--------------------------------------------
+:func:`fresh_equivalents` asks the walk a write-side question: *is there
+already a node this new annotation would only duplicate?* (nw#203). Same
+tier, ``body_schema_uri`` and reference, the same **annotation** parents, an
+equal value (:func:`body_value`), and **verified fresh** — equality of
+parents by id is not enough, because a parent rewritten in place keeps its
+id (braidio#51). :meth:`nw.transforms.BaseTransform.execute` uses it so that
+re-running a Transform on unchanged inputs (a falaw cache hit) returns the
+node it already wrote instead of adding a second one.
 """
 
 from __future__ import annotations
 
+import json
+from collections.abc import Callable, Iterable
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional
 from uuid import UUID
 
 from lacing import Annotation
+from lacing.model import partition_provenance_refs
 from lacing.digest import (
     VALUE_DIGEST_SCHEMES,
     annotation_value_digest,
@@ -118,7 +132,7 @@ from .bodies.verifying_trace import (
     VERIFYING_TRACE_BODY_SCHEMA_URI,
     VerifyingTraceBodyV1,
 )
-from .graph import iter_all_annotations
+from .graph import annotations_at_tier, iter_all_annotations
 from .storage import ProjectLike
 
 
@@ -412,6 +426,154 @@ def stale_after(project_root: "ProjectLike", changed_id: UUID) -> list[Annotatio
     return [
         v.annotation for v in stale_verdicts(project_root, changed_id) if v.is_stale
     ]
+
+
+# --- reuse: the fresh equivalent of a new output (nw#203) --------------------
+
+
+def body_value(ann: Annotation) -> object:
+    """``ann.body`` JSON-normalised — the value two annotations are compared by.
+
+    A body built in memory is a python-mode dump (tuples, UUIDs) while one read
+    back from a store is what JSON gave it (lists, strings); the wire value is
+    the same and must compare equal. Keys are sorted, so key order is not a
+    difference either.
+    """
+    return json.loads(json.dumps(ann.body, sort_keys=True, default=str))
+
+
+def annotation_parent_ids(ann: Annotation) -> frozenset[UUID]:
+    """The **annotation** ids in ``ann.provenance.was_derived_from``.
+
+    ``was_derived_from`` also holds 64-hex artifact asset ids (lacing#31,
+    written for declared input schemas since nw#55). Code that means "the
+    annotations this node was derived from" reads this half only — which is
+    what lets a node written before #55 (no asset refs) still match one
+    written after it.
+    """
+    annotation_ids, _asset_ids = partition_provenance_refs(
+        list(ann.provenance.was_derived_from or ())
+    )
+    return frozenset(annotation_ids)
+
+
+def fresh_equivalents(
+    project_root: "ProjectLike",
+    annotations: Iterable[Annotation],
+    *,
+    value_of: Callable[[Annotation], object] = body_value,
+) -> tuple[Optional[Annotation], ...]:
+    """For each of ``annotations``, the existing node it would only duplicate.
+
+    Returns one entry per input, in order: the stored annotation equivalent to
+    it, or ``None`` when there is none (write it). An existing node ``E`` is
+    equivalent to a new annotation ``A`` when **all** of these hold:
+
+    - same ``tier``, same ``body_schema_uri`` and the same ``reference``
+      (where it sits — JSON-compared);
+    - the same **annotation** parents (:func:`annotation_parent_ids`, as a
+      set). Artifact parents (nw#55) are ignored: a node written before the
+      declaration has none, and comparing them would refuse to reuse every
+      such node. Freshness loses nothing by it — a declared asset id is read
+      off a parent's body, so replacing the artifact changes that parent's
+      value, which the walk below refuses;
+    - ``value_of(E) == value_of(A)`` — by default the whole body,
+      JSON-normalised (:func:`body_value`). Generic on purpose: after a falaw
+      cache hit the completed body *is* the earlier node's body, while a
+      genuinely new render carries a different artifact id and so is never
+      equivalent. A caller comparing a *planned* value before execution
+      (braidio's ``planned_value``, which drops output keys) passes its own;
+    - ``E`` is **verified fresh** by this module's walk, with the same
+      classification :func:`stale_verdicts_all` gives it. Ids are not enough:
+      a parent rewritten in place keeps its id, so a node derived from its
+      old value has "the same parents" and is exactly the node that must not
+      be reused (braidio#51). A parentless ``E`` is never stale (the
+      snapshot's own rule), so it counts as fresh;
+    - ``E.id != A.id``.
+
+    When several stored nodes qualify, the most recently generated one wins.
+
+    **Cost.** The cheap filter (one indexed ``by_tier`` read per distinct tier)
+    runs first; the freshness walk runs **at most once per call**, over the
+    candidates that survived it, and **not at all** when none did — so a
+    first run, or a run whose outputs are all new, pays nothing for this.
+    Pass every annotation of one write batch in a single call to share the
+    walk. Read-only: nothing is written.
+    """
+    annotations = tuple(annotations)
+    if not annotations:
+        return ()
+
+    def _identity(ann: Annotation) -> tuple:
+        reference = json.dumps(
+            ann.reference.model_dump(mode="json"), sort_keys=True, default=str
+        )
+        return (
+            ann.tier,
+            ann.body_schema_uri,
+            reference,
+            annotation_parent_ids(ann),
+            json.dumps(value_of(ann), sort_keys=True, default=str),
+        )
+
+    stored_by_tier: dict[str, list[Annotation]] = {}
+    for tier in dict.fromkeys(a.tier for a in annotations):
+        stored_by_tier[tier] = annotations_at_tier(project_root, tier)
+
+    candidates_per_input: list[list[Annotation]] = []
+    for ann in annotations:
+        wanted = _identity(ann)
+        candidates_per_input.append(
+            [
+                e
+                for e in stored_by_tier[ann.tier]
+                if e.id != ann.id and _identity(e) == wanted
+            ]
+        )
+    candidate_ids = {e.id for cands in candidates_per_input for e in cands}
+    if not candidate_ids:
+        return tuple(None for _ in annotations)
+
+    fresh = _fresh_among(project_root, candidate_ids)
+
+    def _newest_fresh(cands: list[Annotation]) -> Optional[Annotation]:
+        ordered = sorted(
+            (e for e in cands if e.id in fresh),
+            key=lambda e: e.provenance.generated_at_time.to_seconds(),
+        )
+        return ordered[-1] if ordered else None
+
+    return tuple(_newest_fresh(cands) for cands in candidates_per_input)
+
+
+def fresh_equivalent(
+    project_root: "ProjectLike",
+    annotation: Annotation,
+    *,
+    value_of: Callable[[Annotation], object] = body_value,
+) -> Optional[Annotation]:
+    """:func:`fresh_equivalents` for one annotation — the existing node it
+    would only duplicate, or ``None``. Batch with the plural form whenever
+    there are several, so they share one freshness walk."""
+    return fresh_equivalents(project_root, (annotation,), value_of=value_of)[0]
+
+
+def _fresh_among(project_root: "ProjectLike", ids: set[UUID]) -> set[UUID]:
+    """Which of ``ids`` the snapshot walk verifies fresh — one walk.
+
+    Classifies only ``ids`` (and, through the upstream-stale recursion, their
+    derived ancestors), with :func:`stale_verdicts_all`'s recursion scope, so
+    each verdict is the one the whole-project snapshot would give. A
+    parentless id is never stale and is returned as fresh.
+    """
+    annotations = list(iter_all_annotations(project_root))
+    derived = {a.id for a in annotations if a.provenance.was_derived_from}
+    present = {a.id for a in annotations} & ids
+    verdicts = _verdicts_for(
+        annotations, scope=present & derived, recursion_scope=derived
+    )
+    fresh = {v.annotation.id for v in verdicts if not v.is_stale}
+    return fresh | (present - derived)
 
 
 # --- internals ---------------------------------------------------------------
