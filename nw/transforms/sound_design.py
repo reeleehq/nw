@@ -33,7 +33,10 @@ The call, end to end:
   timeline, the per-event rationale, credits, SDH captions, the master report
   and notes. Read the mix back with
   ``falaw.content.default_content_store().get_blob(artifact_id)``.
-- ``BaseTransform`` turns the sidecar into the annotation body;
+- ``BaseTransform`` turns the sidecar into the annotation body (so
+  ``TransformResult.artifacts``, and a fan-out record's ``artifact_ids``, name
+  the JSON sidecar; the mix is the body's ``artifact_id``, also in provenance
+  of anything derived from it);
   :meth:`~NarrationToSoundDesign._complete_annotation` validates it as
   ``sound-design/v1``.
 - ``enabled=False`` plans no call and no skeleton: nothing runs, nothing is
@@ -247,6 +250,18 @@ class NarrationToSoundDesign(BaseTransform):
         if not config.enabled:
             return Plan(calls=()), ()
         audio = self.narration_audio_path(project, narration)
+        sha = hash_file(Path(project.root) / audio)
+        declared = (
+            narration.body.get("artifact_id")
+            if isinstance(narration.body, Mapping)
+            else None
+        )
+        if declared and declared != sha:
+            raise ValueError(
+                f"{self.name}: the narration names artifact {declared} but its "
+                f"audio file {audio} holds {sha}; provenance would name bytes "
+                "that were never used."
+            )
         call = CallPlan(
             tool=SOUND_DESIGN_TOOL,
             application=SOUND_DESIGN_APPLICATION,
@@ -255,7 +270,7 @@ class NarrationToSoundDesign(BaseTransform):
                 "segments": self.narration_segments(narration),
                 "audio": {
                     "path": audio.as_posix(),
-                    "sha256": hash_file(Path(project.root) / audio),
+                    "sha256": sha,
                 },
                 "segment_starts": self.narration_segment_starts(narration),
                 "commercial_ok": config.commercial_ok,
@@ -288,6 +303,7 @@ class NarrationToSoundDesign(BaseTransform):
                 self,
                 TransformInputs(primary=(narration,), context=context),
                 attributed_to=self.attributed_to,
+                asset_refs=(sha,),  # the audio actually scored, declared or not
             ),
         )
         return Plan(calls=(call,)), (skeleton,)
@@ -321,12 +337,42 @@ class NarrationToSoundDesign(BaseTransform):
     def _complete_annotation(
         self, skeleton: Annotation, artifact: Artifact
     ) -> Annotation:
-        """The sidecar merged into the skeleton, validated as ``sound-design/v1``."""
+        """The sidecar merged into the skeleton, validated as ``sound-design/v1``.
+
+        Refuses a sidecar whose mix is no longer in falaw's content store (a
+        size-bounded prune can evict the FLAC and keep the small cached
+        sidecar), rather than report a dangling ``artifact_id`` as success."""
+        from falaw.content import default_content_store
+
         merged = super()._complete_annotation(skeleton, artifact)
         body = SoundDesignBodyV1.model_validate(merged.body).model_dump(mode="json")
+        if not default_content_store().has_blob(body["artifact_id"]):
+            raise RuntimeError(
+                f"{self.name}: the cached mix {body['artifact_id']} is gone from "
+                "falaw's content store; execute with force=True to make it again."
+            )
         return merged.model_copy(update={"body": body})
 
 
-if SOUND_DESIGN_BACKEND not in backends:
+def _register_executor() -> None:
+    """Register :func:`foley_executor` for ``backend="foley"``: replace an
+    earlier copy of it (a module reload, whose old executor would read a stale
+    context variable), refuse anyone else's."""
+    current = (
+        backends.get(SOUND_DESIGN_BACKEND) if SOUND_DESIGN_BACKEND in backends else None
+    )
+    if current is not None and (
+        getattr(current, "__module__", None),
+        getattr(current, "__qualname__", None),
+    ) != (__name__, foley_executor.__qualname__):
+        raise RuntimeError(
+            f"falaw backend {SOUND_DESIGN_BACKEND!r} is already registered to "
+            f"{current!r}; {NAME!r} needs its own executor there."
+        )
+    if current is not None:
+        backends.pop(SOUND_DESIGN_BACKEND)
     backends.register(SOUND_DESIGN_BACKEND, foley_executor)
+
+
+_register_executor()
 register_transform(NAME, NarrationToSoundDesign(), tags=SOUND_DESIGN_TAGS)

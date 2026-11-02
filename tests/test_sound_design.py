@@ -15,6 +15,7 @@ from __future__ import annotations
 import functools
 import importlib.util
 import inspect
+import hashlib
 import json
 import os
 import subprocess
@@ -51,7 +52,8 @@ from nw.transforms.sound_design import (
 )
 
 SENTINEL = "sk-SENTINEL-sound-design-must-never-persist"
-NARRATION_ASSET = "a" * 64
+NARRATION_BYTES = b"RIFF-fake-narration"
+NARRATION_ASSET = hashlib.sha256(NARRATION_BYTES).hexdigest()
 SEGMENTS = ["The door creaked open.", "Rain hammered the roof.", "She waited."]
 SR = 8
 HAS_FOLEY = importlib.util.find_spec("foley") is not None
@@ -66,7 +68,7 @@ needs_foley = pytest.mark.skipif(not HAS_FOLEY, reason="needs the nw[sound] extr
 @pytest.fixture
 def project(tmp_path):
     p = nw.Project.init(tmp_path / "proj", title="Sound design")
-    (p.root / "narration.wav").write_bytes(b"RIFF-fake-narration")
+    (p.root / "narration.wav").write_bytes(NARRATION_BYTES)
     return p
 
 
@@ -205,7 +207,7 @@ def test_registered_with_its_kinds_rights_tags_and_backend():
     assert t.output_kind == SOUND_DESIGN_BODY_SCHEMA_URI
     assert t.generate_when == "static"
     assert NAME in nw.transforms.keys_with_tag("rights:licence-gate-fail-closed")
-    assert "cost:unknown" in SOUND_DESIGN_TAGS
+    assert NAME in nw.transforms.keys_with_tag("cost:unknown")
     assert "foley" in backends
     (entry,) = [e for e in nw.transform_catalog() if e["name"] == NAME]
     json.dumps(entry)
@@ -264,7 +266,9 @@ def test_changed_bytes_or_path_is_a_cache_miss(project, monkeypatch):
     foley = _fake_foley()
     monkeypatch.setitem(sys.modules, "foley", foley)
     t = nw.get_transform(NAME)
-    inputs = _inputs(project)
+    # no artifact_id: a body naming the old bytes would be refused, not missed
+    unnamed = {"audio_path": "narration.wav", "segments": SEGMENTS}
+    inputs = _inputs(project, narration=unnamed)
     t.execute(project, *t.plan(project, inputs))
     assert t.plan(project, inputs)[0].calls[0].cache_status == "hit"
 
@@ -353,6 +357,7 @@ def test_execute_scores_stores_the_mix_and_records_the_design(project, monkeypat
     (track,) = inputs.primary
     (cfg,) = inputs.context[SOUND_DESIGN_CONFIG_BODY_SCHEMA_URI]
     assert {track.id, cfg.id} <= set(ann.provenance.was_derived_from)
+    assert NARRATION_ASSET in ann.provenance.was_derived_from  # the scored audio
 
     assert result.has_unknown_costs is True  # unknown, not $0
     assert result.cost_usd_actual == 0.0
@@ -490,7 +495,6 @@ def test_isolate_records_an_unproduced_output(project, monkeypatch):
 
     result = t.execute(project, plan, skeleton, on_failure="isolate")
     (failed,) = result.failed
-    # BaseTransform's rule: a failed call's spend is not counted (a lower bound)
     assert result.annotations == () and "no sound fits" in str(failed.error)
     assert len(project.graph.unproduced_outputs()) == 1
 
@@ -635,7 +639,10 @@ def test_the_real_foley_offline(project, monkeypatch):
         sf.write(project.root / "narration.wav", noise.astype("float32"), rate)
 
         t = nw.get_transform(NAME)
-        result = t.execute(project, *t.plan(project, _inputs(project)))
+        unnamed = {"audio_path": "narration.wav", "segments": SEGMENTS}
+        result = t.execute(
+            project, *t.plan(project, _inputs(project, narration=unnamed))
+        )
     finally:
         foley.obs.reset()
 
@@ -646,3 +653,48 @@ def test_the_real_foley_offline(project, monkeypatch):
     assert ann.body["captions_vtt"].startswith("WEBVTT")
     assert ann.body["timeline"] and ann.body["master_report"]
     assert result.has_unknown_costs is True
+
+
+def test_provenance_names_the_scored_audio_even_when_the_body_does_not(project):
+    """Without an ``artifact_id`` in the narration body, the audio's digest is
+    still an input of the design: fails if only declared refs reach provenance."""
+    t = nw.get_transform(NAME)
+    narration = {"audio_path": "narration.wav", "segments": SEGMENTS}
+    _, (skeleton,) = t.plan(project, _inputs(project, narration=narration))
+    assert NARRATION_ASSET in skeleton.provenance.was_derived_from
+
+
+def test_a_narration_naming_other_bytes_than_its_file_is_refused(project):
+    t = nw.get_transform(NAME)
+    narration = {
+        "audio_path": "narration.wav",
+        "artifact_id": "b" * 64,
+        "segments": SEGMENTS,
+    }
+    with pytest.raises(ValueError, match="never used"):
+        t.plan(project, _inputs(project, narration=narration))
+
+
+def test_a_cached_design_whose_mix_was_pruned_is_refused(project, monkeypatch):
+    """A prune can evict the FLAC and keep the cached sidecar: fails if the
+    dangling ``artifact_id`` is reported as a success."""
+    monkeypatch.setitem(sys.modules, "foley", _fake_foley())
+    t = nw.get_transform(NAME)
+    first = t.execute(project, *t.plan(project, _inputs(project)))
+    default_content_store().delete_blob(first.annotations[0].body["artifact_id"])
+    with pytest.raises(RuntimeError, match="force=True"):
+        t.execute(project, *t.plan(project, _inputs(project)))
+
+
+def test_the_foley_backend_is_ours_or_refused(monkeypatch):
+    """A reload replaces our executor; someone else's under "foley" is refused,
+    not silently used."""
+    from falaw.backends import backends
+
+    from nw.transforms import sound_design
+
+    sound_design._register_executor()  # a re-import: replaced, no error
+    assert backends.get("foley") is sound_design.foley_executor
+    monkeypatch.setattr(backends, "get", lambda key, default=None: print)
+    with pytest.raises(RuntimeError, match="already registered"):
+        sound_design._register_executor()
