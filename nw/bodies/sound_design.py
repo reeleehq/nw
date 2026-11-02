@@ -53,6 +53,8 @@ DFLT_COMMERCIAL_OK = True
 """foley's default rights intent: commercial publishing
 (``foley.licensing.DEFAULT_INTENDED_USE``). Stated, not deferred, so the graph
 records which intent a mix was licence-checked under."""
+DFLT_ALLOW_GENERATE = True
+"""foley's default: a sound no library has may be generated (a paid fallback)."""
 
 
 class NarrationTrackBodyV1(BaseModel):
@@ -137,6 +139,28 @@ class SoundDesignConfigBodyV1(BaseModel):
             "Rights intent for foley's fail-closed licence gate: ``True`` admits "
             "only commercially licensed sounds; ``False`` also admits "
             "non-commercial ones."
+        ),
+    )
+    max_usd: Optional[float] = Field(
+        None,
+        ge=0,
+        allow_inf_nan=False,
+        description=(
+            "The run's spend cap in USD, passed to foley as its budget. foley "
+            "checks each segment's worst case against what is left and raises "
+            "when it does not fit, so a cap below what one segment may spend "
+            "fails the render, and one below the run's total can fail a later "
+            "segment after earlier ones were paid for (reeleehq/foley#281). "
+            "Calls of unknown cost are refused unless foley is told to approve "
+            "them, and then they are not counted. ``None``: foley's default "
+            "cap (it depends on the LLM). The cost stays *unknown*."
+        ),
+    )
+    allow_generate: bool = Field(
+        DFLT_ALLOW_GENERATE,
+        description=(
+            "``False``: retrieval only, no paid generation fallback (offline or "
+            "CI renders)."
         ),
     )
 

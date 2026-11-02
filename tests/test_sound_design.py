@@ -42,7 +42,13 @@ from nw.bodies import (
     SOUND_DESIGN_TIER,
     NarrationTrackBodyV1,
 )
-from nw.bodies.sound_design import DFLT_COMMERCIAL_OK, DFLT_MASTER, DFLT_MAX_EVENTS
+from nw.bodies.sound_design import (
+    DFLT_ALLOW_GENERATE,
+    DFLT_COMMERCIAL_OK,
+    DFLT_MASTER,
+    DFLT_MAX_EVENTS,
+    SoundDesignConfigBodyV1,
+)
 from nw.graph import annotations_at_tier
 from nw.transforms import TransformInputs
 from nw.transforms.sound_design import (
@@ -110,6 +116,8 @@ def _fake_foley(*, raises: Exception | None = None) -> ModuleType:
                 "max_events": max_events,
                 "master": master,
                 "fal": current_fal_key(),
+                "allow_generate": allow_generate,
+                "max_usd": getattr(budget, "max_usd", None),
             }
         )
         if raises is not None:
@@ -134,6 +142,7 @@ def _fake_foley(*, raises: Exception | None = None) -> ModuleType:
 
     mod.score = score
     mod.audio = SimpleNamespace(save=save)
+    mod.Budget = lambda *, max_usd: SimpleNamespace(max_usd=max_usd)
     return mod
 
 
@@ -337,6 +346,8 @@ def test_execute_scores_stores_the_mix_and_records_the_design(project, monkeypat
         "max_events": 2,
         "master": "broadcast",
         "fal": None,
+        "allow_generate": True,  # foley's defaults: neither knob was set
+        "max_usd": None,
     }
 
     (ann,) = result.annotations
@@ -453,6 +464,8 @@ def test_config_defaults_and_the_fake_signature_match_foley():
     real = inspect.signature(foley.score).parameters
     assert real["max_events"].default == DFLT_MAX_EVENTS
     assert real["master"].default == DFLT_MASTER
+    assert real["allow_generate"].default is DFLT_ALLOW_GENERATE
+    assert "max_usd" in inspect.signature(foley.Budget).parameters  # nw#204
     from foley.licensing import DEFAULT_INTENDED_USE
 
     assert DEFAULT_INTENDED_USE.commercial is DFLT_COMMERCIAL_OK
@@ -698,3 +711,61 @@ def test_the_foley_backend_is_ours_or_refused(monkeypatch):
     monkeypatch.setattr(backends, "get", lambda key, default=None: print)
     with pytest.raises(RuntimeError, match="already registered"):
         sound_design._register_executor()
+
+
+@pytest.mark.parametrize(
+    "knobs, expected",
+    [
+        ({"max_usd": 0.25}, (0.25, True)),
+        ({"allow_generate": False}, (None, False)),
+        ({"max_usd": 0.25, "allow_generate": False}, (0.25, False)),
+    ],
+)
+def test_a_spend_cap_and_retrieval_only_reach_foley(
+    project, monkeypatch, knobs, expected
+):
+    """nw#204: ``max_usd`` becomes foley's budget and ``allow_generate=False``
+    makes the run retrieval-only; each knob alone is a different call."""
+    foley = _fake_foley()
+    monkeypatch.setitem(sys.modules, "foley", foley)
+    t = nw.get_transform(NAME)
+    plan, skeleton = t.plan(project, _inputs(project, config=knobs))
+    t.execute(project, plan, skeleton)
+    (call,) = foley.calls
+    assert (call["max_usd"], call["allow_generate"]) == expected
+    default_plan, _ = t.plan(project, _inputs(project))
+    assert default_plan.calls[0].arguments != plan.calls[0].arguments
+
+
+@needs_foley
+def test_the_spend_knobs_build_a_real_foley_budget():
+    """Against real foley: the cap is a ``Budget`` with foley's own loop limits."""
+    import foley
+
+    from nw.transforms.sound_design import _spend_kwargs
+
+    kwargs = _spend_kwargs(foley, {"max_usd": 0.5, "allow_generate": False})
+    default = foley.Budget()
+    assert kwargs["allow_generate"] is False
+    assert kwargs["budget"].max_usd == 0.5
+    assert (kwargs["budget"].max_refine_loops, kwargs["budget"].max_generations) == (
+        default.max_refine_loops,
+        default.max_generations,
+    )
+    assert _spend_kwargs(foley, {}) == {}
+
+
+def test_the_defaults_leave_the_call_as_it_was(project):
+    """Fails if a default knob enters the arguments: every design cached before
+    nw#204 would become a miss and be paid for again."""
+    t = nw.get_transform(NAME)
+    plan, _ = t.plan(project, _inputs(project, config={"allow_generate": True}))
+    assert {"max_usd", "allow_generate"}.isdisjoint(plan.calls[0].arguments)
+
+
+@pytest.mark.parametrize("bad", [-1.0, float("nan"), float("inf")])
+def test_a_spend_cap_is_a_finite_non_negative_figure(bad):
+    from pydantic import ValidationError
+
+    with pytest.raises(ValidationError):
+        SoundDesignConfigBodyV1(max_usd=bad)
