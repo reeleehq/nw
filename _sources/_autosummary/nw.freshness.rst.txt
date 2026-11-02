@@ -15,6 +15,9 @@ nw.freshness
    .. autosummary::
    
       all_stale
+      annotation_parent_ids
+      body_value
+      fresh_equivalents
       is_verifiable_digest_scheme
       stale_after
       stale_verdicts

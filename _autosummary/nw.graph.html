@@ -133,9 +133,11 @@ data-aria-dark="Switch to auto color mode">
 <li><a class="reference internal" href="#nw.graph.ProjectGraph.add_annotation"><code class="docutils literal notranslate"><span class="pre">ProjectGraph.add_annotation()</span></code></a></li>
 <li><a class="reference internal" href="#nw.graph.ProjectGraph.add_unproduced_output"><code class="docutils literal notranslate"><span class="pre">ProjectGraph.add_unproduced_output()</span></code></a></li>
 <li><a class="reference internal" href="#nw.graph.ProjectGraph.append_decision"><code class="docutils literal notranslate"><span class="pre">ProjectGraph.append_decision()</span></code></a></li>
+<li><a class="reference internal" href="#nw.graph.ProjectGraph.fresh_equivalents"><code class="docutils literal notranslate"><span class="pre">ProjectGraph.fresh_equivalents()</span></code></a></li>
 <li><a class="reference internal" href="#nw.graph.ProjectGraph.genre_envelope"><code class="docutils literal notranslate"><span class="pre">ProjectGraph.genre_envelope()</span></code></a></li>
 <li><a class="reference internal" href="#nw.graph.ProjectGraph.remove_annotation"><code class="docutils literal notranslate"><span class="pre">ProjectGraph.remove_annotation()</span></code></a></li>
 <li><a class="reference internal" href="#nw.graph.ProjectGraph.set_genre_envelope"><code class="docutils literal notranslate"><span class="pre">ProjectGraph.set_genre_envelope()</span></code></a></li>
+<li><a class="reference internal" href="#nw.graph.ProjectGraph.settle_unproduced_outputs"><code class="docutils literal notranslate"><span class="pre">ProjectGraph.settle_unproduced_outputs()</span></code></a></li>
 <li><a class="reference internal" href="#nw.graph.ProjectGraph.unproduced_outputs"><code class="docutils literal notranslate"><span class="pre">ProjectGraph.unproduced_outputs()</span></code></a></li>
 <li><a class="reference internal" href="#nw.graph.ProjectGraph.upsert_character_ref"><code class="docutils literal notranslate"><span class="pre">ProjectGraph.upsert_character_ref()</span></code></a></li>
 <li><a class="reference internal" href="#nw.graph.ProjectGraph.upsert_entity"><code class="docutils literal notranslate"><span class="pre">ProjectGraph.upsert_entity()</span></code></a></li>
@@ -376,6 +378,21 @@ docstring’s “reason never carries raw exception text”. When
 </dd></dl>
 
 <dl class="py method">
+<dt class="sig sig-object py" id="nw.graph.ProjectGraph.fresh_equivalents">
+<span class="sig-name descname"><span class="pre">fresh_equivalents</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">annotations</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/nw/graph.html#ProjectGraph.fresh_equivalents"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nw.graph.ProjectGraph.fresh_equivalents" title="Link to this definition">#</a></dt>
+<dd><p>For each of <code class="docutils literal notranslate"><span class="pre">annotations</span></code>, the stored node it would only duplicate.</p>
+<p><a class="reference internal" href="nw.freshness.html#nw.freshness.fresh_equivalents" title="nw.freshness.fresh_equivalents"><code class="xref py py-func docutils literal notranslate"><span class="pre">nw.freshness.fresh_equivalents()</span></code></a> over this graph’s project — the
+rule (and its cost: at most one freshness walk per call) is stated
+there. Read-only. The write side of a reuse is
+<a class="reference internal" href="#nw.graph.ProjectGraph.settle_unproduced_outputs" title="nw.graph.ProjectGraph.settle_unproduced_outputs"><code class="xref py py-meth docutils literal notranslate"><span class="pre">settle_unproduced_outputs()</span></code></a>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#tuple" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">tuple</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.15)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code></a>[<code class="xref py py-class docutils literal notranslate"><span class="pre">Annotation</span></code>], <a class="reference external" href="https://docs.python.org/3/builtins/constants.html#Ellipsis" title="(in Python v3.15)"><code class="xref py py-data docutils literal notranslate"><span class="pre">...</span></code></a>]</span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
 <dt class="sig sig-object py" id="nw.graph.ProjectGraph.genre_envelope">
 <span class="sig-name descname"><span class="pre">genre_envelope</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/nw/graph.html#ProjectGraph.genre_envelope"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nw.graph.ProjectGraph.genre_envelope" title="Link to this definition">#</a></dt>
 <dd><p>The recorded genre envelope, or <code class="docutils literal notranslate"><span class="pre">None</span></code> for a genre-less project.</p>
@@ -425,6 +442,27 @@ upsert. A no-op write (same envelope) writes nothing.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/uuid.html#uuid.UUID" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">UUID</span></code></a></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nw.graph.ProjectGraph.settle_unproduced_outputs">
+<span class="sig-name descname"><span class="pre">settle_unproduced_outputs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ann</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">instance_id</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">call_index</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/nw/graph.html#ProjectGraph.settle_unproduced_outputs"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nw.graph.ProjectGraph.settle_unproduced_outputs" title="Link to this definition">#</a></dt>
+<dd><p>Retire the unproduced-output records <code class="docutils literal notranslate"><span class="pre">ann</span></code>’s success settles, and
+write nothing else.</p>
+<p>The retirement half of <a class="reference internal" href="#nw.graph.ProjectGraph.add_annotation" title="nw.graph.ProjectGraph.add_annotation"><code class="xref py py-meth docutils literal notranslate"><span class="pre">add_annotation()</span></code></a>, for a success that is
+<strong>not</strong> written because an equivalent node already exists
+(<a class="reference internal" href="#nw.graph.ProjectGraph.fresh_equivalents" title="nw.graph.ProjectGraph.fresh_equivalents"><code class="xref py py-meth docutils literal notranslate"><span class="pre">fresh_equivalents()</span></code></a>, nw#203): the output was produced all the
+same, so a record saying it is missing must go. Pass the annotation
+<em>this run</em> completed (not the reused node): the record was built from
+this run’s skeleton, so its <code class="docutils literal notranslate"><span class="pre">upstream</span></code> is this run’s
+<code class="docutils literal notranslate"><span class="pre">was_derived_from</span></code> — which, since nw#55, may carry asset ids an
+older reused node lacks. Same key and same arguments as
+<a class="reference internal" href="#nw.graph.ProjectGraph.add_annotation" title="nw.graph.ProjectGraph.add_annotation"><code class="xref py py-meth docutils literal notranslate"><span class="pre">add_annotation()</span></code></a>; a no-op for an annotation no Transform made.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><span class="highlight sphinx_autodoc_typehints-value"><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></a></span></span></p>
 </dd>
 </dl>
 </dd></dl>
@@ -824,7 +862,7 @@ removals are not reported: they are bookkeeping, not content.</p>
     </div>
   </div>
 </footer>
-      <script src="../_static/documentation_options.js?v=fa321392"></script>
+      <script src="../_static/documentation_options.js?v=5e4a978b"></script>
       <script src="../_static/doctools.js?v=fd6eb6e6"></script>
       <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script src="../_static/clipboard.min.js?v=a7894cd8"></script>

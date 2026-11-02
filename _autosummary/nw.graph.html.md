@@ -140,6 +140,18 @@ Append a decision; never replaces an existing one (the log is append-only).
 * **Return type:**
   [`UUID`](https://docs.python.org/3/library/uuid.html#uuid.UUID)
 
+#### fresh_equivalents(annotations)
+
+For each of `annotations`, the stored node it would only duplicate.
+
+[`nw.freshness.fresh_equivalents()`](nw.freshness.html.md#nw.freshness.fresh_equivalents) over this graph’s project — the
+rule (and its cost: at most one freshness walk per call) is stated
+there. Read-only. The write side of a reuse is
+[`settle_unproduced_outputs()`](#nw.graph.ProjectGraph.settle_unproduced_outputs).
+
+* **Return type:**
+  [`tuple`](https://docs.python.org/3/builtins/stdtypes.html#tuple)[[`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[`Annotation`], [`...`](https://docs.python.org/3/builtins/constants.html#Ellipsis)]
+
 #### genre_envelope()
 
 The recorded genre envelope, or `None` for a genre-less project.
@@ -184,6 +196,24 @@ upsert. A no-op write (same envelope) writes nothing.
 
 * **Return type:**
   [`UUID`](https://docs.python.org/3/library/uuid.html#uuid.UUID)
+
+#### settle_unproduced_outputs(ann, , instance_id=None, call_index=None)
+
+Retire the unproduced-output records `ann`’s success settles, and
+write nothing else.
+
+The retirement half of [`add_annotation()`](#nw.graph.ProjectGraph.add_annotation), for a success that is
+**not** written because an equivalent node already exists
+([`fresh_equivalents()`](#nw.graph.ProjectGraph.fresh_equivalents), nw#203): the output was produced all the
+same, so a record saying it is missing must go. Pass the annotation
+*this run* completed (not the reused node): the record was built from
+this run’s skeleton, so its `upstream` is this run’s
+`was_derived_from` — which, since nw#55, may carry asset ids an
+older reused node lacks. Same key and same arguments as
+[`add_annotation()`](#nw.graph.ProjectGraph.add_annotation); a no-op for an annotation no Transform made.
+
+* **Return type:**
+  [`None`](https://docs.python.org/3/builtins/constants.html#None)
 
 #### unproduced_outputs(, transform_name=None)
 

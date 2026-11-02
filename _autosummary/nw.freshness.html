@@ -131,9 +131,13 @@ data-aria-dark="Switch to auto color mode">
     <div class="sy-scrollbar sy-rside-inner px-6 xl:top-16 xl:sticky xl:pl-0 pt-6 pb-4"><div class="localtoc"><h3>On this page</h3><ul>
 <li><a class="reference internal" href="#the-rule-stated-exactly">The rule, stated exactly</a></li>
 <li><a class="reference internal" href="#what-this-does-not-catch">What this does <strong>not</strong> catch</a></li>
+<li><a class="reference internal" href="#reuse-the-fresh-equivalent-of-a-new-output">Reuse: the fresh equivalent of a new output</a></li>
 <li><a class="reference internal" href="#nw.freshness.FreshnessVerdict"><code class="docutils literal notranslate"><span class="pre">FreshnessVerdict</span></code></a></li>
 <li><a class="reference internal" href="#nw.freshness.STALE_REASONS"><code class="docutils literal notranslate"><span class="pre">STALE_REASONS</span></code></a></li>
 <li><a class="reference internal" href="#nw.freshness.all_stale"><code class="docutils literal notranslate"><span class="pre">all_stale()</span></code></a></li>
+<li><a class="reference internal" href="#nw.freshness.annotation_parent_ids"><code class="docutils literal notranslate"><span class="pre">annotation_parent_ids()</span></code></a></li>
+<li><a class="reference internal" href="#nw.freshness.body_value"><code class="docutils literal notranslate"><span class="pre">body_value()</span></code></a></li>
+<li><a class="reference internal" href="#nw.freshness.fresh_equivalents"><code class="docutils literal notranslate"><span class="pre">fresh_equivalents()</span></code></a></li>
 <li><a class="reference internal" href="#nw.freshness.is_verifiable_digest_scheme"><code class="docutils literal notranslate"><span class="pre">is_verifiable_digest_scheme()</span></code></a></li>
 <li><a class="reference internal" href="#nw.freshness.stale_after"><code class="docutils literal notranslate"><span class="pre">stale_after()</span></code></a></li>
 <li><a class="reference internal" href="#nw.freshness.stale_verdicts"><code class="docutils literal notranslate"><span class="pre">stale_verdicts()</span></code></a></li>
@@ -275,6 +279,18 @@ is exactly <code class="docutils literal notranslate"><span class="pre">was_deri
 </div></blockquote>
 </li>
 </ul>
+</section>
+<section id="reuse-the-fresh-equivalent-of-a-new-output">
+<h2>Reuse: the fresh equivalent of a new output<a class="headerlink" href="#reuse-the-fresh-equivalent-of-a-new-output" title="Link to this heading">#</a></h2>
+<p><a class="reference internal" href="#nw.freshness.fresh_equivalents" title="nw.freshness.fresh_equivalents"><code class="xref py py-func docutils literal notranslate"><span class="pre">fresh_equivalents()</span></code></a> asks the walk a write-side question: *is there
+already a node this new annotation would only duplicate?* (nw#203). Same
+tier, <code class="docutils literal notranslate"><span class="pre">body_schema_uri</span></code> and reference, the same <strong>annotation</strong> parents, an
+equal value (<a class="reference internal" href="#nw.freshness.body_value" title="nw.freshness.body_value"><code class="xref py py-func docutils literal notranslate"><span class="pre">body_value()</span></code></a>), and <strong>verified fresh</strong> — equality of
+parents by id is not enough, because a parent rewritten in place keeps its
+id (braidio#51). <code class="xref py py-meth docutils literal notranslate"><span class="pre">nw.transforms.BaseTransform.execute()</span></code> uses it, for a
+Transform that declares <code class="docutils literal notranslate"><span class="pre">reuse_fresh_outputs</span></code>, so that re-running it on
+unchanged inputs (a falaw cache hit) returns the node it already wrote
+instead of adding a second one.</p>
 <p class="rubric">Module Attributes</p>
 <div class="table-wrapper autosummary longtable docutils container">
 <table class="autosummary longtable docutils align-default">
@@ -292,16 +308,25 @@ is exactly <code class="docutils literal notranslate"><span class="pre">was_deri
 <tr class="row-odd"><td><p><a class="reference internal" href="#nw.freshness.all_stale" title="nw.freshness.all_stale"><code class="xref py py-obj docutils literal notranslate"><span class="pre">all_stale</span></code></a>(project_root)</p></td>
 <td><p>Every annotation that is currently stale, regardless of cause.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#nw.freshness.is_verifiable_digest_scheme" title="nw.freshness.is_verifiable_digest_scheme"><code class="xref py py-obj docutils literal notranslate"><span class="pre">is_verifiable_digest_scheme</span></code></a>(scheme)</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#nw.freshness.annotation_parent_ids" title="nw.freshness.annotation_parent_ids"><code class="xref py py-obj docutils literal notranslate"><span class="pre">annotation_parent_ids</span></code></a>(ann)</p></td>
+<td><p>The <strong>annotation</strong> ids in <code class="docutils literal notranslate"><span class="pre">ann.provenance.was_derived_from</span></code>.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#nw.freshness.body_value" title="nw.freshness.body_value"><code class="xref py py-obj docutils literal notranslate"><span class="pre">body_value</span></code></a>(ann)</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">ann.body</span></code> JSON-normalised — the value two annotations are compared by.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#nw.freshness.fresh_equivalents" title="nw.freshness.fresh_equivalents"><code class="xref py py-obj docutils literal notranslate"><span class="pre">fresh_equivalents</span></code></a>(project_root, annotations, *)</p></td>
+<td><p>For each of <code class="docutils literal notranslate"><span class="pre">annotations</span></code>, the existing node it would only duplicate.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#nw.freshness.is_verifiable_digest_scheme" title="nw.freshness.is_verifiable_digest_scheme"><code class="xref py py-obj docutils literal notranslate"><span class="pre">is_verifiable_digest_scheme</span></code></a>(scheme)</p></td>
 <td><p>Whether a trace recorded under <code class="docutils literal notranslate"><span class="pre">scheme</span></code> can still be verified.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#nw.freshness.stale_after" title="nw.freshness.stale_after"><code class="xref py py-obj docutils literal notranslate"><span class="pre">stale_after</span></code></a>(project_root, changed_id)</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#nw.freshness.stale_after" title="nw.freshness.stale_after"><code class="xref py py-obj docutils literal notranslate"><span class="pre">stale_after</span></code></a>(project_root, changed_id)</p></td>
 <td><p>Return every annotation that <code class="docutils literal notranslate"><span class="pre">changed_id</span></code> actually invalidated.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#nw.freshness.stale_verdicts" title="nw.freshness.stale_verdicts"><code class="xref py py-obj docutils literal notranslate"><span class="pre">stale_verdicts</span></code></a>(project_root, changed_id)</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#nw.freshness.stale_verdicts" title="nw.freshness.stale_verdicts"><code class="xref py py-obj docutils literal notranslate"><span class="pre">stale_verdicts</span></code></a>(project_root, changed_id)</p></td>
 <td><p>Classify every annotation downstream of <code class="docutils literal notranslate"><span class="pre">changed_id</span></code>.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#nw.freshness.stale_verdicts_all" title="nw.freshness.stale_verdicts_all"><code class="xref py py-obj docutils literal notranslate"><span class="pre">stale_verdicts_all</span></code></a>(project_root)</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#nw.freshness.stale_verdicts_all" title="nw.freshness.stale_verdicts_all"><code class="xref py py-obj docutils literal notranslate"><span class="pre">stale_verdicts_all</span></code></a>(project_root)</p></td>
 <td><p>Classify every derived annotation in the project — the snapshot form.</p></td>
 </tr>
 </tbody>
@@ -350,6 +375,97 @@ on instead of re-deriving its own definition of the word.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#list" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code></a>[<code class="xref py py-class docutils literal notranslate"><span class="pre">Annotation</span></code>]</span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="nw.freshness.annotation_parent_ids">
+<span class="sig-prename descclassname"><span class="pre">nw.freshness.</span></span><span class="sig-name descname"><span class="pre">annotation_parent_ids</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ann</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/nw/freshness.html#annotation_parent_ids"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nw.freshness.annotation_parent_ids" title="Link to this definition">#</a></dt>
+<dd><p>The <strong>annotation</strong> ids in <code class="docutils literal notranslate"><span class="pre">ann.provenance.was_derived_from</span></code>.</p>
+<p><code class="docutils literal notranslate"><span class="pre">was_derived_from</span></code> also holds 64-hex artifact asset ids (lacing#31,
+written for declared input schemas since nw#55). Code that means “the
+annotations this node was derived from” reads this half only — which is
+what lets a node written before #55 (no asset refs) still match one
+written after it.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#frozenset" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">frozenset</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/uuid.html#uuid.UUID" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">UUID</span></code></a>]</span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="nw.freshness.body_value">
+<span class="sig-prename descclassname"><span class="pre">nw.freshness.</span></span><span class="sig-name descname"><span class="pre">body_value</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ann</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/nw/freshness.html#body_value"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nw.freshness.body_value" title="Link to this definition">#</a></dt>
+<dd><p><code class="docutils literal notranslate"><span class="pre">ann.body</span></code> JSON-normalised — the value two annotations are compared by.</p>
+<p>A body built in memory is a python-mode dump (tuples, UUIDs) while one read
+back from a store is what JSON gave it (lists, strings); the wire value is
+the same and must compare equal. Keys are sorted, so key order is not a
+difference either.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#object" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="nw.freshness.fresh_equivalents">
+<span class="sig-prename descclassname"><span class="pre">nw.freshness.</span></span><span class="sig-name descname"><span class="pre">fresh_equivalents</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">project_root</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">annotations</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">value_of</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">&lt;function</span> <span class="pre">body_value&gt;</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/nw/freshness.html#fresh_equivalents"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nw.freshness.fresh_equivalents" title="Link to this definition">#</a></dt>
+<dd><p>For each of <code class="docutils literal notranslate"><span class="pre">annotations</span></code>, the existing node it would only duplicate.</p>
+<p>Returns one entry per input, in order: the stored annotation equivalent to
+it, or <code class="docutils literal notranslate"><span class="pre">None</span></code> when there is none (write it). An existing node <code class="docutils literal notranslate"><span class="pre">E</span></code> is
+equivalent to a new annotation <code class="docutils literal notranslate"><span class="pre">A</span></code> when <strong>all</strong> of these hold:</p>
+<ul class="simple">
+<li><p>same <code class="docutils literal notranslate"><span class="pre">tier</span></code>, same <code class="docutils literal notranslate"><span class="pre">body_schema_uri</span></code> and the same <code class="docutils literal notranslate"><span class="pre">reference</span></code>
+(where it sits — JSON-compared). Stricter than braidio’s original rule,
+deliberately: two outputs at different places are different nodes even
+when every other field agrees, and a missed reuse only costs a write;</p></li>
+<li><p>the same producer, <code class="docutils literal notranslate"><span class="pre">provenance.was_generated_by</span></code>
+(<code class="docutils literal notranslate"><span class="pre">transform:&lt;name&gt;&#64;&lt;impl_version&gt;</span></code>): another Transform’s node is not
+this one’s output, and after an <code class="docutils literal notranslate"><span class="pre">impl_version</span></code> bump the old
+version’s node must not keep coming back — freshness does not see a
+changed Transform (this module’s docstring), so the key has to;</p></li>
+<li><p>the same <strong>annotation</strong> parents (<a class="reference internal" href="#nw.freshness.annotation_parent_ids" title="nw.freshness.annotation_parent_ids"><code class="xref py py-func docutils literal notranslate"><span class="pre">annotation_parent_ids()</span></code></a>, as a
+set). Artifact parents (nw#55) are ignored: a node written before the
+declaration has none, and comparing them would refuse to reuse every
+such node. Freshness loses nothing by it — a declared asset id is read
+off a parent’s body, so replacing the artifact changes that parent’s
+value, which the walk below refuses;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">value_of(E)</span> <span class="pre">==</span> <span class="pre">value_of(A)</span></code> — by default the whole body,
+JSON-normalised (<a class="reference internal" href="#nw.freshness.body_value" title="nw.freshness.body_value"><code class="xref py py-func docutils literal notranslate"><span class="pre">body_value()</span></code></a>). Generic on purpose: after a falaw
+cache hit the completed body <em>is</em> the earlier node’s body, while a
+genuinely new render carries a different artifact id and so is never
+equivalent. A caller comparing a <em>planned</em> value before execution
+(braidio’s <code class="docutils literal notranslate"><span class="pre">planned_value</span></code>, which drops output keys) passes its own;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">E</span></code> is <strong>verified fresh</strong> by this module’s walk, with the same
+classification <a class="reference internal" href="#nw.freshness.stale_verdicts_all" title="nw.freshness.stale_verdicts_all"><code class="xref py py-func docutils literal notranslate"><span class="pre">stale_verdicts_all()</span></code></a> gives it. Ids are not enough:
+a parent rewritten in place keeps its id, so a node derived from its
+old value has “the same parents” and is exactly the node that must not
+be reused (braidio#51). Unverifiable means stale here too: a node whose
+verifying trace is gone is never reused. A parentless <code class="docutils literal notranslate"><span class="pre">E</span></code> is never
+stale (the snapshot’s own rule), so it counts as fresh;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">E.id</span> <span class="pre">!=</span> <span class="pre">A.id</span></code>.</p></li>
+</ul>
+<p>When several stored nodes qualify, the most recently generated one wins.</p>
+<p>Only <strong>stored</strong> nodes are candidates. Two equivalent annotations in the
+same call are matched against the graph, not against each other, so a
+caller that writes the <code class="docutils literal notranslate"><span class="pre">None</span></code> entries writes both; a later call then
+returns the newest of the two for each, so the result can name one node
+twice.</p>
+<p><strong>No lock</strong> spans this read and the caller’s write: two executes racing
+on the same outputs both find nothing and both write — exactly what
+happened without reuse, and nothing worse.</p>
+<p><strong>Cost.</strong> The cheap filter runs first: one indexed <code class="docutils literal notranslate"><span class="pre">by_tier</span></code> read per
+distinct tier, each stored node’s key computed once. The freshness walk
+runs <strong>at most once per call</strong>, over the candidates that survived it, and
+<strong>not at all</strong> when none did — so a first run, or a run whose outputs are
+all new, pays nothing for this. Pass every annotation of one write batch
+in a single call to share the walk. Read-only: nothing is written.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#tuple" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">tuple</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.15)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code></a>[<code class="xref py py-class docutils literal notranslate"><span class="pre">Annotation</span></code>], <a class="reference external" href="https://docs.python.org/3/builtins/constants.html#Ellipsis" title="(in Python v3.15)"><code class="xref py py-data docutils literal notranslate"><span class="pre">...</span></code></a>]</span></p>
 </dd>
 </dl>
 </dd></dl>
@@ -489,7 +605,7 @@ projects, not installing a pure wrapper.</p>
     </div>
   </div>
 </footer>
-      <script src="../_static/documentation_options.js?v=fa321392"></script>
+      <script src="../_static/documentation_options.js?v=5e4a978b"></script>
       <script src="../_static/doctools.js?v=fd6eb6e6"></script>
       <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script src="../_static/clipboard.min.js?v=a7894cd8"></script>

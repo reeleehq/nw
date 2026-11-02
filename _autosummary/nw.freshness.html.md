@@ -100,6 +100,18 @@ Stated so nobody reads more into the number than is there:
   > is not checked. An artifact parent counts toward “the trace’s upstream set
   > is exactly `was_derived_from`” like any other parent.
 
+## Reuse: the fresh equivalent of a new output
+
+[`fresh_equivalents()`](#nw.freshness.fresh_equivalents) asks the walk a write-side question: \*is there
+already a node this new annotation would only duplicate?\* (nw#203). Same
+tier, `body_schema_uri` and reference, the same **annotation** parents, an
+equal value ([`body_value()`](#nw.freshness.body_value)), and **verified fresh** — equality of
+parents by id is not enough, because a parent rewritten in place keeps its
+id (braidio#51). `nw.transforms.BaseTransform.execute()` uses it, for a
+Transform that declares `reuse_fresh_outputs`, so that re-running it on
+unchanged inputs (a falaw cache hit) returns the node it already wrote
+instead of adding a second one.
+
 ### Module Attributes
 
 | [`STALE_REASONS`](#nw.freshness.STALE_REASONS)   | Every reason that resolves to *stale*.   |
@@ -107,12 +119,15 @@ Stated so nobody reads more into the number than is there:
 
 ### Functions
 
-| [`all_stale`](#nw.freshness.all_stale)(project_root)                  | Every annotation that is currently stale, regardless of cause.        |
-|-------------------------------------------------------------------------------------------|-----------------------------------------------------------------------|
-| [`is_verifiable_digest_scheme`](#nw.freshness.is_verifiable_digest_scheme)(scheme)      | Whether a trace recorded under `scheme` can still be verified.        |
-| [`stale_after`](#nw.freshness.stale_after)(project_root, changed_id)    | Return every annotation that `changed_id` actually invalidated.       |
-| [`stale_verdicts`](#nw.freshness.stale_verdicts)(project_root, changed_id) | Classify every annotation downstream of `changed_id`.                 |
-| [`stale_verdicts_all`](#nw.freshness.stale_verdicts_all)(project_root)         | Classify every derived annotation in the project — the snapshot form. |
+| [`all_stale`](#nw.freshness.all_stale)(project_root)                          | Every annotation that is currently stale, regardless of cause.          |
+|---------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------|
+| [`annotation_parent_ids`](#nw.freshness.annotation_parent_ids)(ann)                       | The **annotation** ids in `ann.provenance.was_derived_from`.            |
+| [`body_value`](#nw.freshness.body_value)(ann)                                  | `ann.body` JSON-normalised — the value two annotations are compared by. |
+| [`fresh_equivalents`](#nw.freshness.fresh_equivalents)(project_root, annotations, \*) | For each of `annotations`, the existing node it would only duplicate.   |
+| [`is_verifiable_digest_scheme`](#nw.freshness.is_verifiable_digest_scheme)(scheme)              | Whether a trace recorded under `scheme` can still be verified.          |
+| [`stale_after`](#nw.freshness.stale_after)(project_root, changed_id)            | Return every annotation that `changed_id` actually invalidated.         |
+| [`stale_verdicts`](#nw.freshness.stale_verdicts)(project_root, changed_id)         | Classify every annotation downstream of `changed_id`.                   |
+| [`stale_verdicts_all`](#nw.freshness.stale_verdicts_all)(project_root)                 | Classify every derived annotation in the project — the snapshot form.   |
 
 ### Classes
 
@@ -147,6 +162,91 @@ on instead of re-deriving its own definition of the word.
 
 * **Return type:**
   [`list`](https://docs.python.org/3/builtins/stdtypes.html#list)[`Annotation`]
+
+### nw.freshness.annotation_parent_ids(ann)
+
+The **annotation** ids in `ann.provenance.was_derived_from`.
+
+`was_derived_from` also holds 64-hex artifact asset ids (lacing#31,
+written for declared input schemas since nw#55). Code that means “the
+annotations this node was derived from” reads this half only — which is
+what lets a node written before #55 (no asset refs) still match one
+written after it.
+
+* **Return type:**
+  [`frozenset`](https://docs.python.org/3/builtins/stdtypes.html#frozenset)[[`UUID`](https://docs.python.org/3/library/uuid.html#uuid.UUID)]
+
+### nw.freshness.body_value(ann)
+
+`ann.body` JSON-normalised — the value two annotations are compared by.
+
+A body built in memory is a python-mode dump (tuples, UUIDs) while one read
+back from a store is what JSON gave it (lists, strings); the wire value is
+the same and must compare equal. Keys are sorted, so key order is not a
+difference either.
+
+* **Return type:**
+  [`object`](https://docs.python.org/3/builtins/functions.html#object)
+
+### nw.freshness.fresh_equivalents(project_root, annotations, \*, value_of=<function body_value>)
+
+For each of `annotations`, the existing node it would only duplicate.
+
+Returns one entry per input, in order: the stored annotation equivalent to
+it, or `None` when there is none (write it). An existing node `E` is
+equivalent to a new annotation `A` when **all** of these hold:
+
+- same `tier`, same `body_schema_uri` and the same `reference`
+  (where it sits — JSON-compared). Stricter than braidio’s original rule,
+  deliberately: two outputs at different places are different nodes even
+  when every other field agrees, and a missed reuse only costs a write;
+- the same producer, `provenance.was_generated_by`
+  (`transform:<name>@<impl_version>`): another Transform’s node is not
+  this one’s output, and after an `impl_version` bump the old
+  version’s node must not keep coming back — freshness does not see a
+  changed Transform (this module’s docstring), so the key has to;
+- the same **annotation** parents ([`annotation_parent_ids()`](#nw.freshness.annotation_parent_ids), as a
+  set). Artifact parents (nw#55) are ignored: a node written before the
+  declaration has none, and comparing them would refuse to reuse every
+  such node. Freshness loses nothing by it — a declared asset id is read
+  off a parent’s body, so replacing the artifact changes that parent’s
+  value, which the walk below refuses;
+- `value_of(E) == value_of(A)` — by default the whole body,
+  JSON-normalised ([`body_value()`](#nw.freshness.body_value)). Generic on purpose: after a falaw
+  cache hit the completed body *is* the earlier node’s body, while a
+  genuinely new render carries a different artifact id and so is never
+  equivalent. A caller comparing a *planned* value before execution
+  (braidio’s `planned_value`, which drops output keys) passes its own;
+- `E` is **verified fresh** by this module’s walk, with the same
+  classification [`stale_verdicts_all()`](#nw.freshness.stale_verdicts_all) gives it. Ids are not enough:
+  a parent rewritten in place keeps its id, so a node derived from its
+  old value has “the same parents” and is exactly the node that must not
+  be reused (braidio#51). Unverifiable means stale here too: a node whose
+  verifying trace is gone is never reused. A parentless `E` is never
+  stale (the snapshot’s own rule), so it counts as fresh;
+- `E.id != A.id`.
+
+When several stored nodes qualify, the most recently generated one wins.
+
+Only **stored** nodes are candidates. Two equivalent annotations in the
+same call are matched against the graph, not against each other, so a
+caller that writes the `None` entries writes both; a later call then
+returns the newest of the two for each, so the result can name one node
+twice.
+
+**No lock** spans this read and the caller’s write: two executes racing
+on the same outputs both find nothing and both write — exactly what
+happened without reuse, and nothing worse.
+
+**Cost.** The cheap filter runs first: one indexed `by_tier` read per
+distinct tier, each stored node’s key computed once. The freshness walk
+runs **at most once per call**, over the candidates that survived it, and
+**not at all** when none did — so a first run, or a run whose outputs are
+all new, pays nothing for this. Pass every annotation of one write batch
+in a single call to share the walk. Read-only: nothing is written.
+
+* **Return type:**
+  [`tuple`](https://docs.python.org/3/builtins/stdtypes.html#tuple)[[`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[`Annotation`], [`...`](https://docs.python.org/3/builtins/constants.html#Ellipsis)]
 
 ### nw.freshness.is_verifiable_digest_scheme(scheme)
 

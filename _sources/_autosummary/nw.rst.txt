@@ -86,6 +86,7 @@
       suggest
       validate
       all_stale
+      fresh_equivalents
       stale_after
       stale_verdicts
       stale_verdicts_all

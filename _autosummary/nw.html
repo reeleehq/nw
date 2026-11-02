@@ -134,6 +134,7 @@ data-aria-dark="Switch to auto color mode">
 <li><a class="reference internal" href="#nw.BaseTransform.impl_version"><code class="docutils literal notranslate"><span class="pre">BaseTransform.impl_version</span></code></a></li>
 <li><a class="reference internal" href="#nw.BaseTransform.is_batch"><code class="docutils literal notranslate"><span class="pre">BaseTransform.is_batch</span></code></a></li>
 <li><a class="reference internal" href="#nw.BaseTransform.params_model"><code class="docutils literal notranslate"><span class="pre">BaseTransform.params_model</span></code></a></li>
+<li><a class="reference internal" href="#nw.BaseTransform.reuse_fresh_outputs"><code class="docutils literal notranslate"><span class="pre">BaseTransform.reuse_fresh_outputs</span></code></a></li>
 </ul>
 </li>
 <li><a class="reference internal" href="#nw.CacheModeConflict"><code class="docutils literal notranslate"><span class="pre">CacheModeConflict</span></code></a></li>
@@ -283,9 +284,11 @@ data-aria-dark="Switch to auto color mode">
 <li><a class="reference internal" href="#nw.ProjectGraph.add_annotation"><code class="docutils literal notranslate"><span class="pre">ProjectGraph.add_annotation()</span></code></a></li>
 <li><a class="reference internal" href="#nw.ProjectGraph.add_unproduced_output"><code class="docutils literal notranslate"><span class="pre">ProjectGraph.add_unproduced_output()</span></code></a></li>
 <li><a class="reference internal" href="#nw.ProjectGraph.append_decision"><code class="docutils literal notranslate"><span class="pre">ProjectGraph.append_decision()</span></code></a></li>
+<li><a class="reference internal" href="#nw.ProjectGraph.fresh_equivalents"><code class="docutils literal notranslate"><span class="pre">ProjectGraph.fresh_equivalents()</span></code></a></li>
 <li><a class="reference internal" href="#nw.ProjectGraph.genre_envelope"><code class="docutils literal notranslate"><span class="pre">ProjectGraph.genre_envelope()</span></code></a></li>
 <li><a class="reference internal" href="#nw.ProjectGraph.remove_annotation"><code class="docutils literal notranslate"><span class="pre">ProjectGraph.remove_annotation()</span></code></a></li>
 <li><a class="reference internal" href="#nw.ProjectGraph.set_genre_envelope"><code class="docutils literal notranslate"><span class="pre">ProjectGraph.set_genre_envelope()</span></code></a></li>
+<li><a class="reference internal" href="#nw.ProjectGraph.settle_unproduced_outputs"><code class="docutils literal notranslate"><span class="pre">ProjectGraph.settle_unproduced_outputs()</span></code></a></li>
 <li><a class="reference internal" href="#nw.ProjectGraph.unproduced_outputs"><code class="docutils literal notranslate"><span class="pre">ProjectGraph.unproduced_outputs()</span></code></a></li>
 <li><a class="reference internal" href="#nw.ProjectGraph.upsert_character_ref"><code class="docutils literal notranslate"><span class="pre">ProjectGraph.upsert_character_ref()</span></code></a></li>
 <li><a class="reference internal" href="#nw.ProjectGraph.upsert_entity"><code class="docutils literal notranslate"><span class="pre">ProjectGraph.upsert_entity()</span></code></a></li>
@@ -423,6 +426,7 @@ data-aria-dark="Switch to auto color mode">
 <li><a class="reference internal" href="#nw.fan_out_execute"><code class="docutils literal notranslate"><span class="pre">fan_out_execute()</span></code></a></li>
 <li><a class="reference internal" href="#nw.fan_out_plan"><code class="docutils literal notranslate"><span class="pre">fan_out_plan()</span></code></a></li>
 <li><a class="reference internal" href="#nw.format_ref"><code class="docutils literal notranslate"><span class="pre">format_ref()</span></code></a></li>
+<li><a class="reference internal" href="#nw.fresh_equivalents"><code class="docutils literal notranslate"><span class="pre">fresh_equivalents()</span></code></a></li>
 <li><a class="reference internal" href="#nw.genre_catalog"><code class="docutils literal notranslate"><span class="pre">genre_catalog()</span></code></a></li>
 <li><a class="reference internal" href="#nw.genre_limits"><code class="docutils literal notranslate"><span class="pre">genre_limits()</span></code></a></li>
 <li><a class="reference internal" href="#nw.genre_op"><code class="docutils literal notranslate"><span class="pre">genre_op()</span></code></a></li>
@@ -793,16 +797,19 @@ are recorded as linked artifacts), see
 <tr class="row-even"><td><p><a class="reference internal" href="#nw.all_stale" title="nw.all_stale"><code class="xref py py-obj docutils literal notranslate"><span class="pre">all_stale</span></code></a>(project_root)</p></td>
 <td><p>Every annotation that is currently stale, regardless of cause.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#nw.stale_after" title="nw.stale_after"><code class="xref py py-obj docutils literal notranslate"><span class="pre">stale_after</span></code></a>(project_root, changed_id)</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#nw.fresh_equivalents" title="nw.fresh_equivalents"><code class="xref py py-obj docutils literal notranslate"><span class="pre">fresh_equivalents</span></code></a>(project_root, annotations, *)</p></td>
+<td><p>For each of <code class="docutils literal notranslate"><span class="pre">annotations</span></code>, the existing node it would only duplicate.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#nw.stale_after" title="nw.stale_after"><code class="xref py py-obj docutils literal notranslate"><span class="pre">stale_after</span></code></a>(project_root, changed_id)</p></td>
 <td><p>Return every annotation that <code class="docutils literal notranslate"><span class="pre">changed_id</span></code> actually invalidated.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#nw.stale_verdicts" title="nw.stale_verdicts"><code class="xref py py-obj docutils literal notranslate"><span class="pre">stale_verdicts</span></code></a>(project_root, changed_id)</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#nw.stale_verdicts" title="nw.stale_verdicts"><code class="xref py py-obj docutils literal notranslate"><span class="pre">stale_verdicts</span></code></a>(project_root, changed_id)</p></td>
 <td><p>Classify every annotation downstream of <code class="docutils literal notranslate"><span class="pre">changed_id</span></code>.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#nw.stale_verdicts_all" title="nw.stale_verdicts_all"><code class="xref py py-obj docutils literal notranslate"><span class="pre">stale_verdicts_all</span></code></a>(project_root)</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#nw.stale_verdicts_all" title="nw.stale_verdicts_all"><code class="xref py py-obj docutils literal notranslate"><span class="pre">stale_verdicts_all</span></code></a>(project_root)</p></td>
 <td><p>Classify every derived annotation in the project — the snapshot form.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#nw.summarize_all" title="nw.summarize_all"><code class="xref py py-obj docutils literal notranslate"><span class="pre">summarize_all</span></code></a>(roots)</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#nw.summarize_all" title="nw.summarize_all"><code class="xref py py-obj docutils literal notranslate"><span class="pre">summarize_all</span></code></a>(roots)</p></td>
 <td><p>Convenience: return a <a class="reference internal" href="#nw.ProjectSummary" title="nw.ProjectSummary"><code class="xref py py-class docutils literal notranslate"><span class="pre">ProjectSummary</span></code></a> for each project.</p></td>
 </tr>
 </tbody>
@@ -1030,6 +1037,33 @@ or a single primary annotation (one-to-one — the default). See the
 <dt class="sig sig-object py" id="nw.BaseTransform.params_model">
 <span class="sig-name descname"><span class="pre">params_model</span></span><a class="headerlink" href="#nw.BaseTransform.params_model" title="Link to this definition">#</a></dt>
 <dd><p>alias of <a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></a></p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="nw.BaseTransform.reuse_fresh_outputs">
+<span class="sig-name descname"><span class="pre">reuse_fresh_outputs</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#bool" title="(in Python v3.15)"><span class="pre">bool</span></a></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">False</span></span><a class="headerlink" href="#nw.BaseTransform.reuse_fresh_outputs" title="Link to this definition">#</a></dt>
+<dd><p>Whether <code class="xref py py-meth docutils literal notranslate"><span class="pre">execute()</span></code> reuses an output’s <em>fresh equivalent</em> instead of
+writing a duplicate (nw#203). Default <code class="docutils literal notranslate"><span class="pre">False</span></code>: every run writes.</p>
+<p>A fresh equivalent of a completed output is a node already in the graph
+with the same tier, <code class="docutils literal notranslate"><span class="pre">body_schema_uri</span></code> and reference, the same
+<em>annotation</em> parents, an equal body (JSON-compared), and verified fresh by
+the freshness walk — <a class="reference internal" href="nw.freshness.html#nw.freshness.fresh_equivalents" title="nw.freshness.fresh_equivalents"><code class="xref py py-func docutils literal notranslate"><span class="pre">nw.freshness.fresh_equivalents()</span></code></a> states the
+rule. A re-run served from falaw’s cache completes to exactly such a
+body, which is the duplicate this removes; a genuinely new render has a
+new artifact id and is written as before. The record of an earlier
+failure that the success settles is retired either way.</p>
+<p>Declare <code class="docutils literal notranslate"><span class="pre">True</span></code> only when every caller can take this: such an output
+comes back in <code class="docutils literal notranslate"><span class="pre">TransformResult.annotations</span></code> as the <strong>existing</strong> node,
+so <code class="docutils literal notranslate"><span class="pre">result.annotations[i].id</span></code> may differ from <code class="docutils literal notranslate"><span class="pre">skeleton[i].id</span></code>. A
+caller that deletes, re-ids or adopts the rows it is handed (as a “drop
+what execute just wrote” step does) must compare those ids first, or it
+deletes a live node — and leaves everything derived from it dangling. A
+declaration rather than an <code class="docutils literal notranslate"><span class="pre">execute</span></code> keyword, so fan-outs and jobs
+honour it with no plumbing.</p>
+<p>Cost: one indexed tier read per <code class="docutils literal notranslate"><span class="pre">execute</span></code>, plus at most one freshness
+walk, and none when no candidate exists. A <strong>fan-out</strong> calls <code class="docutils literal notranslate"><span class="pre">execute</span></code>
+once per unit, so it pays one tier read and one walk <em>per unit</em>: no pass
+shares a walk across units yet.</p>
 </dd></dl>
 
 </dd></dl>
@@ -2439,6 +2473,21 @@ docstring’s “reason never carries raw exception text”. When
 </dd></dl>
 
 <dl class="py method">
+<dt class="sig sig-object py" id="nw.ProjectGraph.fresh_equivalents">
+<span class="sig-name descname"><span class="pre">fresh_equivalents</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">annotations</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/nw/graph.html#ProjectGraph.fresh_equivalents"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nw.ProjectGraph.fresh_equivalents" title="Link to this definition">#</a></dt>
+<dd><p>For each of <code class="docutils literal notranslate"><span class="pre">annotations</span></code>, the stored node it would only duplicate.</p>
+<p><a class="reference internal" href="nw.freshness.html#nw.freshness.fresh_equivalents" title="nw.freshness.fresh_equivalents"><code class="xref py py-func docutils literal notranslate"><span class="pre">nw.freshness.fresh_equivalents()</span></code></a> over this graph’s project — the
+rule (and its cost: at most one freshness walk per call) is stated
+there. Read-only. The write side of a reuse is
+<a class="reference internal" href="#nw.ProjectGraph.settle_unproduced_outputs" title="nw.ProjectGraph.settle_unproduced_outputs"><code class="xref py py-meth docutils literal notranslate"><span class="pre">settle_unproduced_outputs()</span></code></a>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#tuple" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">tuple</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.15)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code></a>[<code class="xref py py-class docutils literal notranslate"><span class="pre">Annotation</span></code>], <a class="reference external" href="https://docs.python.org/3/builtins/constants.html#Ellipsis" title="(in Python v3.15)"><code class="xref py py-data docutils literal notranslate"><span class="pre">...</span></code></a>]</span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
 <dt class="sig sig-object py" id="nw.ProjectGraph.genre_envelope">
 <span class="sig-name descname"><span class="pre">genre_envelope</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/nw/graph.html#ProjectGraph.genre_envelope"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nw.ProjectGraph.genre_envelope" title="Link to this definition">#</a></dt>
 <dd><p>The recorded genre envelope, or <code class="docutils literal notranslate"><span class="pre">None</span></code> for a genre-less project.</p>
@@ -2488,6 +2537,27 @@ upsert. A no-op write (same envelope) writes nothing.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/uuid.html#uuid.UUID" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">UUID</span></code></a></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nw.ProjectGraph.settle_unproduced_outputs">
+<span class="sig-name descname"><span class="pre">settle_unproduced_outputs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ann</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">instance_id</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">call_index</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/nw/graph.html#ProjectGraph.settle_unproduced_outputs"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nw.ProjectGraph.settle_unproduced_outputs" title="Link to this definition">#</a></dt>
+<dd><p>Retire the unproduced-output records <code class="docutils literal notranslate"><span class="pre">ann</span></code>’s success settles, and
+write nothing else.</p>
+<p>The retirement half of <a class="reference internal" href="#nw.ProjectGraph.add_annotation" title="nw.ProjectGraph.add_annotation"><code class="xref py py-meth docutils literal notranslate"><span class="pre">add_annotation()</span></code></a>, for a success that is
+<strong>not</strong> written because an equivalent node already exists
+(<a class="reference internal" href="#nw.fresh_equivalents" title="nw.fresh_equivalents"><code class="xref py py-meth docutils literal notranslate"><span class="pre">fresh_equivalents()</span></code></a>, nw#203): the output was produced all the
+same, so a record saying it is missing must go. Pass the annotation
+<em>this run</em> completed (not the reused node): the record was built from
+this run’s skeleton, so its <code class="docutils literal notranslate"><span class="pre">upstream</span></code> is this run’s
+<code class="docutils literal notranslate"><span class="pre">was_derived_from</span></code> — which, since nw#55, may carry asset ids an
+older reused node lacks. Same key and same arguments as
+<a class="reference internal" href="#nw.ProjectGraph.add_annotation" title="nw.ProjectGraph.add_annotation"><code class="xref py py-meth docutils literal notranslate"><span class="pre">add_annotation()</span></code></a>; a no-op for an annotation no Transform made.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><span class="highlight sphinx_autodoc_typehints-value"><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></a></span></span></p>
 </dd>
 </dl>
 </dd></dl>
@@ -3155,7 +3225,13 @@ the Beat in <code class="docutils literal notranslate"><span class="pre">primary
 <dl class="py attribute">
 <dt class="sig sig-object py" id="nw.TransformResult.annotations">
 <span class="sig-name descname"><span class="pre">annotations</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#tuple" title="(in Python v3.15)"><span class="pre">tuple</span></a><span class="p"><span class="pre">[</span></span><span class="pre">Annotation</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="p"><span class="pre">...</span></span><span class="p"><span class="pre">]</span></span></span><a class="headerlink" href="#nw.TransformResult.annotations" title="Link to this definition">#</a></dt>
-<dd><p>The completed output annotation(s), written to the project graph.</p>
+<dd><p>The completed output annotation(s), as they stand in the project graph.</p>
+<p>The annotations this run wrote — unless the Transform declares
+<code class="docutils literal notranslate"><span class="pre">reuse_fresh_outputs</span></code> (nw#203): then an output whose fresh equivalent
+already exists is returned as that <strong>existing</strong> node and nothing is
+written, so its <code class="docutils literal notranslate"><span class="pre">id</span></code> is not the skeleton’s. Read ids from here, never
+from the skeleton; a row whose id is not its skeleton’s was not written
+by this run.</p>
 </dd></dl>
 
 <dl class="py attribute">
@@ -3917,6 +3993,66 @@ execute time changes nothing.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="nw.fresh_equivalents">
+<span class="sig-prename descclassname"><span class="pre">nw.</span></span><span class="sig-name descname"><span class="pre">fresh_equivalents</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">project_root</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">annotations</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">value_of</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">&lt;function</span> <span class="pre">body_value&gt;</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/nw/freshness.html#fresh_equivalents"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nw.fresh_equivalents" title="Link to this definition">#</a></dt>
+<dd><p>For each of <code class="docutils literal notranslate"><span class="pre">annotations</span></code>, the existing node it would only duplicate.</p>
+<p>Returns one entry per input, in order: the stored annotation equivalent to
+it, or <code class="docutils literal notranslate"><span class="pre">None</span></code> when there is none (write it). An existing node <code class="docutils literal notranslate"><span class="pre">E</span></code> is
+equivalent to a new annotation <code class="docutils literal notranslate"><span class="pre">A</span></code> when <strong>all</strong> of these hold:</p>
+<ul class="simple">
+<li><p>same <code class="docutils literal notranslate"><span class="pre">tier</span></code>, same <code class="docutils literal notranslate"><span class="pre">body_schema_uri</span></code> and the same <code class="docutils literal notranslate"><span class="pre">reference</span></code>
+(where it sits — JSON-compared). Stricter than braidio’s original rule,
+deliberately: two outputs at different places are different nodes even
+when every other field agrees, and a missed reuse only costs a write;</p></li>
+<li><p>the same producer, <code class="docutils literal notranslate"><span class="pre">provenance.was_generated_by</span></code>
+(<code class="docutils literal notranslate"><span class="pre">transform:&lt;name&gt;&#64;&lt;impl_version&gt;</span></code>): another Transform’s node is not
+this one’s output, and after an <code class="docutils literal notranslate"><span class="pre">impl_version</span></code> bump the old
+version’s node must not keep coming back — freshness does not see a
+changed Transform (this module’s docstring), so the key has to;</p></li>
+<li><p>the same <strong>annotation</strong> parents (<code class="xref py py-func docutils literal notranslate"><span class="pre">annotation_parent_ids()</span></code>, as a
+set). Artifact parents (nw#55) are ignored: a node written before the
+declaration has none, and comparing them would refuse to reuse every
+such node. Freshness loses nothing by it — a declared asset id is read
+off a parent’s body, so replacing the artifact changes that parent’s
+value, which the walk below refuses;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">value_of(E)</span> <span class="pre">==</span> <span class="pre">value_of(A)</span></code> — by default the whole body,
+JSON-normalised (<code class="xref py py-func docutils literal notranslate"><span class="pre">body_value()</span></code>). Generic on purpose: after a falaw
+cache hit the completed body <em>is</em> the earlier node’s body, while a
+genuinely new render carries a different artifact id and so is never
+equivalent. A caller comparing a <em>planned</em> value before execution
+(braidio’s <code class="docutils literal notranslate"><span class="pre">planned_value</span></code>, which drops output keys) passes its own;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">E</span></code> is <strong>verified fresh</strong> by this module’s walk, with the same
+classification <a class="reference internal" href="#nw.stale_verdicts_all" title="nw.stale_verdicts_all"><code class="xref py py-func docutils literal notranslate"><span class="pre">stale_verdicts_all()</span></code></a> gives it. Ids are not enough:
+a parent rewritten in place keeps its id, so a node derived from its
+old value has “the same parents” and is exactly the node that must not
+be reused (braidio#51). Unverifiable means stale here too: a node whose
+verifying trace is gone is never reused. A parentless <code class="docutils literal notranslate"><span class="pre">E</span></code> is never
+stale (the snapshot’s own rule), so it counts as fresh;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">E.id</span> <span class="pre">!=</span> <span class="pre">A.id</span></code>.</p></li>
+</ul>
+<p>When several stored nodes qualify, the most recently generated one wins.</p>
+<p>Only <strong>stored</strong> nodes are candidates. Two equivalent annotations in the
+same call are matched against the graph, not against each other, so a
+caller that writes the <code class="docutils literal notranslate"><span class="pre">None</span></code> entries writes both; a later call then
+returns the newest of the two for each, so the result can name one node
+twice.</p>
+<p><strong>No lock</strong> spans this read and the caller’s write: two executes racing
+on the same outputs both find nothing and both write — exactly what
+happened without reuse, and nothing worse.</p>
+<p><strong>Cost.</strong> The cheap filter runs first: one indexed <code class="docutils literal notranslate"><span class="pre">by_tier</span></code> read per
+distinct tier, each stored node’s key computed once. The freshness walk
+runs <strong>at most once per call</strong>, over the candidates that survived it, and
+<strong>not at all</strong> when none did — so a first run, or a run whose outputs are
+all new, pays nothing for this. Pass every annotation of one write batch
+in a single call to share the walk. Read-only: nothing is written.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#tuple" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">tuple</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.15)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code></a>[<code class="xref py py-class docutils literal notranslate"><span class="pre">Annotation</span></code>], <a class="reference external" href="https://docs.python.org/3/builtins/constants.html#Ellipsis" title="(in Python v3.15)"><code class="xref py py-data docutils literal notranslate"><span class="pre">...</span></code></a>]</span></p>
 </dd>
 </dl>
 </dd></dl>
@@ -4997,7 +5133,7 @@ serves or selects from, mirroring <a class="reference internal" href="#nw.genre_
 consumer needs no registry-internal knowledge to render or compose.
 Entry shape:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span data-line="1"><span class="p">{</span><span class="n">name</span><span class="p">,</span> <span class="n">input_kinds</span><span class="p">,</span> <span class="n">output_kind</span><span class="p">,</span> <span class="n">is_batch</span><span class="p">,</span> <span class="n">generate_when</span><span class="p">,</span>
-</span><span data-line="2"> <span class="n">impl_version</span><span class="p">,</span> <span class="n">params_schema</span><span class="p">}</span>
+</span><span data-line="2"> <span class="n">impl_version</span><span class="p">,</span> <span class="n">reuse_fresh_outputs</span><span class="p">,</span> <span class="n">params_schema</span><span class="p">}</span>
 </span></pre></div>
 </div>
 <p><code class="docutils literal notranslate"><span class="pre">name</span></code> is the registry key (the addressable name). <code class="docutils literal notranslate"><span class="pre">params_schema</span></code>
@@ -5256,7 +5392,7 @@ addressable across runs.</p>
     </div>
   </div>
 </footer>
-      <script src="../_static/documentation_options.js?v=fa321392"></script>
+      <script src="../_static/documentation_options.js?v=5e4a978b"></script>
       <script src="../_static/doctools.js?v=fd6eb6e6"></script>
       <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script src="../_static/clipboard.min.js?v=a7894cd8"></script>

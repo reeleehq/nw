@@ -1,4 +1,4 @@
-> built 2026-11-02 14:25 UTC from fe27b8f (main) · nw 0.0.122. Details: build_info.json
+> built 2026-11-02 14:41 UTC from 7803763 (main) · nw 0.0.123. Details: build_info.json
 
 # index.html.md
 
@@ -2606,6 +2606,18 @@ Stated so nobody reads more into the number than is there:
   > is not checked. An artifact parent counts toward “the trace’s upstream set
   > is exactly `was_derived_from`” like any other parent.
 
+## Reuse: the fresh equivalent of a new output
+
+[`fresh_equivalents()`](_autosummary/nw.freshness.html.md#nw.freshness.fresh_equivalents) asks the walk a write-side question: \*is there
+already a node this new annotation would only duplicate?\* (nw#203). Same
+tier, `body_schema_uri` and reference, the same **annotation** parents, an
+equal value ([`body_value()`](_autosummary/nw.freshness.html.md#nw.freshness.body_value)), and **verified fresh** — equality of
+parents by id is not enough, because a parent rewritten in place keeps its
+id (braidio#51). `nw.transforms.BaseTransform.execute()` uses it, for a
+Transform that declares `reuse_fresh_outputs`, so that re-running it on
+unchanged inputs (a falaw cache hit) returns the node it already wrote
+instead of adding a second one.
+
 ### Module Attributes
 
 | [`STALE_REASONS`](_autosummary/nw.freshness.html.md#nw.freshness.STALE_REASONS)   | Every reason that resolves to *stale*.   |
@@ -2613,12 +2625,15 @@ Stated so nobody reads more into the number than is there:
 
 ### Functions
 
-| [`all_stale`](_autosummary/nw.freshness.html.md#nw.freshness.all_stale)(project_root)                  | Every annotation that is currently stale, regardless of cause.        |
-|-------------------------------------------------------------------------------------------|-----------------------------------------------------------------------|
-| [`is_verifiable_digest_scheme`](_autosummary/nw.freshness.html.md#nw.freshness.is_verifiable_digest_scheme)(scheme)      | Whether a trace recorded under `scheme` can still be verified.        |
-| [`stale_after`](_autosummary/nw.freshness.html.md#nw.freshness.stale_after)(project_root, changed_id)    | Return every annotation that `changed_id` actually invalidated.       |
-| [`stale_verdicts`](_autosummary/nw.freshness.html.md#nw.freshness.stale_verdicts)(project_root, changed_id) | Classify every annotation downstream of `changed_id`.                 |
-| [`stale_verdicts_all`](_autosummary/nw.freshness.html.md#nw.freshness.stale_verdicts_all)(project_root)         | Classify every derived annotation in the project — the snapshot form. |
+| [`all_stale`](_autosummary/nw.freshness.html.md#nw.freshness.all_stale)(project_root)                          | Every annotation that is currently stale, regardless of cause.          |
+|---------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------|
+| [`annotation_parent_ids`](_autosummary/nw.freshness.html.md#nw.freshness.annotation_parent_ids)(ann)                       | The **annotation** ids in `ann.provenance.was_derived_from`.            |
+| [`body_value`](_autosummary/nw.freshness.html.md#nw.freshness.body_value)(ann)                                  | `ann.body` JSON-normalised — the value two annotations are compared by. |
+| [`fresh_equivalents`](_autosummary/nw.freshness.html.md#nw.freshness.fresh_equivalents)(project_root, annotations, \*) | For each of `annotations`, the existing node it would only duplicate.   |
+| [`is_verifiable_digest_scheme`](_autosummary/nw.freshness.html.md#nw.freshness.is_verifiable_digest_scheme)(scheme)              | Whether a trace recorded under `scheme` can still be verified.          |
+| [`stale_after`](_autosummary/nw.freshness.html.md#nw.freshness.stale_after)(project_root, changed_id)            | Return every annotation that `changed_id` actually invalidated.         |
+| [`stale_verdicts`](_autosummary/nw.freshness.html.md#nw.freshness.stale_verdicts)(project_root, changed_id)         | Classify every annotation downstream of `changed_id`.                   |
+| [`stale_verdicts_all`](_autosummary/nw.freshness.html.md#nw.freshness.stale_verdicts_all)(project_root)                 | Classify every derived annotation in the project — the snapshot form.   |
 
 ### Classes
 
@@ -2653,6 +2668,91 @@ on instead of re-deriving its own definition of the word.
 
 * **Return type:**
   [`list`](https://docs.python.org/3/builtins/stdtypes.html#list)[`Annotation`]
+
+### nw.freshness.annotation_parent_ids(ann)
+
+The **annotation** ids in `ann.provenance.was_derived_from`.
+
+`was_derived_from` also holds 64-hex artifact asset ids (lacing#31,
+written for declared input schemas since nw#55). Code that means “the
+annotations this node was derived from” reads this half only — which is
+what lets a node written before #55 (no asset refs) still match one
+written after it.
+
+* **Return type:**
+  [`frozenset`](https://docs.python.org/3/builtins/stdtypes.html#frozenset)[[`UUID`](https://docs.python.org/3/library/uuid.html#uuid.UUID)]
+
+### nw.freshness.body_value(ann)
+
+`ann.body` JSON-normalised — the value two annotations are compared by.
+
+A body built in memory is a python-mode dump (tuples, UUIDs) while one read
+back from a store is what JSON gave it (lists, strings); the wire value is
+the same and must compare equal. Keys are sorted, so key order is not a
+difference either.
+
+* **Return type:**
+  [`object`](https://docs.python.org/3/builtins/functions.html#object)
+
+### nw.freshness.fresh_equivalents(project_root, annotations, \*, value_of=<function body_value>)
+
+For each of `annotations`, the existing node it would only duplicate.
+
+Returns one entry per input, in order: the stored annotation equivalent to
+it, or `None` when there is none (write it). An existing node `E` is
+equivalent to a new annotation `A` when **all** of these hold:
+
+- same `tier`, same `body_schema_uri` and the same `reference`
+  (where it sits — JSON-compared). Stricter than braidio’s original rule,
+  deliberately: two outputs at different places are different nodes even
+  when every other field agrees, and a missed reuse only costs a write;
+- the same producer, `provenance.was_generated_by`
+  (`transform:<name>@<impl_version>`): another Transform’s node is not
+  this one’s output, and after an `impl_version` bump the old
+  version’s node must not keep coming back — freshness does not see a
+  changed Transform (this module’s docstring), so the key has to;
+- the same **annotation** parents ([`annotation_parent_ids()`](_autosummary/nw.freshness.html.md#nw.freshness.annotation_parent_ids), as a
+  set). Artifact parents (nw#55) are ignored: a node written before the
+  declaration has none, and comparing them would refuse to reuse every
+  such node. Freshness loses nothing by it — a declared asset id is read
+  off a parent’s body, so replacing the artifact changes that parent’s
+  value, which the walk below refuses;
+- `value_of(E) == value_of(A)` — by default the whole body,
+  JSON-normalised ([`body_value()`](_autosummary/nw.freshness.html.md#nw.freshness.body_value)). Generic on purpose: after a falaw
+  cache hit the completed body *is* the earlier node’s body, while a
+  genuinely new render carries a different artifact id and so is never
+  equivalent. A caller comparing a *planned* value before execution
+  (braidio’s `planned_value`, which drops output keys) passes its own;
+- `E` is **verified fresh** by this module’s walk, with the same
+  classification [`stale_verdicts_all()`](_autosummary/nw.freshness.html.md#nw.freshness.stale_verdicts_all) gives it. Ids are not enough:
+  a parent rewritten in place keeps its id, so a node derived from its
+  old value has “the same parents” and is exactly the node that must not
+  be reused (braidio#51). Unverifiable means stale here too: a node whose
+  verifying trace is gone is never reused. A parentless `E` is never
+  stale (the snapshot’s own rule), so it counts as fresh;
+- `E.id != A.id`.
+
+When several stored nodes qualify, the most recently generated one wins.
+
+Only **stored** nodes are candidates. Two equivalent annotations in the
+same call are matched against the graph, not against each other, so a
+caller that writes the `None` entries writes both; a later call then
+returns the newest of the two for each, so the result can name one node
+twice.
+
+**No lock** spans this read and the caller’s write: two executes racing
+on the same outputs both find nothing and both write — exactly what
+happened without reuse, and nothing worse.
+
+**Cost.** The cheap filter runs first: one indexed `by_tier` read per
+distinct tier, each stored node’s key computed once. The freshness walk
+runs **at most once per call**, over the candidates that survived it, and
+**not at all** when none did — so a first run, or a run whose outputs are
+all new, pays nothing for this. Pass every annotation of one write batch
+in a single call to share the walk. Read-only: nothing is written.
+
+* **Return type:**
+  [`tuple`](https://docs.python.org/3/builtins/stdtypes.html#tuple)[[`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[`Annotation`], [`...`](https://docs.python.org/3/builtins/constants.html#Ellipsis)]
 
 ### nw.freshness.is_verifiable_digest_scheme(scheme)
 
@@ -2918,6 +3018,18 @@ Append a decision; never replaces an existing one (the log is append-only).
 * **Return type:**
   [`UUID`](https://docs.python.org/3/library/uuid.html#uuid.UUID)
 
+#### fresh_equivalents(annotations)
+
+For each of `annotations`, the stored node it would only duplicate.
+
+[`nw.freshness.fresh_equivalents()`](_autosummary/nw.freshness.html.md#nw.freshness.fresh_equivalents) over this graph’s project — the
+rule (and its cost: at most one freshness walk per call) is stated
+there. Read-only. The write side of a reuse is
+[`settle_unproduced_outputs()`](_autosummary/nw.graph.html.md#nw.graph.ProjectGraph.settle_unproduced_outputs).
+
+* **Return type:**
+  [`tuple`](https://docs.python.org/3/builtins/stdtypes.html#tuple)[[`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[`Annotation`], [`...`](https://docs.python.org/3/builtins/constants.html#Ellipsis)]
+
 #### genre_envelope()
 
 The recorded genre envelope, or `None` for a genre-less project.
@@ -2962,6 +3074,24 @@ upsert. A no-op write (same envelope) writes nothing.
 
 * **Return type:**
   [`UUID`](https://docs.python.org/3/library/uuid.html#uuid.UUID)
+
+#### settle_unproduced_outputs(ann, , instance_id=None, call_index=None)
+
+Retire the unproduced-output records `ann`’s success settles, and
+write nothing else.
+
+The retirement half of [`add_annotation()`](_autosummary/nw.graph.html.md#nw.graph.ProjectGraph.add_annotation), for a success that is
+**not** written because an equivalent node already exists
+([`fresh_equivalents()`](_autosummary/nw.graph.html.md#nw.graph.ProjectGraph.fresh_equivalents), nw#203): the output was produced all the
+same, so a record saying it is missing must go. Pass the annotation
+*this run* completed (not the reused node): the record was built from
+this run’s skeleton, so its `upstream` is this run’s
+`was_derived_from` — which, since nw#55, may carry asset ids an
+older reused node lacks. Same key and same arguments as
+[`add_annotation()`](_autosummary/nw.graph.html.md#nw.graph.ProjectGraph.add_annotation); a no-op for an annotation no Transform made.
+
+* **Return type:**
+  [`None`](https://docs.python.org/3/builtins/constants.html#None)
 
 #### unproduced_outputs(, transform_name=None)
 
@@ -3529,6 +3659,7 @@ are recorded as linked artifacts), see
 | [`suggest`](_autosummary/nw.html.md#nw.suggest)(request, \*[, include_paid])              | Checks whose `example_requests` look like what the user just asked for.                                                                                                           |
 | [`validate`](_autosummary/nw.html.md#nw.validate)(target, \*[, checks, max_workers, ...])  | Run `checks` against `target` and report.                                                                                                                                         |
 | [`all_stale`](_autosummary/nw.html.md#nw.all_stale)(project_root)                           | Every annotation that is currently stale, regardless of cause.                                                                                                                    |
+| [`fresh_equivalents`](_autosummary/nw.html.md#nw.fresh_equivalents)(project_root, annotations, \*)  | For each of `annotations`, the existing node it would only duplicate.                                                                                                             |
 | [`stale_after`](_autosummary/nw.html.md#nw.stale_after)(project_root, changed_id)             | Return every annotation that `changed_id` actually invalidated.                                                                                                                   |
 | [`stale_verdicts`](_autosummary/nw.html.md#nw.stale_verdicts)(project_root, changed_id)          | Classify every annotation downstream of `changed_id`.                                                                                                                             |
 | [`stale_verdicts_all`](_autosummary/nw.html.md#nw.stale_verdicts_all)(project_root)                  | Classify every derived annotation in the project — the snapshot form.                                                                                                             |
@@ -3642,6 +3773,34 @@ or a single primary annotation (one-to-one — the default). See the
 #### params_model
 
 alias of [`None`](https://docs.python.org/3/builtins/constants.html#None)
+
+#### reuse_fresh_outputs *: [bool](https://docs.python.org/3/builtins/functions.html#bool)* *= False*
+
+Whether `execute()` reuses an output’s *fresh equivalent* instead of
+writing a duplicate (nw#203). Default `False`: every run writes.
+
+A fresh equivalent of a completed output is a node already in the graph
+with the same tier, `body_schema_uri` and reference, the same
+*annotation* parents, an equal body (JSON-compared), and verified fresh by
+the freshness walk — [`nw.freshness.fresh_equivalents()`](_autosummary/nw.freshness.html.md#nw.freshness.fresh_equivalents) states the
+rule. A re-run served from falaw’s cache completes to exactly such a
+body, which is the duplicate this removes; a genuinely new render has a
+new artifact id and is written as before. The record of an earlier
+failure that the success settles is retired either way.
+
+Declare `True` only when every caller can take this: such an output
+comes back in `TransformResult.annotations` as the **existing** node,
+so `result.annotations[i].id` may differ from `skeleton[i].id`. A
+caller that deletes, re-ids or adopts the rows it is handed (as a “drop
+what execute just wrote” step does) must compare those ids first, or it
+deletes a live node — and leaves everything derived from it dangling. A
+declaration rather than an `execute` keyword, so fan-outs and jobs
+honour it with no plumbing.
+
+Cost: one indexed tier read per `execute`, plus at most one freshness
+walk, and none when no candidate exists. A **fan-out** calls `execute`
+once per unit, so it pays one tier read and one walk *per unit*: no pass
+shares a walk across units yet.
 
 ### *exception* nw.CacheModeConflict
 
@@ -4782,6 +4941,18 @@ Append a decision; never replaces an existing one (the log is append-only).
 * **Return type:**
   [`UUID`](https://docs.python.org/3/library/uuid.html#uuid.UUID)
 
+#### fresh_equivalents(annotations)
+
+For each of `annotations`, the stored node it would only duplicate.
+
+[`nw.freshness.fresh_equivalents()`](_autosummary/nw.freshness.html.md#nw.freshness.fresh_equivalents) over this graph’s project — the
+rule (and its cost: at most one freshness walk per call) is stated
+there. Read-only. The write side of a reuse is
+[`settle_unproduced_outputs()`](_autosummary/nw.html.md#nw.ProjectGraph.settle_unproduced_outputs).
+
+* **Return type:**
+  [`tuple`](https://docs.python.org/3/builtins/stdtypes.html#tuple)[[`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[`Annotation`], [`...`](https://docs.python.org/3/builtins/constants.html#Ellipsis)]
+
 #### genre_envelope()
 
 The recorded genre envelope, or `None` for a genre-less project.
@@ -4826,6 +4997,24 @@ upsert. A no-op write (same envelope) writes nothing.
 
 * **Return type:**
   [`UUID`](https://docs.python.org/3/library/uuid.html#uuid.UUID)
+
+#### settle_unproduced_outputs(ann, , instance_id=None, call_index=None)
+
+Retire the unproduced-output records `ann`’s success settles, and
+write nothing else.
+
+The retirement half of [`add_annotation()`](_autosummary/nw.html.md#nw.ProjectGraph.add_annotation), for a success that is
+**not** written because an equivalent node already exists
+([`fresh_equivalents()`](_autosummary/nw.html.md#nw.fresh_equivalents), nw#203): the output was produced all the
+same, so a record saying it is missing must go. Pass the annotation
+*this run* completed (not the reused node): the record was built from
+this run’s skeleton, so its `upstream` is this run’s
+`was_derived_from` — which, since nw#55, may carry asset ids an
+older reused node lacks. Same key and same arguments as
+[`add_annotation()`](_autosummary/nw.html.md#nw.ProjectGraph.add_annotation); a no-op for an annotation no Transform made.
+
+* **Return type:**
+  [`None`](https://docs.python.org/3/builtins/constants.html#None)
 
 #### unproduced_outputs(, transform_name=None)
 
@@ -5366,7 +5555,14 @@ The outputs of a Transform’s [`execute()`](_autosummary/nw.html.md#nw.Transfor
 
 #### annotations *: [tuple](https://docs.python.org/3/builtins/stdtypes.html#tuple)[Annotation, ...]*
 
-The completed output annotation(s), written to the project graph.
+The completed output annotation(s), as they stand in the project graph.
+
+The annotations this run wrote — unless the Transform declares
+`reuse_fresh_outputs` (nw#203): then an output whose fresh equivalent
+already exists is returned as that **existing** node and nothing is
+written, so its `id` is not the skeleton’s. Read ids from here, never
+from the skeleton; a row whose id is not its skeleton’s was not written
+by this run.
 
 #### artifacts *: [tuple](https://docs.python.org/3/builtins/stdtypes.html#tuple)[Artifact, ...]*
 
@@ -6021,6 +6217,66 @@ The one spelling we print. Input is permissive; output never varies.
 
 * **Return type:**
   [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
+
+### nw.fresh_equivalents(project_root, annotations, \*, value_of=<function body_value>)
+
+For each of `annotations`, the existing node it would only duplicate.
+
+Returns one entry per input, in order: the stored annotation equivalent to
+it, or `None` when there is none (write it). An existing node `E` is
+equivalent to a new annotation `A` when **all** of these hold:
+
+- same `tier`, same `body_schema_uri` and the same `reference`
+  (where it sits — JSON-compared). Stricter than braidio’s original rule,
+  deliberately: two outputs at different places are different nodes even
+  when every other field agrees, and a missed reuse only costs a write;
+- the same producer, `provenance.was_generated_by`
+  (`transform:<name>@<impl_version>`): another Transform’s node is not
+  this one’s output, and after an `impl_version` bump the old
+  version’s node must not keep coming back — freshness does not see a
+  changed Transform (this module’s docstring), so the key has to;
+- the same **annotation** parents (`annotation_parent_ids()`, as a
+  set). Artifact parents (nw#55) are ignored: a node written before the
+  declaration has none, and comparing them would refuse to reuse every
+  such node. Freshness loses nothing by it — a declared asset id is read
+  off a parent’s body, so replacing the artifact changes that parent’s
+  value, which the walk below refuses;
+- `value_of(E) == value_of(A)` — by default the whole body,
+  JSON-normalised (`body_value()`). Generic on purpose: after a falaw
+  cache hit the completed body *is* the earlier node’s body, while a
+  genuinely new render carries a different artifact id and so is never
+  equivalent. A caller comparing a *planned* value before execution
+  (braidio’s `planned_value`, which drops output keys) passes its own;
+- `E` is **verified fresh** by this module’s walk, with the same
+  classification [`stale_verdicts_all()`](_autosummary/nw.html.md#nw.stale_verdicts_all) gives it. Ids are not enough:
+  a parent rewritten in place keeps its id, so a node derived from its
+  old value has “the same parents” and is exactly the node that must not
+  be reused (braidio#51). Unverifiable means stale here too: a node whose
+  verifying trace is gone is never reused. A parentless `E` is never
+  stale (the snapshot’s own rule), so it counts as fresh;
+- `E.id != A.id`.
+
+When several stored nodes qualify, the most recently generated one wins.
+
+Only **stored** nodes are candidates. Two equivalent annotations in the
+same call are matched against the graph, not against each other, so a
+caller that writes the `None` entries writes both; a later call then
+returns the newest of the two for each, so the result can name one node
+twice.
+
+**No lock** spans this read and the caller’s write: two executes racing
+on the same outputs both find nothing and both write — exactly what
+happened without reuse, and nothing worse.
+
+**Cost.** The cheap filter runs first: one indexed `by_tier` read per
+distinct tier, each stored node’s key computed once. The freshness walk
+runs **at most once per call**, over the candidates that survived it, and
+**not at all** when none did — so a first run, or a run whose outputs are
+all new, pays nothing for this. Pass every annotation of one write batch
+in a single call to share the walk. Read-only: nothing is written.
+
+* **Return type:**
+  [`tuple`](https://docs.python.org/3/builtins/stdtypes.html#tuple)[[`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[`Annotation`], [`...`](https://docs.python.org/3/builtins/constants.html#Ellipsis)]
 
 ### nw.genre_catalog()
 
@@ -6946,7 +7202,7 @@ Entry shape:
 
 ```default
 {name, input_kinds, output_kind, is_batch, generate_when,
- impl_version, params_schema}
+ impl_version, reuse_fresh_outputs, params_schema}
 ```
 
 `name` is the registry key (the addressable name). `params_schema`
@@ -11434,7 +11690,7 @@ produce different URLs. The local file paths are byte-stable.
 
 # About this build
 
-This documentation was built on **2026-11-02 14:25 UTC** from commit <a href="https://github.com/reeleehq/nw/commit/fe27b8f636d6d39f9505849b68de2adba1d56a37"><code>fe27b8f</code></a> on branch <code>main</code>, for **nw 0.0.122** (from <code>pyproject.toml</code>).
+This documentation was built on **2026-11-02 14:41 UTC** from commit <a href="https://github.com/reeleehq/nw/commit/7803763f33f3c821523c486c228ac3bd8c3d7c72"><code>7803763</code></a> on branch <code>main</code>, for **nw 0.0.123** (from <code>pyproject.toml</code>).
 
 #### NOTE
 Nothing suggests a mismatch: the tree was clean at the commit above, and the documented version is the one on PyPI.
@@ -11443,9 +11699,9 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 
 |                     |                                                                                                                                                    |
 |---------------------|----------------------------------------------------------------------------------------------------------------------------------------------------|
-| Commit              | <a href="https://github.com/reeleehq/nw/commit/fe27b8f636d6d39f9505849b68de2adba1d56a37"><code>fe27b8f636d6d39f9505849b68de2adba1d56a37</code></a> |
+| Commit              | <a href="https://github.com/reeleehq/nw/commit/7803763f33f3c821523c486c228ac3bd8c3d7c72"><code>7803763f33f3c821523c486c228ac3bd8c3d7c72</code></a> |
 | Branch              | <code>main</code>                                                                                                                                  |
-| Tags at this commit | <code>0.0.122</code>                                                                                                                               |
+| Tags at this commit | <code>0.0.123</code>                                                                                                                               |
 | Working tree        | clean                                                                                                                                              |
 | Remote              | <code>https://github.com/reeleehq/nw</code>                                                                                                        |
 
@@ -11454,9 +11710,9 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 |              |                                                                                            |
 |--------------|--------------------------------------------------------------------------------------------|
 | Repository   | <code>reeleehq/nw</code>                                                                   |
-| Run          | <a href="https://github.com/reeleehq/nw/actions/runs/41461278091">41461278091</a>          |
+| Run          | <a href="https://github.com/reeleehq/nw/actions/runs/41463974802">41463974802</a>          |
 | Ref          | <code>refs/heads/main</code>                                                               |
-| Event commit | <code>f94639bb81232e73c0296c1c4b613693707f772a</code> (in the history of the built commit) |
+| Event commit | <code>410eeb92cafa1591592554c386a89aec2a5dbc80</code> (in the history of the built commit) |
 
 ## Tools
 
@@ -11481,13 +11737,13 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 
 ## Package on PyPI
 
-Latest release: <a href="https://pypi.org/project/nw/0.0.122/">0.0.122</a>, the same as the documented version.
+Latest release: <a href="https://pypi.org/project/nw/0.0.123/">0.0.123</a>, the same as the documented version.
 
 ## Reproduce
 
 ```bash
 git clone https://github.com/reeleehq/nw && cd nw
-git checkout fe27b8f636d6d39f9505849b68de2adba1d56a37
+git checkout 7803763f33f3c821523c486c228ac3bd8c3d7c72
 pip install "epythet==0.2.22"
 epythet quickstart . --ignore tests/ scrap/ examples/
 ```
