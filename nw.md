@@ -1,4 +1,4 @@
-> built 2026-11-02 13:20 UTC from 82c0c83 (main) · nw 0.0.114. Details: build_info.json
+> built 2026-11-02 13:30 UTC from d50bd7e (main) · nw 0.0.116. Details: build_info.json
 
 # index.html.md
 
@@ -3803,6 +3803,17 @@ A fan-out run: one [`FanOutItemResult`](_autosummary/nw.html.md#nw.FanOutItemRes
 `len(result.items) == len(fan_out.units)` always — the same alignment
 guarantee falaw’s `ExecutionReport` gives one level down.
 
+#### *property* cost_total *: CostTotal*
+
+The run’s cost, by `nw.transforms.total_cost()` over the units
+that produced a result, with any **failed** unit marking it unknown.
+
+A unit that raised mid-execute may have been billed for calls its
+(discarded) report would have carried, so its spend is unknown by
+construction. Without that, a failed run could read “all costs known,
+$0.00 spent” — the exact under-report the federation’s unknown-cost
+rule exists to prevent. `blocked` units never ran and are known-$0.
+
 #### *property* cost_usd_actual *: [float](https://docs.python.org/3/builtins/functions.html#float)*
 
 Observed spend over the units that ran. A lower bound, like
@@ -3811,15 +3822,8 @@ but-failed calls applies per unit).
 
 #### *property* has_unknown_costs *: [bool](https://docs.python.org/3/builtins/functions.html#bool)*
 
-True when the run’s true spend is not fully known.
-
-Two sources, both counted: a surviving unit whose own report says
-so, and any **failed** unit — a unit that raised mid-execute may
-have been billed for calls its (discarded) report would have
-carried, so its spend is unknown by construction. Without the
-second clause, a failed run could read “all costs known, $0.00
-spent” — the exact under-report the federation’s unknown-cost rule
-exists to prevent. `blocked` units never ran and are known-$0.
+True when the run’s true spend is not fully known (see
+[`cost_total`](_autosummary/nw.html.md#nw.FanOutResult.cost_total)).
 
 #### to_record()
 
@@ -7140,24 +7144,25 @@ the top of this module — no magic numbers below.
 
 ### Functions
 
-| [`archive_finished_runs`](_autosummary/nw.jobs.html.md#nw.jobs.archive_finished_runs)(project, \*[, config])      | Move every run that ended more than `config.index_retention_s` ago from the live index to the archive, now; return their ids (nw#174).                                 |
-|----------------------------------------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| [`cancel_job`](_autosummary/nw.jobs.html.md#nw.jobs.cancel_job)(project, job_id, \*[, config])         | Request cancellation.                                                                                                                                                  |
-| [`check_job_spec`](_autosummary/nw.jobs.html.md#nw.jobs.check_job_spec)(params)                            | Raise what [`enqueue()`](_autosummary/nw.jobs.html.md#nw.jobs.enqueue) would raise for malformed `params` (`ValueError` on a bad `units`), before anything is launched. |
-| [`checked_usd`](_autosummary/nw.jobs.html.md#nw.jobs.checked_usd)(value, \*[, name])                    | `value` as a `float` if it is a price nw can gate on, else `ValueError`.                                                                                               |
-| [`enqueue`](_autosummary/nw.jobs.html.md#nw.jobs.enqueue)(project, kind, params, \*[, ...])         | Enqueue a billable render as a background job.                                                                                                                         |
-| [`error_detail_of`](_autosummary/nw.jobs.html.md#nw.jobs.error_detail_of)(error, \*[, secrets])             | The refusal `error` carries as data, or `None`.                                                                                                                        |
-| [`error_kind_of`](_autosummary/nw.jobs.html.md#nw.jobs.error_kind_of)(error)                              | `"refused"` | `"cancelled"` | `"crashed"` for an exception a job raised.                                                                                               |
-| [`estimate`](_autosummary/nw.jobs.html.md#nw.jobs.estimate)(project, kind, params, \*[, ...])        | Dry-run cost gate **without enqueueing**.                                                                                                                              |
-| [`get_job`](_autosummary/nw.jobs.html.md#nw.jobs.get_job)(project, job_id, \*[, config])            | One job (projecting the au status + mirrored index metadata).                                                                                                          |
-| [`job_id_for`](_autosummary/nw.jobs.html.md#nw.jobs.job_id_for)(project, kind, params, \*[, ...])      | The id [`enqueue()`](_autosummary/nw.jobs.html.md#nw.jobs.enqueue) would give this job, without enqueueing it.                                                          |
-| [`job_notifier`](_autosummary/nw.jobs.html.md#nw.jobs.job_notifier)(project, \*[, config])               | This project's [`JobNotifier`](_autosummary/nw.jobs.html.md#nw.jobs.JobNotifier) (built with its runtime).                                                                  |
-| [`list_jobs`](_autosummary/nw.jobs.html.md#nw.jobs.list_jobs)(project, \*[, status, limit, config])   | Jobs for this project, **newest first**, optionally filtered by status.                                                                                                |
-| `now_iso`()                                                                                        |                                                                                                                                                                        |
-| [`predict_total_s`](_autosummary/nw.jobs.html.md#nw.jobs.predict_total_s)(eta_candidates, output_kind, ...) | Predict the total render seconds for a job as `(p50, p90, confidence)`.                                                                                                |
-| [`register_terminal_hook`](_autosummary/nw.jobs.html.md#nw.jobs.register_terminal_hook)(name, hook)                | Call `hook(project, job)` when a job's run ends (nw#151).                                                                                                              |
-| [`summarize`](_autosummary/nw.jobs.html.md#nw.jobs.summarize)(project_root, \*[, limit, config])      | This project's jobs **without provisioning it**.                                                                                                                       |
-| [`to_dict`](_autosummary/nw.jobs.html.md#nw.jobs.to_dict)(job)                                      | Serialize a [`Job`](_autosummary/nw.jobs.html.md#nw.jobs.Job) to the JSON contract (design report §7.4).                                                            |
+| [`archive_finished_runs`](_autosummary/nw.jobs.html.md#nw.jobs.archive_finished_runs)(project, \*[, config])       | Move every run that ended more than `config.index_retention_s` ago from the live index to the archive, now; return their ids (nw#174).                                 |
+|-----------------------------------------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| [`cancel_job`](_autosummary/nw.jobs.html.md#nw.jobs.cancel_job)(project, job_id, \*[, config])          | Request cancellation.                                                                                                                                                  |
+| [`check_job_spec`](_autosummary/nw.jobs.html.md#nw.jobs.check_job_spec)(params)                             | Raise what [`enqueue()`](_autosummary/nw.jobs.html.md#nw.jobs.enqueue) would raise for malformed `params` (`ValueError` on a bad `units`), before anything is launched. |
+| [`checked_usd`](_autosummary/nw.jobs.html.md#nw.jobs.checked_usd)(value, \*[, name])                     | `value` as a `float` if it is a price nw can gate on, else `ValueError`.                                                                                               |
+| [`enqueue`](_autosummary/nw.jobs.html.md#nw.jobs.enqueue)(project, kind, params, \*[, ...])          | Enqueue a billable render as a background job.                                                                                                                         |
+| [`error_detail_of`](_autosummary/nw.jobs.html.md#nw.jobs.error_detail_of)(error, \*[, secrets])              | The refusal `error` carries as data, or `None`.                                                                                                                        |
+| [`error_kind_of`](_autosummary/nw.jobs.html.md#nw.jobs.error_kind_of)(error)                               | `"refused"` | `"cancelled"` | `"crashed"` for an exception a job raised.                                                                                               |
+| [`estimate`](_autosummary/nw.jobs.html.md#nw.jobs.estimate)(project, kind, params, \*[, ...])         | Dry-run cost gate **without enqueueing**.                                                                                                                              |
+| [`get_job`](_autosummary/nw.jobs.html.md#nw.jobs.get_job)(project, job_id, \*[, config])             | One job (projecting the au status + mirrored index metadata).                                                                                                          |
+| [`job_id_for`](_autosummary/nw.jobs.html.md#nw.jobs.job_id_for)(project, kind, params, \*[, ...])       | The id [`enqueue()`](_autosummary/nw.jobs.html.md#nw.jobs.enqueue) would give this job, without enqueueing it.                                                          |
+| [`job_notifier`](_autosummary/nw.jobs.html.md#nw.jobs.job_notifier)(project, \*[, config])                | This project's [`JobNotifier`](_autosummary/nw.jobs.html.md#nw.jobs.JobNotifier) (built with its runtime).                                                                  |
+| [`latest_job`](_autosummary/nw.jobs.html.md#nw.jobs.latest_job)(project, \*, kind[, config])            | The newest run of `kind` (by `created_at`), wherever its record is: live, recently finished, or archived (nw#169).                                                     |
+| [`list_jobs`](_autosummary/nw.jobs.html.md#nw.jobs.list_jobs)(project, \*[, status, kind, limit, ...]) | Jobs for this project, **newest first**, optionally filtered by status and by `kind` (the [`enqueue()`](_autosummary/nw.jobs.html.md#nw.jobs.enqueue) dispatch key).    |
+| `now_iso`()                                                                                         |                                                                                                                                                                        |
+| [`predict_total_s`](_autosummary/nw.jobs.html.md#nw.jobs.predict_total_s)(eta_candidates, output_kind, ...)  | Predict the total render seconds for a job as `(p50, p90, confidence)`.                                                                                                |
+| [`register_terminal_hook`](_autosummary/nw.jobs.html.md#nw.jobs.register_terminal_hook)(name, hook)                 | Call `hook(project, job)` when a job's run ends (nw#151).                                                                                                              |
+| [`summarize`](_autosummary/nw.jobs.html.md#nw.jobs.summarize)(project_root, \*[, limit, config])       | This project's jobs **without provisioning it**.                                                                                                                       |
+| [`to_dict`](_autosummary/nw.jobs.html.md#nw.jobs.to_dict)(job)                                       | Serialize a [`Job`](_autosummary/nw.jobs.html.md#nw.jobs.Job) to the JSON contract (design report §7.4).                                                            |
 
 ### Classes
 
@@ -7857,14 +7862,45 @@ This project’s [`JobNotifier`](_autosummary/nw.jobs.html.md#nw.jobs.JobNotifie
 * **Return type:**
   [`JobNotifier`](_autosummary/nw.jobs.html.md#nw.jobs.JobNotifier)
 
-### nw.jobs.list_jobs(project, , status=None, limit=50, config=JobsConfig(n_min=3, sample_window_k=20, pct_ceil=99, overrun_factor=1.5, cache_hit_floor_s=0.5, dur_buckets_s=(4.0, 8.0, 12.0), prior_total_s={'image': 12.0, 'video': 90.0, 'audio': 15.0}, default_prior_total_s=30.0, stale_running_s=900.0, heartbeat_interval_s=20.0, heartbeat_stale_s=120.0, terminal_hook_attempts=3, terminal_hook_lease_s=300.0, approval_threshold_usd=1.0, index_retention_s=2592000.0, never_started_after_s=None, index_sweep_interval_s=3600.0, jobs_dirname='.nw/jobs'))
+### nw.jobs.latest_job(project, , kind, config=JobsConfig(n_min=3, sample_window_k=20, pct_ceil=99, overrun_factor=1.5, cache_hit_floor_s=0.5, dur_buckets_s=(4.0, 8.0, 12.0), prior_total_s={'image': 12.0, 'video': 90.0, 'audio': 15.0}, default_prior_total_s=30.0, stale_running_s=900.0, heartbeat_interval_s=20.0, heartbeat_stale_s=120.0, terminal_hook_attempts=3, terminal_hook_lease_s=300.0, approval_threshold_usd=1.0, index_retention_s=2592000.0, never_started_after_s=None, index_sweep_interval_s=3600.0, jobs_dirname='.nw/jobs'))
 
-Jobs for this project, **newest first**, optionally filtered by status.
+The newest run of `kind` (by `created_at`), wherever its record is:
+live, recently finished, or archived (nw#169). `None` if this project
+never ran one. For the index alone, `list_jobs(p, kind=k, limit=1)`.
+
+The answer is the newest of the index’s runs of `kind` and the run its
+pointer names (nw#185): `rt.latest` holds, per kind, the newest
+*archived* run, set by the one function that archives
+(`_archive_if_settled()`) before the run leaves the index, so a poll
+never scans the archive. A project whose archive predates the pointers is
+backfilled by one scan (`_backfill_pointers()`); after it, a kind with
+no pointer has no archived run. A pointer naming a vanished record or a
+run of another kind (a reused `idempotency_key`) triggers a rescan that
+repairs it.
+
+Gap: a run archived by an nw older than this one (a replica not yet
+upgraded) moves no pointer. The first backfill finds it; after that, only
+a rescan does, which happens only when that kind’s pointer dangles, so
+behind a valid pointer to an older run it is not found.
+
+Like [`get_job()`](_autosummary/nw.jobs.html.md#nw.jobs.get_job), the read may reap a stale run.
+
+* **Return type:**
+  [`Job`](_autosummary/nw.jobs.html.md#nw.jobs.Job) | [`None`](https://docs.python.org/3/builtins/constants.html#None)
+
+### nw.jobs.list_jobs(project, , status=None, kind=None, limit=50, config=JobsConfig(n_min=3, sample_window_k=20, pct_ceil=99, overrun_factor=1.5, cache_hit_floor_s=0.5, dur_buckets_s=(4.0, 8.0, 12.0), prior_total_s={'image': 12.0, 'video': 90.0, 'audio': 15.0}, default_prior_total_s=30.0, stale_running_s=900.0, heartbeat_interval_s=20.0, heartbeat_stale_s=120.0, terminal_hook_attempts=3, terminal_hook_lease_s=300.0, approval_threshold_usd=1.0, index_retention_s=2592000.0, never_started_after_s=None, index_sweep_interval_s=3600.0, jobs_dirname='.nw/jobs'))
+
+Jobs for this project, **newest first**, optionally filtered by status
+and by `kind` (the [`enqueue()`](_autosummary/nw.jobs.html.md#nw.jobs.enqueue) dispatch key). Both filters apply
+before `limit`: `list_jobs(p, kind="footage.score", limit=1)` is the
+newest run of that kind in the index however many newer runs of other
+kinds there are (nw#185).
 
 Backed by the per-project active-jobs index (not by scanning the au store,
 whose missing-key-returns-PENDING gotcha makes membership meaningless).
 Runs that ended more than `config.index_retention_s` ago move to the
-archive during the scan and are not listed (`_archive_old_runs()`).
+archive during the scan and are not listed (`_archive_old_runs()`);
+[`latest_job()`](_autosummary/nw.jobs.html.md#nw.jobs.latest_job) reaches the newest of a kind there.
 
 * **Return type:**
   [`list`](https://docs.python.org/3/builtins/stdtypes.html#list)[[`Job`](_autosummary/nw.jobs.html.md#nw.jobs.Job)]
@@ -11193,7 +11229,7 @@ produce different URLs. The local file paths are byte-stable.
 
 # About this build
 
-This documentation was built on **2026-11-02 13:20 UTC** from commit <a href="https://github.com/reeleehq/nw/commit/82c0c839dd03aeae017220cb8e7b03e4a057f5e6"><code>82c0c83</code></a> on branch <code>main</code>, for **nw 0.0.114** (from <code>pyproject.toml</code>).
+This documentation was built on **2026-11-02 13:30 UTC** from commit <a href="https://github.com/reeleehq/nw/commit/d50bd7e1f3803dbf6832912b84080d8cb667a15e"><code>d50bd7e</code></a> on branch <code>main</code>, for **nw 0.0.116** (from <code>pyproject.toml</code>).
 
 #### NOTE
 Nothing suggests a mismatch: the tree was clean at the commit above, and the documented version is the one on PyPI.
@@ -11202,9 +11238,9 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 
 |                     |                                                                                                                                                    |
 |---------------------|----------------------------------------------------------------------------------------------------------------------------------------------------|
-| Commit              | <a href="https://github.com/reeleehq/nw/commit/82c0c839dd03aeae017220cb8e7b03e4a057f5e6"><code>82c0c839dd03aeae017220cb8e7b03e4a057f5e6</code></a> |
+| Commit              | <a href="https://github.com/reeleehq/nw/commit/d50bd7e1f3803dbf6832912b84080d8cb667a15e"><code>d50bd7e1f3803dbf6832912b84080d8cb667a15e</code></a> |
 | Branch              | <code>main</code>                                                                                                                                  |
-| Tags at this commit | <code>0.0.114</code>                                                                                                                               |
+| Tags at this commit | none                                                                                                                                               |
 | Working tree        | clean                                                                                                                                              |
 | Remote              | <code>https://github.com/reeleehq/nw</code>                                                                                                        |
 
@@ -11213,9 +11249,9 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 |              |                                                                                            |
 |--------------|--------------------------------------------------------------------------------------------|
 | Repository   | <code>reeleehq/nw</code>                                                                   |
-| Run          | <a href="https://github.com/reeleehq/nw/actions/runs/41451686399">41451686399</a>          |
+| Run          | <a href="https://github.com/reeleehq/nw/actions/runs/41453201393">41453201393</a>          |
 | Ref          | <code>refs/heads/main</code>                                                               |
-| Event commit | <code>0ffe898ffb268aba8138943bffbbde3580558bc7</code> (in the history of the built commit) |
+| Event commit | <code>a888bbe0b48e5e6c89c9ad533d2677316b59bf70</code> (in the history of the built commit) |
 
 ## Tools
 
@@ -11240,13 +11276,13 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 
 ## Package on PyPI
 
-Latest release: <a href="https://pypi.org/project/nw/0.0.114/">0.0.114</a>, the same as the documented version.
+Latest release: <a href="https://pypi.org/project/nw/0.0.116/">0.0.116</a>, the same as the documented version.
 
 ## Reproduce
 
 ```bash
 git clone https://github.com/reeleehq/nw && cd nw
-git checkout 82c0c839dd03aeae017220cb8e7b03e4a057f5e6
+git checkout d50bd7e1f3803dbf6832912b84080d8cb667a15e
 pip install "epythet==0.2.22"
 epythet quickstart . --ignore tests/ scrap/ examples/
 ```

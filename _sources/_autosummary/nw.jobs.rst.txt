@@ -30,6 +30,7 @@ nw.jobs
       get_job
       job_id_for
       job_notifier
+      latest_job
       list_jobs
       now_iso
       predict_total_s

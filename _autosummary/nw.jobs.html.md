@@ -84,24 +84,25 @@ the top of this module — no magic numbers below.
 
 ### Functions
 
-| [`archive_finished_runs`](#nw.jobs.archive_finished_runs)(project, \*[, config])      | Move every run that ended more than `config.index_retention_s` ago from the live index to the archive, now; return their ids (nw#174).                                 |
-|----------------------------------------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| [`cancel_job`](#nw.jobs.cancel_job)(project, job_id, \*[, config])         | Request cancellation.                                                                                                                                                  |
-| [`check_job_spec`](#nw.jobs.check_job_spec)(params)                            | Raise what [`enqueue()`](#nw.jobs.enqueue) would raise for malformed `params` (`ValueError` on a bad `units`), before anything is launched. |
-| [`checked_usd`](#nw.jobs.checked_usd)(value, \*[, name])                    | `value` as a `float` if it is a price nw can gate on, else `ValueError`.                                                                                               |
-| [`enqueue`](#nw.jobs.enqueue)(project, kind, params, \*[, ...])         | Enqueue a billable render as a background job.                                                                                                                         |
-| [`error_detail_of`](#nw.jobs.error_detail_of)(error, \*[, secrets])             | The refusal `error` carries as data, or `None`.                                                                                                                        |
-| [`error_kind_of`](#nw.jobs.error_kind_of)(error)                              | `"refused"` | `"cancelled"` | `"crashed"` for an exception a job raised.                                                                                               |
-| [`estimate`](#nw.jobs.estimate)(project, kind, params, \*[, ...])        | Dry-run cost gate **without enqueueing**.                                                                                                                              |
-| [`get_job`](#nw.jobs.get_job)(project, job_id, \*[, config])            | One job (projecting the au status + mirrored index metadata).                                                                                                          |
-| [`job_id_for`](#nw.jobs.job_id_for)(project, kind, params, \*[, ...])      | The id [`enqueue()`](#nw.jobs.enqueue) would give this job, without enqueueing it.                                                          |
-| [`job_notifier`](#nw.jobs.job_notifier)(project, \*[, config])               | This project's [`JobNotifier`](#nw.jobs.JobNotifier) (built with its runtime).                                                                  |
-| [`list_jobs`](#nw.jobs.list_jobs)(project, \*[, status, limit, config])   | Jobs for this project, **newest first**, optionally filtered by status.                                                                                                |
-| `now_iso`()                                                                                        |                                                                                                                                                                        |
-| [`predict_total_s`](#nw.jobs.predict_total_s)(eta_candidates, output_kind, ...) | Predict the total render seconds for a job as `(p50, p90, confidence)`.                                                                                                |
-| [`register_terminal_hook`](#nw.jobs.register_terminal_hook)(name, hook)                | Call `hook(project, job)` when a job's run ends (nw#151).                                                                                                              |
-| [`summarize`](#nw.jobs.summarize)(project_root, \*[, limit, config])      | This project's jobs **without provisioning it**.                                                                                                                       |
-| [`to_dict`](#nw.jobs.to_dict)(job)                                      | Serialize a [`Job`](#nw.jobs.Job) to the JSON contract (design report §7.4).                                                            |
+| [`archive_finished_runs`](#nw.jobs.archive_finished_runs)(project, \*[, config])       | Move every run that ended more than `config.index_retention_s` ago from the live index to the archive, now; return their ids (nw#174).                                 |
+|-----------------------------------------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| [`cancel_job`](#nw.jobs.cancel_job)(project, job_id, \*[, config])          | Request cancellation.                                                                                                                                                  |
+| [`check_job_spec`](#nw.jobs.check_job_spec)(params)                             | Raise what [`enqueue()`](#nw.jobs.enqueue) would raise for malformed `params` (`ValueError` on a bad `units`), before anything is launched. |
+| [`checked_usd`](#nw.jobs.checked_usd)(value, \*[, name])                     | `value` as a `float` if it is a price nw can gate on, else `ValueError`.                                                                                               |
+| [`enqueue`](#nw.jobs.enqueue)(project, kind, params, \*[, ...])          | Enqueue a billable render as a background job.                                                                                                                         |
+| [`error_detail_of`](#nw.jobs.error_detail_of)(error, \*[, secrets])              | The refusal `error` carries as data, or `None`.                                                                                                                        |
+| [`error_kind_of`](#nw.jobs.error_kind_of)(error)                               | `"refused"` | `"cancelled"` | `"crashed"` for an exception a job raised.                                                                                               |
+| [`estimate`](#nw.jobs.estimate)(project, kind, params, \*[, ...])         | Dry-run cost gate **without enqueueing**.                                                                                                                              |
+| [`get_job`](#nw.jobs.get_job)(project, job_id, \*[, config])             | One job (projecting the au status + mirrored index metadata).                                                                                                          |
+| [`job_id_for`](#nw.jobs.job_id_for)(project, kind, params, \*[, ...])       | The id [`enqueue()`](#nw.jobs.enqueue) would give this job, without enqueueing it.                                                          |
+| [`job_notifier`](#nw.jobs.job_notifier)(project, \*[, config])                | This project's [`JobNotifier`](#nw.jobs.JobNotifier) (built with its runtime).                                                                  |
+| [`latest_job`](#nw.jobs.latest_job)(project, \*, kind[, config])            | The newest run of `kind` (by `created_at`), wherever its record is: live, recently finished, or archived (nw#169).                                                     |
+| [`list_jobs`](#nw.jobs.list_jobs)(project, \*[, status, kind, limit, ...]) | Jobs for this project, **newest first**, optionally filtered by status and by `kind` (the [`enqueue()`](#nw.jobs.enqueue) dispatch key).    |
+| `now_iso`()                                                                                         |                                                                                                                                                                        |
+| [`predict_total_s`](#nw.jobs.predict_total_s)(eta_candidates, output_kind, ...)  | Predict the total render seconds for a job as `(p50, p90, confidence)`.                                                                                                |
+| [`register_terminal_hook`](#nw.jobs.register_terminal_hook)(name, hook)                 | Call `hook(project, job)` when a job's run ends (nw#151).                                                                                                              |
+| [`summarize`](#nw.jobs.summarize)(project_root, \*[, limit, config])       | This project's jobs **without provisioning it**.                                                                                                                       |
+| [`to_dict`](#nw.jobs.to_dict)(job)                                       | Serialize a [`Job`](#nw.jobs.Job) to the JSON contract (design report §7.4).                                                            |
 
 ### Classes
 
@@ -801,14 +802,45 @@ This project’s [`JobNotifier`](#nw.jobs.JobNotifier) (built with its runtime).
 * **Return type:**
   [`JobNotifier`](#nw.jobs.JobNotifier)
 
-### nw.jobs.list_jobs(project, , status=None, limit=50, config=JobsConfig(n_min=3, sample_window_k=20, pct_ceil=99, overrun_factor=1.5, cache_hit_floor_s=0.5, dur_buckets_s=(4.0, 8.0, 12.0), prior_total_s={'image': 12.0, 'video': 90.0, 'audio': 15.0}, default_prior_total_s=30.0, stale_running_s=900.0, heartbeat_interval_s=20.0, heartbeat_stale_s=120.0, terminal_hook_attempts=3, terminal_hook_lease_s=300.0, approval_threshold_usd=1.0, index_retention_s=2592000.0, never_started_after_s=None, index_sweep_interval_s=3600.0, jobs_dirname='.nw/jobs'))
+### nw.jobs.latest_job(project, , kind, config=JobsConfig(n_min=3, sample_window_k=20, pct_ceil=99, overrun_factor=1.5, cache_hit_floor_s=0.5, dur_buckets_s=(4.0, 8.0, 12.0), prior_total_s={'image': 12.0, 'video': 90.0, 'audio': 15.0}, default_prior_total_s=30.0, stale_running_s=900.0, heartbeat_interval_s=20.0, heartbeat_stale_s=120.0, terminal_hook_attempts=3, terminal_hook_lease_s=300.0, approval_threshold_usd=1.0, index_retention_s=2592000.0, never_started_after_s=None, index_sweep_interval_s=3600.0, jobs_dirname='.nw/jobs'))
 
-Jobs for this project, **newest first**, optionally filtered by status.
+The newest run of `kind` (by `created_at`), wherever its record is:
+live, recently finished, or archived (nw#169). `None` if this project
+never ran one. For the index alone, `list_jobs(p, kind=k, limit=1)`.
+
+The answer is the newest of the index’s runs of `kind` and the run its
+pointer names (nw#185): `rt.latest` holds, per kind, the newest
+*archived* run, set by the one function that archives
+(`_archive_if_settled()`) before the run leaves the index, so a poll
+never scans the archive. A project whose archive predates the pointers is
+backfilled by one scan (`_backfill_pointers()`); after it, a kind with
+no pointer has no archived run. A pointer naming a vanished record or a
+run of another kind (a reused `idempotency_key`) triggers a rescan that
+repairs it.
+
+Gap: a run archived by an nw older than this one (a replica not yet
+upgraded) moves no pointer. The first backfill finds it; after that, only
+a rescan does, which happens only when that kind’s pointer dangles, so
+behind a valid pointer to an older run it is not found.
+
+Like [`get_job()`](#nw.jobs.get_job), the read may reap a stale run.
+
+* **Return type:**
+  [`Job`](#nw.jobs.Job) | [`None`](https://docs.python.org/3/builtins/constants.html#None)
+
+### nw.jobs.list_jobs(project, , status=None, kind=None, limit=50, config=JobsConfig(n_min=3, sample_window_k=20, pct_ceil=99, overrun_factor=1.5, cache_hit_floor_s=0.5, dur_buckets_s=(4.0, 8.0, 12.0), prior_total_s={'image': 12.0, 'video': 90.0, 'audio': 15.0}, default_prior_total_s=30.0, stale_running_s=900.0, heartbeat_interval_s=20.0, heartbeat_stale_s=120.0, terminal_hook_attempts=3, terminal_hook_lease_s=300.0, approval_threshold_usd=1.0, index_retention_s=2592000.0, never_started_after_s=None, index_sweep_interval_s=3600.0, jobs_dirname='.nw/jobs'))
+
+Jobs for this project, **newest first**, optionally filtered by status
+and by `kind` (the [`enqueue()`](#nw.jobs.enqueue) dispatch key). Both filters apply
+before `limit`: `list_jobs(p, kind="footage.score", limit=1)` is the
+newest run of that kind in the index however many newer runs of other
+kinds there are (nw#185).
 
 Backed by the per-project active-jobs index (not by scanning the au store,
 whose missing-key-returns-PENDING gotcha makes membership meaningless).
 Runs that ended more than `config.index_retention_s` ago move to the
-archive during the scan and are not listed (`_archive_old_runs()`).
+archive during the scan and are not listed (`_archive_old_runs()`);
+[`latest_job()`](#nw.jobs.latest_job) reaches the newest of a kind there.
 
 * **Return type:**
   [`list`](https://docs.python.org/3/builtins/stdtypes.html#list)[[`Job`](#nw.jobs.Job)]

@@ -199,6 +199,7 @@ data-aria-dark="Switch to auto color mode">
 <li><a class="reference internal" href="#nw.jobs.get_job"><code class="docutils literal notranslate"><span class="pre">get_job()</span></code></a></li>
 <li><a class="reference internal" href="#nw.jobs.job_id_for"><code class="docutils literal notranslate"><span class="pre">job_id_for()</span></code></a></li>
 <li><a class="reference internal" href="#nw.jobs.job_notifier"><code class="docutils literal notranslate"><span class="pre">job_notifier()</span></code></a></li>
+<li><a class="reference internal" href="#nw.jobs.latest_job"><code class="docutils literal notranslate"><span class="pre">latest_job()</span></code></a></li>
 <li><a class="reference internal" href="#nw.jobs.list_jobs"><code class="docutils literal notranslate"><span class="pre">list_jobs()</span></code></a></li>
 <li><a class="reference internal" href="#nw.jobs.predict_total_s"><code class="docutils literal notranslate"><span class="pre">predict_total_s()</span></code></a></li>
 <li><a class="reference internal" href="#nw.jobs.register_terminal_hook"><code class="docutils literal notranslate"><span class="pre">register_terminal_hook()</span></code></a></li>
@@ -378,22 +379,25 @@ the top of this module — no magic numbers below.</p>
 <tr class="row-odd"><td><p><a class="reference internal" href="#nw.jobs.job_notifier" title="nw.jobs.job_notifier"><code class="xref py py-obj docutils literal notranslate"><span class="pre">job_notifier</span></code></a>(project, *[, config])</p></td>
 <td><p>This project's <a class="reference internal" href="#nw.jobs.JobNotifier" title="nw.jobs.JobNotifier"><code class="xref py py-class docutils literal notranslate"><span class="pre">JobNotifier</span></code></a> (built with its runtime).</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#nw.jobs.list_jobs" title="nw.jobs.list_jobs"><code class="xref py py-obj docutils literal notranslate"><span class="pre">list_jobs</span></code></a>(project, *[, status, limit, config])</p></td>
-<td><p>Jobs for this project, <strong>newest first</strong>, optionally filtered by status.</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#nw.jobs.latest_job" title="nw.jobs.latest_job"><code class="xref py py-obj docutils literal notranslate"><span class="pre">latest_job</span></code></a>(project, *, kind[, config])</p></td>
+<td><p>The newest run of <code class="docutils literal notranslate"><span class="pre">kind</span></code> (by <code class="docutils literal notranslate"><span class="pre">created_at</span></code>), wherever its record is: live, recently finished, or archived (nw#169).</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">now_iso</span></code>()</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#nw.jobs.list_jobs" title="nw.jobs.list_jobs"><code class="xref py py-obj docutils literal notranslate"><span class="pre">list_jobs</span></code></a>(project, *[, status, kind, limit, ...])</p></td>
+<td><p>Jobs for this project, <strong>newest first</strong>, optionally filtered by status and by <code class="docutils literal notranslate"><span class="pre">kind</span></code> (the <a class="reference internal" href="#nw.jobs.enqueue" title="nw.jobs.enqueue"><code class="xref py py-func docutils literal notranslate"><span class="pre">enqueue()</span></code></a> dispatch key).</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">now_iso</span></code>()</p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#nw.jobs.predict_total_s" title="nw.jobs.predict_total_s"><code class="xref py py-obj docutils literal notranslate"><span class="pre">predict_total_s</span></code></a>(eta_candidates, output_kind, ...)</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#nw.jobs.predict_total_s" title="nw.jobs.predict_total_s"><code class="xref py py-obj docutils literal notranslate"><span class="pre">predict_total_s</span></code></a>(eta_candidates, output_kind, ...)</p></td>
 <td><p>Predict the total render seconds for a job as <code class="docutils literal notranslate"><span class="pre">(p50,</span> <span class="pre">p90,</span> <span class="pre">confidence)</span></code>.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#nw.jobs.register_terminal_hook" title="nw.jobs.register_terminal_hook"><code class="xref py py-obj docutils literal notranslate"><span class="pre">register_terminal_hook</span></code></a>(name, hook)</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#nw.jobs.register_terminal_hook" title="nw.jobs.register_terminal_hook"><code class="xref py py-obj docutils literal notranslate"><span class="pre">register_terminal_hook</span></code></a>(name, hook)</p></td>
 <td><p>Call <code class="docutils literal notranslate"><span class="pre">hook(project,</span> <span class="pre">job)</span></code> when a job's run ends (nw#151).</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#nw.jobs.summarize" title="nw.jobs.summarize"><code class="xref py py-obj docutils literal notranslate"><span class="pre">summarize</span></code></a>(project_root, *[, limit, config])</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#nw.jobs.summarize" title="nw.jobs.summarize"><code class="xref py py-obj docutils literal notranslate"><span class="pre">summarize</span></code></a>(project_root, *[, limit, config])</p></td>
 <td><p>This project's jobs <strong>without provisioning it</strong>.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#nw.jobs.to_dict" title="nw.jobs.to_dict"><code class="xref py py-obj docutils literal notranslate"><span class="pre">to_dict</span></code></a>(job)</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#nw.jobs.to_dict" title="nw.jobs.to_dict"><code class="xref py py-obj docutils literal notranslate"><span class="pre">to_dict</span></code></a>(job)</p></td>
 <td><p>Serialize a <a class="reference internal" href="#nw.jobs.Job" title="nw.jobs.Job"><code class="xref py py-class docutils literal notranslate"><span class="pre">Job</span></code></a> to the JSON contract (design report §7.4).</p></td>
 </tr>
 </tbody>
@@ -1269,13 +1273,45 @@ too (nw#169): a finished, announced run, so the read writes nothing.</p>
 </dd></dl>
 
 <dl class="py function">
+<dt class="sig sig-object py" id="nw.jobs.latest_job">
+<span class="sig-prename descclassname"><span class="pre">nw.jobs.</span></span><span class="sig-name descname"><span class="pre">latest_job</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">project</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">kind</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">config</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">JobsConfig(n_min=3,</span> <span class="pre">sample_window_k=20,</span> <span class="pre">pct_ceil=99,</span> <span class="pre">overrun_factor=1.5,</span> <span class="pre">cache_hit_floor_s=0.5,</span> <span class="pre">dur_buckets_s=(4.0,</span> <span class="pre">8.0,</span> <span class="pre">12.0),</span> <span class="pre">prior_total_s={'image':</span> <span class="pre">12.0,</span> <span class="pre">'video':</span> <span class="pre">90.0,</span> <span class="pre">'audio':</span> <span class="pre">15.0},</span> <span class="pre">default_prior_total_s=30.0,</span> <span class="pre">stale_running_s=900.0,</span> <span class="pre">heartbeat_interval_s=20.0,</span> <span class="pre">heartbeat_stale_s=120.0,</span> <span class="pre">terminal_hook_attempts=3,</span> <span class="pre">terminal_hook_lease_s=300.0,</span> <span class="pre">approval_threshold_usd=1.0,</span> <span class="pre">index_retention_s=2592000.0,</span> <span class="pre">never_started_after_s=None,</span> <span class="pre">index_sweep_interval_s=3600.0,</span> <span class="pre">jobs_dirname='.nw/jobs')</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/nw/jobs.html#latest_job"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nw.jobs.latest_job" title="Link to this definition">#</a></dt>
+<dd><p>The newest run of <code class="docutils literal notranslate"><span class="pre">kind</span></code> (by <code class="docutils literal notranslate"><span class="pre">created_at</span></code>), wherever its record is:
+live, recently finished, or archived (nw#169). <code class="docutils literal notranslate"><span class="pre">None</span></code> if this project
+never ran one. For the index alone, <code class="docutils literal notranslate"><span class="pre">list_jobs(p,</span> <span class="pre">kind=k,</span> <span class="pre">limit=1)</span></code>.</p>
+<p>The answer is the newest of the index’s runs of <code class="docutils literal notranslate"><span class="pre">kind</span></code> and the run its
+pointer names (nw#185): <code class="docutils literal notranslate"><span class="pre">rt.latest</span></code> holds, per kind, the newest
+<em>archived</em> run, set by the one function that archives
+(<code class="xref py py-func docutils literal notranslate"><span class="pre">_archive_if_settled()</span></code>) before the run leaves the index, so a poll
+never scans the archive. A project whose archive predates the pointers is
+backfilled by one scan (<code class="xref py py-func docutils literal notranslate"><span class="pre">_backfill_pointers()</span></code>); after it, a kind with
+no pointer has no archived run. A pointer naming a vanished record or a
+run of another kind (a reused <code class="docutils literal notranslate"><span class="pre">idempotency_key</span></code>) triggers a rescan that
+repairs it.</p>
+<p>Gap: a run archived by an nw older than this one (a replica not yet
+upgraded) moves no pointer. The first backfill finds it; after that, only
+a rescan does, which happens only when that kind’s pointer dangles, so
+behind a valid pointer to an older run it is not found.</p>
+<p>Like <a class="reference internal" href="#nw.jobs.get_job" title="nw.jobs.get_job"><code class="xref py py-func docutils literal notranslate"><span class="pre">get_job()</span></code></a>, the read may reap a stale run.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="#nw.jobs.Job" title="nw.jobs.Job"><code class="xref py py-class docutils literal notranslate"><span class="pre">Job</span></code></a> | <span class="highlight sphinx_autodoc_typehints-value"><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></a></span></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
 <dt class="sig sig-object py" id="nw.jobs.list_jobs">
-<span class="sig-prename descclassname"><span class="pre">nw.jobs.</span></span><span class="sig-name descname"><span class="pre">list_jobs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">project</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">status</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">limit</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">50</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">config</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">JobsConfig(n_min=3,</span> <span class="pre">sample_window_k=20,</span> <span class="pre">pct_ceil=99,</span> <span class="pre">overrun_factor=1.5,</span> <span class="pre">cache_hit_floor_s=0.5,</span> <span class="pre">dur_buckets_s=(4.0,</span> <span class="pre">8.0,</span> <span class="pre">12.0),</span> <span class="pre">prior_total_s={'image':</span> <span class="pre">12.0,</span> <span class="pre">'video':</span> <span class="pre">90.0,</span> <span class="pre">'audio':</span> <span class="pre">15.0},</span> <span class="pre">default_prior_total_s=30.0,</span> <span class="pre">stale_running_s=900.0,</span> <span class="pre">heartbeat_interval_s=20.0,</span> <span class="pre">heartbeat_stale_s=120.0,</span> <span class="pre">terminal_hook_attempts=3,</span> <span class="pre">terminal_hook_lease_s=300.0,</span> <span class="pre">approval_threshold_usd=1.0,</span> <span class="pre">index_retention_s=2592000.0,</span> <span class="pre">never_started_after_s=None,</span> <span class="pre">index_sweep_interval_s=3600.0,</span> <span class="pre">jobs_dirname='.nw/jobs')</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/nw/jobs.html#list_jobs"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nw.jobs.list_jobs" title="Link to this definition">#</a></dt>
-<dd><p>Jobs for this project, <strong>newest first</strong>, optionally filtered by status.</p>
+<span class="sig-prename descclassname"><span class="pre">nw.jobs.</span></span><span class="sig-name descname"><span class="pre">list_jobs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">project</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">status</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">kind</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">limit</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">50</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">config</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">JobsConfig(n_min=3,</span> <span class="pre">sample_window_k=20,</span> <span class="pre">pct_ceil=99,</span> <span class="pre">overrun_factor=1.5,</span> <span class="pre">cache_hit_floor_s=0.5,</span> <span class="pre">dur_buckets_s=(4.0,</span> <span class="pre">8.0,</span> <span class="pre">12.0),</span> <span class="pre">prior_total_s={'image':</span> <span class="pre">12.0,</span> <span class="pre">'video':</span> <span class="pre">90.0,</span> <span class="pre">'audio':</span> <span class="pre">15.0},</span> <span class="pre">default_prior_total_s=30.0,</span> <span class="pre">stale_running_s=900.0,</span> <span class="pre">heartbeat_interval_s=20.0,</span> <span class="pre">heartbeat_stale_s=120.0,</span> <span class="pre">terminal_hook_attempts=3,</span> <span class="pre">terminal_hook_lease_s=300.0,</span> <span class="pre">approval_threshold_usd=1.0,</span> <span class="pre">index_retention_s=2592000.0,</span> <span class="pre">never_started_after_s=None,</span> <span class="pre">index_sweep_interval_s=3600.0,</span> <span class="pre">jobs_dirname='.nw/jobs')</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/nw/jobs.html#list_jobs"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nw.jobs.list_jobs" title="Link to this definition">#</a></dt>
+<dd><p>Jobs for this project, <strong>newest first</strong>, optionally filtered by status
+and by <code class="docutils literal notranslate"><span class="pre">kind</span></code> (the <a class="reference internal" href="#nw.jobs.enqueue" title="nw.jobs.enqueue"><code class="xref py py-func docutils literal notranslate"><span class="pre">enqueue()</span></code></a> dispatch key). Both filters apply
+before <code class="docutils literal notranslate"><span class="pre">limit</span></code>: <code class="docutils literal notranslate"><span class="pre">list_jobs(p,</span> <span class="pre">kind=&quot;footage.score&quot;,</span> <span class="pre">limit=1)</span></code> is the
+newest run of that kind in the index however many newer runs of other
+kinds there are (nw#185).</p>
 <p>Backed by the per-project active-jobs index (not by scanning the au store,
 whose missing-key-returns-PENDING gotcha makes membership meaningless).
 Runs that ended more than <code class="docutils literal notranslate"><span class="pre">config.index_retention_s</span></code> ago move to the
-archive during the scan and are not listed (<code class="xref py py-func docutils literal notranslate"><span class="pre">_archive_old_runs()</span></code>).</p>
+archive during the scan and are not listed (<code class="xref py py-func docutils literal notranslate"><span class="pre">_archive_old_runs()</span></code>);
+<a class="reference internal" href="#nw.jobs.latest_job" title="nw.jobs.latest_job"><code class="xref py py-func docutils literal notranslate"><span class="pre">latest_job()</span></code></a> reaches the newest of a kind there.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#list" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code></a>[<a class="reference internal" href="#nw.jobs.Job" title="nw.jobs.Job"><code class="xref py py-class docutils literal notranslate"><span class="pre">Job</span></code></a>]</span></p>
@@ -1447,7 +1483,7 @@ cannot silently claim one name.</p>
     </div>
   </div>
 </footer>
-      <script src="../_static/documentation_options.js?v=3893778a"></script>
+      <script src="../_static/documentation_options.js?v=ab1379f9"></script>
       <script src="../_static/doctools.js?v=fd6eb6e6"></script>
       <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script src="../_static/clipboard.min.js?v=a7894cd8"></script>

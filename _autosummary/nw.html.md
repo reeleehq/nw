@@ -542,6 +542,17 @@ A fan-out run: one [`FanOutItemResult`](#nw.FanOutItemResult) per planned unit, 
 `len(result.items) == len(fan_out.units)` always — the same alignment
 guarantee falaw’s `ExecutionReport` gives one level down.
 
+#### *property* cost_total *: CostTotal*
+
+The run’s cost, by `nw.transforms.total_cost()` over the units
+that produced a result, with any **failed** unit marking it unknown.
+
+A unit that raised mid-execute may have been billed for calls its
+(discarded) report would have carried, so its spend is unknown by
+construction. Without that, a failed run could read “all costs known,
+$0.00 spent” — the exact under-report the federation’s unknown-cost
+rule exists to prevent. `blocked` units never ran and are known-$0.
+
 #### *property* cost_usd_actual *: [float](https://docs.python.org/3/builtins/functions.html#float)*
 
 Observed spend over the units that ran. A lower bound, like
@@ -550,15 +561,8 @@ but-failed calls applies per unit).
 
 #### *property* has_unknown_costs *: [bool](https://docs.python.org/3/builtins/functions.html#bool)*
 
-True when the run’s true spend is not fully known.
-
-Two sources, both counted: a surviving unit whose own report says
-so, and any **failed** unit — a unit that raised mid-execute may
-have been billed for calls its (discarded) report would have
-carried, so its spend is unknown by construction. Without the
-second clause, a failed run could read “all costs known, $0.00
-spent” — the exact under-report the federation’s unknown-cost rule
-exists to prevent. `blocked` units never ran and are known-$0.
+True when the run’s true spend is not fully known (see
+[`cost_total`](#nw.FanOutResult.cost_total)).
 
 #### to_record()
 
