@@ -3,61 +3,69 @@
 Inputs ``(narration-track/v1, sound-design-config/v1)``, output
 ``sound-design/v1`` (:mod:`nw.bodies.sound_design`): ``foley.score`` chooses
 sounds for the narration's sentences under its fail-closed licence gate, weaves
-them into the narration audio and masters the mix. The mix is written to
-``data/sound_design/<annotation id>.flac`` as an audio :class:`lacing.Artifact`
-the annotation names by ``artifact_id``; the annotation carries foley's editable
-timeline, the per-event rationale, the credits, SDH captions, the master report
-and foley's notes.
+them into the narration audio and masters the mix.
 
-The contract, rule by rule:
+**A strategy, not a second executor.** The work runs as a falaw call on its own
+backend: this module registers an in-process executor for ``backend="foley"``
+in :data:`falaw.backends.backends`, and the Transform is an ordinary
+:class:`~nw.transforms.BaseTransform`. So everything ``BaseTransform.execute``
+owns (cache read/write halves, the ``impl_version`` stamp, the secret binding,
+``halt``/``isolate`` and unproduced-output records, observed cost) applies
+unchanged, and falaw's cache is the compare-and-skip.
 
-- **``plan()`` is pure data.** It reads the two input annotations (and, for a
-  re-run, the graph) and returns one *descriptive* :class:`falaw.CallPlan`
-  (``backend="foley"``, ``application="foley.score"``) whose ``arguments`` are
-  exactly what ``execute`` will hand ``foley.score``, plus the skeleton. foley
-  is not imported and nothing is called. ``backend="foley"`` is registered with
-  no falaw executor on purpose: this Transform's ``execute`` runs the call, and
-  a caller that pushes the plan through ``falaw.execute_plan`` instead fails
-  loudly at the backend lookup rather than silently doing nothing.
-- **Cost is unknown, never $0.** foley may spend (an LLM rung, a generation
-  fallback) and ``ScoreResult`` reports no spend, so the call's
-  ``estimated_cost_usd`` is ``None`` (``Plan.has_unknown_costs`` is true and a
-  cost gate asks for approval) and ``execute`` reports
-  ``has_unknown_costs=True`` for every run it made. The one known figure is a
-  cache hit: a completed sound design under the same ``cache_key`` (which folds
-  ``impl_version``) is reused at plan time (``cache_status="hit"``) and at
-  execute time, at no spend.
-- **Off means unscheduled.** A config with ``enabled=False`` plans no call and
-  no skeleton, and ``execute`` on that empty plan produces nothing and imports
-  nothing.
-- **foley is an extra** (``nw[sound]``). It is imported inside ``execute`` only;
-  without it, ``execute`` raises :class:`nw._extras.MissingExtra` (an
-  ``ImportError``) naming ``nw[sound]``. Registering this Transform, and
+The call, end to end:
+
+- ``plan()`` is pure data: one :class:`falaw.CallPlan` (``backend="foley"``,
+  ``application="foley.score"``, ``output_kind="json"``) whose ``arguments``
+  are what ``foley.score`` is given, with the narration audio named by its
+  **project-relative path and its sha256** (hashed at plan time — reading an
+  input is allowed). Both enter falaw's cache key, so changed bytes or a moved
+  file is a miss. ``estimated_cost_usd`` is ``None``: foley may spend (an LLM
+  rung, a generation fallback) and reports no spend, so the cost is unknown,
+  never $0. A call already in falaw's cache is planned as a ``"hit"``.
+- The executor resolves the path against the project being executed (bound by
+  :meth:`NarrationToSoundDesign.execute`, the way a secret is bound: a context
+  variable, so falaw's worker threads see it), refuses audio whose bytes no
+  longer match the planned sha256, imports foley, runs ``foley.score``, puts
+  the FLAC mix into falaw's content store (content-addressed, written
+  atomically by :meth:`lacing.ArtifactStore.put_blob`) and returns a JSON
+  sidecar: the mix's ``artifact_id`` and ``duration_s``, foley's editable
+  timeline, the per-event rationale, credits, SDH captions, the master report
+  and notes. Read the mix back with
+  ``falaw.content.default_content_store().get_blob(artifact_id)``.
+- ``BaseTransform`` turns the sidecar into the annotation body;
+  :meth:`~NarrationToSoundDesign._complete_annotation` validates it as
+  ``sound-design/v1``.
+- ``enabled=False`` plans no call and no skeleton: nothing runs, nothing is
+  spent, foley is never imported.
+- foley is the ``nw[sound]`` extra, imported inside the executor only; without
+  it, the call fails with :class:`nw._extras.MissingExtra` (an ``ImportError``)
+  naming ``nw[sound]``. Registering the Transform or the executor, and
   ``import nw``, never load it.
-- **Secrets** reach foley only by being bound for the call
-  (:func:`nw.secrets.using_secrets`: a ``"fal"`` secret is the fal credential);
-  they enter no argument, body, plan, key or record. A failure reason is
-  redacted before it is persisted.
 
 **Hosts with their own narration schema** subclass with their own
-``input_kinds`` (the config stays the second kind) and override the small
-extraction methods — :meth:`~NarrationToSoundDesign.narration_segments`,
+``input_kinds`` (the config stays the second kind) and override
+:meth:`~NarrationToSoundDesign.narration_segments`,
 :meth:`~NarrationToSoundDesign.narration_audio_path` and, optionally,
-:meth:`~NarrationToSoundDesign.narration_segment_starts` — instead of
-converting their nodes to ``narration-track/v1``.
+:meth:`~NarrationToSoundDesign.narration_segment_starts`.
 """
 
 from __future__ import annotations
 
+import io
 import json
-from collections.abc import Mapping
+from collections.abc import Iterator, Mapping
+from contextlib import contextmanager
+from contextvars import ContextVar
 from dataclasses import replace
-from pathlib import Path
+from pathlib import Path, PurePath
 from typing import Optional
 from uuid import uuid4
 
 from falaw import CallPlan, Plan
-from lacing import Annotation, Artifact
+from falaw.backends import backends
+from falaw.cache import cache_get
+from lacing import Annotation, Artifact, hash_file
 
 from nw._extras import is_missing, missing_extra
 from nw.bodies.sound_design import (
@@ -69,21 +77,15 @@ from nw.bodies.sound_design import (
     SoundDesignBodyV1,
     SoundDesignConfigBodyV1,
 )
-from nw.secrets import as_secrets, redact, redact_exception, using_secrets
 from nw.transforms import (
     BaseTransform,
-    FailedOutput,
     OnFailure,
     TransformInputs,
     TransformResult,
-    cache_key,
-    cached_output,
     register_transform,
-    resolve_cache_mode,
     stamp_transform_identity,
 )
 from nw.transforms._provenance import derive_provenance
-from nw.transforms.asset_refs import asset_refs_of
 
 NAME = "narration_to_sound_design.foley"
 SOUND_EXTRA = "sound"
@@ -92,16 +94,10 @@ FOLEY_PACKAGE = "foley"
 SOUND_DESIGN_TOOL = "sound_design"
 SOUND_DESIGN_APPLICATION = "foley.score"
 SOUND_DESIGN_BACKEND = "foley"
-"""The descriptive call's backend: no falaw executor exists for it (see above)."""
+"""The falaw backend this module registers an in-process executor for."""
 
 AUDIO_FORMAT = "flac"
 """The mix's container (foley's lossless archive format)."""
-AUDIO_MIME = "audio/flac"
-SOUND_DESIGN_DIR = Path("data", "sound_design")
-"""Where mixes land, relative to the project root."""
-
-CACHE_TAG = "sound-design"
-"""The leading part of every ``cache_key`` this Transform mints."""
 
 SOUND_DESIGN_TAGS = (
     "rights:licence-gate-fail-closed",
@@ -111,6 +107,20 @@ SOUND_DESIGN_TAGS = (
 """Registry tags: foley refuses a sound whose licence does not fit the intent;
 the intent is the config's ``commercial_ok`` (default: commercial publishing);
 and what a run spends is not known in advance."""
+
+_PROJECT_ROOT: ContextVar[Optional[Path]] = ContextVar(
+    "nw_sound_design_project_root", default=None
+)
+
+
+@contextmanager
+def _relative_to(root) -> Iterator[None]:
+    """Resolve the executor's project-relative audio paths against ``root``."""
+    token = _PROJECT_ROOT.set(Path(root))
+    try:
+        yield
+    finally:
+        _PROJECT_ROOT.reset(token)
 
 
 def _import_foley():
@@ -124,6 +134,63 @@ def _import_foley():
             ) from e
         raise
     return foley
+
+
+def _jsonable(value):
+    """``json.dumps`` fallback for foley's numeric types (numpy scalars, arrays)."""
+    for attr in ("tolist", "item"):
+        if hasattr(value, attr):
+            return getattr(value, attr)()
+    raise TypeError(f"not JSON-serializable: {type(value).__name__}")
+
+
+def foley_executor(application: str, arguments: Mapping, *, on_event=None) -> dict:
+    """The ``backend="foley"`` executor: run ``foley.score``, return the sidecar.
+
+    falaw's :data:`~falaw.backends.BackendExecutor` contract: ``(application,
+    arguments) -> raw response``. The raw response is ``{"output": <JSON
+    sidecar>}``, which falaw's converter materializes as a ``json`` artifact.
+    """
+    root = _PROJECT_ROOT.get()
+    if root is None:
+        raise RuntimeError(
+            f"{application}: the narration audio path is project-relative, and "
+            "no project is bound. Run this plan through "
+            f"nw.get_transform({NAME!r}).execute(project, plan, skeleton)."
+        )
+    audio = root / arguments["audio"]["path"]
+    if hash_file(audio) != arguments["audio"]["sha256"]:
+        raise ValueError(
+            f"{application}: {audio} changed since the plan was made "
+            "(its sha256 no longer matches); plan again."
+        )
+    foley = _import_foley()
+    scored = foley.score(
+        list(arguments["segments"]),
+        audio=str(audio),
+        segment_starts=arguments["segment_starts"],
+        commercial_ok=arguments["commercial_ok"],
+        max_events=arguments["max_events"],
+        master=arguments["master"],
+    )
+    woven = scored.weave
+    if woven is None:
+        raise RuntimeError(f"{application}: foley.score returned no mix for {audio}.")
+    from falaw.content import default_content_store
+
+    mix = io.BytesIO()
+    foley.audio.save(woven.audio, woven.sr, mix, fmt=AUDIO_FORMAT)
+    sidecar = {
+        "artifact_id": default_content_store().put_blob(mix.getvalue()),
+        "duration_s": len(woven.audio) / woven.sr,
+        "timeline": scored.timeline.to_dict(),
+        "events": [e.to_dict() for e in scored.events],
+        "credits": woven.credits.to_dict(),
+        "captions_vtt": woven.captions_vtt,
+        "master_report": dict(woven.master_report),
+        "notes": [str(n) for n in woven.notes],
+    }
+    return {"output": json.dumps(sidecar, default=_jsonable)}
 
 
 class NarrationToSoundDesign(BaseTransform):
@@ -141,16 +208,17 @@ class NarrationToSoundDesign(BaseTransform):
         """Sentence-level narration text, in render order."""
         return list(NarrationTrackBodyV1.model_validate(narration.body).segments)
 
-    def narration_audio_path(self, project, narration: Annotation) -> Path:
-        """The one narration audio file foley aligns and weaves into."""
-        path = Path(NarrationTrackBodyV1.model_validate(narration.body).audio_path)
-        return path if path.is_absolute() else Path(project.root) / path
+    def narration_audio_path(self, project, narration: Annotation) -> PurePath:
+        """The narration audio file, relative to ``project.root``.
+
+        An absolute path also works, but pins the plan (and its cache key) to
+        this machine's layout.
+        """
+        return PurePath(NarrationTrackBodyV1.model_validate(narration.body).audio_path)
 
     def narration_segment_starts(self, narration: Annotation) -> Optional[list[float]]:
         """Each segment's start in the audio (seconds), or ``None`` to align the file."""
         return NarrationTrackBodyV1.model_validate(narration.body).segment_starts
-
-    # --- plan: pure data -------------------------------------------------------
 
     def config(self, inputs: TransformInputs) -> SoundDesignConfigBodyV1:
         """The one config annotation in ``inputs.context``, validated."""
@@ -164,41 +232,57 @@ class NarrationToSoundDesign(BaseTransform):
             )
         return SoundDesignConfigBodyV1.model_validate(found[0].body)
 
+    # --- plan: pure data -------------------------------------------------------
+
     def plan(
         self, project, inputs: TransformInputs, *, params=None
     ) -> tuple[Plan, tuple[Annotation, ...]]:
-        narration = inputs.primary[0]
+        if len(inputs.primary) != 1:
+            raise ValueError(
+                f"{self.name}: expected exactly one {self.input_kinds[0]} "
+                f"annotation in inputs.primary, got {len(inputs.primary)}."
+            )
+        (narration,) = inputs.primary
         config = self.config(inputs)
         if not config.enabled:
             return Plan(calls=()), ()
-        segments = self.narration_segments(narration)
-        starts = self.narration_segment_starts(narration)
-        arguments = {
-            "segments": segments,
-            "audio": str(self.narration_audio_path(project, narration)),
-            "segment_starts": starts,
-            "commercial_ok": config.commercial_ok,
-            "max_events": config.max_events,
-            "master": config.master,
-        }
-        # The narration's identity is its audio's content id when its schema
-        # declares one, else the node itself: never the path, which says
-        # nothing about the bytes.
-        audio_identity = ",".join(asset_refs_of(narration)) or f"node:{narration.id}"
-        key = cache_key(
-            self,
-            CACHE_TAG,
-            audio_identity,
-            json.dumps(segments),
-            json.dumps(starts),
-            json.dumps(config.model_dump(), sort_keys=True),
+        audio = self.narration_audio_path(project, narration)
+        call = CallPlan(
+            tool=SOUND_DESIGN_TOOL,
+            application=SOUND_DESIGN_APPLICATION,
+            backend=SOUND_DESIGN_BACKEND,
+            arguments={
+                "segments": self.narration_segments(narration),
+                "audio": {
+                    "path": audio.as_posix(),
+                    "sha256": hash_file(Path(project.root) / audio),
+                },
+                "segment_starts": self.narration_segment_starts(narration),
+                "commercial_ok": config.commercial_ok,
+                "max_events": config.max_events,
+                "master": config.master,
+            },
+            output_kind="json",
+            estimated_cost_usd=None,  # unknown, never free
+            metadata={
+                "narration_id": str(narration.id),
+                "attributed_to": self.attributed_to,
+            },
         )
+        (call,) = stamp_transform_identity(Plan(calls=(call,)), self).calls
+        if cache_get(
+            call.application,
+            call.arguments,
+            backend=call.backend,
+            key_extra=call.key_extra or None,
+        ):
+            call = replace(call, cache_status="hit")
         context = {self.input_kinds[1]: inputs.context[self.input_kinds[1]]}
         skeleton = Annotation(
             id=uuid4(),
             tier=SOUND_DESIGN_TIER,
             reference=narration.reference,
-            body=SoundDesignBodyV1(cache_key=key).model_dump(),
+            body=SoundDesignBodyV1().model_dump(),
             body_schema_uri=self.output_kind,
             provenance=derive_provenance(
                 self,
@@ -206,23 +290,9 @@ class NarrationToSoundDesign(BaseTransform):
                 attributed_to=self.attributed_to,
             ),
         )
-        call = CallPlan(
-            tool=SOUND_DESIGN_TOOL,
-            application=SOUND_DESIGN_APPLICATION,
-            backend=SOUND_DESIGN_BACKEND,
-            arguments=arguments,
-            output_kind="audio",
-            estimated_cost_usd=None,  # unknown, never free
-            metadata={"narration_id": str(narration.id)},
-        )
-        plan = stamp_transform_identity(Plan(calls=(call,)), self)
-        # The peek is keyed by `cache_key`, which already folds impl_version,
-        # so it stays valid after the stamp reset `cache_status`.
-        if cached_output(project.root, SOUND_DESIGN_TIER, key) is not None:
-            plan = Plan(calls=(replace(plan.calls[0], cache_status="hit"),))
-        return plan, (skeleton,)
+        return Plan(calls=(call,)), (skeleton,)
 
-    # --- execute: the one place foley runs -------------------------------------
+    # --- execute: BaseTransform's, with the project bound for the executor ----
 
     def execute(
         self,
@@ -236,111 +306,27 @@ class NarrationToSoundDesign(BaseTransform):
         unit_instance_id: Optional[str] = None,
         secrets: Optional[Mapping[str, str]] = None,
     ) -> TransformResult:
-        if len(skeleton) != len(plan.calls):
-            raise ValueError(
-                f"{self.name}.execute: plan has {len(plan.calls)} calls but "
-                f"skeleton has {len(skeleton)}; pass what plan() returned together."
+        with _relative_to(project.root):
+            return super().execute(
+                project,
+                plan,
+                skeleton,
+                use_cache=use_cache,
+                force=force,
+                on_failure=on_failure,
+                unit_instance_id=unit_instance_id,
+                secrets=secrets,
             )
-        if on_failure not in ("halt", "isolate"):
-            raise ValueError(
-                f"on_failure must be 'halt' or 'isolate', got {on_failure!r}"
-            )
-        cache_on, refresh = resolve_cache_mode(use_cache=use_cache, force=force)
-        plan = stamp_transform_identity(plan, self)
-        secrets = as_secrets(secrets)
-        foley = None
-        completed, artifacts, failed = [], [], []
-        ran = False
-        for i, (call, skel) in enumerate(zip(plan.calls, skeleton, strict=True)):
-            hit = None
-            if cache_on and not refresh:
-                hit = cached_output(
-                    project.root, SOUND_DESIGN_TIER, skel.body["cache_key"]
-                )
-            if hit is not None:
-                ann = skel.model_copy(update={"body": dict(hit.body)})
-            else:
-                foley = foley or _import_foley()
-                ran = True
-                try:
-                    ann, artifact = self._score(foley, project, call, skel, secrets)
-                except Exception as e:  # noqa: BLE001 — the policy decides
-                    if on_failure == "halt":
-                        raise
-                    e = redact_exception(e, secrets)
-                    reason = redact(f"{type(e).__name__}: {e}", secrets)
-                    project.graph.add_unproduced_output(
-                        skel,
-                        transform_name=self.name,
-                        status="failed",
-                        reason=reason,
-                        error=e,
-                        instance_id=unit_instance_id,
-                        call_index=i,
-                    )
-                    failed.append(
-                        FailedOutput(
-                            skeleton=skel, status="failed", reason=reason, error=e
-                        )
-                    )
-                    continue
-                artifacts.append(artifact)
-            project.graph.add_annotation(
-                ann, instance_id=unit_instance_id, call_index=i
-            )
-            completed.append(ann)
-        return TransformResult(
-            annotations=tuple(completed),
-            artifacts=tuple(artifacts),
-            cost_usd_actual=0.0,  # a lower bound: foley reports no spend
-            cache_hit_savings_usd=0.0,
-            has_unknown_costs=ran,  # a run (even a failed one) may have spent
-            failed=tuple(failed),
-        )
 
-    def _score(self, foley, project, call: CallPlan, skel: Annotation, secrets):
-        """Run ``foley.score`` for one call; write the mix; complete ``skel``."""
-        args = call.arguments
-        with using_secrets(secrets):
-            scored = foley.score(
-                list(args["segments"]),
-                audio=args["audio"],
-                segment_starts=args["segment_starts"],
-                commercial_ok=args["commercial_ok"],
-                max_events=args["max_events"],
-                master=args["master"],
-            )
-        woven = scored.weave
-        if woven is None:
-            raise RuntimeError(
-                f"{self.name}: foley.score returned no mix for {args['audio']!r}."
-            )
-        rel = SOUND_DESIGN_DIR / f"{skel.id}.{AUDIO_FORMAT}"
-        out = Path(project.root) / rel
-        out.parent.mkdir(parents=True, exist_ok=True)
-        foley.audio.save(woven.audio, woven.sr, out, fmt=AUDIO_FORMAT)
-        artifact = Artifact.from_path(
-            out,
-            kind="audio",
-            was_generated_by=f"transform:{self.name}@{self.impl_version}",
-            was_attributed_to=self.attributed_to,
-            was_derived_from=tuple(str(x) for x in skel.provenance.was_derived_from),
-            duration_s=len(woven.audio) / woven.sr,
-            mime=AUDIO_MIME,
-            cost_usd=None,  # unknown, never free
-        )
-        body = SoundDesignBodyV1(
-            artifact_id=artifact.asset_id,
-            output_path=rel.as_posix(),
-            cache_key=skel.body["cache_key"],
-            timeline=scored.timeline.to_dict(),
-            events=[e.to_dict() for e in scored.events],
-            credits=woven.credits.to_dict(),
-            captions_vtt=woven.captions_vtt,
-            master_report=dict(woven.master_report),
-            notes=[str(n) for n in woven.notes],
-        )
-        return skel.model_copy(update={"body": body.model_dump()}), artifact
+    def _complete_annotation(
+        self, skeleton: Annotation, artifact: Artifact
+    ) -> Annotation:
+        """The sidecar merged into the skeleton, validated as ``sound-design/v1``."""
+        merged = super()._complete_annotation(skeleton, artifact)
+        body = SoundDesignBodyV1.model_validate(merged.body).model_dump(mode="json")
+        return merged.model_copy(update={"body": body})
 
 
+if SOUND_DESIGN_BACKEND not in backends:
+    backends.register(SOUND_DESIGN_BACKEND, foley_executor)
 register_transform(NAME, NarrationToSoundDesign(), tags=SOUND_DESIGN_TAGS)

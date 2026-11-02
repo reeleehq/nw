@@ -3,8 +3,9 @@
 Three URIs, the inputs and the output of the ``narration_to_sound_design.foley``
 Transform (:mod:`nw.transforms.sound_design`):
 
-- ``annot://schema/narration-track/v1`` — **one** narration audio file and the
-  sentence-level text it speaks, in render order. The minimal shape any genre
+- ``annot://schema/narration-track/v1`` — **one** narration audio file (a path
+  relative to the project root; absolute and escaping paths are refused) and
+  the sentence-level text it speaks, in render order. The minimal shape any genre
   with a voice track can produce; a host with its own narration schema
   (braidio's ``narration-render/v1``) subclasses the Transform and overrides its
   extraction methods instead of converting to this one.
@@ -15,7 +16,7 @@ Transform (:mod:`nw.transforms.sound_design`):
   must not import foley (``nw[sound]`` is an extra). A test pins them against
   foley's signature when foley is installed.
 - ``annot://schema/sound-design/v1`` — the result: the produced mix's
-  ``artifact_id``, foley's editable timeline (``SoundDesignTimeline.to_dict()``;
+  ``artifact_id`` (a FLAC in falaw's content store) and duration, foley's editable timeline (``SoundDesignTimeline.to_dict()``;
   re-render it with ``foley.weave(narration, SoundDesignTimeline.from_dict(...))``
   without re-running selection), the per-event rationale, the credits that must
   be published with the output, SDH captions, the measured master report and
@@ -29,9 +30,10 @@ annotation ids.
 
 from __future__ import annotations
 
+from pathlib import PurePosixPath, PureWindowsPath
 from typing import Optional
 
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 from lacing.schema import register_body_schema
 
@@ -62,8 +64,8 @@ class NarrationTrackBodyV1(BaseModel):
         ...,
         min_length=1,
         description=(
-            "The narration audio file foley aligns and weaves into: absolute, "
-            "or relative to the project root."
+            "The narration audio file foley aligns and weaves into, relative "
+            "to the project root (POSIX separators; no ``..``)."
         ),
     )
     artifact_id: Optional[str] = Field(
@@ -85,6 +87,18 @@ class NarrationTrackBodyV1(BaseModel):
             "non-decreasing). ``None`` lets foley align the whole file."
         ),
     )
+
+    @field_validator("audio_path")
+    @classmethod
+    def _inside_the_project(cls, value: str) -> str:
+        posix, windows = PurePosixPath(value), PureWindowsPath(value)
+        if posix.is_absolute() or windows.is_absolute() or windows.drive:
+            raise ValueError(
+                f"audio_path must be relative to the project root, got {value!r}"
+            )
+        if ".." in posix.parts or ".." in windows.parts:
+            raise ValueError(f"audio_path must not leave the project, got {value!r}")
+        return value
 
     @model_validator(mode="after")
     def _one_start_per_segment(self):
@@ -135,20 +149,12 @@ class SoundDesignBodyV1(BaseModel):
     artifact_id: Optional[str] = Field(
         None,
         description=(
-            "``asset_id`` of the mastered mix (an audio :class:`lacing.Artifact`). "
+            "sha256 of the mastered FLAC mix, a blob in falaw's content store "
+            "(``falaw.content.default_content_store().get_blob(artifact_id)``). "
             "``None`` in a skeleton; filled by ``execute``."
         ),
     )
-    output_path: str = Field(
-        "", description="Project-relative path to the mix. Empty in a skeleton."
-    )
-    cache_key: str = Field(
-        "",
-        description=(
-            "Identity over everything that decides the mix "
-            "(:func:`nw.transforms.cache_key`): an equal key is the same work."
-        ),
-    )
+    duration_s: float = Field(0.0, ge=0, description="Length of the mix, seconds.")
     timeline: dict = Field(
         default_factory=dict,
         description="foley's editable ``SoundDesignTimeline.to_dict()``.",
