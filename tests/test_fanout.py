@@ -677,4 +677,3 @@ def test_work_items_never_reach_the_graph_document():
     body_text = json.dumps(written.body)
     assert "mapping_key" not in body_text
     assert str(work_item_instance_id(t.name, "a/1")) not in body_text
-

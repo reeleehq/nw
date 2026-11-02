@@ -6,11 +6,11 @@ two copies of the same rule drift, so they all call :func:`total_cost`:
 
 - ``cost_usd_actual`` and ``cache_hit_savings_usd`` are float sums (``0.0``
   for no results, never the integer ``0``);
-- ``has_unknown_costs`` is true when any result says so, when a cost is not a
-  finite number (a NaN or infinity is no reading of what was spent), **or** when
-  the caller says something ``failed``: a step that raised may have been billed for calls
-  its discarded result would have carried, so the total is then a lower bound,
-  never a reading of "free".
+- ``has_unknown_costs`` is true when any result says so, when a total is not
+  a finite number (a NaN or infinity is no reading of what was spent), **or**
+  when the caller says something ``failed``: a step that raised may have been
+  billed for calls its discarded result would have carried, so the total is
+  then a lower bound, never a reading of "free".
 
 Anything with those three attributes totals, a :class:`CostTotal` included, so
 totals compose:
