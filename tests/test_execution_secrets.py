@@ -20,7 +20,7 @@ from types import SimpleNamespace
 from uuid import uuid4
 
 import pytest
-from falaw import Plan, current_fal_key, plan_to_dict
+from falaw import CallPlan, Plan, current_fal_key, plan_to_dict
 from lacing import Annotation
 
 import nw
@@ -647,4 +647,53 @@ def test_a_refused_job_never_persists_a_key_quoted_in_its_detail(project, tmp_pa
         "n": ["<redacted:elevenlabs>"],
     }
     assert SENTINEL not in json.dumps(jobs.to_dict(job), default=str)
+    assert _grep_tree(tmp_path) == []
+
+
+def test_an_isolated_call_failure_is_explained_and_redacted(
+    monkeypatch, project, tmp_path, caplog
+):
+    """nw#205: under ``isolate`` a failed call's record says why (falaw gives no
+    reason for a failed call), and neither the record, the log line nor the
+    in-memory ``FailedOutput.error`` carries a key the provider echoed."""
+    (section,) = _sections(project, "intro")
+    _, skeleton = _SpendsASecret().plan(project, TransformInputs(primary=(section,)))
+
+    def fake_execute_plan_isolated(plan, **kwargs):
+        failed = SimpleNamespace(
+            ok=False,
+            status="failed",
+            reason="",
+            error=RuntimeError(f"401 for key {SENTINEL}"),
+            blocked_by=(),
+        )
+        return SimpleNamespace(
+            outcomes=(failed,),
+            produced=(),
+            estimated_spend_usd=0.0,
+            cache_hit_savings_usd=0.0,
+            has_unknown_costs=False,
+        )
+
+    transforms_module = importlib.import_module("nw.transforms")
+    monkeypatch.setattr(
+        transforms_module, "execute_plan_isolated", fake_execute_plan_isolated
+    )
+
+    class _Base(BaseTransform):
+        name = "test.base_isolated"
+        output_kind = RENDER_URI
+
+    with caplog.at_level(logging.DEBUG):
+        result = _Base().execute(
+            project,
+            Plan(calls=(CallPlan(tool="t", application="a", arguments={}, output_kind="video"),)),
+            skeleton,
+            on_failure="isolate",
+            secrets={"elevenlabs": SENTINEL},
+        )
+    (failed,) = result.failed
+    assert failed.reason == "RuntimeError: 401 for key <redacted:elevenlabs>"
+    assert SENTINEL not in str(failed.error)
+    assert SENTINEL not in caplog.text and "<redacted:elevenlabs>" in caplog.text
     assert _grep_tree(tmp_path) == []

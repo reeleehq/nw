@@ -524,11 +524,23 @@ class BaseTransform:
                     )
                     failed_indices.append(i)
                 continue
+            # As for a completion failure above: the error is scrubbed of the
+            # caller's secrets, and when falaw gives no reason (it does not, for
+            # a failed call) the error's own text is the reason, so the record
+            # says why (nw#205).
+            error = (
+                redact_exception(outcome.error, secrets)
+                if outcome.error is not None
+                else None
+            )
+            reason = outcome.reason or (
+                f"{type(error).__name__}: {error}" if error is not None else ""
+            )
             unproduced = FailedOutput(
                 skeleton=skel,
                 status=outcome.status,
-                reason=outcome.reason,
-                error=outcome.error,
+                reason=redact(reason, secrets),
+                error=error,
                 blocked_by=tuple(outcome.blocked_by),
             )
             if outcome.status == "blocked":
