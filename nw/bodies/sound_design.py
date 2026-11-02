@@ -146,9 +146,14 @@ class SoundDesignConfigBodyV1(BaseModel):
         ge=0,
         allow_inf_nan=False,
         description=(
-            "The run's spend cap in USD, passed to foley as its budget: a paid "
-            "call that would pass it is refused. ``None``: foley's own default "
-            "cap. The cost stays *unknown* (foley reports no figure), but bounded."
+            "The run's spend cap in USD, passed to foley as its budget. foley "
+            "checks each segment's worst case against what is left and raises "
+            "when it does not fit, so a cap below what one segment may spend "
+            "fails the render, and one below the run's total can fail a later "
+            "segment after earlier ones were paid for (reeleehq/foley#281). "
+            "Calls of unknown cost are refused unless foley is told to approve "
+            "them, and then they are not counted. ``None``: foley's default "
+            "cap (it depends on the LLM). The cost stays *unknown*."
         ),
     )
     allow_generate: bool = Field(

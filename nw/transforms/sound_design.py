@@ -22,7 +22,9 @@ The call, end to end:
   input is allowed). Both enter falaw's cache key, so changed bytes or a moved
   file is a miss. ``estimated_cost_usd`` is ``None``: foley may spend (an LLM
   rung, a generation fallback) and reports no spend, so the cost is unknown,
-  never $0. A call already in falaw's cache is planned as a ``"hit"``.
+  never $0. A config's ``max_usd`` / ``allow_generate`` (nw#204) ride in the
+  arguments only when set away from foley's defaults, where a gate can read
+  the cap. A call already in falaw's cache is planned as a ``"hit"``.
 - The executor resolves the path against the project being executed (bound by
   :meth:`NarrationToSoundDesign.execute`, the way a secret is bound: a context
   variable, so falaw's worker threads see it), refuses audio whose bytes no

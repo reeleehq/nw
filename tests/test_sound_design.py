@@ -713,19 +713,46 @@ def test_the_foley_backend_is_ours_or_refused(monkeypatch):
         sound_design._register_executor()
 
 
-def test_a_spend_cap_and_retrieval_only_reach_foley(project, monkeypatch):
-    """nw#204: ``max_usd`` becomes foley's budget, ``allow_generate=False`` makes
-    the run retrieval-only, and each is a different call (cache key)."""
+@pytest.mark.parametrize(
+    "knobs, expected",
+    [
+        ({"max_usd": 0.25}, (0.25, True)),
+        ({"allow_generate": False}, (None, False)),
+        ({"max_usd": 0.25, "allow_generate": False}, (0.25, False)),
+    ],
+)
+def test_a_spend_cap_and_retrieval_only_reach_foley(
+    project, monkeypatch, knobs, expected
+):
+    """nw#204: ``max_usd`` becomes foley's budget and ``allow_generate=False``
+    makes the run retrieval-only; each knob alone is a different call."""
     foley = _fake_foley()
     monkeypatch.setitem(sys.modules, "foley", foley)
     t = nw.get_transform(NAME)
-    capped = {"max_usd": 0.25, "allow_generate": False}
-    plan, skeleton = t.plan(project, _inputs(project, config=capped))
+    plan, skeleton = t.plan(project, _inputs(project, config=knobs))
     t.execute(project, plan, skeleton)
     (call,) = foley.calls
-    assert (call["max_usd"], call["allow_generate"]) == (0.25, False)
+    assert (call["max_usd"], call["allow_generate"]) == expected
     default_plan, _ = t.plan(project, _inputs(project))
     assert default_plan.calls[0].arguments != plan.calls[0].arguments
+
+
+@needs_foley
+def test_the_spend_knobs_build_a_real_foley_budget():
+    """Against real foley: the cap is a ``Budget`` with foley's own loop limits."""
+    import foley
+
+    from nw.transforms.sound_design import _spend_kwargs
+
+    kwargs = _spend_kwargs(foley, {"max_usd": 0.5, "allow_generate": False})
+    default = foley.Budget()
+    assert kwargs["allow_generate"] is False
+    assert kwargs["budget"].max_usd == 0.5
+    assert (kwargs["budget"].max_refine_loops, kwargs["budget"].max_generations) == (
+        default.max_refine_loops,
+        default.max_generations,
+    )
+    assert _spend_kwargs(foley, {}) == {}
 
 
 def test_the_defaults_leave_the_call_as_it_was(project):
