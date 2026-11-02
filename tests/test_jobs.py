@@ -6,6 +6,7 @@ progress/cost/eta/cancel machinery is exercised without spending money.
 """
 
 import contextlib
+from collections.abc import MutableMapping
 import dataclasses
 from pathlib import Path
 import contextvars
@@ -3453,55 +3454,145 @@ def test_latest_job_is_the_newest_run_of_its_kind(project):
     assert jobs.latest_job(project, kind="render").kind == "render"
 
 
-def test_latest_job_reaches_an_archived_run(project):
-    """The run the pointer names answers after it left the index."""
+class _Watched(MutableMapping):
+    """A store stand-in that records reads (``got``, ``iterated``) and can
+    refuse writes, to pin which stores a call touches."""
+
+    def __init__(self, store, *, refuse_writes=False):
+        self.store, self.refuse_writes, self.got, self.iterated = store, refuse_writes, [], 0
+
+    def __getitem__(self, k):
+        self.got.append(k)
+        return self.store[k]
+
+    def __contains__(self, k):
+        self.got.append(k)
+        return k in self.store
+
+    def __iter__(self):
+        self.iterated += 1
+        return iter(self.store)
+
+    def __len__(self):
+        return len(self.store)
+
+    def __setitem__(self, k, v):
+        if self.refuse_writes:
+            raise OSError("disk full")
+        self.store[k] = v
+
+    def __delitem__(self, k):
+        del self.store[k]
+
+
+def _pointer(rt, kind):
+    return rt.latest.get(jobs._safe_key(kind))
+
+
+def test_archiving_points_the_kind_at_its_newest_archived_run(project):
+    """Archived out of creation order, the pointer still names the newest:
+    fails if the archiver overwrites it unconditionally (last archived wins)."""
     rt = jobs._runtime(project)
     _ended_run(rt, "old", days_ago=40)
-    with rt.lock:  # as enqueue would have recorded it
-        rt.latest[jobs._safe_key("op")] = {"job_id": "old"}
-    jobs.list_jobs(project)  # the sweep archives it
-    assert "old" in rt.archive and "old" not in rt.index
+    _ended_run(rt, "older", days_ago=50)
+    cutoff = jobs._utcnow_plus(-30 * 86400)
+    for job_id in ("old", "older"):
+        assert jobs._archive_if_settled(rt, job_id, cutoff, rt.config)
+    assert _pointer(rt, "op") == {"job_id": "old"}
     assert jobs.list_jobs(project, kind="op") == []
     assert jobs.latest_job(project, kind="op").job_id == "old"
 
 
-def test_latest_job_without_a_pointer_scans_the_archive(project):
-    """A run that predates the pointer is still found, in the archive."""
+def test_latest_job_does_not_scan_the_archive_after_the_backfill(project, monkeypatch):
+    """Behind a pointer, only the pointed record is read; for a never-run kind,
+    nothing: fails if no pointer, or no marker, still means a scan."""
+    rt = jobs._runtime(project)
+    _ended_run(rt, "old", days_ago=40)
+    jobs.archive_finished_runs(project)
+    assert jobs.latest_job(project, kind="never") is None  # the one backfill
+    assert jobs._BACKFILLED in rt.latest
+    archive = _Watched(rt.archive)
+    monkeypatch.setattr(rt, "archive", archive)
+    assert jobs.latest_job(project, kind="op").job_id == "old"
+    assert archive.iterated == 0 and set(archive.got) <= {"old"}
+    archive.got.clear()
+    assert jobs.latest_job(project, kind="never") is None
+    assert archive.iterated == 0 and archive.got == []
+
+
+def test_the_backfill_finds_runs_archived_before_the_pointer(project):
     rt = jobs._runtime(project)
     _ended_run(rt, "older", days_ago=50)
     _ended_run(rt, "old", days_ago=40)
     _ended_run(rt, "other", days_ago=45, kind="render")
-    jobs.list_jobs(project)
-    assert not list(rt.latest)
+    jobs.archive_finished_runs(project)
+    for key in list(rt.latest):  # as an archive written before nw#185 is
+        del rt.latest[key]
     assert jobs.latest_job(project, kind="op").job_id == "old"
-    assert jobs.latest_job(project, kind="render").job_id == "other"
+    assert jobs._BACKFILLED in rt.latest
+    assert _pointer(rt, "render") == {"job_id": "other"}  # one scan, every kind
 
 
-def test_latest_job_survives_a_stale_pointer(project):
-    """A pointer that missed a later launch (its write failed, or an older nw
-    on another replica launched it) loses to a newer run in the index, and one
-    naming a vanished or other-kind record is ignored."""
+@pytest.mark.parametrize("stale", ["gone", "elsewhere"])
+def test_a_pointer_that_does_not_resolve_to_its_kind_is_repaired(project, stale):
+    """A pointer naming a vanished record, or a run of another kind (a reused
+    key): fails if ``latest_job`` trusts it and skips the archive."""
     rt = jobs._runtime(project)
     _ended_run(rt, "old", days_ago=40)
-    _ended_run(rt, "new", days_ago=1)
-    _ended_run(rt, "elsewhere", days_ago=0, kind="render")
-    jobs.list_jobs(project)
-    for stale in ("old", "gone", "elsewhere"):
-        with rt.lock:
-            rt.latest[jobs._safe_key("op")] = {"job_id": stale}
-        assert jobs.latest_job(project, kind="op").job_id == "new"
+    _ended_run(rt, "elsewhere", days_ago=35, kind="render")
+    jobs.archive_finished_runs(project)
+    jobs.latest_job(project, kind="op")  # the backfill marker is written
+    with rt.lock:
+        rt.latest[jobs._safe_key("op")] = {"job_id": stale}
+        rt.latest[jobs._safe_key("never")] = {"job_id": stale}
+    assert jobs.latest_job(project, kind="op").job_id == "old"
+    assert _pointer(rt, "op") == {"job_id": "old"}
+    assert jobs.latest_job(project, kind="never") is None
+    assert jobs._safe_key("never") not in rt.latest  # not rescanned on every poll
 
 
-def test_enqueue_records_the_latest_launch_of_its_kind(project):
-    ok = lambda project, params, **kw: {"ok": True}  # noqa: E731
+def test_a_failed_pointer_write_keeps_the_run_in_the_index(project, monkeypatch):
+    """Fails if the pointer write is suppressed: the run would leave the index
+    with no pointer, and ``latest_job`` (marker present) would not find it."""
     rt = jobs._runtime(project)
-    a = _finished(project, "score", 0, {"score": ok})
-    assert rt.latest[jobs._safe_key("score")] == {"job_id": a.job_id}
-    b = _finished(project, "score", 1, {"score": ok})
-    assert rt.latest[jobs._safe_key("score")] == {"job_id": b.job_id}
-    with pytest.raises(KeyError):  # no launch, no pointer
-        jobs.enqueue(project, "unknown", VIDEO_PARAMS, dispatch={"score": ok})
-    assert jobs._safe_key("unknown") not in rt.latest
+    jobs.latest_job(project, kind="op")  # the backfill marker is written
+    _ended_run(rt, "old", days_ago=40)
+    monkeypatch.setattr(rt, "latest", _Watched(rt.latest, refuse_writes=True))
+    assert jobs.archive_finished_runs(project) == []
+    assert "old" in rt.index
+    monkeypatch.undo()
+    assert jobs.latest_job(project, kind="op").job_id == "old"
+    assert jobs.archive_finished_runs(project) == ["old"]
+    assert jobs.latest_job(project, kind="op").job_id == "old"
+
+
+def test_a_rerun_of_an_archived_key_answers_without_a_rescan(project, monkeypatch):
+    """The pointer names an id whose re-run is live in the index: fails if the
+    pointer is resolved in the archive only (it would read as dangling)."""
+    rt = jobs._runtime(project)
+    _ended_run(rt, "k", days_ago=40)
+    jobs.archive_finished_runs(project)
+    jobs.latest_job(project, kind="op")
+    _ended_run(rt, "k", days_ago=1, label="rerun")  # as enqueue re-runs it:
+    rt.archive.pop("k")  # the index first, then the archived copy goes
+    archive = _Watched(rt.archive)
+    monkeypatch.setattr(rt, "archive", archive)
+    assert jobs.latest_job(project, kind="op").label == "rerun"
+    assert archive.iterated == 0 and _pointer(rt, "op") == {"job_id": "k"}
+
+
+def test_a_dot_leading_kind_or_eta_key_is_stored(project):
+    """The store refuses a ``.``-leading key (its temp-file prefix): before
+    ``_safe_key`` escaped it, such a run never left the index and such an ETA
+    key never recorded a sample."""
+    rt = jobs._runtime(project)
+    assert jobs._safe_key(".hidden") == "%2Ehidden"
+    _ended_run(rt, "d", days_ago=40, kind=".hidden")
+    assert jobs.archive_finished_runs(project) == ["d"]
+    assert jobs.latest_job(project, kind=".hidden").job_id == "d"
+    with rt.lock:
+        rt.middleware._record_sample_locked(".eta", 2.0)
+    assert jobs._durations_get(rt.durations, ".eta") == [2.0]
 
 
 def test_runs_order_by_time_not_by_string(project):

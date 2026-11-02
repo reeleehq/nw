@@ -661,10 +661,6 @@ def enqueue(
             # run again, and a failure here must not undo a launched worker.
             with suppress(Exception):
                 rt.archive.pop(job_id, None)
-            # Under ``rt.lock``, so the last write is the newest launch on every
-            # replica. Best-effort: :func:`latest_job` still reads the index.
-            with suppress(Exception):
-                rt.latest[_safe_key(kind)] = {"job_id": job_id}
 
     except BaseException:
         # No worker will ever enter the hook's context: release what it
@@ -892,10 +888,10 @@ def list_jobs(
     whose missing-key-returns-PENDING gotcha makes membership meaningless).
     Runs that ended more than ``config.index_retention_s`` ago move to the
     archive during the scan and are not listed (:func:`_archive_old_runs`);
-    :func:`latest_job` reaches them.
+    :func:`latest_job` reaches the newest of a kind there.
     """
     rt = _runtime(project, config)
-    records = [r for r in (_index_snapshot(rt, k) for k in list(rt.index)) if r]
+    records = _index_records(rt)
     records = _archive_old_runs(rt, records, config, project=project)
     if kind is not None:
         records = [r for r in records if r.get("kind") == kind]
@@ -918,38 +914,108 @@ def latest_job(
     live, recently finished, or archived (nw#169). ``None`` if this project
     never ran one. For the index alone, ``list_jobs(p, kind=k, limit=1)``.
 
-    :func:`enqueue` records each launched run's id as its kind's latest
-    (``JobsConfig.jobs_dirname``/``latest``), so the archive is not scanned:
-    the answer is the newest of that run and the index's runs of ``kind``,
-    which also covers a pointer whose write failed or that a replica running
-    an older nw never wrote, for every run still in the index (nw#185). Only
-    a kind with no pointer at all (its last run predates the pointer) costs a
-    scan of the archive. Like :func:`get_job`, the read may reap a stale run.
+    The answer is the newest of the index's runs of ``kind`` and the run its
+    pointer names (nw#185): ``rt.latest`` holds, per kind, the newest
+    *archived* run, set by the one function that archives
+    (:func:`_archive_if_settled`) before the run leaves the index, so a poll
+    never scans the archive. A project whose archive predates the pointers is
+    backfilled by one scan (:func:`_backfill_pointers`); after it, a kind with
+    no pointer has no archived run. A pointer naming a vanished record or a
+    run of another kind (a reused ``idempotency_key``) triggers a rescan that
+    repairs it.
+
+    Gap: a run archived by an nw older than this one (a replica not yet
+    upgraded) moves no pointer. The first backfill finds it; after that, only
+    a rescan does, which happens only when that kind's pointer dangles, so
+    behind a valid pointer to an older run it is not found.
+
+    Like :func:`get_job`, the read may reap a stale run.
     """
     rt = _runtime(project, config)
-    records = [r for r in (_index_snapshot(rt, k) for k in list(rt.index)) if r]
-    candidates = [r for r in records if r.get("kind") == kind]
-    pointed = _latest_pointer(rt, kind)
-    if pointed is not None:
-        candidates.append(_find_record(rt, pointed))
-    else:
-        archived = (rt.archive.get(k) for k in list(rt.archive))
-        candidates.extend(r for r in archived if r and r.get("kind") == kind)
-    candidates = [r for r in candidates if r and r.get("kind") == kind]
+    candidates = [r for r in _index_records(rt) if r.get("kind") == kind]
+    archived = _latest_archived(rt, kind)
+    if archived is not None:
+        candidates.append(archived)
     if not candidates:
         return None
     return _read_job(rt, max(candidates, key=_created_key), config, project=project)
 
 
-def _latest_pointer(rt, kind: str) -> str | None:
-    """The job id :func:`enqueue` last launched for ``kind``, or ``None``
-    (never written, unreadable, or a kind no store key can spell)."""
+_BACKFILLED = "%%backfilled"
+"""``rt.latest``'s marker that the archive was scanned into the pointers
+(nw#185). No kind's key can be it: :func:`_safe_key` writes ``%`` as ``%25``."""
+
+
+def _index_records(rt) -> list:
+    """Every record in the live index, each a lock-free snapshot
+    (:func:`_index_snapshot`)."""
+    return [r for r in (_index_snapshot(rt, k) for k in list(rt.index)) if r]
+
+
+def _latest_archived(rt, kind: str):
+    """The archived run of ``kind`` its pointer names, or ``None``; backfills
+    the pointers first when there are none yet, and rescans to repair a
+    pointer that does not resolve to a run of ``kind``."""
+    key = _safe_key(kind)
+    record = _pointed_record(rt, key, kind)
+    if record is None and (key in rt.latest or _BACKFILLED not in rt.latest):
+        try:
+            _backfill_pointers(rt, kind)
+        except Exception:  # noqa: BLE001 — the index still answers
+            _logger.warning("could not backfill latest-job pointers", exc_info=True)
+        record = _pointed_record(rt, key, kind)
+    return record
+
+
+def _pointed_record(rt, key: str, kind: str):
+    """The record ``rt.latest[key]`` names (index or archive), ``None`` unless
+    it is a run of ``kind``. An unreadable pointer reads as none."""
     try:
-        entry = rt.latest.get(_safe_key(kind))
-    except (ValueError, OSError):
+        entry = rt.latest.get(key)
+    except ValueError:  # bad JSON, or a key the store refuses
         return None
     job_id = entry.get("job_id") if isinstance(entry, Mapping) else None
-    return job_id if isinstance(job_id, str) and job_id else None
+    if not isinstance(job_id, str) or not job_id:
+        return None
+    record = _find_record(rt, job_id)
+    return record if record and record.get("kind") == kind else None
+
+
+def _advance_pointer_locked(rt, record) -> None:
+    """Point ``record``'s kind at it unless its pointer already resolves to a
+    run of that kind created no earlier (caller holds ``rt.lock``)."""
+    kind = record.get("kind")
+    if not isinstance(kind, str) or not kind:
+        return  # nothing latest_job can ask for
+    key = _safe_key(kind)
+    current = _pointed_record(rt, key, kind)
+    if current is None or _created_key(current) < _created_key(record):
+        rt.latest[key] = {"job_id": record["job_id"]}
+
+
+def _backfill_pointers(rt, kind: str) -> None:
+    """Scan the archive (without ``rt.lock``) for each kind's newest run, then,
+    under the lock, merge them into ``rt.latest`` by the archiver's rule, drop
+    ``kind``'s pointer if it still resolves to nothing of ``kind``, and mark
+    the backfill done (:data:`_BACKFILLED`)."""
+    newest: dict = {}
+    for job_id in list(rt.archive):
+        try:
+            record = _index_snapshot(rt, job_id, store=rt.archive)
+        except (ValueError, OSError):  # one bad file does not stop the scan
+            continue
+        k = record.get("kind") if isinstance(record, Mapping) else None
+        if isinstance(k, str) and (
+            k not in newest or _created_key(record) > _created_key(newest[k])
+        ):
+            newest[k] = record
+    key = _safe_key(kind)
+    with rt.lock:
+        for record in newest.values():
+            _advance_pointer_locked(rt, record)
+        if key in rt.latest and _pointed_record(rt, key, kind) is None:
+            del rt.latest[key]
+        rt.latest[_BACKFILLED] = {"at": _iso(_utcnow())}
 
 
 def _created_key(record) -> datetime:
@@ -980,7 +1046,7 @@ def archive_finished_runs(project, *, config: JobsConfig = DEFAULT_CONFIG) -> li
     Best-effort per run, like ``list_jobs``'s.
     """
     rt = _runtime(project, config)
-    records = [r for r in (_index_snapshot(rt, k) for k in list(rt.index)) if r]
+    records = _index_records(rt)
     return sorted(_sweep(rt, records, config, project=project))
 
 
@@ -1098,7 +1164,8 @@ def _archive_if_settled(rt, job_id, cutoff: datetime, config) -> bool:
     """Move ``job_id``'s record to the archive if its run is over for good:
     still old on a fresh read, au terminal, announced (or from before
     announcing), not under an announcement lease, and with no worker alive
-    here or beating anywhere. Returns whether it moved."""
+    here or beating anywhere, and keep its kind's pointer (``rt.latest``) on
+    the newest archived run (:func:`latest_job`). Returns whether it moved."""
     with rt.lock:
         record = _index_get_locked(rt, job_id)
         if (
@@ -1112,6 +1179,9 @@ def _archive_if_settled(rt, job_id, cutoff: datetime, config) -> bool:
         ):
             return False
         rt.archive[job_id] = record  # archive first: a crash between keeps both
+        # Not suppressed (nw#185): if the pointer cannot be written the run
+        # stays in the index, so none leaves it with its kind's pointer stale.
+        _advance_pointer_locked(rt, record)
         del rt.index[job_id]
     return True
 
@@ -1957,7 +2027,9 @@ class _JobsRuntime:
     index: MutableMapping
     archive: MutableMapping
     latest: MutableMapping
-    """``{_safe_key(kind): {"job_id": ...}}``: each kind's last launch (nw#185)."""
+    """``{_safe_key(kind): {"job_id": ...}}``: each kind's newest *archived* run,
+    moved only by :func:`_archive_if_settled`, plus the :data:`_BACKFILLED`
+    marker (nw#185, :func:`latest_job`)."""
     durations: MutableMapping
     backend: ThreadBackend
     middleware: DurationLearningMiddleware
@@ -3130,8 +3202,13 @@ def _durations_put(durations: MutableMapping, eta_key: str, samples: list) -> No
     durations[_safe_key(eta_key)] = {"eta_key": eta_key, "samples": samples}
 
 
-def _safe_key(eta_key: str) -> str:
-    return urllib.parse.quote(eta_key, safe="")
+def _safe_key(key: str) -> str:
+    """``key`` as a store key :class:`AtomicJsonFiles` accepts: percent-encoded,
+    and a leading ``.`` (the store's temp-file prefix, which it refuses) as
+    ``%2E``. A ``.``-leading key could never be written, so no stored key
+    changes."""
+    quoted = urllib.parse.quote(key, safe="")
+    return "%2E" + quoted[1:] if quoted.startswith(".") else quoted
 
 
 def _percentile(xs, p):
