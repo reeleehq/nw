@@ -75,7 +75,7 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 from falaw import Plan
 from lacing import Annotation, TimeInterval
 
-from nw.secrets import as_secrets, redact, redact_exception, using_secrets
+from nw.secrets import as_secrets, failure_text, using_secrets
 from nw.transforms._cache_mode import resolve_cache_mode
 from nw.transforms.costs import CostTotal, total_cost
 
@@ -675,14 +675,14 @@ def fan_out_execute(
         except Exception as e:  # noqa: BLE001 — per-unit isolation is the feature
             # The message may quote the key (an auth error echoing it); the
             # reason lands in the run record, so scrub before filing.
-            e = redact_exception(e, secrets)
+            e, reason = failure_text(e, secrets)
             results.append(
                 FanOutItemResult(
                     item=unit.item,
                     instance_id=unit.instance_id,
                     status="failed",
                     error=e,
-                    reason=redact(f"{type(e).__name__}: {e}", secrets),
+                    reason=reason,
                 )
             )
             if on_failure == "halt":

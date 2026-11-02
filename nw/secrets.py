@@ -283,7 +283,38 @@ def _render(error: BaseException) -> str:
     try:
         return str(error)
     except Exception:  # noqa: BLE001 — a __str__ that raises renders as its repr
-        return repr(error)
+        try:
+            return repr(error)
+        except Exception:  # noqa: BLE001 — and one whose __repr__ raises too
+            return f"<unprintable {type(error).__name__}>"
+
+
+def failure_text(
+    error: BaseException, secrets: Optional[Mapping[str, Optional[str]]]
+) -> tuple[BaseException, str]:
+    """``(scrubbed error, "<Type>: <message>")`` for a failure nw records.
+
+    The one way nw turns an exception it caught into text it files or logs
+    (a unit's or an unproduced output's ``reason``): :func:`redact_exception`
+    first, the original type's name even when that had to fall back to
+    :class:`RedactedError`, and a rendering that survives a ``__str__`` that
+    raises, so explaining a failure never becomes a second one (nw#205).
+
+    >>> class Loud(Exception):
+    ...     def __str__(self):
+    ...         raise ValueError("no")
+    >>> failure_text(Loud(), None)[1].startswith("Loud: Loud(")
+    True
+    >>> failure_text(RuntimeError("key=sk-1"), {"fal": "sk-1"})[1]
+    'RuntimeError: key=<redacted:fal>'
+    """
+    error = redact_exception(error, secrets)
+    name = (
+        error.original_type
+        if isinstance(error, RedactedError)
+        else type(error).__name__
+    )
+    return error, redact(f"{name}: {_render(error)}", secrets)
 
 
 __all__ = [
@@ -293,5 +324,6 @@ __all__ = [
     "using_secrets",
     "redact",
     "redact_exception",
+    "failure_text",
     "RedactedError",
 ]
