@@ -2,8 +2,10 @@
 
 ``BaseTransform.execute`` used to write a new output node on every run, cache
 hits included, so two identical runs of a Transform left two equivalent nodes.
-It now asks :func:`nw.freshness.fresh_equivalents` first and returns the
-existing node in place of a duplicate.
+A Transform that declares ``reuse_fresh_outputs = True`` now has it ask
+:func:`nw.freshness.fresh_equivalents` first and return the existing node in
+place of a duplicate. The declaration is opt-in, so the default (every run
+writes) is pinned here too.
 
 What these pin, each through the real seams (``falaw.execute_plan`` with the
 fal response stubbed and assets served from memory by the conftest's
@@ -17,6 +19,7 @@ fal response stubbed and assets served from memory by the conftest's
   matches;
 * several skeletons of one ``execute`` share one freshness walk, and a run
   with no candidates walks none;
+* without the declaration, every run still writes a new node;
 * a reused success still retires the unproduced-output record it settles
   (nw#44).
 """
@@ -76,6 +79,12 @@ def fal(monkeypatch, fake_assets):
     )
     fake_assets.serve(stub.next_image_url, IMG_A)
     return stub
+
+
+class _Reusing(BaseTransform):
+    """A plain BaseTransform that opts in to reuse (nw#203)."""
+
+    reuse_fresh_outputs = True
 
 
 def _iv(a: float, b: float) -> TimeInterval:
@@ -141,8 +150,8 @@ def test_an_identical_rerun_writes_nothing_and_returns_the_first_node(tmp_path, 
     identical runs leaving two equivalent nodes in the graph."""
     proj, (shot,) = _project(tmp_path)
 
-    first = BaseTransform().execute(proj, _plan(), (_skeleton(proj, (shot,)),))
-    second = BaseTransform().execute(proj, _plan(), (_skeleton(proj, (shot,)),))
+    first = _Reusing().execute(proj, _plan(), (_skeleton(proj, (shot,)),))
+    second = _Reusing().execute(proj, _plan(), (_skeleton(proj, (shot,)),))
 
     assert len(fal.calls) == 1  # the premise: the re-run was a cache hit
     assert [n.id for n in _nodes(proj)] == [first.annotations[0].id]
@@ -151,13 +160,30 @@ def test_an_identical_rerun_writes_nothing_and_returns_the_first_node(tmp_path, 
     assert second.is_complete
 
 
+def test_without_the_declaration_every_run_writes_a_new_node(tmp_path, fal):
+    """Fails if reuse is on by default: a host that drops or re-ids the rows
+    ``execute`` returns (reelee's regen adoption) would then delete a live
+    node it never wrote. Pins the historical behaviour of an undeclared
+    Transform."""
+    assert BaseTransform.reuse_fresh_outputs is False
+    proj, (shot,) = _project(tmp_path)
+    skels = [_skeleton(proj, (shot,)) for _ in range(2)]
+
+    first = BaseTransform().execute(proj, _plan(), (skels[0],))
+    second = BaseTransform().execute(proj, _plan(), (skels[1],))
+
+    assert len(fal.calls) == 1  # a cache hit, yet written again
+    assert [first.annotations[0].id, second.annotations[0].id] == [s.id for s in skels]
+    assert len(_nodes(proj)) == 2
+
+
 def test_a_parent_rewritten_in_place_is_not_mistaken_for_unchanged(tmp_path, fal):
     """Fails if reuse trusts equal parent *ids*: a parent rewritten in place
     keeps its id (braidio#51), so the old node has "the same parents" while
     being derived from a value that no longer exists. Only the freshness walk
     tells them apart."""
     proj, (shot,) = _project(tmp_path)
-    first = BaseTransform().execute(proj, _plan(), (_skeleton(proj, (shot,)),))
+    first = _Reusing().execute(proj, _plan(), (_skeleton(proj, (shot,)),))
 
     same_id = proj.graph.upsert_section(
         SectionBodyV1(section_id="s", label="edited"), interval=_iv(0, 4)
@@ -165,7 +191,7 @@ def test_a_parent_rewritten_in_place_is_not_mistaken_for_unchanged(tmp_path, fal
     assert same_id == shot
     assert first.annotations[0].id in {a.id for a in nw.all_stale(proj.root)}
 
-    second = BaseTransform().execute(proj, _plan(), (_skeleton(proj, (shot,)),))
+    second = _Reusing().execute(proj, _plan(), (_skeleton(proj, (shot,)),))
 
     assert len(fal.calls) == 1  # still a cache hit: the body is identical
     assert second.annotations[0].id != first.annotations[0].id
@@ -178,13 +204,11 @@ def test_a_different_body_is_written_as_a_new_node(tmp_path, fal, fake_assets):
     (cache bypassed, new bytes → new ``artifact_id``) must not be swallowed by
     the old node."""
     proj, (shot,) = _project(tmp_path)
-    first = BaseTransform().execute(proj, _plan(), (_skeleton(proj, (shot,)),))
+    first = _Reusing().execute(proj, _plan(), (_skeleton(proj, (shot,)),))
 
     fal.next_image_url = "http://cdn/img-2.png"
     fake_assets.serve(fal.next_image_url, IMG_B)
-    second = BaseTransform().execute(
-        proj, _plan(), (_skeleton(proj, (shot,)),), force=True
-    )
+    second = _Reusing().execute(proj, _plan(), (_skeleton(proj, (shot,)),), force=True)
 
     assert len(fal.calls) == 2
     assert second.annotations[0].body["artifact_id"] == hash_bytes(IMG_B)
@@ -210,9 +234,7 @@ def test_a_node_written_before_asset_refs_still_matches(tmp_path, fal):
     proj, (shot,) = _project(tmp_path)
     old = _pre_55_node(proj, shot)
 
-    result = BaseTransform().execute(
-        proj, _plan(), (_skeleton(proj, (shot, AN_ASSET_ID)),)
-    )
+    result = _Reusing().execute(proj, _plan(), (_skeleton(proj, (shot, AN_ASSET_ID)),))
 
     assert result.annotations[0].id == old.id
     assert [n.id for n in _nodes(proj)] == [old.id]
@@ -244,10 +266,10 @@ def test_several_skeletons_share_one_freshness_walk(tmp_path, fal, monkeypatch):
         )
 
     walks = _count_walks(monkeypatch)
-    first = BaseTransform().execute(proj, _plan(3), skeletons())
+    first = _Reusing().execute(proj, _plan(3), skeletons())
     assert walks == []  # nothing to reuse yet, so nothing is walked
 
-    second = BaseTransform().execute(proj, _plan(3), skeletons())
+    second = _Reusing().execute(proj, _plan(3), skeletons())
     assert len(walks) == 1
     assert [a.id for a in second.annotations] == [a.id for a in first.annotations]
     assert len(_nodes(proj)) == 3
@@ -261,7 +283,7 @@ def test_a_reused_success_retires_its_unproduced_output_record(tmp_path, fal):
     the record of an earlier failed attempt would read as a live blocker
     after reload, although the output now exists."""
     proj, (shot,) = _project(tmp_path)
-    BaseTransform().execute(proj, _plan(), (_skeleton(proj, (shot,)),))
+    _Reusing().execute(proj, _plan(), (_skeleton(proj, (shot,)),))
 
     retry = _skeleton(proj, (shot,))
     proj.graph.add_unproduced_output(
@@ -274,7 +296,7 @@ def test_a_reused_success_retires_its_unproduced_output_record(tmp_path, fal):
     )
     assert len(proj.graph.unproduced_outputs()) == 1
 
-    BaseTransform().execute(proj, _plan(), (retry,), unit_instance_id="unit-1")
+    _Reusing().execute(proj, _plan(), (retry,), unit_instance_id="unit-1")
 
     assert len(_nodes(proj)) == 1
     assert nw.ProjectGraph(proj.root).unproduced_outputs() == []
@@ -292,7 +314,7 @@ def test_retirement_reads_this_runs_upstream_not_the_reused_nodes(tmp_path, fal)
         retry, transform_name="test", status="failed", reason="boom", call_index=0
     )
 
-    result = BaseTransform().execute(proj, _plan(), (retry,))
+    result = _Reusing().execute(proj, _plan(), (retry,))
 
     assert result.annotations[0].id == old.id
     assert nw.ProjectGraph(proj.root).unproduced_outputs() == []

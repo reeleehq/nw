@@ -11,7 +11,9 @@ in :data:`falaw.backends.backends`, and the Transform is an ordinary
 :class:`~nw.transforms.BaseTransform`. So everything ``BaseTransform.execute``
 owns (cache read/write halves, the ``impl_version`` stamp, the secret binding,
 ``halt``/``isolate`` and unproduced-output records, observed cost) applies
-unchanged, and falaw's cache is the compare-and-skip.
+unchanged, and falaw's cache is the compare-and-skip. It declares
+``reuse_fresh_outputs``, so a re-run on unchanged inputs returns the sound
+design already in the graph instead of writing an equivalent one (nw#203).
 
 The call, end to end:
 
@@ -230,6 +232,10 @@ class NarrationToSoundDesign(BaseTransform):
     input_kinds = (NARRATION_TRACK_BODY_SCHEMA_URI, SOUND_DESIGN_CONFIG_BODY_SCHEMA_URI)
     output_kind = SOUND_DESIGN_BODY_SCHEMA_URI
     generate_when = "static"  # one sound design per narration track
+    # A re-run on unchanged inputs is a falaw cache hit that completes to the
+    # same body: return the sound design already in the graph rather than a
+    # second, equivalent node (nw#203).
+    reuse_fresh_outputs = True
     attributed_to = f"agent:{NAME}"
 
     # --- host seams: how a narration node yields what foley needs -------------

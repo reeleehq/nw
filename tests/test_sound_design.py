@@ -392,6 +392,26 @@ def test_a_cached_call_is_reused_without_rescoring(project, monkeypatch):
     assert len(foley.calls) == 2
 
 
+def test_a_second_identical_run_returns_the_first_design_and_writes_nothing(
+    project, monkeypatch
+):
+    """Fails if foley's Transform stops declaring ``reuse_fresh_outputs``: a
+    re-run on unchanged inputs is a cache hit completing to the same body, and
+    without reuse it leaves a second, equivalent sound-design node (nw#203)."""
+    monkeypatch.setitem(sys.modules, "foley", _fake_foley())
+    t = nw.get_transform(NAME)
+    assert t.reuse_fresh_outputs is True
+    inputs = _inputs(project)
+    first = t.execute(project, *t.plan(project, inputs))
+
+    plan, skeleton = t.plan(project, inputs)
+    again = t.execute(project, plan, skeleton)
+
+    assert again.annotations[0].id == first.annotations[0].id != skeleton[0].id
+    designs = nw.annotations_at_tier(project.root, first.annotations[0].tier)
+    assert [d.id for d in designs] == [first.annotations[0].id]
+
+
 def test_the_executor_refuses_to_run_without_a_project(project, monkeypatch):
     from falaw import execute_plan
 

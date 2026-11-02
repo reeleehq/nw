@@ -105,9 +105,10 @@ already a node this new annotation would only duplicate?* (nw#203). Same
 tier, ``body_schema_uri`` and reference, the same **annotation** parents, an
 equal value (:func:`body_value`), and **verified fresh** — equality of
 parents by id is not enough, because a parent rewritten in place keeps its
-id (braidio#51). :meth:`nw.transforms.BaseTransform.execute` uses it so that
-re-running a Transform on unchanged inputs (a falaw cache hit) returns the
-node it already wrote instead of adding a second one.
+id (braidio#51). :meth:`nw.transforms.BaseTransform.execute` uses it, for a
+Transform that declares ``reuse_fresh_outputs``, so that re-running it on
+unchanged inputs (a falaw cache hit) returns the node it already wrote
+instead of adding a second one.
 """
 
 from __future__ import annotations
@@ -470,7 +471,9 @@ def fresh_equivalents(
     equivalent to a new annotation ``A`` when **all** of these hold:
 
     - same ``tier``, same ``body_schema_uri`` and the same ``reference``
-      (where it sits — JSON-compared);
+      (where it sits — JSON-compared). Stricter than braidio's original rule,
+      deliberately: two outputs at different places are different nodes even
+      when every other field agrees, and a missed reuse only costs a write;
     - the same **annotation** parents (:func:`annotation_parent_ids`, as a
       set). Artifact parents (nw#55) are ignored: a node written before the
       declaration has none, and comparing them would refuse to reuse every

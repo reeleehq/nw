@@ -15,10 +15,17 @@ Two-phase, mirroring ``nw.workflow`` (prepare → plan → execute):
 2. :meth:`Transform.execute` — runs the Plan via ``falaw.execute_plan``,
    completes the skeleton annotations with real artifact references, writes
    them to the project graph, and returns a :class:`TransformResult` with
-   *actual* cost and cache savings. A completed output whose equivalent node
-   is already in the graph and verified fresh is *not* written again — the
-   existing node is returned instead (:func:`nw.freshness.fresh_equivalents`,
-   nw#203), so re-running on unchanged inputs adds nothing.
+   *actual* cost and cache savings.
+
+**Reusing a fresh output is opt-in** (nw#203): a Transform that declares
+``reuse_fresh_outputs = True`` does not write a completed output whose
+*fresh equivalent* is already in the graph — same tier, schema, reference,
+annotation parents and value, verified fresh
+(:func:`nw.freshness.fresh_equivalents`) — and returns that existing node
+instead, so re-running on unchanged inputs adds nothing. Its
+``result.annotations[i].id`` may then differ from the skeleton's: a caller
+that deletes or re-ids returned rows must compare ids first, or it destroys a
+live node it did not create. Off by default for exactly that reason.
 
 ``execute``'s two cache knobs are a read half and a write half, not one
 switch: ``force=True`` skips the cache **read** and keeps the **write** (so a
@@ -171,11 +178,12 @@ class TransformResult:
     annotations: tuple[Annotation, ...]
     """The completed output annotation(s), as they stand in the project graph.
 
-    Usually the annotations this run wrote. When an output's node already
-    exists — same value and parents, verified fresh, as after a re-run served
-    from falaw's cache — that **existing** node is returned in its place and
-    nothing is written (nw#203), so its ``id`` is not the skeleton's. Read
-    ids from here, never from the skeleton."""
+    The annotations this run wrote — unless the Transform declares
+    ``reuse_fresh_outputs`` (nw#203): then an output whose fresh equivalent
+    already exists is returned as that **existing** node and nothing is
+    written, so its ``id`` is not the skeleton's. Read ids from here, never
+    from the skeleton; a row whose id is not its skeleton's was not written
+    by this run."""
 
     artifacts: tuple[Artifact, ...] = ()
     """The ``lacing.Artifact``\\ s produced (images, videos, audio, json …).
@@ -428,6 +436,29 @@ class BaseTransform:
     only when the work-item list is derivable from the graph before the
     run ("one image per panel")."""
 
+    reuse_fresh_outputs: bool = False
+    """Whether :meth:`execute` reuses an output's *fresh equivalent* instead of
+    writing a duplicate (nw#203). Default ``False``: every run writes.
+
+    A fresh equivalent of a completed output is a node already in the graph
+    with the same tier, ``body_schema_uri`` and reference, the same
+    *annotation* parents, an equal body (JSON-compared), and verified fresh by
+    the freshness walk — :func:`nw.freshness.fresh_equivalents` states the
+    rule. A re-run served from falaw's cache completes to exactly such a
+    body, which is the duplicate this removes; a genuinely new render has a
+    new artifact id and is written as before. The record of an earlier
+    failure that the success settles is retired either way.
+
+    Declare ``True`` only when every caller can take this: such an output
+    comes back in ``TransformResult.annotations`` as the **existing** node,
+    so ``result.annotations[i].id`` may differ from ``skeleton[i].id``. A
+    caller that deletes, re-ids or adopts the rows it is handed (as a "drop
+    what execute just wrote" step does) must compare those ids first, or it
+    deletes a live node — and leaves everything derived from it dangling. A
+    declaration rather than an ``execute`` keyword, so fan-outs and jobs
+    honour it with no plumbing. The cost is at most one freshness walk per
+    ``execute``, and none when no candidate exists."""
+
     def plan(
         self,
         project,
@@ -563,11 +594,16 @@ class BaseTransform:
         # matching unproduced-output record is retired by (nw#44) — passed
         # through so a retry's success clears its own record.
         #
-        # A success whose node already exists — same value, same parents,
-        # verified fresh (a re-run served from falaw's cache) — is not written
-        # again: the existing node is returned in its place, and the record
-        # its success settles is still retired (nw#203).
-        equivalents = _fresh_equivalents_of(project, completed)
+        # For a Transform that declares `reuse_fresh_outputs`, a success whose
+        # node already exists — same value, same parents, verified fresh (a
+        # re-run served from falaw's cache) — is not written again: the
+        # existing node is returned in its place, and the record its success
+        # settles is still retired (nw#203).
+        equivalents = (
+            _fresh_equivalents_of(project, completed)
+            if self.reuse_fresh_outputs
+            else tuple(None for _ in completed)
+        )
         produced: list[Annotation] = []
         for i, ann, existing in zip(
             completed_indices, completed, equivalents, strict=True
@@ -654,6 +690,7 @@ def _fresh_equivalents_of(
 ) -> tuple[Optional[Annotation], ...]:
     """The stored node each of ``completed`` would only duplicate, or ``None``.
 
+    Asked only for a Transform that declares ``reuse_fresh_outputs``.
     :meth:`nw.graph.ProjectGraph.fresh_equivalents` (the rule:
     :func:`nw.freshness.fresh_equivalents`), asked once for the whole batch so
     every skeleton of one ``execute`` call shares at most one freshness walk.
@@ -901,7 +938,7 @@ def transform_catalog() -> list[dict]:
     Entry shape::
 
         {name, input_kinds, output_kind, is_batch, generate_when,
-         impl_version, params_schema}
+         impl_version, reuse_fresh_outputs, params_schema}
 
     ``name`` is the registry key (the addressable name). ``params_schema``
     is the params model's JSON Schema — ``{}`` for a Transform with no
@@ -922,6 +959,9 @@ def transform_catalog() -> list[dict]:
                     transform, "generate_when", DFLT_GENERATE_WHEN
                 ),
                 "impl_version": getattr(transform, "impl_version", DFLT_IMPL_VERSION),
+                "reuse_fresh_outputs": bool(
+                    getattr(transform, "reuse_fresh_outputs", False)
+                ),
                 "params_schema": (
                     {}
                     if params_model is type(None)
