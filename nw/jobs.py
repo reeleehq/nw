@@ -997,7 +997,9 @@ def _pointed_record(rt, key: str, kind: str):
         record = _find_record(rt, job_id)
     except (ValueError, OSError):  # bad JSON, or a key the store refuses
         return None
-    return record if isinstance(record, Mapping) and record.get("kind") == kind else None
+    return (
+        record if isinstance(record, Mapping) and record.get("kind") == kind else None
+    )
 
 
 def _read_archived(rt, job_id: str):
