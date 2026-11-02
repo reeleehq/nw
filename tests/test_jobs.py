@@ -1683,6 +1683,17 @@ def test_failed_job_says_why(project, raise_, kind):
     assert row.error_kind == kind
 
 
+def test_error_kinds_is_the_whole_vocabulary():
+    """``ERROR_KINDS`` lists every ``ERROR_KIND_*`` constant, once (reelee#787):
+    a host exporting the vocabulary reads it, so a kind added later must be in it."""
+    constants = {v for k, v in vars(jobs).items() if k.startswith("ERROR_KIND_")}
+    assert isinstance(jobs.ERROR_KINDS, tuple)
+    assert len(set(jobs.ERROR_KINDS)) == len(jobs.ERROR_KINDS)
+    assert set(jobs.ERROR_KINDS) == constants
+    errors = (nw.GenreOpRefused("x"), nw.GenreOpCancelled(), RuntimeError("bug"))
+    assert {jobs.error_kind_of(e) for e in errors} == set(jobs.ERROR_KINDS)
+
+
 def test_error_kind_is_none_on_success_and_cancelled_on_cancel(project):
     ok = jobs.enqueue(
         project,
