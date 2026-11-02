@@ -707,7 +707,8 @@ def _equivalents_or_none(reuse, completed, *, transform: str) -> tuple:
         return tuple(reuse.find(completed))
     except Exception:  # noqa: BLE001 — see the docstring
         _logger.warning(
-            "%s: fresh-output lookup failed; writing every output", transform,
+            "%s: fresh-output lookup failed; writing every output",
+            transform,
             exc_info=True,
         )
         return tuple(None for _ in completed)
