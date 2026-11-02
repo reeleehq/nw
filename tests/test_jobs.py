@@ -3595,6 +3595,44 @@ def test_a_dot_leading_kind_or_eta_key_is_stored(project):
     assert jobs._durations_get(rt.durations, ".eta") == [2.0]
 
 
+def test_an_unreadable_pointed_record_neither_raises_nor_stops_archiving(project):
+    """Fails if the pointed record is read unguarded: ``latest_job`` would raise
+    on every call and no later run of the kind could leave the index."""
+    rt = jobs._runtime(project)
+    _ended_run(rt, "old", days_ago=40)
+    jobs.archive_finished_runs(project)
+    jobs.latest_job(project, kind="op")  # the backfill marker is written
+    (Path(project.root) / ".nw/jobs/index-archive/old").write_text("{not json")
+    assert jobs.latest_job(project, kind="op") is None
+    _ended_run(rt, "new", days_ago=35)
+    assert jobs.archive_finished_runs(project) == ["new"]
+    assert jobs.latest_job(project, kind="op").job_id == "new"
+
+
+def test_the_backfill_skips_a_run_taken_out_of_the_archive_meanwhile(project, monkeypatch):
+    """A re-run (here of another kind) took the scanned id out of the archive
+    before the backfill's lock: fails if the merge trusts the lock-free scan."""
+    rt = jobs._runtime(project)
+    _ended_run(rt, "older", days_ago=50)
+    _ended_run(rt, "old", days_ago=40)
+    jobs.archive_finished_runs(project)
+    for key in list(rt.latest):
+        del rt.latest[key]
+    real = jobs._read_archived
+    scanned = []
+
+    def read(rt_, job_id):
+        record = real(rt_, job_id)
+        if job_id == "old" and not scanned:  # the scan's read, then the re-run
+            scanned.append(job_id)
+            rt.archive.pop("old")
+            _ended_run(rt, "old", days_ago=0, kind="render")
+        return record
+
+    monkeypatch.setattr(jobs, "_read_archived", read)
+    assert jobs.latest_job(project, kind="op").job_id == "older"
+
+
 @pytest.mark.parametrize("length", [jobs._MAX_POINTER_KEY_LEN + 1, 300])
 def test_a_kind_too_long_for_a_file_name_still_archives(project, length):
     """Spelled out, the pointer key would not fit a file name and the run could

@@ -985,16 +985,28 @@ def _latest_archived(rt, kind: str):
 
 def _pointed_record(rt, key: str, kind: str):
     """The record ``rt.latest[key]`` names (index or archive), ``None`` unless
-    it is a run of ``kind``. An unreadable pointer reads as none."""
+    it is a run of ``kind``. An unreadable pointer, or an unreadable record
+    behind it, reads as none: a dangling pointer, which the rescan skips and
+    the archiver overwrites, rather than a raise that would stop the kind
+    archiving and every :func:`latest_job` answering."""
     try:
         entry = rt.latest.get(key)
-    except ValueError:  # bad JSON, or a key the store refuses
+        job_id = entry.get("job_id") if isinstance(entry, Mapping) else None
+        if not isinstance(job_id, str) or not job_id:
+            return None
+        record = _find_record(rt, job_id)
+    except (ValueError, OSError):  # bad JSON, or a key the store refuses
         return None
-    job_id = entry.get("job_id") if isinstance(entry, Mapping) else None
-    if not isinstance(job_id, str) or not job_id:
+    return record if isinstance(record, Mapping) and record.get("kind") == kind else None
+
+
+def _read_archived(rt, job_id: str):
+    """``job_id``'s archived record, ``None`` if absent or unreadable."""
+    try:
+        record = _index_snapshot(rt, job_id, store=rt.archive)
+    except (ValueError, OSError):
         return None
-    record = _find_record(rt, job_id)
-    return record if record and record.get("kind") == kind else None
+    return record if isinstance(record, Mapping) else None
 
 
 def _advance_pointer_locked(rt, record) -> None:
@@ -1014,21 +1026,22 @@ def _backfill_pointers(rt, kind: str) -> None:
     under the lock, merge them into ``rt.latest`` by the archiver's rule, drop
     ``kind``'s pointer if it still resolves to nothing of ``kind``, and mark
     the backfill done (:data:`_BACKFILLED`)."""
-    newest: dict = {}
+    runs_of: dict[str, list] = {}  # kind -> [(created, job_id)]
     for job_id in list(rt.archive):
-        try:
-            record = _index_snapshot(rt, job_id, store=rt.archive)
-        except (ValueError, OSError):  # one bad file does not stop the scan
-            continue
-        k = record.get("kind") if isinstance(record, Mapping) else None
-        if isinstance(k, str) and (
-            k not in newest or _created_key(record) > _created_key(newest[k])
-        ):
-            newest[k] = record
+        record = _read_archived(rt, job_id)  # one bad file does not stop the scan
+        k = record.get("kind") if record else None
+        if isinstance(k, str):
+            runs_of.setdefault(k, []).append((_created_key(record), job_id))
     key = _pointer_key(kind)
     with rt.lock:
-        for record in newest.values():
-            _advance_pointer_locked(rt, record)
+        for k, runs in runs_of.items():
+            # Newest first, re-read under the lock: a re-run may have taken an
+            # id out of the archive (for another kind, even) since the scan.
+            for _, job_id in sorted(runs, reverse=True):
+                record = _read_archived(rt, job_id)
+                if record and record.get("kind") == k:
+                    _advance_pointer_locked(rt, record)
+                    break
         if key in rt.latest and _pointed_record(rt, key, kind) is None:
             del rt.latest[key]
         rt.latest[_BACKFILLED] = {"at": _iso(_utcnow())}
