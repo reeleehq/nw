@@ -44,8 +44,9 @@ a silently dropped edge:
     ...
     nw.transforms.asset_refs.AssetRefDeclarationError: annot://schema/doc-example/v1: 'sha256:abc' is not a bare 64-hex asset id
 
-nw declares only the schema it owns and whose artifact key it writes itself:
-``render-result/v1`` → ``artifact_id``. Apps declare theirs.
+nw declares only the schemas it owns, under the artifact key it writes itself:
+``render-result/v1``, ``narration-track/v1`` and ``sound-design/v1`` →
+``artifact_id``. Apps declare theirs.
 """
 
 from __future__ import annotations
@@ -150,8 +151,17 @@ def asset_refs_of(annotation: Annotation) -> tuple[str, ...]:
 
 def _declare_nw_owned() -> None:
     from nw.bodies.render_result import RENDER_RESULT_BODY_SCHEMA_URI
+    from nw.bodies.sound_design import (
+        NARRATION_TRACK_BODY_SCHEMA_URI,
+        SOUND_DESIGN_BODY_SCHEMA_URI,
+    )
 
-    register_asset_refs(RENDER_RESULT_BODY_SCHEMA_URI, asset_fields("artifact_id"))
+    for uri in (
+        RENDER_RESULT_BODY_SCHEMA_URI,
+        NARRATION_TRACK_BODY_SCHEMA_URI,
+        SOUND_DESIGN_BODY_SCHEMA_URI,
+    ):
+        register_asset_refs(uri, asset_fields("artifact_id"))
 
 
 _declare_nw_owned()

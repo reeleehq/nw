@@ -886,6 +886,9 @@ from .costs import CostTotal, total_cost  # noqa: E402
 # --- import adapters so the built-in render-strategy Transforms self-register
 from . import _adapters as _adapters  # noqa: E402,F401
 
+# --- narration -> sound design via foley (nw#190); foley itself loads in execute
+from . import sound_design as sound_design  # noqa: E402,F401
+
 # --- artifact-tier lineage: which artifacts a body schema names (nw#55)
 from .asset_refs import (  # noqa: E402
     AssetRefDeclarationError,
