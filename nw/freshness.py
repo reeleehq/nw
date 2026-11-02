@@ -474,6 +474,11 @@ def fresh_equivalents(
       (where it sits — JSON-compared). Stricter than braidio's original rule,
       deliberately: two outputs at different places are different nodes even
       when every other field agrees, and a missed reuse only costs a write;
+    - the same producer, ``provenance.was_generated_by``
+      (``transform:<name>@<impl_version>``): another Transform's node is not
+      this one's output, and after an ``impl_version`` bump the old
+      version's node must not keep coming back — freshness does not see a
+      changed Transform (this module's docstring), so the key has to;
     - the same **annotation** parents (:func:`annotation_parent_ids`, as a
       set). Artifact parents (nw#55) are ignored: a node written before the
       declaration has none, and comparing them would refuse to reuse every
@@ -490,18 +495,28 @@ def fresh_equivalents(
       classification :func:`stale_verdicts_all` gives it. Ids are not enough:
       a parent rewritten in place keeps its id, so a node derived from its
       old value has "the same parents" and is exactly the node that must not
-      be reused (braidio#51). A parentless ``E`` is never stale (the
-      snapshot's own rule), so it counts as fresh;
+      be reused (braidio#51). Unverifiable means stale here too: a node whose
+      verifying trace is gone is never reused. A parentless ``E`` is never
+      stale (the snapshot's own rule), so it counts as fresh;
     - ``E.id != A.id``.
 
     When several stored nodes qualify, the most recently generated one wins.
 
-    **Cost.** The cheap filter (one indexed ``by_tier`` read per distinct tier)
-    runs first; the freshness walk runs **at most once per call**, over the
-    candidates that survived it, and **not at all** when none did — so a
-    first run, or a run whose outputs are all new, pays nothing for this.
-    Pass every annotation of one write batch in a single call to share the
-    walk. Read-only: nothing is written.
+    Only **stored** nodes are candidates. Two equivalent annotations in the
+    same call are matched against the graph, not against each other, so a
+    caller that writes the ``None`` entries writes both; a later call then
+    returns the newest of the two for each.
+
+    **No lock** spans this read and the caller's write: two executes racing
+    on the same outputs both find nothing and both write — exactly what
+    happened without reuse, and nothing worse.
+
+    **Cost.** The cheap filter runs first: one indexed ``by_tier`` read per
+    distinct tier, each stored node's key computed once. The freshness walk
+    runs **at most once per call**, over the candidates that survived it, and
+    **not at all** when none did — so a first run, or a run whose outputs are
+    all new, pays nothing for this. Pass every annotation of one write batch
+    in a single call to share the walk. Read-only: nothing is written.
     """
     annotations = tuple(annotations)
     if not annotations:
@@ -515,24 +530,20 @@ def fresh_equivalents(
             ann.tier,
             ann.body_schema_uri,
             reference,
+            ann.provenance.was_generated_by,
             annotation_parent_ids(ann),
             json.dumps(value_of(ann), sort_keys=True, default=str),
         )
 
-    stored_by_tier: dict[str, list[Annotation]] = {}
+    stored: dict[tuple, list[Annotation]] = {}
     for tier in dict.fromkeys(a.tier for a in annotations):
-        stored_by_tier[tier] = annotations_at_tier(project_root, tier)
+        for e in annotations_at_tier(project_root, tier):
+            stored.setdefault(_identity(e), []).append(e)
 
-    candidates_per_input: list[list[Annotation]] = []
-    for ann in annotations:
-        wanted = _identity(ann)
-        candidates_per_input.append(
-            [
-                e
-                for e in stored_by_tier[ann.tier]
-                if e.id != ann.id and _identity(e) == wanted
-            ]
-        )
+    candidates_per_input = [
+        [e for e in stored.get(_identity(ann), ()) if e.id != ann.id]
+        for ann in annotations
+    ]
     candidate_ids = {e.id for cands in candidates_per_input for e in cands}
     if not candidate_ids:
         return tuple(None for _ in annotations)
@@ -547,18 +558,6 @@ def fresh_equivalents(
         return ordered[-1] if ordered else None
 
     return tuple(_newest_fresh(cands) for cands in candidates_per_input)
-
-
-def fresh_equivalent(
-    project_root: "ProjectLike",
-    annotation: Annotation,
-    *,
-    value_of: Callable[[Annotation], object] = body_value,
-) -> Optional[Annotation]:
-    """:func:`fresh_equivalents` for one annotation — the existing node it
-    would only duplicate, or ``None``. Batch with the plural form whenever
-    there are several, so they share one freshness walk."""
-    return fresh_equivalents(project_root, (annotation,), value_of=value_of)[0]
 
 
 def _fresh_among(project_root: "ProjectLike", ids: set[UUID]) -> set[UUID]:

@@ -51,9 +51,10 @@ it. Layering: `lacing → nw → falaw.Plan → backends` — nothing above
   exact rule and the four cases it deliberately does not catch.
   `fresh_equivalents(project, anns)` (nw#203) is the write-side question:
   the stored node each new annotation would only duplicate (same tier,
-  schema, reference, *annotation* parents, JSON-equal body, **verified
-  fresh** — equal parent ids are not enough, braidio#51); at most one walk
-  per call, none without a candidate. A Transform declaring
+  schema, reference, producer `transform:<name>@<impl_version>`,
+  *annotation* parents, JSON-equal body, **verified fresh** — equal parent
+  ids are not enough, braidio#51); at most one walk per call, none without a
+  candidate (a fan-out pays one per unit). A Transform declaring
   `reuse_fresh_outputs = True` (opt-in; `narration_to_sound_design.foley`
   does) has `BaseTransform.execute` return that node instead of writing a
   duplicate (still retiring the unproduced record its success settles), so

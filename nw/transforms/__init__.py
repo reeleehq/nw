@@ -456,8 +456,12 @@ class BaseTransform:
     what execute just wrote" step does) must compare those ids first, or it
     deletes a live node — and leaves everything derived from it dangling. A
     declaration rather than an ``execute`` keyword, so fan-outs and jobs
-    honour it with no plumbing. The cost is at most one freshness walk per
-    ``execute``, and none when no candidate exists."""
+    honour it with no plumbing.
+
+    Cost: one indexed tier read per ``execute``, plus at most one freshness
+    walk, and none when no candidate exists. A **fan-out** calls ``execute``
+    once per unit, so it pays one tier read and one walk *per unit*: no pass
+    shares a walk across units yet."""
 
     def plan(
         self,
@@ -599,9 +603,10 @@ class BaseTransform:
         # re-run served from falaw's cache) — is not written again: the
         # existing node is returned in its place, and the record its success
         # settles is still retired (nw#203).
+        reuse = _reuse_seam(project.graph) if self.reuse_fresh_outputs else None
         equivalents = (
-            _fresh_equivalents_of(project, completed)
-            if self.reuse_fresh_outputs
+            tuple(reuse.find(completed))
+            if reuse is not None and completed
             else tuple(None for _ in completed)
         )
         produced: list[Annotation] = []
@@ -614,9 +619,7 @@ class BaseTransform:
                 )
                 produced.append(ann)
             else:
-                project.graph.settle_unproduced_outputs(
-                    ann, instance_id=unit_instance_id, call_index=i
-                )
+                reuse.settle(ann, instance_id=unit_instance_id, call_index=i)
                 produced.append(existing)
         # A failed/blocked output's reason otherwise lives only in this
         # in-memory result — gone the moment the caller drops it, and
@@ -685,23 +688,32 @@ class BaseTransform:
         return skeleton.model_copy(update={"body": new_body})
 
 
-def _fresh_equivalents_of(
-    project, completed: list[Annotation]
-) -> tuple[Optional[Annotation], ...]:
-    """The stored node each of ``completed`` would only duplicate, or ``None``.
+@dataclass(frozen=True, slots=True)
+class _ReuseSeam:
+    """The two graph methods reuse needs: find the equivalents, settle a
+    reused success's unproduced-output record."""
 
-    Asked only for a Transform that declares ``reuse_fresh_outputs``.
+    find: Callable
+    settle: Callable
+
+
+def _reuse_seam(graph) -> Optional[_ReuseSeam]:
+    """``graph``'s reuse methods, or ``None`` when it lacks either.
+
     :meth:`nw.graph.ProjectGraph.fresh_equivalents` (the rule:
-    :func:`nw.freshness.fresh_equivalents`), asked once for the whole batch so
-    every skeleton of one ``execute`` call shares at most one freshness walk.
-    A ``project.graph`` that does not offer it — a test double, or a host's
-    duck-typed graph that predates nw#203 — reuses nothing, which is exactly
-    the behaviour before reuse existed.
+    :func:`nw.freshness.fresh_equivalents`, asked once for the whole batch,
+    so one ``execute`` pays at most one freshness walk) and
+    :meth:`~nw.graph.ProjectGraph.settle_unproduced_outputs`. Both or
+    neither: a graph that can find an equivalent but not retire the record
+    its success settles would leave a live blocker behind. A test double or
+    a host's duck-typed graph predating nw#203 lacking either reuses
+    nothing — exactly the behaviour before reuse existed.
     """
-    find = getattr(project.graph, "fresh_equivalents", None)
-    if find is None or not completed:
-        return tuple(None for _ in completed)
-    return tuple(find(completed))
+    find = getattr(graph, "fresh_equivalents", None)
+    settle = getattr(graph, "settle_unproduced_outputs", None)
+    if find is None or settle is None:
+        return None
+    return _ReuseSeam(find=find, settle=settle)
 
 
 # ---------------------------------------------------------------------------

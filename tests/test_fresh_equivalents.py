@@ -20,6 +20,11 @@ fal response stubbed and assets served from memory by the conftest's
 * several skeletons of one ``execute`` share one freshness walk, and a run
   with no candidates walks none;
 * without the declaration, every run still writes a new node;
+* a different producer (another Transform, or a bumped ``impl_version``), a
+  different reference, or a node whose verifying trace is gone is never
+  reused;
+* reuse works on a ``MappingStorage``-backed project, and a duck-typed graph
+  lacking either reuse method keeps the old behaviour;
 * a reused success still retires the unproduced-output record it settles
   (nw#44).
 """
@@ -108,17 +113,24 @@ def _plan(n: int = 1):
     )
 
 
-def _skeleton(proj, parents, *, shot_id: str = "s01") -> Annotation:
+def _skeleton(
+    proj,
+    parents,
+    *,
+    shot_id: str = "s01",
+    generated_by: str = "transform:test@1",
+    interval: tuple[float, float] = (0, 0),
+) -> Annotation:
     """A plan-time render skeleton (``artifact_id`` empty until execute),
     shaped the way ``derive_provenance`` shapes one."""
     return Annotation(
         id=uuid4(),
         tier=TIER,
-        reference=MediaRef(asset_id=proj.graph.asset_id, interval=_iv(0, 0)),
+        reference=MediaRef(asset_id=proj.graph.asset_id, interval=_iv(*interval)),
         body={"shot_id": shot_id, "strategy": "test", "artifact_id": None},
         body_schema_uri=RENDER_SCHEMA,
         provenance=Provenance(
-            was_generated_by="transform:test@1",
+            was_generated_by=generated_by,
             was_attributed_to="agent:test",
             was_derived_from=list(parents),
             generated_at_time=RationalTime.now(),
@@ -318,3 +330,102 @@ def test_retirement_reads_this_runs_upstream_not_the_reused_nodes(tmp_path, fal)
 
     assert result.annotations[0].id == old.id
     assert nw.ProjectGraph(proj.root).unproduced_outputs() == []
+
+
+# --- what is never reused -------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    "producer", ["transform:other@1", "transform:test@2"], ids=["other", "bumped"]
+)
+def test_another_producer_is_not_reused(tmp_path, fal, producer):
+    """Fails if the key leaves out ``was_generated_by``: another Transform's
+    node would be handed back as this one's output, and after an
+    ``impl_version`` bump the old version's node would keep coming back —
+    freshness does not see a changed Transform, so only the key can."""
+    proj, (shot,) = _project(tmp_path)
+    first = _Reusing().execute(proj, _plan(), (_skeleton(proj, (shot,)),))
+
+    second = _Reusing().execute(
+        proj, _plan(), (_skeleton(proj, (shot,), generated_by=producer),)
+    )
+
+    assert second.annotations[0].id != first.annotations[0].id
+    assert len(_nodes(proj)) == 2
+
+
+def test_a_different_reference_is_not_reused(tmp_path, fal):
+    """Fails if the key leaves out ``reference``: an output at another place
+    (interval) would be answered with a node that sits somewhere else."""
+    proj, (shot,) = _project(tmp_path)
+    first = _Reusing().execute(proj, _plan(), (_skeleton(proj, (shot,)),))
+
+    second = _Reusing().execute(
+        proj, _plan(), (_skeleton(proj, (shot,), interval=(1, 2)),)
+    )
+
+    assert second.annotations[0].id != first.annotations[0].id
+    assert len(_nodes(proj)) == 2
+
+
+def test_a_node_whose_trace_is_gone_is_not_reused(tmp_path, fal):
+    """Fails if reuse trusts a node it cannot verify: with its verifying trace
+    gone it is unverifiable, and unverifiable means stale (nw.freshness)."""
+    from nw.bodies import VERIFYING_TRACE_TIER
+
+    proj, (shot,) = _project(tmp_path)
+    first = _Reusing().execute(proj, _plan(), (_skeleton(proj, (shot,)),))
+    target = str(first.annotations[0].id)
+    with nw.open_project_stores(proj.root) as stores:
+        for store in stores:
+            for t in list(store.by_tier(VERIFYING_TRACE_TIER)):
+                if t.body.get("for_annotation_id") == target:
+                    store.remove(t.id)
+
+    second = _Reusing().execute(proj, _plan(), (_skeleton(proj, (shot,)),))
+
+    assert second.annotations[0].id != first.annotations[0].id
+    assert len(_nodes(proj)) == 2
+
+
+# --- where it runs ----------------------------------------------------------------
+
+
+def test_reuse_works_on_a_mapping_storage_project(tmp_path, fal):
+    """Fails if the rule opens the graph by path instead of through the
+    project's storage: a ``MappingStorage`` project keeps its graph in the
+    caller's mapping, with no ``project.annot.sqlite`` to find."""
+    proj = nw.Project.init(
+        tmp_path,
+        title="t",
+        storage=nw.MappingStorage(root=tmp_path, graph={}, docs={}),
+    )
+    shot = proj.graph.upsert_section(
+        SectionBodyV1(section_id="s", label="seed"), interval=_iv(0, 4)
+    )
+
+    first = _Reusing().execute(proj, _plan(), (_skeleton(proj, (shot,)),))
+    second = _Reusing().execute(proj, _plan(), (_skeleton(proj, (shot,)),))
+
+    assert second.annotations[0].id == first.annotations[0].id
+    assert len(nw.annotations_at_tier(proj.storage, TIER)) == 1
+
+
+def test_a_graph_lacking_a_reuse_method_keeps_the_old_behaviour(tmp_path, fal):
+    """Fails if execute looks the two reuse methods up separately: a host
+    graph offering ``fresh_equivalents`` but not ``settle_unproduced_outputs``
+    would find an equivalent and then raise ``AttributeError``."""
+    proj, (shot,) = _project(tmp_path)
+    real = proj.graph
+
+    class _HostGraph:  # finds equivalents, cannot settle records
+        fresh_equivalents = staticmethod(real.fresh_equivalents)
+        add_annotation = staticmethod(real.add_annotation)
+        add_unproduced_output = staticmethod(real.add_unproduced_output)
+
+    host = types.SimpleNamespace(root=proj.root, graph=_HostGraph())
+    first = _Reusing().execute(host, _plan(), (_skeleton(proj, (shot,)),))
+    second = _Reusing().execute(host, _plan(), (_skeleton(proj, (shot,)),))
+
+    assert second.annotations[0].id != first.annotations[0].id
+    assert len(_nodes(proj)) == 2

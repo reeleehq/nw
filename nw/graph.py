@@ -509,15 +509,11 @@ class ProjectGraph:
         from lacing import Tier, TierStereotype
 
         trace = self._verifying_trace_for(ann.id, ann.provenance.was_derived_from)
-        retire_key = _unproduced_output_key_for(
-            ann, instance_id=instance_id, call_index=call_index
-        )
         with self._open() as store:
             store.add_tier(Tier(name=ann.tier, stereotype=TierStereotype.NONE))
             store.add(ann)
             _add_trace(store, trace)
-            if retire_key is not None:
-                _retire_unproduced_outputs(store, retire_key)
+            _retire_settled_by(store, ann, instance_id, call_index)
 
     def fresh_equivalents(
         self, annotations: Iterable[Annotation]
@@ -553,13 +549,10 @@ class ProjectGraph:
         older reused node lacks. Same key and same arguments as
         :meth:`add_annotation`; a no-op for an annotation no Transform made.
         """
-        retire_key = _unproduced_output_key_for(
-            ann, instance_id=instance_id, call_index=call_index
-        )
-        if retire_key is None:
-            return
+        if _unproduced_output_key_for(ann) is None:
+            return  # no Transform made it: nothing to settle, no store opened
         with self._open() as store:
-            _retire_unproduced_outputs(store, retire_key)
+            _retire_settled_by(store, ann, instance_id, call_index)
 
     def remove_annotation(self, annotation_id: UUID) -> bool:
         """Remove one annotation from the project graph, with its verifying traces.
@@ -1274,6 +1267,25 @@ def _unproduced_output_key_matches(body: dict, key: _UnproducedOutputKey) -> boo
     if instance_id is not None and body_instance_id is not None:
         return body_instance_id == instance_id
     return frozenset(body.get("upstream") or ()) == upstream
+
+
+def _retire_settled_by(
+    store: IntervalAnnotationStore,
+    ann: Annotation,
+    instance_id: Optional[str],
+    call_index: Optional[int],
+) -> None:
+    """Retire the unproduced-output records ``ann``'s success settles (nw#44).
+
+    The one retirement rule :meth:`ProjectGraph.add_annotation` and
+    :meth:`ProjectGraph.settle_unproduced_outputs` share; a no-op for an
+    annotation no Transform produced.
+    """
+    key = _unproduced_output_key_for(
+        ann, instance_id=instance_id, call_index=call_index
+    )
+    if key is not None:
+        _retire_unproduced_outputs(store, key)
 
 
 def _retire_unproduced_outputs(
