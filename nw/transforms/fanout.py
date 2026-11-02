@@ -77,6 +77,7 @@ from lacing import Annotation, TimeInterval
 
 from nw.secrets import as_secrets, redact, redact_exception, using_secrets
 from nw.transforms._cache_mode import resolve_cache_mode
+from nw.transforms.costs import CostTotal, total_cost
 
 
 GenerateWhen = Literal["static", "dynamic"]
@@ -427,43 +428,37 @@ class FanOutResult:
         return all(r.status == "succeeded" for r in self.items)
 
     @property
+    def cost_total(self) -> CostTotal:
+        """The run's cost, by :func:`nw.transforms.total_cost` over the units
+        that produced a result, with any **failed** unit marking it unknown.
+
+        A unit that raised mid-execute may have been billed for calls its
+        (discarded) report would have carried, so its spend is unknown by
+        construction. Without that, a failed run could read "all costs known,
+        $0.00 spent" — the exact under-report the federation's unknown-cost
+        rule exists to prevent. ``blocked`` units never ran and are known-$0.
+        """
+        return total_cost(
+            (r.result for r in self.items if r.result is not None),
+            failed=any(r.status == "failed" for r in self.items),
+        )
+
+    @property
     def cost_usd_actual(self) -> float:
         """Observed spend over the units that ran. A lower bound, like
         :attr:`TransformResult.cost_usd_actual` (whose caveat about billed-
         but-failed calls applies per unit)."""
-        return sum(
-            (r.result.cost_usd_actual for r in self.items if r.result is not None),
-            0.0,
-        )
+        return self.cost_total.cost_usd_actual
 
     @property
     def cache_hit_savings_usd(self) -> float:
-        return sum(
-            (
-                r.result.cache_hit_savings_usd
-                for r in self.items
-                if r.result is not None
-            ),
-            0.0,
-        )
+        return self.cost_total.cache_hit_savings_usd
 
     @property
     def has_unknown_costs(self) -> bool:
-        """True when the run's true spend is not fully known.
-
-        Two sources, both counted: a surviving unit whose own report says
-        so, and any **failed** unit — a unit that raised mid-execute may
-        have been billed for calls its (discarded) report would have
-        carried, so its spend is unknown by construction. Without the
-        second clause, a failed run could read "all costs known, $0.00
-        spent" — the exact under-report the federation's unknown-cost rule
-        exists to prevent. ``blocked`` units never ran and are known-$0.
-        """
-        return any(
-            (r.result.has_unknown_costs if r.result is not None else False)
-            or r.status == "failed"
-            for r in self.items
-        )
+        """True when the run's true spend is not fully known (see
+        :attr:`cost_total`)."""
+        return self.cost_total.has_unknown_costs
 
     def to_record(self) -> dict:
         """The run record — where work items live (never the graph document).

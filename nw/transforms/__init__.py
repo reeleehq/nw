@@ -880,6 +880,9 @@ def transform_catalog() -> list[dict]:
     return entries
 
 
+# --- totalling several runs' costs (nw#189)
+from .costs import CostTotal, total_cost  # noqa: E402
+
 # --- import adapters so the built-in render-strategy Transforms self-register
 from . import _adapters as _adapters  # noqa: E402,F401
 
@@ -928,6 +931,9 @@ __all__ = [
     "FanOutItemResult",
     "FanOutResult",
     "fan_out_execute",
+    # totalling several runs' costs (nw#189)
+    "CostTotal",
+    "total_cost",
     # artifact-tier lineage (nw#55)
     "AssetRefDeclarationError",
     "asset_fields",
