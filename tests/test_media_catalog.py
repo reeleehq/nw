@@ -135,6 +135,43 @@ def test_blob_path_is_how_a_reader_finds_the_bytes(project):
     assert cat.blob_path("") is None and not cat.has("")
 
 
+@pytest.mark.parametrize(
+    "path_shaped",
+    [
+        "../x",
+        "/etc/passwd",
+        "../../" + "a" * 64,
+        "a" * 63,  # one short of a digest
+        "a" * 65,  # one over: a prefix match is not a digest
+        "A" * 64,  # a digest, but not lowercase
+        pytest.param(
+            "a" * 64 + "\n",  # fullmatch, not match: no trailing newline
+            marks=pytest.mark.skipif(os.name == "nt", reason="no newline in a name"),
+        ),
+        "./" + "a" * 64,
+    ],
+)
+def test_blob_path_never_turns_a_path_shaped_id_into_a_path(project, path_shaped):
+    """nw#191: ``blob_path`` is a host's only check of an artifact id before it
+    becomes a file path (braidio's ``media_path`` relies on it). Every file a
+    loosened guard would hand back exists here, blob and row, so ``None`` means
+    "refused", not "not found", and ``has`` is pinned on its own."""
+    cat = HostArtifactCatalog(project)
+    if not path_shaped.startswith("/"):
+        for planted in (cat.blobs_dir / path_shaped, cat.rows_dir / f"{path_shaped}.json"):
+            planted.resolve().parent.mkdir(parents=True, exist_ok=True)
+            planted.resolve().write_bytes(b"planted")
+    assert cat.blob_path(path_shaped) is None
+    assert not cat.has(path_shaped)
+
+
+def test_blob_path_refuses_an_absolute_path_to_a_real_blob(project):
+    """An id that is the absolute path of a stored blob is still not its id."""
+    cat = HostArtifactCatalog(project)
+    aid = cat.register(_media(project), kind="video")
+    assert cat.blob_path(str(cat.blob_path(aid))) is None
+
+
 def test_options_are_keyword_only(project):
     with pytest.raises(TypeError):
         HostArtifactCatalog(project, True)
