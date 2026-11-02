@@ -2,7 +2,7 @@
 
 # About this build
 
-This documentation was built on **2026-11-02 13:30 UTC** from commit <a href="https://github.com/reeleehq/nw/commit/d50bd7e1f3803dbf6832912b84080d8cb667a15e"><code>d50bd7e</code></a> on branch <code>main</code>, for **nw 0.0.116** (from <code>pyproject.toml</code>).
+This documentation was built on **2026-11-02 13:31 UTC** from commit <a href="https://github.com/reeleehq/nw/commit/d50bd7e1f3803dbf6832912b84080d8cb667a15e"><code>d50bd7e</code></a> on branch <code>main</code>, for **nw 0.0.116** (from <code>pyproject.toml</code>).
 
 #### NOTE
 Nothing suggests a mismatch: the tree was clean at the commit above, and the documented version is the one on PyPI.
@@ -13,7 +13,7 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 |---------------------|----------------------------------------------------------------------------------------------------------------------------------------------------|
 | Commit              | <a href="https://github.com/reeleehq/nw/commit/d50bd7e1f3803dbf6832912b84080d8cb667a15e"><code>d50bd7e1f3803dbf6832912b84080d8cb667a15e</code></a> |
 | Branch              | <code>main</code>                                                                                                                                  |
-| Tags at this commit | none                                                                                                                                               |
+| Tags at this commit | <code>0.0.116</code>                                                                                                                               |
 | Working tree        | clean                                                                                                                                              |
 | Remote              | <code>https://github.com/reeleehq/nw</code>                                                                                                        |
 
@@ -22,9 +22,9 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 |              |                                                                                            |
 |--------------|--------------------------------------------------------------------------------------------|
 | Repository   | <code>reeleehq/nw</code>                                                                   |
-| Run          | <a href="https://github.com/reeleehq/nw/actions/runs/41453201393">41453201393</a>          |
+| Run          | <a href="https://github.com/reeleehq/nw/actions/runs/41453220943">41453220943</a>          |
 | Ref          | <code>refs/heads/main</code>                                                               |
-| Event commit | <code>a888bbe0b48e5e6c89c9ad533d2677316b59bf70</code> (in the history of the built commit) |
+| Event commit | <code>47dbe6c7e9d4d9af196c55c1c0b1a31de4b49222</code> (in the history of the built commit) |
 
 ## Tools
 
