@@ -8,11 +8,15 @@ across lookups until nw's own write paths drop them.
 What these pin, through the real seams (falaw with a stubbed fal, the graph,
 the freshness walk): one walk per fan-out re-run; a write inside the pass
 makes the next lookup walk again (so a parent rewritten mid-pass reads
-stale); nested passes share; no pass is the old behaviour; two projects never
-share; a pass costs nothing to a Transform that does not reuse.
+stale) — from this thread or another, and through each of nw's write paths
+(graph writes, ``remove_annotations_with_traces``, ``rewrite_values``);
+nested passes share; no pass is the old behaviour; two projects never share;
+a pass costs nothing to a Transform that does not reuse.
 """
 
 from __future__ import annotations
+
+import threading
 
 import pytest
 
@@ -189,3 +193,78 @@ def test_a_pass_costs_nothing_to_a_transform_that_does_not_reuse(
 
     assert walks == [] and reads == []
     assert len(_nodes(proj)) == (4 if rerun else 2)
+
+
+def _edit_parent(proj) -> None:
+    proj.graph.upsert_section(
+        SectionBodyV1(section_id="s", label="edited"), interval=_iv(0, 4)
+    )
+
+
+def test_a_write_from_another_thread_drops_the_held_walk(tmp_path, fal):
+    """Fails if invalidation only reaches the writer's own context: a request
+    thread editing a shot while a fan-out runs on a worker (au's
+    ThreadBackend copies no ContextVars) would leave the fan-out answering
+    from a walk that still calls the edited shot's old render fresh."""
+    proj, (shot,) = _project(tmp_path)
+    first = _Reusing().execute(proj, _plan(), (_skeleton(proj, (shot,)),))
+
+    with nw.freshness_pass():
+        again = _Reusing().execute(proj, _plan(), (_skeleton(proj, (shot,)),))
+        assert again.annotations[0].id == first.annotations[0].id  # walk held
+        editor = threading.Thread(target=_edit_parent, args=(proj,))
+        editor.start()
+        editor.join()
+        after = _Reusing().execute(proj, _plan(), (_skeleton(proj, (shot,)),))
+
+    assert after.annotations[0].id != first.annotations[0].id
+    assert len(_nodes(proj)) == 2
+
+
+def test_remove_with_traces_mid_pass_drops_the_held_walk(tmp_path, fal):
+    """Fails if ``remove_annotations_with_traces`` does not drop the held
+    state: a node deleted through a raw store mid-pass (a storyboard
+    re-save's path) would still be in the held tier and walk, and be handed
+    back as the output — an id no longer in the graph."""
+    from nw.graph import remove_annotations_with_traces
+
+    proj, (shot,) = _project(tmp_path)
+    first = _Reusing().execute(proj, _plan(), (_skeleton(proj, (shot,)),))
+    gone = first.annotations[0].id
+
+    with nw.freshness_pass():
+        _Reusing().execute(proj, _plan(), (_skeleton(proj, (shot,)),))
+        store = proj.graph.storage.open_graph()
+        try:
+            remove_annotations_with_traces(store, {gone})
+        finally:
+            store.close()
+        after = _Reusing().execute(proj, _plan(), (_skeleton(proj, (shot,)),))
+
+    assert after.annotations[0].id != gone
+    assert [n.id for n in _nodes(proj)] == [after.annotations[0].id]
+
+
+def test_rewrite_values_mid_pass_drops_the_held_tier(tmp_path, fal):
+    """Fails if ``rewrite_values`` does not drop the held state: the held
+    tier still carries the output's old body, so a lookup for that old value
+    matches it and hands back a node whose stored body no longer says that."""
+    proj, (shot,) = _project(tmp_path)
+    first = _Reusing().execute(proj, _plan(), (_skeleton(proj, (shot,)),))
+
+    def rename(body):
+        if body.get("strategy") == "test":
+            return {**body, "strategy": "renamed"}
+        return body
+
+    with nw.freshness_pass():
+        _Reusing().execute(proj, _plan(), (_skeleton(proj, (shot,)),))
+        assert nw.rewrite_values(proj, rename) == 1
+        after = _Reusing().execute(proj, _plan(), (_skeleton(proj, (shot,)),))
+
+    assert after.annotations[0].id != first.annotations[0].id
+    stored = {n.id: n.body["strategy"] for n in _nodes(proj)}
+    assert stored == {
+        first.annotations[0].id: "renamed",
+        after.annotations[0].id: "test",
+    }

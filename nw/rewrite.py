@@ -166,12 +166,14 @@ def _rewritten(ann: Any, fn, where) -> Any:
 
 
 def _rewrite(storage, fn: Callable[[Any], Any], where) -> int:
+    # A value rewritten in place no longer matches what an open freshness
+    # pass holds for its tier, nor (re-stamped traces aside) its walk:
+    # every pass drops them, before and after (nw#209).
+    _freshness_pass.forget()
     try:
         return _rewrite_stores(storage, fn, where)
     finally:
-        # A value rewritten in place re-stamps its children's traces, so an
-        # open freshness pass's held walk no longer describes it (nw#209).
-        _freshness_pass.forget(storage)
+        _freshness_pass.forget()
 
 
 def _rewrite_stores(storage, fn: Callable[[Any], Any], where) -> int:

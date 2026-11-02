@@ -548,6 +548,11 @@ def accepts_keyword(execute: Callable, name: str) -> bool:
     )
 
 
+# One freshness walk for the whole fan-out, not one per unit: a Transform that
+# declares `reuse_fresh_outputs` looks its outputs up per unit, and the pass
+# shares the walk until a write (nw#209). Free for every other Transform —
+# opening a pass reads nothing.
+@freshness_pass()
 def fan_out_execute(
     transform,
     project,
@@ -636,40 +641,6 @@ def fan_out_execute(
     secrets = as_secrets(secrets)
     pass_secrets = secrets is not None and accepts_keyword(transform.execute, "secrets")
 
-    # One freshness walk for the whole fan-out, not one per unit: a
-    # Transform that declares `reuse_fresh_outputs` looks its outputs up per
-    # unit, and the pass shares the walk until a unit writes (nw#209). Free
-    # for every other Transform — opening it reads nothing.
-    with freshness_pass():
-        return _run_units(
-            transform,
-            project,
-            fan_out,
-            use_cache=use_cache,
-            force=force,
-            on_failure=on_failure,
-            secrets=secrets,
-            pass_on_failure=pass_on_failure,
-            pass_instance_id=pass_instance_id,
-            pass_secrets=pass_secrets,
-        )
-
-
-def _run_units(
-    transform,
-    project,
-    fan_out: FanOutPlan,
-    *,
-    use_cache: bool,
-    force: bool,
-    on_failure: str,
-    secrets,
-    pass_on_failure: bool,
-    pass_instance_id: bool,
-    pass_secrets: bool,
-) -> FanOutResult:
-    """:func:`fan_out_execute`'s unit loop, after its checks — one ordinary
-    ``transform.execute`` per unit, sequentially, isolated per unit."""
     results: list[FanOutItemResult] = []
     halted_by: Optional[str] = None
     for unit in fan_out.units:

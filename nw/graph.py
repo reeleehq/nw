@@ -161,20 +161,23 @@ class ProjectGraph:
         """Open the graph store for a WRITE.
 
         Every write path of this class comes through here, which makes it the
-        choke point where an open :func:`nw.freshness.freshness_pass` learns
-        that its held walk may be out of date (nw#209): on close, that
-        project's held state is dropped. ``changes_freshness=False`` is for
+        choke point where every open :func:`nw.freshness.freshness_pass`, in
+        any thread, learns that its held walk may be out of date (nw#209):
+        the write epoch moves on open and again on close.
+        ``changes_freshness=False`` is for
         the unproduced-output records only — parentless sidecars no node
         derives from, at a tier no reuse lookup reads — so retiring one on
         every reused success does not throw the shared walk away.
         """
+        if changes_freshness:
+            _freshness_pass.forget()
         store = self.storage.open_graph()
         try:
             yield store
         finally:
             close_quietly(store)
             if changes_freshness:
-                _freshness_pass.forget(self.storage)
+                _freshness_pass.forget()
 
     @contextmanager
     def _open_read(self) -> Iterator[Optional[IntervalAnnotationStore]]:
@@ -910,11 +913,20 @@ def remove_annotations_with_traces(
         The subset of ``annotation_ids`` that was actually present. Trace
         removals are not reported: they are bookkeeping, not content.
     """
-    # The store does not know its project, so an open freshness pass drops
-    # every project's held walk (nw#209). First, so even a no-op call — the
-    # first save of a storyboard, about to add rows — leaves no tier read
-    # held from before its writes.
+    # A deletion changes its dependents' freshness, so every open freshness
+    # pass drops its held walk (nw#209) — before, and again after. Before
+    # even a no-op call: the first save of a storyboard, about to add rows,
+    # must leave no tier read held from before its writes.
     _freshness_pass.forget()
+    try:
+        return _remove_with_traces(store, annotation_ids, annotations)
+    finally:
+        _freshness_pass.forget()
+
+
+def _remove_with_traces(store, annotation_ids, annotations) -> set[UUID]:
+    """:func:`remove_annotations_with_traces`'s body, between its two epoch
+    bumps."""
     wanted = set(annotation_ids)
     if not wanted:
         return set()

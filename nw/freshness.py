@@ -621,12 +621,12 @@ def freshness_pass() -> Iterator[None]:
 
     - every write-open of :class:`~nw.graph.ProjectGraph` (``add_annotation``
       and every entity upsert, ``remove_annotation``, ``backfill_traces``,
-      a genre spec's entity sync) drops that project's state. Unproduced-
-      output records (nw#44) do not: they are parentless sidecars no node
-      derives from, at a tier no lookup reads;
-    - :func:`~nw.graph.remove_annotations_with_traces` (a storyboard
-      re-save) drops every project's state — it has a store, not a root;
-    - :func:`nw.rewrite_values` drops that project's state.
+      a genre spec's entity sync). Unproduced-output records (nw#44) do not:
+      they are parentless sidecars no node derives from, at a tier no lookup
+      reads;
+    - :func:`~nw.graph.remove_annotations_with_traces` (also a storyboard
+      re-save);
+    - :func:`nw.rewrite_values`.
 
     :func:`~nw.graph.collect_orphan_traces` does not: an orphan trace is
     never consulted, so removing one changes no answer.
@@ -638,17 +638,20 @@ def freshness_pass() -> Iterator[None]:
     writes behind nw's back should not declare ``reuse_fresh_outputs``.
 
     State is per context (a :mod:`contextvars` variable) and keyed by the
-    resolved project root, so two projects in one pass never share it, and
-    a thread that did not inherit the context sees no pass.
+    **resolved project root**: two projects in one pass never share it, two
+    storages over one root do, and a thread that did not inherit the context
+    sees no pass. Invalidation is not per context: a write in *any* thread
+    moves a process-wide write epoch, and a held walk older than the epoch
+    is discarded on its next use — so a request thread editing a shot while
+    a fan-out runs on a worker drops that fan-out's walk too. It over-drops
+    (a write to one project drops every project's held walk), which is safe.
+
+    Held answers are **shared objects**: the annotations a lookup returns
+    inside a pass may be the same instances later lookups return. Do not
+    mutate them.
     """
-    if _freshness_pass._PASS.get() is not None:
+    with _freshness_pass.open_pass():
         yield
-        return
-    token = _freshness_pass._PASS.set({})
-    try:
-        yield
-    finally:
-        _freshness_pass._PASS.reset(token)
 
 
 # --- internals ---------------------------------------------------------------
