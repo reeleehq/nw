@@ -24,6 +24,7 @@ from nw.media_catalog import (
     catalog_row,
     hash_file,
 )
+from nw.media_store import SharedMediaStore
 
 
 @pytest.fixture(autouse=True)
@@ -151,25 +152,39 @@ def test_blob_path_is_how_a_reader_finds_the_bytes(project):
         "./" + "a" * 64,
     ],
 )
-def test_blob_path_never_turns_a_path_shaped_id_into_a_path(project, path_shaped):
-    """nw#191: ``blob_path`` is a host's only check of an artifact id before it
-    becomes a file path (braidio's ``media_path`` relies on it). Every file a
-    loosened guard would hand back exists here, blob and row, so ``None`` means
-    "refused", not "not found", and ``has`` is pinned on its own."""
-    cat = HostArtifactCatalog(project)
+@pytest.mark.parametrize("reader", ["catalog", "store"])
+def test_blob_path_never_turns_a_path_shaped_id_into_a_path(project, reader, path_shaped):
+    """nw#191, nw#194: ``blob_path`` is a reader's only check of an artifact id
+    before it becomes a file path (braidio's ``media_path`` relies on the
+    catalog's). Every file a loosened guard would hand back exists here, blob
+    and row, so ``None`` means "refused", not "not found", and ``has`` is
+    pinned on its own."""
+    r = _reader(project, reader)
     if not path_shaped.startswith("/"):
-        for planted in (cat.blobs_dir / path_shaped, cat.rows_dir / f"{path_shaped}.json"):
-            planted.resolve().parent.mkdir(parents=True, exist_ok=True)
-            planted.resolve().write_bytes(b"planted")
-    assert cat.blob_path(path_shaped) is None
-    assert not cat.has(path_shaped)
+        rows_dir = getattr(r, "rows_dir", None)
+        planted = [r.blobs_dir / path_shaped]
+        planted += [rows_dir / f"{path_shaped}.json"] if rows_dir else []
+        for p in planted:
+            p.resolve().parent.mkdir(parents=True, exist_ok=True)
+            p.resolve().write_bytes(b"planted")
+    assert r.blob_path(path_shaped) is None
+    assert not r.has(path_shaped)
 
 
-def test_blob_path_refuses_an_absolute_path_to_a_real_blob(project):
+@pytest.mark.parametrize("reader", ["catalog", "store"])
+def test_blob_path_refuses_an_absolute_path_to_a_real_blob(project, reader):
     """An id that is the absolute path of a stored blob is still not its id."""
-    cat = HostArtifactCatalog(project)
-    aid = cat.register(_media(project), kind="video")
-    assert cat.blob_path(str(cat.blob_path(aid))) is None
+    r = _reader(project, reader)
+    media = _media(project)
+    aid = r.register(media, kind="video") if reader == "catalog" else r.put(media)
+    assert r.blob_path(str(r.blob_path(aid))) is None
+
+
+def _reader(project, which):
+    """The two readers that turn an artifact id into a path."""
+    if which == "catalog":
+        return HostArtifactCatalog(project)
+    return SharedMediaStore(project.parent / "store")
 
 
 def test_options_are_keyword_only(project):

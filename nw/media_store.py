@@ -56,7 +56,11 @@ DEFAULT_LIFECYCLE_CLASS = "project"
 #: Seconds a blob must stay unreferenced, across two sweeps, before it is removed.
 DEFAULT_GRACE_S = 7 * 24 * 3600.0
 
+#: The host's ``content_hash`` validator, mirrored: 64 lowercase hex characters and
+#: nothing else. Always ``fullmatch`` (:func:`is_content_digest`): ``$`` also
+#: matches before a trailing newline.
 _IS_DIGEST = re.compile(r"[0-9a-f]{64}")
+_HASH_CHUNK = 1 << 20
 #: Tenant / class names are path segments: no separators, no dots-only, no reserved.
 _SEGMENT = re.compile(r"[A-Za-z0-9][A-Za-z0-9_.-]*")
 _SENTINEL = ".nw-store-catalog"
@@ -74,10 +78,35 @@ def _segment(name: str, what: str) -> str:
     return name
 
 
-def _hash_file(path) -> str:
+def is_content_digest(artifact_id) -> bool:
+    """Whether ``artifact_id`` is a content id: exactly 64 lowercase hex
+    characters, the SHA-256 of the bytes. The one check every reader applies
+    before an id becomes a file path (nw#194), so ``../x``, ``/etc/passwd``, a
+    prefix match or a trailing newline never reach the filesystem.
+
+    >>> is_content_digest("ab" * 32), is_content_digest("../" + "a" * 64)
+    (True, False)
+    >>> is_content_digest("a" * 64 + "\\n"), is_content_digest(None)
+    (False, False)
+    """
+    return isinstance(artifact_id, str) and bool(_IS_DIGEST.fullmatch(artifact_id))
+
+
+def hash_file(path, *, chunk_size: int = _HASH_CHUNK) -> str:
+    """SHA-256 of a file's bytes, read in chunks: the content id of that file.
+
+    The same digest lacing computes for an ``asset_id`` (pinned by a test), kept
+    here so the writers can be reasoned about without the graph layer.
+
+    >>> import tempfile, pathlib
+    >>> with tempfile.TemporaryDirectory() as d:
+    ...     p = pathlib.Path(d, "x"); _ = p.write_bytes(b"abc")
+    ...     hash_file(p)
+    'ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad'
+    """
     h = hashlib.sha256()
     with open(path, "rb") as f:
-        while chunk := f.read(1 << 20):
+        while chunk := f.read(chunk_size):
             h.update(chunk)
     return h.hexdigest()
 
@@ -139,7 +168,7 @@ class SharedMediaStore:
 
     def blob_path(self, artifact_id: str) -> Optional[Path]:
         """Where ``artifact_id``'s bytes are, or ``None`` if not stored."""
-        if not _IS_DIGEST.fullmatch(artifact_id or ""):
+        if not is_content_digest(artifact_id):
             return None
         p = self.blobs_dir / artifact_id
         return p if p.is_file() else None
@@ -157,8 +186,8 @@ class SharedMediaStore:
         there is size-checked, not re-hashed.
         """
         src = Path(path)
-        aid = artifact_id if artifact_id is not None else _hash_file(src)
-        if not _IS_DIGEST.fullmatch(aid or ""):
+        aid = artifact_id if artifact_id is not None else hash_file(src)
+        if not is_content_digest(aid):
             raise ValueError(
                 f"artifact_id {aid!r} is not a 64-char lowercase hex digest"
             )
@@ -244,7 +273,7 @@ class SharedMediaStore:
                 ) from exc
             for name in names:
                 stem, ext = os.path.splitext(name)
-                if ext == ".json" and _IS_DIGEST.fullmatch(stem):
+                if ext == ".json" and is_content_digest(stem):
                     counts[stem] = counts.get(stem, 0) + 1
         return counts
 
@@ -268,7 +297,7 @@ class SharedMediaStore:
             return rep
         for blob in sorted(self.blobs_dir.iterdir()):
             aid = blob.name
-            if not (blob.is_file() and _IS_DIGEST.fullmatch(aid)):
+            if not (blob.is_file() and is_content_digest(aid)):
                 continue
             mark = self._marks_dir / aid
             if refs.get(aid, 0) > 0:
@@ -320,4 +349,6 @@ __all__ = [
     "SharedMediaStore",
     "StoreCatalogUnreadable",
     "SweepReport",
+    "hash_file",
+    "is_content_digest",
 ]
