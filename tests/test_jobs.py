@@ -6,6 +6,7 @@ progress/cost/eta/cancel machinery is exercised without spending money.
 """
 
 import contextlib
+from collections.abc import MutableMapping
 import dataclasses
 from pathlib import Path
 import contextvars
@@ -3414,3 +3415,246 @@ def test_a_snapshot_of_a_replaced_run_never_sets_the_new_runs_floor(project, mon
     jobs._read_job(rt, snapshot, rt.config, project=project)
     with rt.lock:
         assert jobs._index_get_locked(rt, "j")["pct_floor"] is None
+
+
+# ---------------------------------------------------------------------------
+# latest of a kind — list_jobs(kind=) and latest_job (nw#185)
+# ---------------------------------------------------------------------------
+
+
+def _finished(project, kind, nonce, dispatch):
+    job = jobs.enqueue(project, kind, dict(VIDEO_PARAMS, nonce=nonce), dispatch=dispatch)
+    return _poll_until(project, job.job_id, lambda j: j.status in jobs.TERMINAL_STATUSES)
+
+
+def test_list_jobs_filters_kind_before_limit(project):
+    """The newest run of a kind is listed however many newer runs of other
+    kinds there are: the kind filter applies before ``limit``."""
+    ok = lambda project, params, **kw: {"ok": True}  # noqa: E731
+    dispatch = {"score": ok, "render": ok}
+    score = _finished(project, "score", 0, dispatch)
+    for i in range(3):
+        _finished(project, "render", i + 1, dispatch)
+
+    assert [j.job_id for j in jobs.list_jobs(project, kind="score", limit=1)] == [
+        score.job_id
+    ]
+    assert jobs.list_jobs(project, limit=1)[0].kind == "render"
+    assert jobs.list_jobs(project, kind="nothing") == []
+
+
+def test_latest_job_is_the_newest_run_of_its_kind(project):
+    ok = lambda project, params, **kw: {"ok": True}  # noqa: E731
+    dispatch = {"score": ok, "render": ok}
+    assert jobs.latest_job(project, kind="score") is None
+    _finished(project, "score", 0, dispatch)
+    newer = _finished(project, "score", 1, dispatch)
+    _finished(project, "render", 2, dispatch)
+    assert jobs.latest_job(project, kind="score").job_id == newer.job_id
+    assert jobs.latest_job(project, kind="render").kind == "render"
+
+
+class _Watched(MutableMapping):
+    """A store stand-in that records reads (``got``, ``iterated``) and can
+    refuse writes, to pin which stores a call touches."""
+
+    def __init__(self, store, *, refuse_writes=False):
+        self.store, self.refuse_writes, self.got, self.iterated = store, refuse_writes, [], 0
+
+    def __getitem__(self, k):
+        self.got.append(k)
+        return self.store[k]
+
+    def __contains__(self, k):
+        self.got.append(k)
+        return k in self.store
+
+    def __iter__(self):
+        self.iterated += 1
+        return iter(self.store)
+
+    def __len__(self):
+        return len(self.store)
+
+    def __setitem__(self, k, v):
+        if self.refuse_writes:
+            raise OSError("disk full")
+        self.store[k] = v
+
+    def __delitem__(self, k):
+        del self.store[k]
+
+
+def _pointer(rt, kind):
+    return rt.latest.get(jobs._pointer_key(kind))
+
+
+def test_archiving_points_the_kind_at_its_newest_archived_run(project):
+    """Archived out of creation order, the pointer still names the newest:
+    fails if the archiver overwrites it unconditionally (last archived wins)."""
+    rt = jobs._runtime(project)
+    _ended_run(rt, "old", days_ago=40)
+    _ended_run(rt, "older", days_ago=50)
+    cutoff = jobs._utcnow_plus(-30 * 86400)
+    for job_id in ("old", "older"):
+        assert jobs._archive_if_settled(rt, job_id, cutoff, rt.config)
+    assert _pointer(rt, "op") == {"job_id": "old"}
+    assert jobs.list_jobs(project, kind="op") == []
+    assert jobs.latest_job(project, kind="op").job_id == "old"
+
+
+def test_latest_job_does_not_scan_the_archive_after_the_backfill(project, monkeypatch):
+    """Behind a pointer, only the pointed record is read; for a never-run kind,
+    nothing: fails if no pointer, or no marker, still means a scan."""
+    rt = jobs._runtime(project)
+    _ended_run(rt, "old", days_ago=40)
+    jobs.archive_finished_runs(project)
+    assert jobs.latest_job(project, kind="never") is None  # the one backfill
+    assert jobs._BACKFILLED in rt.latest
+    archive = _Watched(rt.archive)
+    monkeypatch.setattr(rt, "archive", archive)
+    assert jobs.latest_job(project, kind="op").job_id == "old"
+    assert archive.iterated == 0 and set(archive.got) <= {"old"}
+    archive.got.clear()
+    assert jobs.latest_job(project, kind="never") is None
+    assert archive.iterated == 0 and archive.got == []
+
+
+def test_the_backfill_finds_runs_archived_before_the_pointer(project):
+    rt = jobs._runtime(project)
+    _ended_run(rt, "older", days_ago=50)
+    _ended_run(rt, "old", days_ago=40)
+    _ended_run(rt, "other", days_ago=45, kind="render")
+    jobs.archive_finished_runs(project)
+    for key in list(rt.latest):  # as an archive written before nw#185 is
+        del rt.latest[key]
+    assert jobs.latest_job(project, kind="op").job_id == "old"
+    assert jobs._BACKFILLED in rt.latest
+    assert _pointer(rt, "render") == {"job_id": "other"}  # one scan, every kind
+
+
+@pytest.mark.parametrize("stale", ["gone", "elsewhere"])
+def test_a_pointer_that_does_not_resolve_to_its_kind_is_repaired(project, stale):
+    """A pointer naming a vanished record, or a run of another kind (a reused
+    key): fails if ``latest_job`` trusts it and skips the archive."""
+    rt = jobs._runtime(project)
+    _ended_run(rt, "old", days_ago=40)
+    _ended_run(rt, "elsewhere", days_ago=35, kind="render")
+    jobs.archive_finished_runs(project)
+    jobs.latest_job(project, kind="op")  # the backfill marker is written
+    with rt.lock:
+        rt.latest[jobs._pointer_key("op")] = {"job_id": stale}
+        rt.latest[jobs._pointer_key("never")] = {"job_id": stale}
+    assert jobs.latest_job(project, kind="op").job_id == "old"
+    assert _pointer(rt, "op") == {"job_id": "old"}
+    assert jobs.latest_job(project, kind="never") is None
+    assert jobs._pointer_key("never") not in rt.latest  # not rescanned on every poll
+
+
+def test_a_failed_pointer_write_keeps_the_run_in_the_index(project, monkeypatch):
+    """Fails if the pointer write is suppressed: the run would leave the index
+    with no pointer, and ``latest_job`` (marker present) would not find it."""
+    rt = jobs._runtime(project)
+    jobs.latest_job(project, kind="op")  # the backfill marker is written
+    _ended_run(rt, "old", days_ago=40)
+    monkeypatch.setattr(rt, "latest", _Watched(rt.latest, refuse_writes=True))
+    assert jobs.archive_finished_runs(project) == []
+    assert "old" in rt.index
+    monkeypatch.undo()
+    assert jobs.latest_job(project, kind="op").job_id == "old"
+    assert jobs.archive_finished_runs(project) == ["old"]
+    assert jobs.latest_job(project, kind="op").job_id == "old"
+
+
+def test_a_rerun_of_an_archived_key_answers_without_a_rescan(project, monkeypatch):
+    """The pointer names an id whose re-run is live in the index: fails if the
+    pointer is resolved in the archive only (it would read as dangling)."""
+    rt = jobs._runtime(project)
+    _ended_run(rt, "k", days_ago=40)
+    jobs.archive_finished_runs(project)
+    jobs.latest_job(project, kind="op")
+    _ended_run(rt, "k", days_ago=1, label="rerun")  # as enqueue re-runs it:
+    rt.archive.pop("k")  # the index first, then the archived copy goes
+    archive = _Watched(rt.archive)
+    monkeypatch.setattr(rt, "archive", archive)
+    assert jobs.latest_job(project, kind="op").label == "rerun"
+    assert archive.iterated == 0 and _pointer(rt, "op") == {"job_id": "k"}
+
+
+def test_a_dot_leading_kind_or_eta_key_is_stored(project):
+    """The store refuses a ``.``-leading key (its temp-file prefix): before
+    ``_safe_key`` escaped it, such a run never left the index and such an ETA
+    key never recorded a sample."""
+    rt = jobs._runtime(project)
+    assert jobs._safe_key(".hidden") == "%2Ehidden"
+    _ended_run(rt, "d", days_ago=40, kind=".hidden")
+    assert jobs.archive_finished_runs(project) == ["d"]
+    assert jobs.latest_job(project, kind=".hidden").job_id == "d"
+    with rt.lock:
+        rt.middleware._record_sample_locked(".eta", 2.0)
+    assert jobs._durations_get(rt.durations, ".eta") == [2.0]
+
+
+def test_an_unreadable_pointed_record_neither_raises_nor_stops_archiving(project):
+    """Fails if the pointed record is read unguarded: ``latest_job`` would raise
+    on every call and no later run of the kind could leave the index."""
+    rt = jobs._runtime(project)
+    _ended_run(rt, "old", days_ago=40)
+    jobs.archive_finished_runs(project)
+    jobs.latest_job(project, kind="op")  # the backfill marker is written
+    (Path(project.root) / ".nw/jobs/index-archive/old").write_text("{not json")
+    assert jobs.latest_job(project, kind="op") is None
+    _ended_run(rt, "new", days_ago=35)
+    assert jobs.archive_finished_runs(project) == ["new"]
+    assert jobs.latest_job(project, kind="op").job_id == "new"
+
+
+def test_the_backfill_skips_a_run_taken_out_of_the_archive_meanwhile(project, monkeypatch):
+    """A re-run (here of another kind) took the scanned id out of the archive
+    before the backfill's lock: fails if the merge trusts the lock-free scan."""
+    rt = jobs._runtime(project)
+    _ended_run(rt, "older", days_ago=50)
+    _ended_run(rt, "old", days_ago=40)
+    jobs.archive_finished_runs(project)
+    for key in list(rt.latest):
+        del rt.latest[key]
+    real = jobs._read_archived
+    scanned = []
+
+    def read(rt_, job_id):
+        record = real(rt_, job_id)
+        if job_id == "old" and not scanned:  # the scan's read, then the re-run
+            scanned.append(job_id)
+            rt.archive.pop("old")
+            _ended_run(rt, "old", days_ago=0, kind="render")
+        return record
+
+    monkeypatch.setattr(jobs, "_read_archived", read)
+    assert jobs.latest_job(project, kind="op").job_id == "older"
+
+
+@pytest.mark.parametrize("length", [jobs._MAX_POINTER_KEY_LEN + 1, 300])
+def test_a_kind_too_long_for_a_file_name_still_archives(project, length):
+    """Spelled out, the pointer key would not fit a file name and the run could
+    never leave the index: fails if the long kind is not keyed by its digest."""
+    rt = jobs._runtime(project)
+    kind = "k" * length
+    _ended_run(rt, "long", days_ago=40, kind=kind)
+    assert jobs.archive_finished_runs(project) == ["long"]
+    assert jobs.latest_job(project, kind=kind).job_id == "long"
+    assert jobs._pointer_key(kind).startswith("%%sha256-")
+    edge = "k" * jobs._MAX_POINTER_KEY_LEN
+    assert jobs._pointer_key(edge) == edge
+
+
+def test_runs_order_by_time_not_by_string(project):
+    """``isoformat`` drops a zero microsecond: ``…:00Z`` is the older run even
+    though it sorts after ``…:00.5Z`` as a string."""
+    rt = jobs._runtime(project)
+    _ended_run(rt, "whole", days_ago=1)
+    _ended_run(rt, "half", days_ago=1)
+    with rt.lock:
+        jobs._index_update_locked(rt, "whole", created_at="2026-01-01T00:00:00Z")
+        jobs._index_update_locked(rt, "half", created_at="2026-01-01T00:00:00.500000Z")
+    assert [j.job_id for j in jobs.list_jobs(project)] == ["half", "whole"]
+    assert jobs.latest_job(project, kind="op").job_id == "half"
