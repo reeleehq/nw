@@ -13,6 +13,7 @@ nw.jobs
       NEVER_STARTED_REASON
       terminal_hooks
       ERROR_KIND_REFUSED
+      ERROR_KINDS
    
    .. rubric:: Functions
 

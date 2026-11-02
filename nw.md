@@ -1,4 +1,4 @@
-> built 2026-10-30 12:55 UTC from ce6b68a (main) · nw 0.0.111. Details: build_info.json
+> built 2026-11-02 13:06 UTC from 19934d9 (main) · nw 0.0.112. Details: build_info.json
 
 # index.html.md
 
@@ -7135,6 +7135,7 @@ the top of this module — no magic numbers below.
 | [`NEVER_STARTED_REASON`](_autosummary/nw.jobs.html.md#nw.jobs.NEVER_STARTED_REASON)   | A queued run older than `never_started_after_s` with no worker anywhere.                                                                                                                                                                                                   |
 | [`terminal_hooks`](_autosummary/nw.jobs.html.md#nw.jobs.terminal_hooks)         | `{name: hook}`; each hook is called as `hook(project, job)` when a run ends ([`register_terminal_hook()`](_autosummary/nw.jobs.html.md#nw.jobs.register_terminal_hook)).                                                                                                                   |
 | [`ERROR_KIND_REFUSED`](_autosummary/nw.jobs.html.md#nw.jobs.ERROR_KIND_REFUSED)     | `Job.error_kind` values — see [`Job.error_kind`](_autosummary/nw.jobs.html.md#nw.jobs.Job.error_kind).                                                                                                                                                                             |
+| [`ERROR_KINDS`](_autosummary/nw.jobs.html.md#nw.jobs.ERROR_KINDS)            | The whole `Job.error_kind` vocabulary, in that order.                                                                                                                                                                                                                      |
 
 ### Functions
 
@@ -7290,6 +7291,13 @@ Undo [`claim_locked()`](_autosummary/nw.jobs.html.md#nw.jobs.DurationLearningMid
 
 * **Return type:**
   [`None`](https://docs.python.org/3/builtins/constants.html#None)
+
+### nw.jobs.ERROR_KINDS *: [tuple](https://docs.python.org/3/builtins/stdtypes.html#tuple)[[str](https://docs.python.org/3/builtins/stdtypes.html#str), ...]* *= ('refused', 'cancelled', 'crashed')*
+
+The whole `Job.error_kind` vocabulary, in that order. A host that exports it
+to clients reads this rather than listing the constants itself, so a kind added
+here reaches it without an edit (nw#178, reelee#787). `Job.error_kind` only:
+[`nw.batches.output()`](_autosummary/nw.batches.html.md#nw.batches.output) adds `batches.MISSING` for a job whose record is gone.
 
 ### nw.jobs.ERROR_KIND_REFUSED *= 'refused'*
 
@@ -11168,20 +11176,18 @@ produce different URLs. The local file paths are byte-stable.
 
 # About this build
 
-This documentation was built on **2026-10-30 12:55 UTC** from commit <a href="https://github.com/reeleehq/nw/commit/ce6b68acc5bbf14ac86ca57a4602d6bdea565af9"><code>ce6b68a</code></a> on branch <code>main</code>, for **nw 0.0.111** (from <code>pyproject.toml</code>).
+This documentation was built on **2026-11-02 13:06 UTC** from commit <a href="https://github.com/reeleehq/nw/commit/19934d97ad87514e520474cf7b9845c656942181"><code>19934d9</code></a> on branch <code>main</code>, for **nw 0.0.112** (from <code>pyproject.toml</code>).
 
-#### WARNING
-The documentation and the package may be misaligned:
-
-- The documented version (0.0.111) is ahead of the latest release on PyPI (0.0.110): these docs describe unreleased code.
+#### NOTE
+Nothing suggests a mismatch: the tree was clean at the commit above, and the documented version is the one on PyPI.
 
 ## Source
 
 |                     |                                                                                                                                                    |
 |---------------------|----------------------------------------------------------------------------------------------------------------------------------------------------|
-| Commit              | <a href="https://github.com/reeleehq/nw/commit/ce6b68acc5bbf14ac86ca57a4602d6bdea565af9"><code>ce6b68acc5bbf14ac86ca57a4602d6bdea565af9</code></a> |
+| Commit              | <a href="https://github.com/reeleehq/nw/commit/19934d97ad87514e520474cf7b9845c656942181"><code>19934d97ad87514e520474cf7b9845c656942181</code></a> |
 | Branch              | <code>main</code>                                                                                                                                  |
-| Tags at this commit | <code>0.0.111</code>                                                                                                                               |
+| Tags at this commit | <code>0.0.112</code>                                                                                                                               |
 | Working tree        | clean                                                                                                                                              |
 | Remote              | <code>https://github.com/reeleehq/nw</code>                                                                                                        |
 
@@ -11190,9 +11196,9 @@ The documentation and the package may be misaligned:
 |              |                                                                                            |
 |--------------|--------------------------------------------------------------------------------------------|
 | Repository   | <code>reeleehq/nw</code>                                                                   |
-| Run          | <a href="https://github.com/reeleehq/nw/actions/runs/41058716851">41058716851</a>          |
+| Run          | <a href="https://github.com/reeleehq/nw/actions/runs/41449665959">41449665959</a>          |
 | Ref          | <code>refs/heads/main</code>                                                               |
-| Event commit | <code>38296f5aee4570debf931c732d56957f6e9205df</code> (in the history of the built commit) |
+| Event commit | <code>5902c17d95019cc854e8928525e9483e4a90db8c</code> (in the history of the built commit) |
 
 ## Tools
 
@@ -11217,13 +11223,13 @@ The documentation and the package may be misaligned:
 
 ## Package on PyPI
 
-Latest release: <a href="https://pypi.org/project/nw/0.0.110/">0.0.110</a>, older than the documented version (0.0.111).
+Latest release: <a href="https://pypi.org/project/nw/0.0.112/">0.0.112</a>, the same as the documented version.
 
 ## Reproduce
 
 ```bash
 git clone https://github.com/reeleehq/nw && cd nw
-git checkout ce6b68acc5bbf14ac86ca57a4602d6bdea565af9
+git checkout 19934d97ad87514e520474cf7b9845c656942181
 pip install "epythet==0.2.22"
 epythet quickstart . --ignore tests/ scrap/ examples/
 ```

@@ -138,6 +138,7 @@ data-aria-dark="Switch to auto color mode">
 <li><a class="reference internal" href="#nw.jobs.DurationLearningMiddleware.release_locked"><code class="docutils literal notranslate"><span class="pre">DurationLearningMiddleware.release_locked()</span></code></a></li>
 </ul>
 </li>
+<li><a class="reference internal" href="#nw.jobs.ERROR_KINDS"><code class="docutils literal notranslate"><span class="pre">ERROR_KINDS</span></code></a></li>
 <li><a class="reference internal" href="#nw.jobs.ERROR_KIND_REFUSED"><code class="docutils literal notranslate"><span class="pre">ERROR_KIND_REFUSED</span></code></a></li>
 <li><a class="reference internal" href="#nw.jobs.ESTIMATE_FROM_RENDER"><code class="docutils literal notranslate"><span class="pre">ESTIMATE_FROM_RENDER</span></code></a></li>
 <li><a class="reference internal" href="#nw.jobs.Job"><code class="docutils literal notranslate"><span class="pre">Job</span></code></a><ul>
@@ -332,6 +333,9 @@ the top of this module — no magic numbers below.</p>
 </tr>
 <tr class="row-odd"><td><p><a class="reference internal" href="#nw.jobs.ERROR_KIND_REFUSED" title="nw.jobs.ERROR_KIND_REFUSED"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ERROR_KIND_REFUSED</span></code></a></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">Job.error_kind</span></code> values — see <a class="reference internal" href="#nw.jobs.Job.error_kind" title="nw.jobs.Job.error_kind"><code class="xref py py-attr docutils literal notranslate"><span class="pre">Job.error_kind</span></code></a>.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#nw.jobs.ERROR_KINDS" title="nw.jobs.ERROR_KINDS"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ERROR_KINDS</span></code></a></p></td>
+<td><p>The whole <code class="docutils literal notranslate"><span class="pre">Job.error_kind</span></code> vocabulary, in that order.</p></td>
 </tr>
 </tbody>
 </table>
@@ -572,6 +576,15 @@ another replica before the old run’s outcome has landed (nw#149).</p>
 </dl>
 </dd></dl>
 
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="nw.jobs.ERROR_KINDS">
+<span class="sig-prename descclassname"><span class="pre">nw.jobs.</span></span><span class="sig-name descname"><span class="pre">ERROR_KINDS</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#tuple" title="(in Python v3.15)"><span class="pre">tuple</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="p"><span class="pre">...</span></span><span class="p"><span class="pre">]</span></span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">('refused',</span> <span class="pre">'cancelled',</span> <span class="pre">'crashed')</span></span><a class="headerlink" href="#nw.jobs.ERROR_KINDS" title="Link to this definition">#</a></dt>
+<dd><p>The whole <code class="docutils literal notranslate"><span class="pre">Job.error_kind</span></code> vocabulary, in that order. A host that exports it
+to clients reads this rather than listing the constants itself, so a kind added
+here reaches it without an edit (nw#178, reelee#787). <code class="docutils literal notranslate"><span class="pre">Job.error_kind</span></code> only:
+<a class="reference internal" href="nw.batches.html#nw.batches.output" title="nw.batches.output"><code class="xref py py-func docutils literal notranslate"><span class="pre">nw.batches.output()</span></code></a> adds <code class="docutils literal notranslate"><span class="pre">batches.MISSING</span></code> for a job whose record is gone.</p>
 </dd></dl>
 
 <dl class="py data">
@@ -1415,7 +1428,7 @@ cannot silently claim one name.</p>
     </div>
   </div>
 </footer>
-      <script src="../_static/documentation_options.js?v=609ae934"></script>
+      <script src="../_static/documentation_options.js?v=5762635e"></script>
       <script src="../_static/doctools.js?v=fd6eb6e6"></script>
       <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script src="../_static/clipboard.min.js?v=a7894cd8"></script>

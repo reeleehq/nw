@@ -80,6 +80,7 @@ the top of this module — no magic numbers below.
 | [`NEVER_STARTED_REASON`](#nw.jobs.NEVER_STARTED_REASON)   | A queued run older than `never_started_after_s` with no worker anywhere.                                                                                                                                                                                                   |
 | [`terminal_hooks`](#nw.jobs.terminal_hooks)         | `{name: hook}`; each hook is called as `hook(project, job)` when a run ends ([`register_terminal_hook()`](#nw.jobs.register_terminal_hook)).                                                                                                                   |
 | [`ERROR_KIND_REFUSED`](#nw.jobs.ERROR_KIND_REFUSED)     | `Job.error_kind` values — see [`Job.error_kind`](#nw.jobs.Job.error_kind).                                                                                                                                                                             |
+| [`ERROR_KINDS`](#nw.jobs.ERROR_KINDS)            | The whole `Job.error_kind` vocabulary, in that order.                                                                                                                                                                                                                      |
 
 ### Functions
 
@@ -235,6 +236,13 @@ Undo [`claim_locked()`](#nw.jobs.DurationLearningMiddleware.claim_locked) when t
 
 * **Return type:**
   [`None`](https://docs.python.org/3/builtins/constants.html#None)
+
+### nw.jobs.ERROR_KINDS *: [tuple](https://docs.python.org/3/builtins/stdtypes.html#tuple)[[str](https://docs.python.org/3/builtins/stdtypes.html#str), ...]* *= ('refused', 'cancelled', 'crashed')*
+
+The whole `Job.error_kind` vocabulary, in that order. A host that exports it
+to clients reads this rather than listing the constants itself, so a kind added
+here reaches it without an edit (nw#178, reelee#787). `Job.error_kind` only:
+[`nw.batches.output()`](nw.batches.html.md#nw.batches.output) adds `batches.MISSING` for a job whose record is gone.
 
 ### nw.jobs.ERROR_KIND_REFUSED *= 'refused'*
 
