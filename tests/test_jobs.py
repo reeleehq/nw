@@ -3651,10 +3651,27 @@ def test_a_key_too_long_for_a_file_name_is_stored_by_digest(project, length):
 
 def test_every_key_that_could_be_written_keeps_its_name():
     """The digest applies only past what the store could write, so no stored
-    duration sample or pointer moves: the longest writable key is unchanged
-    and really is writable."""
+    duration sample moves."""
     edge = "k" * jobs._MAX_STORE_KEY_LEN
     assert jobs._safe_key(edge) == edge
+
+
+@pytest.mark.skipif(os.name == "nt", reason="Windows caps the whole path, not the name")
+@pytest.mark.parametrize(
+    "key",
+    [
+        "k" * jobs._MAX_STORE_KEY_LEN,
+        "." + "k" * (jobs._MAX_STORE_KEY_LEN - 1),  # the %2E escape adds two
+        "." + "k" * jobs._MAX_STORE_KEY_LEN,
+        "é" * 40 + "kk",  # percent-encoded: six characters each
+        "a/b" * 100,
+    ],
+)
+def test_any_key_is_writable(tmp_path, key):
+    """Whatever its shape, ``_safe_key`` gives a name the store can write."""
+    store = jobs.AtomicJsonFiles(tmp_path / "s")
+    store[jobs._safe_key(key)] = {"ok": True}
+    assert store[jobs._safe_key(key)] == {"ok": True}
 
 
 @pytest.mark.skipif(os.name == "nt", reason="Windows caps the whole path, not the name")

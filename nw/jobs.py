@@ -3219,9 +3219,14 @@ def _durations_put(durations: MutableMapping, eta_key: str, samples: list) -> No
 _MAX_NAME_BYTES = 255
 """The longest file name the filesystems nw runs on accept."""
 
-_MAX_STORE_KEY_LEN = _MAX_NAME_BYTES - len(".") - len(".") - 8 - len(".tmp")
+_TEMP_RANDOM_LEN = 8
+"""Random characters ``tempfile.mkstemp`` puts in a name."""
+
+_MAX_STORE_KEY_LEN = (
+    _MAX_NAME_BYTES - len(".") - len(".") - _TEMP_RANDOM_LEN - len(".tmp")
+)
 """Longest key :class:`AtomicJsonFiles` can write: its temp file is
-``.<key>.<8 random characters>.tmp`` beside the target."""
+``.<key>.<random>.tmp`` beside the target."""
 
 
 def _safe_key(key: str) -> str:
@@ -3229,14 +3234,18 @@ def _safe_key(key: str) -> str:
 
     Percent-encoded; a leading ``.`` (the store's temp-file prefix, which it
     refuses) as ``%2E``; and, past :data:`_MAX_STORE_KEY_LEN`, ``%%sha256-`` +
-    the key's digest (nw#197). A key either rule rewrites could never be
-    written before, so no stored key moves. Used for ETA keys (whose records
-    carry the key itself) and for the latest-run pointers (nw#185), where an
-    unwritable key would keep a kind's runs out of the archive."""
+    the key's digest (nw#197). Used for ETA keys (whose records carry the
+    key itself) and for the latest-run pointers (nw#185), where an unwritable
+    key would keep a kind's runs out of the archive. No duration sample moves:
+    a key either rule rewrites could never be written. A pointer for a kind
+    whose key is 201 to 241 characters does move (nw#185 first hashed past
+    200); it is found again when that kind next archives a run."""
     quoted = urllib.parse.quote(key, safe="")
+    if quoted.startswith("."):
+        quoted = "%2E" + quoted[1:]
     if len(quoted) > _MAX_STORE_KEY_LEN:
         return "%%sha256-" + hashlib.sha256(key.encode("utf-8")).hexdigest()
-    return "%2E" + quoted[1:] if quoted.startswith(".") else quoted
+    return quoted
 
 
 def _percentile(xs, p):
