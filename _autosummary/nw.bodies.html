@@ -78,6 +78,7 @@ data-aria-dark="Switch to auto color mode">
 <li class="toctree-l4"><a class="reference internal" href="nw.bodies.render_result.html">nw.bodies.render_result</a></li>
 <li class="toctree-l4"><a class="reference internal" href="nw.bodies.section.html">nw.bodies.section</a></li>
 <li class="toctree-l4"><a class="reference internal" href="nw.bodies.shot.html">nw.bodies.shot</a></li>
+<li class="toctree-l4"><a class="reference internal" href="nw.bodies.sound_design.html">nw.bodies.sound_design</a></li>
 <li class="toctree-l4"><a class="reference internal" href="nw.bodies.unproduced_output.html">nw.bodies.unproduced_output</a></li>
 <li class="toctree-l4"><a class="reference internal" href="nw.bodies.verifying_trace.html">nw.bodies.verifying_trace</a></li>
 </ul>
@@ -144,6 +145,10 @@ data-aria-dark="Switch to auto color mode">
 <li><a class="reference internal" href="#nw.bodies.GenreEnvelopeBodyV1.model_config"><code class="docutils literal notranslate"><span class="pre">GenreEnvelopeBodyV1.model_config</span></code></a></li>
 </ul>
 </li>
+<li><a class="reference internal" href="#nw.bodies.NarrationTrackBodyV1"><code class="docutils literal notranslate"><span class="pre">NarrationTrackBodyV1</span></code></a><ul>
+<li><a class="reference internal" href="#nw.bodies.NarrationTrackBodyV1.model_config"><code class="docutils literal notranslate"><span class="pre">NarrationTrackBodyV1.model_config</span></code></a></li>
+</ul>
+</li>
 <li><a class="reference internal" href="#nw.bodies.RenderResultBodyV1"><code class="docutils literal notranslate"><span class="pre">RenderResultBodyV1</span></code></a><ul>
 <li><a class="reference internal" href="#nw.bodies.RenderResultBodyV1.model_config"><code class="docutils literal notranslate"><span class="pre">RenderResultBodyV1.model_config</span></code></a></li>
 </ul>
@@ -154,6 +159,14 @@ data-aria-dark="Switch to auto color mode">
 </li>
 <li><a class="reference internal" href="#nw.bodies.ShotBodyV1"><code class="docutils literal notranslate"><span class="pre">ShotBodyV1</span></code></a><ul>
 <li><a class="reference internal" href="#nw.bodies.ShotBodyV1.model_config"><code class="docutils literal notranslate"><span class="pre">ShotBodyV1.model_config</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#nw.bodies.SoundDesignBodyV1"><code class="docutils literal notranslate"><span class="pre">SoundDesignBodyV1</span></code></a><ul>
+<li><a class="reference internal" href="#nw.bodies.SoundDesignBodyV1.model_config"><code class="docutils literal notranslate"><span class="pre">SoundDesignBodyV1.model_config</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#nw.bodies.SoundDesignConfigBodyV1"><code class="docutils literal notranslate"><span class="pre">SoundDesignConfigBodyV1</span></code></a><ul>
+<li><a class="reference internal" href="#nw.bodies.SoundDesignConfigBodyV1.model_config"><code class="docutils literal notranslate"><span class="pre">SoundDesignConfigBodyV1.model_config</span></code></a></li>
 </ul>
 </li>
 <li><a class="reference internal" href="#nw.bodies.UnproducedOutputBodyV1"><code class="docutils literal notranslate"><span class="pre">UnproducedOutputBodyV1</span></code></a><ul>
@@ -224,6 +237,9 @@ with a matching <code class="docutils literal notranslate"><span class="pre">bod
 produced (nw#44), retired by a later successful retry</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">annot://schema/genre-envelope/v1</span></code> — the resolved {genre, template, params}
 the project was created as (singleton per project)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">annot://schema/narration-track/v1</span></code>, <code class="docutils literal notranslate"><span class="pre">annot://schema/sound-design-config/v1</span></code>,
+<code class="docutils literal notranslate"><span class="pre">annot://schema/sound-design/v1</span></code> — the inputs and output of the
+<code class="docutils literal notranslate"><span class="pre">narration_to_sound_design.foley</span></code> Transform (nw#190)</p></li>
 </ul>
 <p>These are deliberately small and project-agnostic. Reelee will be able to
 walk the same graph for freshness analysis (“what’s downstream of this
@@ -263,13 +279,22 @@ character description?”) without bespoke storage.</p>
 <tr class="row-odd"><td><p><a class="reference internal" href="#nw.bodies.ShotBodyV1" title="nw.bodies.ShotBodyV1"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ShotBodyV1</span></code></a>(*, shot_id[, section_id, ...])</p></td>
 <td><p>Body of a shot annotation.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#nw.bodies.UnproducedOutputBodyV1" title="nw.bodies.UnproducedOutputBodyV1"><code class="xref py py-obj docutils literal notranslate"><span class="pre">UnproducedOutputBodyV1</span></code></a>(*, transform_name[, ...])</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#nw.bodies.NarrationTrackBodyV1" title="nw.bodies.NarrationTrackBodyV1"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NarrationTrackBodyV1</span></code></a>(*, audio_path[, ...])</p></td>
+<td><p>Body of a narration-track annotation: one audio file + its sentences.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#nw.bodies.SoundDesignConfigBodyV1" title="nw.bodies.SoundDesignConfigBodyV1"><code class="xref py py-obj docutils literal notranslate"><span class="pre">SoundDesignConfigBodyV1</span></code></a>(*[, enabled, ...])</p></td>
+<td><p>Body of a sound-design-config annotation: the switch and the knobs.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#nw.bodies.SoundDesignBodyV1" title="nw.bodies.SoundDesignBodyV1"><code class="xref py py-obj docutils literal notranslate"><span class="pre">SoundDesignBodyV1</span></code></a>(*[, artifact_id, ...])</p></td>
+<td><p>Body of a sound-design annotation: the mix and everything published with it.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#nw.bodies.UnproducedOutputBodyV1" title="nw.bodies.UnproducedOutputBodyV1"><code class="xref py py-obj docutils literal notranslate"><span class="pre">UnproducedOutputBodyV1</span></code></a>(*, transform_name[, ...])</p></td>
 <td><p>Body of an unproduced-output record.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#nw.bodies.UpstreamDigestV1" title="nw.bodies.UpstreamDigestV1"><code class="xref py py-obj docutils literal notranslate"><span class="pre">UpstreamDigestV1</span></code></a>(*, annotation_id, value_digest)</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#nw.bodies.UpstreamDigestV1" title="nw.bodies.UpstreamDigestV1"><code class="xref py py-obj docutils literal notranslate"><span class="pre">UpstreamDigestV1</span></code></a>(*, annotation_id, value_digest)</p></td>
 <td><p>One <code class="docutils literal notranslate"><span class="pre">(upstream</span> <span class="pre">annotation,</span> <span class="pre">its</span> <span class="pre">value</span> <span class="pre">digest)</span></code> pair.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#nw.bodies.VerifyingTraceBodyV1" title="nw.bodies.VerifyingTraceBodyV1"><code class="xref py py-obj docutils literal notranslate"><span class="pre">VerifyingTraceBodyV1</span></code></a>(*, for_annotation_id, ...)</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#nw.bodies.VerifyingTraceBodyV1" title="nw.bodies.VerifyingTraceBodyV1"><code class="xref py py-obj docutils literal notranslate"><span class="pre">VerifyingTraceBodyV1</span></code></a>(*, for_annotation_id, ...)</p></td>
 <td><p>Body of a verifying-trace annotation.</p></td>
 </tr>
 </tbody>
@@ -346,6 +371,21 @@ persisted record and the creation-time contract can never drift apart.</p>
 </dd></dl>
 
 <dl class="py class">
+<dt class="sig sig-object py" id="nw.bodies.NarrationTrackBodyV1">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">nw.bodies.</span></span><span class="sig-name descname"><span class="pre">NarrationTrackBodyV1</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">audio_path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">artifact_id</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">segments</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">segment_starts</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/nw/bodies/sound_design.html#NarrationTrackBodyV1"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nw.bodies.NarrationTrackBodyV1" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">BaseModel</span></code></p>
+<p>Body of a narration-track annotation: one audio file + its sentences.</p>
+<dl class="field-list simple">
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="nw.bodies.NarrationTrackBodyV1.model_config">
+<span class="sig-name descname"><span class="pre">model_config</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.ClassVar" title="(in Python v3.15)"><span class="pre">ClassVar</span></a><span class="p"><span class="pre">[</span></span><span class="pre">ConfigDict</span><span class="p"><span class="pre">]</span></span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">{'extra':</span> <span class="pre">'forbid',</span> <span class="pre">'frozen':</span> <span class="pre">True}</span></span><a class="headerlink" href="#nw.bodies.NarrationTrackBodyV1.model_config" title="Link to this definition">#</a></dt>
+<dd><p>Configuration for the model, should be a dictionary conforming to [<code class="code docutils literal notranslate"><span class="pre">ConfigDict</span></code>][pydantic.config.ConfigDict].</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
 <dt class="sig sig-object py" id="nw.bodies.RenderResultBodyV1">
 <span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">nw.bodies.</span></span><span class="sig-name descname"><span class="pre">RenderResultBodyV1</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">shot_id</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">strategy</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_path</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">artifact_id</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">duration_s</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">total_estimated_cost_usd</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/nw/bodies/render_result.html#RenderResultBodyV1"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nw.bodies.RenderResultBodyV1" title="Link to this definition">#</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">BaseModel</span></code></p>
@@ -385,6 +425,36 @@ persisted record and the creation-time contract can never drift apart.</p>
 <dl class="py attribute">
 <dt class="sig sig-object py" id="nw.bodies.ShotBodyV1.model_config">
 <span class="sig-name descname"><span class="pre">model_config</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.ClassVar" title="(in Python v3.15)"><span class="pre">ClassVar</span></a><span class="p"><span class="pre">[</span></span><span class="pre">ConfigDict</span><span class="p"><span class="pre">]</span></span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">{'extra':</span> <span class="pre">'forbid',</span> <span class="pre">'frozen':</span> <span class="pre">True}</span></span><a class="headerlink" href="#nw.bodies.ShotBodyV1.model_config" title="Link to this definition">#</a></dt>
+<dd><p>Configuration for the model, should be a dictionary conforming to [<code class="code docutils literal notranslate"><span class="pre">ConfigDict</span></code>][pydantic.config.ConfigDict].</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="nw.bodies.SoundDesignBodyV1">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">nw.bodies.</span></span><span class="sig-name descname"><span class="pre">SoundDesignBodyV1</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">artifact_id</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">duration_s</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">timeline</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">&lt;factory&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">events</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">&lt;factory&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">credits</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">&lt;factory&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">captions_vtt</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">master_report</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">&lt;factory&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">notes</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">&lt;factory&gt;</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/nw/bodies/sound_design.html#SoundDesignBodyV1"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nw.bodies.SoundDesignBodyV1" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">BaseModel</span></code></p>
+<p>Body of a sound-design annotation: the mix and everything published with it.</p>
+<dl class="field-list simple">
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="nw.bodies.SoundDesignBodyV1.model_config">
+<span class="sig-name descname"><span class="pre">model_config</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.ClassVar" title="(in Python v3.15)"><span class="pre">ClassVar</span></a><span class="p"><span class="pre">[</span></span><span class="pre">ConfigDict</span><span class="p"><span class="pre">]</span></span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">{'extra':</span> <span class="pre">'forbid',</span> <span class="pre">'frozen':</span> <span class="pre">True}</span></span><a class="headerlink" href="#nw.bodies.SoundDesignBodyV1.model_config" title="Link to this definition">#</a></dt>
+<dd><p>Configuration for the model, should be a dictionary conforming to [<code class="code docutils literal notranslate"><span class="pre">ConfigDict</span></code>][pydantic.config.ConfigDict].</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="nw.bodies.SoundDesignConfigBodyV1">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">nw.bodies.</span></span><span class="sig-name descname"><span class="pre">SoundDesignConfigBodyV1</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">enabled</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_events</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">6</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">master</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'podcast'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">commercial_ok</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/nw/bodies/sound_design.html#SoundDesignConfigBodyV1"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nw.bodies.SoundDesignConfigBodyV1" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">BaseModel</span></code></p>
+<p>Body of a sound-design-config annotation: the switch and the knobs.</p>
+<dl class="field-list simple">
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="nw.bodies.SoundDesignConfigBodyV1.model_config">
+<span class="sig-name descname"><span class="pre">model_config</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.ClassVar" title="(in Python v3.15)"><span class="pre">ClassVar</span></a><span class="p"><span class="pre">[</span></span><span class="pre">ConfigDict</span><span class="p"><span class="pre">]</span></span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">{'extra':</span> <span class="pre">'forbid',</span> <span class="pre">'frozen':</span> <span class="pre">True}</span></span><a class="headerlink" href="#nw.bodies.SoundDesignConfigBodyV1.model_config" title="Link to this definition">#</a></dt>
 <dd><p>Configuration for the model, should be a dictionary conforming to [<code class="code docutils literal notranslate"><span class="pre">ConfigDict</span></code>][pydantic.config.ConfigDict].</p>
 </dd></dl>
 
@@ -510,10 +580,13 @@ reachability behaviour instead of being silently declared fresh.</p>
 <tr class="row-odd"><td><p><a class="reference internal" href="nw.bodies.shot.html#module-nw.bodies.shot" title="nw.bodies.shot"><code class="xref py py-obj docutils literal notranslate"><span class="pre">shot</span></code></a></p></td>
 <td><p>Body schema for shots — the renderable visual unit.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="nw.bodies.unproduced_output.html#module-nw.bodies.unproduced_output" title="nw.bodies.unproduced_output"><code class="xref py py-obj docutils literal notranslate"><span class="pre">unproduced_output</span></code></a></p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="nw.bodies.sound_design.html#module-nw.bodies.sound_design" title="nw.bodies.sound_design"><code class="xref py py-obj docutils literal notranslate"><span class="pre">sound_design</span></code></a></p></td>
+<td><p>Body schemas for sound design over a narration track (nw#190).</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="nw.bodies.unproduced_output.html#module-nw.bodies.unproduced_output" title="nw.bodies.unproduced_output"><code class="xref py py-obj docutils literal notranslate"><span class="pre">unproduced_output</span></code></a></p></td>
 <td><p>Body schema for unproduced-output records — nw#44.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="nw.bodies.verifying_trace.html#module-nw.bodies.verifying_trace" title="nw.bodies.verifying_trace"><code class="xref py py-obj docutils literal notranslate"><span class="pre">verifying_trace</span></code></a></p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="nw.bodies.verifying_trace.html#module-nw.bodies.verifying_trace" title="nw.bodies.verifying_trace"><code class="xref py py-obj docutils literal notranslate"><span class="pre">verifying_trace</span></code></a></p></td>
 <td><p>Body schema for verifying traces — what makes early cutoff possible.</p></td>
 </tr>
 </tbody>
@@ -561,7 +634,7 @@ reachability behaviour instead of being silently declared fresh.</p>
     </div>
   </div>
 </footer>
-      <script src="../_static/documentation_options.js?v=4309da3b"></script>
+      <script src="../_static/documentation_options.js?v=69b21de1"></script>
       <script src="../_static/doctools.js?v=fd6eb6e6"></script>
       <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script src="../_static/clipboard.min.js?v=a7894cd8"></script>

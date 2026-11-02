@@ -18,6 +18,7 @@
 - [nw.bodies.render_result](nw.bodies.render_result.html.md): Body schema for render results — the output of a render Transform.
 - [nw.bodies.section](nw.bodies.section.html.md): Body schema for timeline sections (verse, chorus, scene-1, …).
 - [nw.bodies.shot](nw.bodies.shot.html.md): Body schema for shots — the renderable visual unit.
+- [nw.bodies.sound_design](nw.bodies.sound_design.html.md): Body schemas for sound design over a narration track (nw#190).
 - [nw.bodies.unproduced_output](nw.bodies.unproduced_output.html.md): Body schema for unproduced-output records — nw#44.
 - [nw.bodies.verifying_trace](nw.bodies.verifying_trace.html.md): Body schema for verifying traces — what makes early cutoff possible.
 - [nw.compat](nw.compat.html.md): What a plugin built against a newer nw checks before it registers (nw#164).

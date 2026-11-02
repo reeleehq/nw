@@ -1,4 +1,4 @@
-> built 2026-11-02 13:54 UTC from 1ba4921 (main) · nw 0.0.119. Details: build_info.json
+> built 2026-11-02 14:10 UTC from 2526e44 (main) · nw 0.0.120. Details: build_info.json
 
 # index.html.md
 
@@ -1066,6 +1066,9 @@ with a matching `body_schema_uri` validates correctly. The schemas are:
   produced (nw#44), retired by a later successful retry
 - `annot://schema/genre-envelope/v1` — the resolved {genre, template, params}
   the project was created as (singleton per project)
+- `annot://schema/narration-track/v1`, `annot://schema/sound-design-config/v1`,
+  `annot://schema/sound-design/v1` — the inputs and output of the
+  `narration_to_sound_design.foley` Transform (nw#190)
 
 These are deliberately small and project-agnostic. Reelee will be able to
 walk the same graph for freshness analysis (“what’s downstream of this
@@ -1078,17 +1081,20 @@ character description?”) without bespoke storage.
 
 ### Classes
 
-| [`CharacterRefBodyV1`](_autosummary/nw.bodies.html.md#nw.bodies.CharacterRefBodyV1)(\*, name[, description, ...])   | Body of a character-ref annotation.                 |
-|-----------------------------------------------------------------------------------------------------|-----------------------------------------------------|
-| [`DecisionBodyV1`](_autosummary/nw.bodies.html.md#nw.bodies.DecisionBodyV1)(\*, kind[, payload])                | Body of a decision annotation.                      |
-| [`EnvironmentRefBodyV1`](_autosummary/nw.bodies.html.md#nw.bodies.EnvironmentRefBodyV1)(\*, name[, description, ...]) | Body of an environment-ref annotation.              |
-| [`GenreEnvelopeBodyV1`](_autosummary/nw.bodies.html.md#nw.bodies.GenreEnvelopeBodyV1)(\*, genre[, template, params]) | Body of the (singleton) genre-envelope annotation.  |
-| [`RenderResultBodyV1`](_autosummary/nw.bodies.html.md#nw.bodies.RenderResultBodyV1)(\*, shot_id, strategy[, ...])   | Body of a render-result annotation.                 |
-| [`SectionBodyV1`](_autosummary/nw.bodies.html.md#nw.bodies.SectionBodyV1)(\*, section_id[, label, ...])        | Body of a section annotation.                       |
-| [`ShotBodyV1`](_autosummary/nw.bodies.html.md#nw.bodies.ShotBodyV1)(\*, shot_id[, section_id, ...])         | Body of a shot annotation.                          |
-| [`UnproducedOutputBodyV1`](_autosummary/nw.bodies.html.md#nw.bodies.UnproducedOutputBodyV1)(\*, transform_name[, ...])  | Body of an unproduced-output record.                |
-| [`UpstreamDigestV1`](_autosummary/nw.bodies.html.md#nw.bodies.UpstreamDigestV1)(\*, annotation_id, value_digest)  | One `(upstream annotation, its value digest)` pair. |
-| [`VerifyingTraceBodyV1`](_autosummary/nw.bodies.html.md#nw.bodies.VerifyingTraceBodyV1)(\*, for_annotation_id, ...)   | Body of a verifying-trace annotation.               |
+| [`CharacterRefBodyV1`](_autosummary/nw.bodies.html.md#nw.bodies.CharacterRefBodyV1)(\*, name[, description, ...])   | Body of a character-ref annotation.                                          |
+|-----------------------------------------------------------------------------------------------------|------------------------------------------------------------------------------|
+| [`DecisionBodyV1`](_autosummary/nw.bodies.html.md#nw.bodies.DecisionBodyV1)(\*, kind[, payload])                | Body of a decision annotation.                                               |
+| [`EnvironmentRefBodyV1`](_autosummary/nw.bodies.html.md#nw.bodies.EnvironmentRefBodyV1)(\*, name[, description, ...]) | Body of an environment-ref annotation.                                       |
+| [`GenreEnvelopeBodyV1`](_autosummary/nw.bodies.html.md#nw.bodies.GenreEnvelopeBodyV1)(\*, genre[, template, params]) | Body of the (singleton) genre-envelope annotation.                           |
+| [`RenderResultBodyV1`](_autosummary/nw.bodies.html.md#nw.bodies.RenderResultBodyV1)(\*, shot_id, strategy[, ...])   | Body of a render-result annotation.                                          |
+| [`SectionBodyV1`](_autosummary/nw.bodies.html.md#nw.bodies.SectionBodyV1)(\*, section_id[, label, ...])        | Body of a section annotation.                                                |
+| [`ShotBodyV1`](_autosummary/nw.bodies.html.md#nw.bodies.ShotBodyV1)(\*, shot_id[, section_id, ...])         | Body of a shot annotation.                                                   |
+| [`NarrationTrackBodyV1`](_autosummary/nw.bodies.html.md#nw.bodies.NarrationTrackBodyV1)(\*, audio_path[, ...])        | Body of a narration-track annotation: one audio file + its sentences.        |
+| [`SoundDesignConfigBodyV1`](_autosummary/nw.bodies.html.md#nw.bodies.SoundDesignConfigBodyV1)(\*[, enabled, ...])        | Body of a sound-design-config annotation: the switch and the knobs.          |
+| [`SoundDesignBodyV1`](_autosummary/nw.bodies.html.md#nw.bodies.SoundDesignBodyV1)(\*[, artifact_id, ...])          | Body of a sound-design annotation: the mix and everything published with it. |
+| [`UnproducedOutputBodyV1`](_autosummary/nw.bodies.html.md#nw.bodies.UnproducedOutputBodyV1)(\*, transform_name[, ...])  | Body of an unproduced-output record.                                         |
+| [`UpstreamDigestV1`](_autosummary/nw.bodies.html.md#nw.bodies.UpstreamDigestV1)(\*, annotation_id, value_digest)  | One `(upstream annotation, its value digest)` pair.                          |
+| [`VerifyingTraceBodyV1`](_autosummary/nw.bodies.html.md#nw.bodies.VerifyingTraceBodyV1)(\*, for_annotation_id, ...)   | Body of a verifying-trace annotation.                                        |
 
 ### *class* nw.bodies.CharacterRefBodyV1(\*, name, description='', reference_image_urls=<factory>, costume='', age='', default_setting='', distinguishing_features=<factory>, palette_anchors=<factory>, do_not_do=<factory>)
 
@@ -1143,6 +1149,16 @@ persisted record and the creation-time contract can never drift apart.
 
 Configuration for the model, should be a dictionary conforming to [`ConfigDict`][pydantic.config.ConfigDict].
 
+### *class* nw.bodies.NarrationTrackBodyV1(, audio_path, artifact_id=None, segments, segment_starts=None)
+
+Bases: `BaseModel`
+
+Body of a narration-track annotation: one audio file + its sentences.
+
+#### model_config *: [ClassVar](https://docs.python.org/3/library/typing.html#typing.ClassVar)[ConfigDict]* *= {'extra': 'forbid', 'frozen': True}*
+
+Configuration for the model, should be a dictionary conforming to [`ConfigDict`][pydantic.config.ConfigDict].
+
 ### *class* nw.bodies.RenderResultBodyV1(, shot_id, strategy, output_path='', artifact_id=None, duration_s=0.0, total_estimated_cost_usd=0.0)
 
 Bases: `BaseModel`
@@ -1168,6 +1184,26 @@ Configuration for the model, should be a dictionary conforming to [`ConfigDict`]
 Bases: `BaseModel`
 
 Body of a shot annotation.
+
+#### model_config *: [ClassVar](https://docs.python.org/3/library/typing.html#typing.ClassVar)[ConfigDict]* *= {'extra': 'forbid', 'frozen': True}*
+
+Configuration for the model, should be a dictionary conforming to [`ConfigDict`][pydantic.config.ConfigDict].
+
+### *class* nw.bodies.SoundDesignBodyV1(\*, artifact_id=None, duration_s=0.0, timeline=<factory>, events=<factory>, credits=<factory>, captions_vtt='', master_report=<factory>, notes=<factory>)
+
+Bases: `BaseModel`
+
+Body of a sound-design annotation: the mix and everything published with it.
+
+#### model_config *: [ClassVar](https://docs.python.org/3/library/typing.html#typing.ClassVar)[ConfigDict]* *= {'extra': 'forbid', 'frozen': True}*
+
+Configuration for the model, should be a dictionary conforming to [`ConfigDict`][pydantic.config.ConfigDict].
+
+### *class* nw.bodies.SoundDesignConfigBodyV1(, enabled=True, max_events=6, master='podcast', commercial_ok=True)
+
+Bases: `BaseModel`
+
+Body of a sound-design-config annotation: the switch and the knobs.
 
 #### model_config *: [ClassVar](https://docs.python.org/3/library/typing.html#typing.ClassVar)[ConfigDict]* *= {'extra': 'forbid', 'frozen': True}*
 
@@ -1264,6 +1300,7 @@ Build the trace annotation for one derived annotation, or `None`.
 | [`render_result`](_autosummary/nw.bodies.render_result.html.md#module-nw.bodies.render_result)         | Body schema for render results — the output of a render Transform.   |
 | [`section`](_autosummary/nw.bodies.section.html.md#module-nw.bodies.section)                     | Body schema for timeline sections (verse, chorus, scene-1, …).       |
 | [`shot`](_autosummary/nw.bodies.shot.html.md#module-nw.bodies.shot)                           | Body schema for shots — the renderable visual unit.                  |
+| [`sound_design`](_autosummary/nw.bodies.sound_design.html.md#module-nw.bodies.sound_design)           | Body schemas for sound design over a narration track (nw#190).       |
 | [`unproduced_output`](_autosummary/nw.bodies.unproduced_output.html.md#module-nw.bodies.unproduced_output) | Body schema for unproduced-output records — nw#44.                   |
 | [`verifying_trace`](_autosummary/nw.bodies.verifying_trace.html.md#module-nw.bodies.verifying_trace)     | Body schema for verifying traces — what makes early cutoff possible. |
 
@@ -1359,6 +1396,101 @@ That’s what enables reelee’s “what’s downstream of this shot?” queries
 Bases: `BaseModel`
 
 Body of a shot annotation.
+
+#### model_config *: [ClassVar](https://docs.python.org/3/library/typing.html#typing.ClassVar)[ConfigDict]* *= {'extra': 'forbid', 'frozen': True}*
+
+Configuration for the model, should be a dictionary conforming to [`ConfigDict`][pydantic.config.ConfigDict].
+
+
+# _autosummary/nw.bodies.sound_design.html.md
+
+# nw.bodies.sound_design
+
+Body schemas for sound design over a narration track (nw#190).
+
+Three URIs, the inputs and the output of the `narration_to_sound_design.foley`
+Transform (`nw.transforms.sound_design`):
+
+- `annot://schema/narration-track/v1` — **one** narration audio file (a path
+  relative to the project root; absolute and escaping paths are refused) and
+  the sentence-level text it speaks, in render order. The minimal shape any genre
+  with a voice track can produce; a host with its own narration schema
+  (braidio’s `narration-render/v1`) subclasses the Transform and overrides its
+  extraction methods instead of converting to this one.
+- `annot://schema/sound-design-config/v1` — the switch and the knobs:
+  `enabled`, `max_events` (per segment), `master` (the delivery profile)
+  and `commercial_ok` (the rights intent). Defaults mirror `foley.score`’s;
+  they are restated here as named constants because registering the Transform
+  must not import foley (`nw[sound]` is an extra). A test pins them against
+  foley’s signature when foley is installed.
+- `annot://schema/sound-design/v1` — the result: the produced mix’s
+  `artifact_id` (a FLAC in falaw’s content store) and duration, foley’s editable timeline (`SoundDesignTimeline.to_dict()`;
+  re-render it with `foley.weave(narration, SoundDesignTimeline.from_dict(...))`
+  without re-running selection), the per-event rationale, the credits that must
+  be published with the output, SDH captions, the measured master report and
+  foley’s notes (e.g. “word timings are estimates”).
+
+`narration-track/v1` and `sound-design/v1` name their audio under
+`artifact_id`; `nw.transforms.asset_refs` declares both, so a sound
+design’s provenance carries the narration audio’s asset id beside the two
+annotation ids.
+
+### Module Attributes
+
+| [`DFLT_MAX_EVENTS`](_autosummary/nw.bodies.sound_design.html.md#nw.bodies.sound_design.DFLT_MAX_EVENTS)    | foley's density cap per segment (`foley.score(max_events=6)`).   |
+|---------------------------------------------------------------------|------------------------------------------------------------------|
+| [`DFLT_MASTER`](_autosummary/nw.bodies.sound_design.html.md#nw.bodies.sound_design.DFLT_MASTER)        | foley's delivery profile (`foley.score(master="podcast")`).      |
+| [`DFLT_COMMERCIAL_OK`](_autosummary/nw.bodies.sound_design.html.md#nw.bodies.sound_design.DFLT_COMMERCIAL_OK) | commercial publishing (`foley.licensing.DEFAULT_INTENDED_USE`).  |
+
+### Classes
+
+| [`NarrationTrackBodyV1`](_autosummary/nw.bodies.sound_design.html.md#nw.bodies.sound_design.NarrationTrackBodyV1)(\*, audio_path[, ...])   | Body of a narration-track annotation: one audio file + its sentences.        |
+|------------------------------------------------------------------------------------------------|------------------------------------------------------------------------------|
+| [`SoundDesignBodyV1`](_autosummary/nw.bodies.sound_design.html.md#nw.bodies.sound_design.SoundDesignBodyV1)(\*[, artifact_id, ...])     | Body of a sound-design annotation: the mix and everything published with it. |
+| [`SoundDesignConfigBodyV1`](_autosummary/nw.bodies.sound_design.html.md#nw.bodies.sound_design.SoundDesignConfigBodyV1)(\*[, enabled, ...])   | Body of a sound-design-config annotation: the switch and the knobs.          |
+
+### nw.bodies.sound_design.DFLT_COMMERCIAL_OK *= True*
+
+commercial publishing
+(`foley.licensing.DEFAULT_INTENDED_USE`). Stated, not deferred, so the graph
+records which intent a mix was licence-checked under.
+
+* **Type:**
+  foley’s default rights intent
+
+### nw.bodies.sound_design.DFLT_MASTER *= 'podcast'*
+
+foley’s delivery profile (`foley.score(master="podcast")`).
+
+### nw.bodies.sound_design.DFLT_MAX_EVENTS *= 6*
+
+foley’s density cap per segment (`foley.score(max_events=6)`).
+
+### *class* nw.bodies.sound_design.NarrationTrackBodyV1(, audio_path, artifact_id=None, segments, segment_starts=None)
+
+Bases: `BaseModel`
+
+Body of a narration-track annotation: one audio file + its sentences.
+
+#### model_config *: [ClassVar](https://docs.python.org/3/library/typing.html#typing.ClassVar)[ConfigDict]* *= {'extra': 'forbid', 'frozen': True}*
+
+Configuration for the model, should be a dictionary conforming to [`ConfigDict`][pydantic.config.ConfigDict].
+
+### *class* nw.bodies.sound_design.SoundDesignBodyV1(\*, artifact_id=None, duration_s=0.0, timeline=<factory>, events=<factory>, credits=<factory>, captions_vtt='', master_report=<factory>, notes=<factory>)
+
+Bases: `BaseModel`
+
+Body of a sound-design annotation: the mix and everything published with it.
+
+#### model_config *: [ClassVar](https://docs.python.org/3/library/typing.html#typing.ClassVar)[ConfigDict]* *= {'extra': 'forbid', 'frozen': True}*
+
+Configuration for the model, should be a dictionary conforming to [`ConfigDict`][pydantic.config.ConfigDict].
+
+### *class* nw.bodies.sound_design.SoundDesignConfigBodyV1(, enabled=True, max_events=6, master='podcast', commercial_ok=True)
+
+Bases: `BaseModel`
+
+Body of a sound-design-config annotation: the switch and the knobs.
 
 #### model_config *: [ClassVar](https://docs.python.org/3/library/typing.html#typing.ClassVar)[ConfigDict]* *= {'extra': 'forbid', 'frozen': True}*
 
@@ -11270,18 +11402,20 @@ produce different URLs. The local file paths are byte-stable.
 
 # About this build
 
-This documentation was built on **2026-11-02 13:54 UTC** from commit <a href="https://github.com/reeleehq/nw/commit/1ba4921bcd73571d8d175d649dfc1700cb57c053"><code>1ba4921</code></a> on branch <code>main</code>, for **nw 0.0.119** (from <code>pyproject.toml</code>).
+This documentation was built on **2026-11-02 14:10 UTC** from commit <a href="https://github.com/reeleehq/nw/commit/2526e447d56fc71800fb95779e35aa7de2484828"><code>2526e44</code></a> on branch <code>main</code>, for **nw 0.0.120** (from <code>pyproject.toml</code>).
 
-#### NOTE
-Nothing suggests a mismatch: the tree was clean at the commit above, and the documented version is the one on PyPI.
+#### WARNING
+The documentation and the package may be misaligned:
+
+- The documented version (0.0.120) is ahead of the latest release on PyPI (0.0.119): these docs describe unreleased code.
 
 ## Source
 
 |                     |                                                                                                                                                    |
 |---------------------|----------------------------------------------------------------------------------------------------------------------------------------------------|
-| Commit              | <a href="https://github.com/reeleehq/nw/commit/1ba4921bcd73571d8d175d649dfc1700cb57c053"><code>1ba4921bcd73571d8d175d649dfc1700cb57c053</code></a> |
+| Commit              | <a href="https://github.com/reeleehq/nw/commit/2526e447d56fc71800fb95779e35aa7de2484828"><code>2526e447d56fc71800fb95779e35aa7de2484828</code></a> |
 | Branch              | <code>main</code>                                                                                                                                  |
-| Tags at this commit | <code>0.0.119</code>                                                                                                                               |
+| Tags at this commit | <code>0.0.120</code>                                                                                                                               |
 | Working tree        | clean                                                                                                                                              |
 | Remote              | <code>https://github.com/reeleehq/nw</code>                                                                                                        |
 
@@ -11290,9 +11424,9 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 |              |                                                                                            |
 |--------------|--------------------------------------------------------------------------------------------|
 | Repository   | <code>reeleehq/nw</code>                                                                   |
-| Run          | <a href="https://github.com/reeleehq/nw/actions/runs/41456578617">41456578617</a>          |
+| Run          | <a href="https://github.com/reeleehq/nw/actions/runs/41459026275">41459026275</a>          |
 | Ref          | <code>refs/heads/main</code>                                                               |
-| Event commit | <code>82f300c61270c1b0dd083b3f96dfabe74e05ecde</code> (in the history of the built commit) |
+| Event commit | <code>df962dd506368495addca16d9f431d2f8c0f5237</code> (in the history of the built commit) |
 
 ## Tools
 
@@ -11317,13 +11451,13 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 
 ## Package on PyPI
 
-Latest release: <a href="https://pypi.org/project/nw/0.0.119/">0.0.119</a>, the same as the documented version.
+Latest release: <a href="https://pypi.org/project/nw/0.0.119/">0.0.119</a>, older than the documented version (0.0.120).
 
 ## Reproduce
 
 ```bash
 git clone https://github.com/reeleehq/nw && cd nw
-git checkout 1ba4921bcd73571d8d175d649dfc1700cb57c053
+git checkout 2526e447d56fc71800fb95779e35aa7de2484828
 pip install "epythet==0.2.22"
 epythet quickstart . --ignore tests/ scrap/ examples/
 ```

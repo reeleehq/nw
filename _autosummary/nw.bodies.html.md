@@ -16,6 +16,9 @@ with a matching `body_schema_uri` validates correctly. The schemas are:
   produced (nw#44), retired by a later successful retry
 - `annot://schema/genre-envelope/v1` — the resolved {genre, template, params}
   the project was created as (singleton per project)
+- `annot://schema/narration-track/v1`, `annot://schema/sound-design-config/v1`,
+  `annot://schema/sound-design/v1` — the inputs and output of the
+  `narration_to_sound_design.foley` Transform (nw#190)
 
 These are deliberately small and project-agnostic. Reelee will be able to
 walk the same graph for freshness analysis (“what’s downstream of this
@@ -28,17 +31,20 @@ character description?”) without bespoke storage.
 
 ### Classes
 
-| [`CharacterRefBodyV1`](#nw.bodies.CharacterRefBodyV1)(\*, name[, description, ...])   | Body of a character-ref annotation.                 |
-|-----------------------------------------------------------------------------------------------------|-----------------------------------------------------|
-| [`DecisionBodyV1`](#nw.bodies.DecisionBodyV1)(\*, kind[, payload])                | Body of a decision annotation.                      |
-| [`EnvironmentRefBodyV1`](#nw.bodies.EnvironmentRefBodyV1)(\*, name[, description, ...]) | Body of an environment-ref annotation.              |
-| [`GenreEnvelopeBodyV1`](#nw.bodies.GenreEnvelopeBodyV1)(\*, genre[, template, params]) | Body of the (singleton) genre-envelope annotation.  |
-| [`RenderResultBodyV1`](#nw.bodies.RenderResultBodyV1)(\*, shot_id, strategy[, ...])   | Body of a render-result annotation.                 |
-| [`SectionBodyV1`](#nw.bodies.SectionBodyV1)(\*, section_id[, label, ...])        | Body of a section annotation.                       |
-| [`ShotBodyV1`](#nw.bodies.ShotBodyV1)(\*, shot_id[, section_id, ...])         | Body of a shot annotation.                          |
-| [`UnproducedOutputBodyV1`](#nw.bodies.UnproducedOutputBodyV1)(\*, transform_name[, ...])  | Body of an unproduced-output record.                |
-| [`UpstreamDigestV1`](#nw.bodies.UpstreamDigestV1)(\*, annotation_id, value_digest)  | One `(upstream annotation, its value digest)` pair. |
-| [`VerifyingTraceBodyV1`](#nw.bodies.VerifyingTraceBodyV1)(\*, for_annotation_id, ...)   | Body of a verifying-trace annotation.               |
+| [`CharacterRefBodyV1`](#nw.bodies.CharacterRefBodyV1)(\*, name[, description, ...])   | Body of a character-ref annotation.                                          |
+|-----------------------------------------------------------------------------------------------------|------------------------------------------------------------------------------|
+| [`DecisionBodyV1`](#nw.bodies.DecisionBodyV1)(\*, kind[, payload])                | Body of a decision annotation.                                               |
+| [`EnvironmentRefBodyV1`](#nw.bodies.EnvironmentRefBodyV1)(\*, name[, description, ...]) | Body of an environment-ref annotation.                                       |
+| [`GenreEnvelopeBodyV1`](#nw.bodies.GenreEnvelopeBodyV1)(\*, genre[, template, params]) | Body of the (singleton) genre-envelope annotation.                           |
+| [`RenderResultBodyV1`](#nw.bodies.RenderResultBodyV1)(\*, shot_id, strategy[, ...])   | Body of a render-result annotation.                                          |
+| [`SectionBodyV1`](#nw.bodies.SectionBodyV1)(\*, section_id[, label, ...])        | Body of a section annotation.                                                |
+| [`ShotBodyV1`](#nw.bodies.ShotBodyV1)(\*, shot_id[, section_id, ...])         | Body of a shot annotation.                                                   |
+| [`NarrationTrackBodyV1`](#nw.bodies.NarrationTrackBodyV1)(\*, audio_path[, ...])        | Body of a narration-track annotation: one audio file + its sentences.        |
+| [`SoundDesignConfigBodyV1`](#nw.bodies.SoundDesignConfigBodyV1)(\*[, enabled, ...])        | Body of a sound-design-config annotation: the switch and the knobs.          |
+| [`SoundDesignBodyV1`](#nw.bodies.SoundDesignBodyV1)(\*[, artifact_id, ...])          | Body of a sound-design annotation: the mix and everything published with it. |
+| [`UnproducedOutputBodyV1`](#nw.bodies.UnproducedOutputBodyV1)(\*, transform_name[, ...])  | Body of an unproduced-output record.                                         |
+| [`UpstreamDigestV1`](#nw.bodies.UpstreamDigestV1)(\*, annotation_id, value_digest)  | One `(upstream annotation, its value digest)` pair.                          |
+| [`VerifyingTraceBodyV1`](#nw.bodies.VerifyingTraceBodyV1)(\*, for_annotation_id, ...)   | Body of a verifying-trace annotation.                                        |
 
 ### *class* nw.bodies.CharacterRefBodyV1(\*, name, description='', reference_image_urls=<factory>, costume='', age='', default_setting='', distinguishing_features=<factory>, palette_anchors=<factory>, do_not_do=<factory>)
 
@@ -93,6 +99,16 @@ persisted record and the creation-time contract can never drift apart.
 
 Configuration for the model, should be a dictionary conforming to [`ConfigDict`][pydantic.config.ConfigDict].
 
+### *class* nw.bodies.NarrationTrackBodyV1(, audio_path, artifact_id=None, segments, segment_starts=None)
+
+Bases: `BaseModel`
+
+Body of a narration-track annotation: one audio file + its sentences.
+
+#### model_config *: [ClassVar](https://docs.python.org/3/library/typing.html#typing.ClassVar)[ConfigDict]* *= {'extra': 'forbid', 'frozen': True}*
+
+Configuration for the model, should be a dictionary conforming to [`ConfigDict`][pydantic.config.ConfigDict].
+
 ### *class* nw.bodies.RenderResultBodyV1(, shot_id, strategy, output_path='', artifact_id=None, duration_s=0.0, total_estimated_cost_usd=0.0)
 
 Bases: `BaseModel`
@@ -118,6 +134,26 @@ Configuration for the model, should be a dictionary conforming to [`ConfigDict`]
 Bases: `BaseModel`
 
 Body of a shot annotation.
+
+#### model_config *: [ClassVar](https://docs.python.org/3/library/typing.html#typing.ClassVar)[ConfigDict]* *= {'extra': 'forbid', 'frozen': True}*
+
+Configuration for the model, should be a dictionary conforming to [`ConfigDict`][pydantic.config.ConfigDict].
+
+### *class* nw.bodies.SoundDesignBodyV1(\*, artifact_id=None, duration_s=0.0, timeline=<factory>, events=<factory>, credits=<factory>, captions_vtt='', master_report=<factory>, notes=<factory>)
+
+Bases: `BaseModel`
+
+Body of a sound-design annotation: the mix and everything published with it.
+
+#### model_config *: [ClassVar](https://docs.python.org/3/library/typing.html#typing.ClassVar)[ConfigDict]* *= {'extra': 'forbid', 'frozen': True}*
+
+Configuration for the model, should be a dictionary conforming to [`ConfigDict`][pydantic.config.ConfigDict].
+
+### *class* nw.bodies.SoundDesignConfigBodyV1(, enabled=True, max_events=6, master='podcast', commercial_ok=True)
+
+Bases: `BaseModel`
+
+Body of a sound-design-config annotation: the switch and the knobs.
 
 #### model_config *: [ClassVar](https://docs.python.org/3/library/typing.html#typing.ClassVar)[ConfigDict]* *= {'extra': 'forbid', 'frozen': True}*
 
@@ -214,5 +250,6 @@ Build the trace annotation for one derived annotation, or `None`.
 | [`render_result`](nw.bodies.render_result.html.md#module-nw.bodies.render_result)         | Body schema for render results — the output of a render Transform.   |
 | [`section`](nw.bodies.section.html.md#module-nw.bodies.section)                     | Body schema for timeline sections (verse, chorus, scene-1, …).       |
 | [`shot`](nw.bodies.shot.html.md#module-nw.bodies.shot)                           | Body schema for shots — the renderable visual unit.                  |
+| [`sound_design`](nw.bodies.sound_design.html.md#module-nw.bodies.sound_design)           | Body schemas for sound design over a narration track (nw#190).       |
 | [`unproduced_output`](nw.bodies.unproduced_output.html.md#module-nw.bodies.unproduced_output) | Body schema for unproduced-output records — nw#44.                   |
 | [`verifying_trace`](nw.bodies.verifying_trace.html.md#module-nw.bodies.verifying_trace)     | Body schema for verifying traces — what makes early cutoff possible. |

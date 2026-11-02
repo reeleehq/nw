@@ -1,0 +1,22 @@
+nw.bodies.sound\_design
+=======================
+
+.. automodule:: nw.bodies.sound_design
+
+   
+   .. rubric:: Module Attributes
+
+   .. autosummary::
+   
+      DFLT_MAX_EVENTS
+      DFLT_MASTER
+      DFLT_COMMERCIAL_OK
+   
+   .. rubric:: Classes
+
+   .. autosummary::
+   
+      NarrationTrackBodyV1
+      SoundDesignBodyV1
+      SoundDesignConfigBodyV1
+   

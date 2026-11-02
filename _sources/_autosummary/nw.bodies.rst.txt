@@ -21,6 +21,9 @@ nw.bodies
       RenderResultBodyV1
       SectionBodyV1
       ShotBodyV1
+      NarrationTrackBodyV1
+      SoundDesignConfigBodyV1
+      SoundDesignBodyV1
       UnproducedOutputBodyV1
       UpstreamDigestV1
       VerifyingTraceBodyV1
@@ -38,5 +41,6 @@ nw.bodies
    render_result
    section
    shot
+   sound_design
    unproduced_output
    verifying_trace
