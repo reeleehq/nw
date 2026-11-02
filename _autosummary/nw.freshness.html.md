@@ -110,7 +110,9 @@ parents by id is not enough, because a parent rewritten in place keeps its
 id (braidio#51). `nw.transforms.BaseTransform.execute()` uses it, for a
 Transform that declares `reuse_fresh_outputs`, so that re-running it on
 unchanged inputs (a falaw cache hit) returns the node it already wrote
-instead of adding a second one.
+instead of adding a second one. Inside a [`freshness_pass()`](#nw.freshness.freshness_pass) (which
+`fan_out_execute()` opens around its units), one
+walk serves every lookup until something is written (nw#209).
 
 ### Module Attributes
 
@@ -119,15 +121,16 @@ instead of adding a second one.
 
 ### Functions
 
-| [`all_stale`](#nw.freshness.all_stale)(project_root)                          | Every annotation that is currently stale, regardless of cause.          |
-|---------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------|
-| [`annotation_parent_ids`](#nw.freshness.annotation_parent_ids)(ann)                       | The **annotation** ids in `ann.provenance.was_derived_from`.            |
-| [`body_value`](#nw.freshness.body_value)(ann)                                  | `ann.body` JSON-normalised — the value two annotations are compared by. |
-| [`fresh_equivalents`](#nw.freshness.fresh_equivalents)(project_root, annotations, \*) | For each of `annotations`, the existing node it would only duplicate.   |
-| [`is_verifiable_digest_scheme`](#nw.freshness.is_verifiable_digest_scheme)(scheme)              | Whether a trace recorded under `scheme` can still be verified.          |
-| [`stale_after`](#nw.freshness.stale_after)(project_root, changed_id)            | Return every annotation that `changed_id` actually invalidated.         |
-| [`stale_verdicts`](#nw.freshness.stale_verdicts)(project_root, changed_id)         | Classify every annotation downstream of `changed_id`.                   |
-| [`stale_verdicts_all`](#nw.freshness.stale_verdicts_all)(project_root)                 | Classify every derived annotation in the project — the snapshot form.   |
+| [`all_stale`](#nw.freshness.all_stale)(project_root)                          | Every annotation that is currently stale, regardless of cause.                                                     |
+|---------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------------------------------------|
+| [`annotation_parent_ids`](#nw.freshness.annotation_parent_ids)(ann)                       | The **annotation** ids in `ann.provenance.was_derived_from`.                                                       |
+| [`body_value`](#nw.freshness.body_value)(ann)                                  | `ann.body` JSON-normalised — the value two annotations are compared by.                                            |
+| [`fresh_equivalents`](#nw.freshness.fresh_equivalents)(project_root, annotations, \*) | For each of `annotations`, the existing node it would only duplicate.                                              |
+| [`freshness_pass`](#nw.freshness.freshness_pass)()                                 | Share one freshness walk across many [`fresh_equivalents()`](#nw.freshness.fresh_equivalents) lookups. |
+| [`is_verifiable_digest_scheme`](#nw.freshness.is_verifiable_digest_scheme)(scheme)              | Whether a trace recorded under `scheme` can still be verified.                                                     |
+| [`stale_after`](#nw.freshness.stale_after)(project_root, changed_id)            | Return every annotation that `changed_id` actually invalidated.                                                    |
+| [`stale_verdicts`](#nw.freshness.stale_verdicts)(project_root, changed_id)         | Classify every annotation downstream of `changed_id`.                                                              |
+| [`stale_verdicts_all`](#nw.freshness.stale_verdicts_all)(project_root)                 | Classify every derived annotation in the project — the snapshot form.                                              |
 
 ### Classes
 
@@ -243,10 +246,65 @@ distinct tier, each stored node’s key computed once. The freshness walk
 runs **at most once per call**, over the candidates that survived it, and
 **not at all** when none did — so a first run, or a run whose outputs are
 all new, pays nothing for this. Pass every annotation of one write batch
-in a single call to share the walk. Read-only: nothing is written.
+in a single call to share the walk. Inside a [`freshness_pass()`](#nw.freshness.freshness_pass), the
+tier reads and the walk are shared **across calls** too, until the next
+write. Read-only: nothing is written.
 
 * **Return type:**
   [`tuple`](https://docs.python.org/3/builtins/stdtypes.html#tuple)[[`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[`Annotation`], [`...`](https://docs.python.org/3/builtins/constants.html#Ellipsis)]
+
+### nw.freshness.freshness_pass()
+
+Share one freshness walk across many [`fresh_equivalents()`](#nw.freshness.fresh_equivalents) lookups.
+
+While the pass is open, each project’s tier reads and its freshness walk
+are taken once, on the first lookup that needs them, and reused by every
+later lookup — until a write drops them. Opening a pass reads and walks
+nothing, so it costs nothing to a run that never looks anything up.
+`fan_out_execute()` opens one around its units,
+which is what turns a K-unit re-run with `reuse_fresh_outputs` from K
+walks into one (nw#209). Nested passes share the outermost one.
+
+**Why a held walk stays valid** (braidio#171’s rule): a node’s freshness
+is a function of its own parents, so *adding* a node changes no other
+node’s verdict. What can change one is a write to an existing node, a
+deletion, or a trace written later. So the held state is dropped by
+nw’s write paths themselves, not by callers reporting their outputs — no
+caller can forget to:
+
+- every write-open of [`ProjectGraph`](nw.graph.html.md#nw.graph.ProjectGraph) (`add_annotation`
+  and every entity upsert, `remove_annotation`, `backfill_traces`,
+  a genre spec’s entity sync). Unproduced-output records (nw#44) do not:
+  they are parentless sidecars no node derives from, at a tier no lookup
+  reads;
+- [`remove_annotations_with_traces()`](nw.graph.html.md#nw.graph.remove_annotations_with_traces) (also a storyboard
+  re-save);
+- [`nw.rewrite_values()`](nw.html.md#nw.rewrite_values).
+
+[`collect_orphan_traces()`](nw.graph.html.md#nw.graph.collect_orphan_traces) does not: an orphan trace is
+never consulted, so removing one changes no answer.
+
+Not seen: a write that bypasses nw’s writers (a raw `store.add` /
+`store.remove` on an opened store) or another process. Either can make
+a held answer stale for the rest of the pass — the window that, without
+a pass, is the one between a lookup and its write. A Transform that
+writes behind nw’s back should not declare `reuse_fresh_outputs`.
+
+State is per context (a [`contextvars`](https://docs.python.org/3/library/contextvars.html#module-contextvars) variable) and keyed by the
+**resolved project root**: two projects in one pass never share it, two
+storages over one root do, and a thread that did not inherit the context
+sees no pass. Invalidation is not per context: a write in *any* thread
+moves a process-wide write epoch, and a held walk older than the epoch
+is discarded on its next use — so a request thread editing a shot while
+a fan-out runs on a worker drops that fan-out’s walk too. It over-drops
+(a write to one project drops every project’s held walk), which is safe.
+
+Held answers are **shared objects**: the annotations a lookup returns
+inside a pass may be the same instances later lookups return. Do not
+mutate them.
+
+* **Return type:**
+  [`Iterator`](https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterator)[[`None`](https://docs.python.org/3/builtins/constants.html#None)]
 
 ### nw.freshness.is_verifiable_digest_scheme(scheme)
 

@@ -87,6 +87,7 @@
       validate
       all_stale
       fresh_equivalents
+      freshness_pass
       stale_after
       stale_verdicts
       stale_verdicts_all

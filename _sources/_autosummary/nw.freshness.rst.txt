@@ -18,6 +18,7 @@ nw.freshness
       annotation_parent_ids
       body_value
       fresh_equivalents
+      freshness_pass
       is_verifiable_digest_scheme
       stale_after
       stale_verdicts

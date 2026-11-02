@@ -427,6 +427,7 @@ data-aria-dark="Switch to auto color mode">
 <li><a class="reference internal" href="#nw.fan_out_plan"><code class="docutils literal notranslate"><span class="pre">fan_out_plan()</span></code></a></li>
 <li><a class="reference internal" href="#nw.format_ref"><code class="docutils literal notranslate"><span class="pre">format_ref()</span></code></a></li>
 <li><a class="reference internal" href="#nw.fresh_equivalents"><code class="docutils literal notranslate"><span class="pre">fresh_equivalents()</span></code></a></li>
+<li><a class="reference internal" href="#nw.freshness_pass"><code class="docutils literal notranslate"><span class="pre">freshness_pass()</span></code></a></li>
 <li><a class="reference internal" href="#nw.genre_catalog"><code class="docutils literal notranslate"><span class="pre">genre_catalog()</span></code></a></li>
 <li><a class="reference internal" href="#nw.genre_limits"><code class="docutils literal notranslate"><span class="pre">genre_limits()</span></code></a></li>
 <li><a class="reference internal" href="#nw.genre_op"><code class="docutils literal notranslate"><span class="pre">genre_op()</span></code></a></li>
@@ -800,16 +801,19 @@ are recorded as linked artifacts), see
 <tr class="row-odd"><td><p><a class="reference internal" href="#nw.fresh_equivalents" title="nw.fresh_equivalents"><code class="xref py py-obj docutils literal notranslate"><span class="pre">fresh_equivalents</span></code></a>(project_root, annotations, *)</p></td>
 <td><p>For each of <code class="docutils literal notranslate"><span class="pre">annotations</span></code>, the existing node it would only duplicate.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#nw.stale_after" title="nw.stale_after"><code class="xref py py-obj docutils literal notranslate"><span class="pre">stale_after</span></code></a>(project_root, changed_id)</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#nw.freshness_pass" title="nw.freshness_pass"><code class="xref py py-obj docutils literal notranslate"><span class="pre">freshness_pass</span></code></a>()</p></td>
+<td><p>Share one freshness walk across many <a class="reference internal" href="#nw.fresh_equivalents" title="nw.fresh_equivalents"><code class="xref py py-func docutils literal notranslate"><span class="pre">fresh_equivalents()</span></code></a> lookups.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#nw.stale_after" title="nw.stale_after"><code class="xref py py-obj docutils literal notranslate"><span class="pre">stale_after</span></code></a>(project_root, changed_id)</p></td>
 <td><p>Return every annotation that <code class="docutils literal notranslate"><span class="pre">changed_id</span></code> actually invalidated.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#nw.stale_verdicts" title="nw.stale_verdicts"><code class="xref py py-obj docutils literal notranslate"><span class="pre">stale_verdicts</span></code></a>(project_root, changed_id)</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#nw.stale_verdicts" title="nw.stale_verdicts"><code class="xref py py-obj docutils literal notranslate"><span class="pre">stale_verdicts</span></code></a>(project_root, changed_id)</p></td>
 <td><p>Classify every annotation downstream of <code class="docutils literal notranslate"><span class="pre">changed_id</span></code>.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#nw.stale_verdicts_all" title="nw.stale_verdicts_all"><code class="xref py py-obj docutils literal notranslate"><span class="pre">stale_verdicts_all</span></code></a>(project_root)</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#nw.stale_verdicts_all" title="nw.stale_verdicts_all"><code class="xref py py-obj docutils literal notranslate"><span class="pre">stale_verdicts_all</span></code></a>(project_root)</p></td>
 <td><p>Classify every derived annotation in the project — the snapshot form.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#nw.summarize_all" title="nw.summarize_all"><code class="xref py py-obj docutils literal notranslate"><span class="pre">summarize_all</span></code></a>(roots)</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#nw.summarize_all" title="nw.summarize_all"><code class="xref py py-obj docutils literal notranslate"><span class="pre">summarize_all</span></code></a>(roots)</p></td>
 <td><p>Convenience: return a <a class="reference internal" href="#nw.ProjectSummary" title="nw.ProjectSummary"><code class="xref py py-class docutils literal notranslate"><span class="pre">ProjectSummary</span></code></a> for each project.</p></td>
 </tr>
 </tbody>
@@ -1061,9 +1065,11 @@ deletes a live node — and leaves everything derived from it dangling. A
 declaration rather than an <code class="docutils literal notranslate"><span class="pre">execute</span></code> keyword, so fan-outs and jobs
 honour it with no plumbing.</p>
 <p>Cost: one indexed tier read per <code class="docutils literal notranslate"><span class="pre">execute</span></code>, plus at most one freshness
-walk, and none when no candidate exists. A <strong>fan-out</strong> calls <code class="docutils literal notranslate"><span class="pre">execute</span></code>
-once per unit, so it pays one tier read and one walk <em>per unit</em>: no pass
-shares a walk across units yet.</p>
+walk, and none when no candidate exists. A <strong>fan-out</strong> shares them across
+its units: <code class="xref py py-func docutils literal notranslate"><span class="pre">fan_out_execute()</span></code> opens a
+<a class="reference internal" href="nw.freshness.html#nw.freshness.freshness_pass" title="nw.freshness.freshness_pass"><code class="xref py py-func docutils literal notranslate"><span class="pre">nw.freshness.freshness_pass()</span></code></a>, so a re-run whose units all reuse
+pays one tier read and one walk in total, and a unit that writes makes
+the next lookup walk again (nw#209).</p>
 </dd></dl>
 
 </dd></dl>
@@ -3947,6 +3953,9 @@ credential for the call (<a class="reference internal" href="nw.secrets.html#nw.
 override that predates the seam. It reaches nothing else: not the units,
 not the run record (<a class="reference internal" href="#nw.FanOutResult.to_record" title="nw.FanOutResult.to_record"><code class="xref py py-meth docutils literal notranslate"><span class="pre">FanOutResult.to_record()</span></code></a>; a failing unit’s
 <code class="docutils literal notranslate"><span class="pre">reason</span></code> is redacted), not a log line.</p>
+<p>Units run inside one <a class="reference internal" href="nw.freshness.html#nw.freshness.freshness_pass" title="nw.freshness.freshness_pass"><code class="xref py py-func docutils literal notranslate"><span class="pre">nw.freshness.freshness_pass()</span></code></a>, so a Transform
+that declares <code class="docutils literal notranslate"><span class="pre">reuse_fresh_outputs</span></code> walks freshness once for the whole
+fan-out, not once per unit, until a unit writes (nw#209).</p>
 <p>Units run <strong>sequentially</strong>. Concurrency <em>within</em> a unit is falaw’s
 (<code class="docutils literal notranslate"><span class="pre">execute_plan_isolated</span></code> bounds it); concurrency <em>across</em> units is the
 deferred-scheduler work nw#26 explicitly scopes out, and nothing here
@@ -4049,10 +4058,64 @@ distinct tier, each stored node’s key computed once. The freshness walk
 runs <strong>at most once per call</strong>, over the candidates that survived it, and
 <strong>not at all</strong> when none did — so a first run, or a run whose outputs are
 all new, pays nothing for this. Pass every annotation of one write batch
-in a single call to share the walk. Read-only: nothing is written.</p>
+in a single call to share the walk. Inside a <a class="reference internal" href="#nw.freshness_pass" title="nw.freshness_pass"><code class="xref py py-func docutils literal notranslate"><span class="pre">freshness_pass()</span></code></a>, the
+tier reads and the walk are shared <strong>across calls</strong> too, until the next
+write. Read-only: nothing is written.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#tuple" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">tuple</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.15)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code></a>[<code class="xref py py-class docutils literal notranslate"><span class="pre">Annotation</span></code>], <a class="reference external" href="https://docs.python.org/3/builtins/constants.html#Ellipsis" title="(in Python v3.15)"><code class="xref py py-data docutils literal notranslate"><span class="pre">...</span></code></a>]</span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="nw.freshness_pass">
+<span class="sig-prename descclassname"><span class="pre">nw.</span></span><span class="sig-name descname"><span class="pre">freshness_pass</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/nw/freshness.html#freshness_pass"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nw.freshness_pass" title="Link to this definition">#</a></dt>
+<dd><p>Share one freshness walk across many <a class="reference internal" href="#nw.fresh_equivalents" title="nw.fresh_equivalents"><code class="xref py py-func docutils literal notranslate"><span class="pre">fresh_equivalents()</span></code></a> lookups.</p>
+<p>While the pass is open, each project’s tier reads and its freshness walk
+are taken once, on the first lookup that needs them, and reused by every
+later lookup — until a write drops them. Opening a pass reads and walks
+nothing, so it costs nothing to a run that never looks anything up.
+<code class="xref py py-func docutils literal notranslate"><span class="pre">fan_out_execute()</span></code> opens one around its units,
+which is what turns a K-unit re-run with <code class="docutils literal notranslate"><span class="pre">reuse_fresh_outputs</span></code> from K
+walks into one (nw#209). Nested passes share the outermost one.</p>
+<p><strong>Why a held walk stays valid</strong> (braidio#171’s rule): a node’s freshness
+is a function of its own parents, so <em>adding</em> a node changes no other
+node’s verdict. What can change one is a write to an existing node, a
+deletion, or a trace written later. So the held state is dropped by
+nw’s write paths themselves, not by callers reporting their outputs — no
+caller can forget to:</p>
+<ul class="simple">
+<li><p>every write-open of <a class="reference internal" href="nw.graph.html#nw.graph.ProjectGraph" title="nw.graph.ProjectGraph"><code class="xref py py-class docutils literal notranslate"><span class="pre">ProjectGraph</span></code></a> (<code class="docutils literal notranslate"><span class="pre">add_annotation</span></code>
+and every entity upsert, <code class="docutils literal notranslate"><span class="pre">remove_annotation</span></code>, <code class="docutils literal notranslate"><span class="pre">backfill_traces</span></code>,
+a genre spec’s entity sync). Unproduced-output records (nw#44) do not:
+they are parentless sidecars no node derives from, at a tier no lookup
+reads;</p></li>
+<li><p><a class="reference internal" href="nw.graph.html#nw.graph.remove_annotations_with_traces" title="nw.graph.remove_annotations_with_traces"><code class="xref py py-func docutils literal notranslate"><span class="pre">remove_annotations_with_traces()</span></code></a> (also a storyboard
+re-save);</p></li>
+<li><p><a class="reference internal" href="#nw.rewrite_values" title="nw.rewrite_values"><code class="xref py py-func docutils literal notranslate"><span class="pre">nw.rewrite_values()</span></code></a>.</p></li>
+</ul>
+<p><a class="reference internal" href="nw.graph.html#nw.graph.collect_orphan_traces" title="nw.graph.collect_orphan_traces"><code class="xref py py-func docutils literal notranslate"><span class="pre">collect_orphan_traces()</span></code></a> does not: an orphan trace is
+never consulted, so removing one changes no answer.</p>
+<p>Not seen: a write that bypasses nw’s writers (a raw <code class="docutils literal notranslate"><span class="pre">store.add</span></code> /
+<code class="docutils literal notranslate"><span class="pre">store.remove</span></code> on an opened store) or another process. Either can make
+a held answer stale for the rest of the pass — the window that, without
+a pass, is the one between a lookup and its write. A Transform that
+writes behind nw’s back should not declare <code class="docutils literal notranslate"><span class="pre">reuse_fresh_outputs</span></code>.</p>
+<p>State is per context (a <a class="reference external" href="https://docs.python.org/3/library/contextvars.html#module-contextvars" title="(in Python v3.15)"><code class="xref py py-mod docutils literal notranslate"><span class="pre">contextvars</span></code></a> variable) and keyed by the
+<strong>resolved project root</strong>: two projects in one pass never share it, two
+storages over one root do, and a thread that did not inherit the context
+sees no pass. Invalidation is not per context: a write in <em>any</em> thread
+moves a process-wide write epoch, and a held walk older than the epoch
+is discarded on its next use — so a request thread editing a shot while
+a fan-out runs on a worker drops that fan-out’s walk too. It over-drops
+(a write to one project drops every project’s held walk), which is safe.</p>
+<p>Held answers are <strong>shared objects</strong>: the annotations a lookup returns
+inside a pass may be the same instances later lookups return. Do not
+mutate them.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterator" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Iterator</span></code></a>[<span class="highlight sphinx_autodoc_typehints-value"><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></a></span>]</span></p>
 </dd>
 </dl>
 </dd></dl>
@@ -5392,7 +5455,7 @@ addressable across runs.</p>
     </div>
   </div>
 </footer>
-      <script src="../_static/documentation_options.js?v=5e4a978b"></script>
+      <script src="../_static/documentation_options.js?v=95c30746"></script>
       <script src="../_static/doctools.js?v=fd6eb6e6"></script>
       <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script src="../_static/clipboard.min.js?v=a7894cd8"></script>

@@ -138,6 +138,7 @@ data-aria-dark="Switch to auto color mode">
 <li><a class="reference internal" href="#nw.freshness.annotation_parent_ids"><code class="docutils literal notranslate"><span class="pre">annotation_parent_ids()</span></code></a></li>
 <li><a class="reference internal" href="#nw.freshness.body_value"><code class="docutils literal notranslate"><span class="pre">body_value()</span></code></a></li>
 <li><a class="reference internal" href="#nw.freshness.fresh_equivalents"><code class="docutils literal notranslate"><span class="pre">fresh_equivalents()</span></code></a></li>
+<li><a class="reference internal" href="#nw.freshness.freshness_pass"><code class="docutils literal notranslate"><span class="pre">freshness_pass()</span></code></a></li>
 <li><a class="reference internal" href="#nw.freshness.is_verifiable_digest_scheme"><code class="docutils literal notranslate"><span class="pre">is_verifiable_digest_scheme()</span></code></a></li>
 <li><a class="reference internal" href="#nw.freshness.stale_after"><code class="docutils literal notranslate"><span class="pre">stale_after()</span></code></a></li>
 <li><a class="reference internal" href="#nw.freshness.stale_verdicts"><code class="docutils literal notranslate"><span class="pre">stale_verdicts()</span></code></a></li>
@@ -290,7 +291,9 @@ parents by id is not enough, because a parent rewritten in place keeps its
 id (braidio#51). <code class="xref py py-meth docutils literal notranslate"><span class="pre">nw.transforms.BaseTransform.execute()</span></code> uses it, for a
 Transform that declares <code class="docutils literal notranslate"><span class="pre">reuse_fresh_outputs</span></code>, so that re-running it on
 unchanged inputs (a falaw cache hit) returns the node it already wrote
-instead of adding a second one.</p>
+instead of adding a second one. Inside a <a class="reference internal" href="#nw.freshness.freshness_pass" title="nw.freshness.freshness_pass"><code class="xref py py-func docutils literal notranslate"><span class="pre">freshness_pass()</span></code></a> (which
+<code class="xref py py-func docutils literal notranslate"><span class="pre">fan_out_execute()</span></code> opens around its units), one
+walk serves every lookup until something is written (nw#209).</p>
 <p class="rubric">Module Attributes</p>
 <div class="table-wrapper autosummary longtable docutils container">
 <table class="autosummary longtable docutils align-default">
@@ -317,16 +320,19 @@ instead of adding a second one.</p>
 <tr class="row-even"><td><p><a class="reference internal" href="#nw.freshness.fresh_equivalents" title="nw.freshness.fresh_equivalents"><code class="xref py py-obj docutils literal notranslate"><span class="pre">fresh_equivalents</span></code></a>(project_root, annotations, *)</p></td>
 <td><p>For each of <code class="docutils literal notranslate"><span class="pre">annotations</span></code>, the existing node it would only duplicate.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#nw.freshness.is_verifiable_digest_scheme" title="nw.freshness.is_verifiable_digest_scheme"><code class="xref py py-obj docutils literal notranslate"><span class="pre">is_verifiable_digest_scheme</span></code></a>(scheme)</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#nw.freshness.freshness_pass" title="nw.freshness.freshness_pass"><code class="xref py py-obj docutils literal notranslate"><span class="pre">freshness_pass</span></code></a>()</p></td>
+<td><p>Share one freshness walk across many <a class="reference internal" href="#nw.freshness.fresh_equivalents" title="nw.freshness.fresh_equivalents"><code class="xref py py-func docutils literal notranslate"><span class="pre">fresh_equivalents()</span></code></a> lookups.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#nw.freshness.is_verifiable_digest_scheme" title="nw.freshness.is_verifiable_digest_scheme"><code class="xref py py-obj docutils literal notranslate"><span class="pre">is_verifiable_digest_scheme</span></code></a>(scheme)</p></td>
 <td><p>Whether a trace recorded under <code class="docutils literal notranslate"><span class="pre">scheme</span></code> can still be verified.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#nw.freshness.stale_after" title="nw.freshness.stale_after"><code class="xref py py-obj docutils literal notranslate"><span class="pre">stale_after</span></code></a>(project_root, changed_id)</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#nw.freshness.stale_after" title="nw.freshness.stale_after"><code class="xref py py-obj docutils literal notranslate"><span class="pre">stale_after</span></code></a>(project_root, changed_id)</p></td>
 <td><p>Return every annotation that <code class="docutils literal notranslate"><span class="pre">changed_id</span></code> actually invalidated.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#nw.freshness.stale_verdicts" title="nw.freshness.stale_verdicts"><code class="xref py py-obj docutils literal notranslate"><span class="pre">stale_verdicts</span></code></a>(project_root, changed_id)</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#nw.freshness.stale_verdicts" title="nw.freshness.stale_verdicts"><code class="xref py py-obj docutils literal notranslate"><span class="pre">stale_verdicts</span></code></a>(project_root, changed_id)</p></td>
 <td><p>Classify every annotation downstream of <code class="docutils literal notranslate"><span class="pre">changed_id</span></code>.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#nw.freshness.stale_verdicts_all" title="nw.freshness.stale_verdicts_all"><code class="xref py py-obj docutils literal notranslate"><span class="pre">stale_verdicts_all</span></code></a>(project_root)</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#nw.freshness.stale_verdicts_all" title="nw.freshness.stale_verdicts_all"><code class="xref py py-obj docutils literal notranslate"><span class="pre">stale_verdicts_all</span></code></a>(project_root)</p></td>
 <td><p>Classify every derived annotation in the project — the snapshot form.</p></td>
 </tr>
 </tbody>
@@ -462,10 +468,64 @@ distinct tier, each stored node’s key computed once. The freshness walk
 runs <strong>at most once per call</strong>, over the candidates that survived it, and
 <strong>not at all</strong> when none did — so a first run, or a run whose outputs are
 all new, pays nothing for this. Pass every annotation of one write batch
-in a single call to share the walk. Read-only: nothing is written.</p>
+in a single call to share the walk. Inside a <a class="reference internal" href="#nw.freshness.freshness_pass" title="nw.freshness.freshness_pass"><code class="xref py py-func docutils literal notranslate"><span class="pre">freshness_pass()</span></code></a>, the
+tier reads and the walk are shared <strong>across calls</strong> too, until the next
+write. Read-only: nothing is written.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#tuple" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">tuple</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.15)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code></a>[<code class="xref py py-class docutils literal notranslate"><span class="pre">Annotation</span></code>], <a class="reference external" href="https://docs.python.org/3/builtins/constants.html#Ellipsis" title="(in Python v3.15)"><code class="xref py py-data docutils literal notranslate"><span class="pre">...</span></code></a>]</span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="nw.freshness.freshness_pass">
+<span class="sig-prename descclassname"><span class="pre">nw.freshness.</span></span><span class="sig-name descname"><span class="pre">freshness_pass</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/nw/freshness.html#freshness_pass"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nw.freshness.freshness_pass" title="Link to this definition">#</a></dt>
+<dd><p>Share one freshness walk across many <a class="reference internal" href="#nw.freshness.fresh_equivalents" title="nw.freshness.fresh_equivalents"><code class="xref py py-func docutils literal notranslate"><span class="pre">fresh_equivalents()</span></code></a> lookups.</p>
+<p>While the pass is open, each project’s tier reads and its freshness walk
+are taken once, on the first lookup that needs them, and reused by every
+later lookup — until a write drops them. Opening a pass reads and walks
+nothing, so it costs nothing to a run that never looks anything up.
+<code class="xref py py-func docutils literal notranslate"><span class="pre">fan_out_execute()</span></code> opens one around its units,
+which is what turns a K-unit re-run with <code class="docutils literal notranslate"><span class="pre">reuse_fresh_outputs</span></code> from K
+walks into one (nw#209). Nested passes share the outermost one.</p>
+<p><strong>Why a held walk stays valid</strong> (braidio#171’s rule): a node’s freshness
+is a function of its own parents, so <em>adding</em> a node changes no other
+node’s verdict. What can change one is a write to an existing node, a
+deletion, or a trace written later. So the held state is dropped by
+nw’s write paths themselves, not by callers reporting their outputs — no
+caller can forget to:</p>
+<ul class="simple">
+<li><p>every write-open of <a class="reference internal" href="nw.graph.html#nw.graph.ProjectGraph" title="nw.graph.ProjectGraph"><code class="xref py py-class docutils literal notranslate"><span class="pre">ProjectGraph</span></code></a> (<code class="docutils literal notranslate"><span class="pre">add_annotation</span></code>
+and every entity upsert, <code class="docutils literal notranslate"><span class="pre">remove_annotation</span></code>, <code class="docutils literal notranslate"><span class="pre">backfill_traces</span></code>,
+a genre spec’s entity sync). Unproduced-output records (nw#44) do not:
+they are parentless sidecars no node derives from, at a tier no lookup
+reads;</p></li>
+<li><p><a class="reference internal" href="nw.graph.html#nw.graph.remove_annotations_with_traces" title="nw.graph.remove_annotations_with_traces"><code class="xref py py-func docutils literal notranslate"><span class="pre">remove_annotations_with_traces()</span></code></a> (also a storyboard
+re-save);</p></li>
+<li><p><a class="reference internal" href="nw.html#nw.rewrite_values" title="nw.rewrite_values"><code class="xref py py-func docutils literal notranslate"><span class="pre">nw.rewrite_values()</span></code></a>.</p></li>
+</ul>
+<p><a class="reference internal" href="nw.graph.html#nw.graph.collect_orphan_traces" title="nw.graph.collect_orphan_traces"><code class="xref py py-func docutils literal notranslate"><span class="pre">collect_orphan_traces()</span></code></a> does not: an orphan trace is
+never consulted, so removing one changes no answer.</p>
+<p>Not seen: a write that bypasses nw’s writers (a raw <code class="docutils literal notranslate"><span class="pre">store.add</span></code> /
+<code class="docutils literal notranslate"><span class="pre">store.remove</span></code> on an opened store) or another process. Either can make
+a held answer stale for the rest of the pass — the window that, without
+a pass, is the one between a lookup and its write. A Transform that
+writes behind nw’s back should not declare <code class="docutils literal notranslate"><span class="pre">reuse_fresh_outputs</span></code>.</p>
+<p>State is per context (a <a class="reference external" href="https://docs.python.org/3/library/contextvars.html#module-contextvars" title="(in Python v3.15)"><code class="xref py py-mod docutils literal notranslate"><span class="pre">contextvars</span></code></a> variable) and keyed by the
+<strong>resolved project root</strong>: two projects in one pass never share it, two
+storages over one root do, and a thread that did not inherit the context
+sees no pass. Invalidation is not per context: a write in <em>any</em> thread
+moves a process-wide write epoch, and a held walk older than the epoch
+is discarded on its next use — so a request thread editing a shot while
+a fan-out runs on a worker drops that fan-out’s walk too. It over-drops
+(a write to one project drops every project’s held walk), which is safe.</p>
+<p>Held answers are <strong>shared objects</strong>: the annotations a lookup returns
+inside a pass may be the same instances later lookups return. Do not
+mutate them.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterator" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Iterator</span></code></a>[<span class="highlight sphinx_autodoc_typehints-value"><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></a></span>]</span></p>
 </dd>
 </dl>
 </dd></dl>
@@ -605,7 +665,7 @@ projects, not installing a pure wrapper.</p>
     </div>
   </div>
 </footer>
-      <script src="../_static/documentation_options.js?v=5e4a978b"></script>
+      <script src="../_static/documentation_options.js?v=95c30746"></script>
       <script src="../_static/doctools.js?v=fd6eb6e6"></script>
       <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
