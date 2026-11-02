@@ -14,6 +14,7 @@ the suite has imported everything.
 
 from __future__ import annotations
 
+import os
 import subprocess
 import sys
 import textwrap
@@ -39,11 +40,18 @@ needs_artful = pytest.mark.skipif(
 
 
 def _run(code: str) -> subprocess.CompletedProcess:
+    # ``cwd`` alone does not put this tree first: under ``PYTHONSAFEPATH`` (or
+    # ``-P``) the current directory is not on ``sys.path``, and the editable
+    # install's checkout is imported instead of the one under test.
+    pythonpath = os.pathsep.join(
+        p for p in (str(_REPO_ROOT), os.environ.get("PYTHONPATH")) if p
+    )
     return subprocess.run(
         [sys.executable, "-c", textwrap.dedent(code)],
         capture_output=True,
         text=True,
         cwd=_REPO_ROOT,
+        env={**os.environ, "PYTHONPATH": pythonpath},
     )
 
 
@@ -270,3 +278,10 @@ def test_required_dependencies_are_the_substrate():
         d.startswith("artful")
         for d in pyproject["project"]["optional-dependencies"]["storyboard"]
     )
+
+
+def test_the_subprocess_imports_the_tree_under_test():
+    """Fails if the footprint checks silently measure another checkout of nw
+    (an editable install elsewhere), which makes every other test here moot."""
+    out = _ok("import nw, pathlib; print(pathlib.Path(nw.__file__).resolve())")
+    assert out.strip() == str(_REPO_ROOT / "nw" / "__init__.py")
