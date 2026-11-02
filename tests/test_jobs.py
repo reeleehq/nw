@@ -3486,7 +3486,7 @@ class _Watched(MutableMapping):
 
 
 def _pointer(rt, kind):
-    return rt.latest.get(jobs._pointer_key(kind))
+    return rt.latest.get(jobs._safe_key(kind))
 
 
 def test_archiving_points_the_kind_at_its_newest_archived_run(project):
@@ -3543,12 +3543,12 @@ def test_a_pointer_that_does_not_resolve_to_its_kind_is_repaired(project, stale)
     jobs.archive_finished_runs(project)
     jobs.latest_job(project, kind="op")  # the backfill marker is written
     with rt.lock:
-        rt.latest[jobs._pointer_key("op")] = {"job_id": stale}
-        rt.latest[jobs._pointer_key("never")] = {"job_id": stale}
+        rt.latest[jobs._safe_key("op")] = {"job_id": stale}
+        rt.latest[jobs._safe_key("never")] = {"job_id": stale}
     assert jobs.latest_job(project, kind="op").job_id == "old"
     assert _pointer(rt, "op") == {"job_id": "old"}
     assert jobs.latest_job(project, kind="never") is None
-    assert jobs._pointer_key("never") not in rt.latest  # not rescanned on every poll
+    assert jobs._safe_key("never") not in rt.latest  # not rescanned on every poll
 
 
 def test_a_failed_pointer_write_keeps_the_run_in_the_index(project, monkeypatch):
@@ -3633,18 +3633,54 @@ def test_the_backfill_skips_a_run_taken_out_of_the_archive_meanwhile(project, mo
     assert jobs.latest_job(project, kind="op").job_id == "older"
 
 
-@pytest.mark.parametrize("length", [jobs._MAX_POINTER_KEY_LEN + 1, 300])
-def test_a_kind_too_long_for_a_file_name_still_archives(project, length):
-    """Spelled out, the pointer key would not fit a file name and the run could
-    never leave the index: fails if the long kind is not keyed by its digest."""
+@pytest.mark.parametrize("length", [jobs._MAX_STORE_KEY_LEN + 1, 300])
+def test_a_key_too_long_for_a_file_name_is_stored_by_digest(project, length):
+    """Spelled out, the key would not fit a file name: a kind's runs could never
+    leave the index, and an ETA key never record a sample (nw#197). Fails if a
+    long key is not keyed by its digest."""
     rt = jobs._runtime(project)
-    kind = "k" * length
-    _ended_run(rt, "long", days_ago=40, kind=kind)
+    long = "k" * length
+    _ended_run(rt, "long", days_ago=40, kind=long)
     assert jobs.archive_finished_runs(project) == ["long"]
-    assert jobs.latest_job(project, kind=kind).job_id == "long"
-    assert jobs._pointer_key(kind).startswith("%%sha256-")
-    edge = "k" * jobs._MAX_POINTER_KEY_LEN
-    assert jobs._pointer_key(edge) == edge
+    assert jobs.latest_job(project, kind=long).job_id == "long"
+    with rt.lock:
+        rt.middleware._record_sample_locked(long, 2.0)
+    assert jobs._durations_get(rt.durations, long) == [2.0]
+    assert jobs._safe_key(long).startswith("%%sha256-")
+
+
+def test_every_key_that_could_be_written_keeps_its_name():
+    """The digest applies only past what the store could write, so no stored
+    duration sample moves."""
+    edge = "k" * jobs._MAX_STORE_KEY_LEN
+    assert jobs._safe_key(edge) == edge
+
+
+@pytest.mark.skipif(os.name == "nt", reason="Windows caps the whole path, not the name")
+@pytest.mark.parametrize(
+    "key",
+    [
+        "k" * jobs._MAX_STORE_KEY_LEN,
+        "." + "k" * (jobs._MAX_STORE_KEY_LEN - 1),  # the %2E escape adds two
+        "." + "k" * jobs._MAX_STORE_KEY_LEN,
+        "é" * 40 + "kk",  # percent-encoded: six characters each
+        "a/b" * 100,
+    ],
+)
+def test_any_key_is_writable(tmp_path, key):
+    """Whatever its shape, ``_safe_key`` gives a name the store can write."""
+    store = jobs.AtomicJsonFiles(tmp_path / "s")
+    store[jobs._safe_key(key)] = {"ok": True}
+    assert store[jobs._safe_key(key)] == {"ok": True}
+
+
+@pytest.mark.skipif(os.name == "nt", reason="Windows caps the whole path, not the name")
+def test_the_longest_spelled_key_is_writable(tmp_path):
+    """Pins :data:`_MAX_STORE_KEY_LEN` to the store's real temp-file naming."""
+    store = jobs.AtomicJsonFiles(tmp_path / "s")
+    store["k" * jobs._MAX_STORE_KEY_LEN] = {"ok": True}
+    with pytest.raises(OSError):
+        store["k" * (jobs._MAX_STORE_KEY_LEN + 1)] = {"ok": True}
 
 
 def test_runs_order_by_time_not_by_string(project):
