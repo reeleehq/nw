@@ -35,7 +35,7 @@ from nw import (
     fan_out_plan,
 )
 from nw.bodies import SectionBodyV1
-from nw.secrets import FAL_SECRET, as_secrets, using_secrets
+from nw.secrets import FAL_SECRET, as_secrets, failure_text, using_secrets
 from nw.transforms import cache_key, stamp_transform_identity
 from nw.transforms._provenance import derive_provenance
 
@@ -572,6 +572,9 @@ def test_redact_exception_rebuilds_or_falls_back_but_never_renders_the_key():
     custom = redact_exception(_CustomStr(SENTINEL, 500), secrets)
     assert isinstance(custom, RedactedError)
     assert custom.original_type == "_CustomStr" and SENTINEL not in str(custom)
+    # ...and the text nw files names the original type, not the stand-in
+    _, text = failure_text(_CustomStr(SENTINEL, 500), secrets)
+    assert text.startswith("_CustomStr: ") and SENTINEL not in text
 
     # the chain is scrubbed too
     try:

@@ -283,7 +283,10 @@ def _render(error: BaseException) -> str:
     try:
         return str(error)
     except Exception:  # noqa: BLE001 — a __str__ that raises renders as its repr
-        return repr(error)
+        try:
+            return repr(error)
+        except Exception:  # noqa: BLE001 — and one whose __repr__ raises too
+            return f"<unprintable {type(error).__name__}>"
 
 
 def failure_text(
@@ -306,7 +309,11 @@ def failure_text(
     'RuntimeError: key=<redacted:fal>'
     """
     error = redact_exception(error, secrets)
-    name = getattr(error, "original_type", None) or type(error).__name__
+    name = (
+        error.original_type
+        if isinstance(error, RedactedError)
+        else type(error).__name__
+    )
     return error, redact(f"{name}: {_render(error)}", secrets)
 
 
