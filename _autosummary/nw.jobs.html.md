@@ -255,7 +255,7 @@ record’s `cost["estimate_source"]`): the host’s `estimated_usd=`, the
 re-quoted `params["plan"]`, `params["estimated_usd"]`, or (record only) a
 render event that replaced a non-host figure. `None` = none.
 
-### *class* nw.jobs.Job(job_id, kind, label, status, idempotency_key, params=dict(), created_at=None, started_at=None, finished_at=None, queue_wait_s=None, elapsed_s=None, progress=JobProgress(), predicted_total_s=None, remaining_s=None, eta_ts=None, eta_s=None, pct=None, confidence=None, label_hint=None, eta_key=None, cost=JobCost(), cached=False, worker_silent_s=None, provider_phase=None, provider_queue_position=None, provider_started_at=None, worker_responsive=None, artifact_ref=None, result=None, error=None, error_kind=None, error_detail=None, run_id=None, run_token=None, last_event_id=None)
+### *class* nw.jobs.Job(job_id, kind, label, status, idempotency_key, params=dict(), submitted_by=None, created_at=None, started_at=None, finished_at=None, queue_wait_s=None, elapsed_s=None, progress=JobProgress(), predicted_total_s=None, remaining_s=None, eta_ts=None, eta_s=None, pct=None, confidence=None, label_hint=None, eta_key=None, cost=JobCost(), cached=False, worker_silent_s=None, provider_phase=None, provider_queue_position=None, provider_started_at=None, worker_responsive=None, artifact_ref=None, result=None, error=None, error_kind=None, error_detail=None, run_id=None, run_token=None, last_event_id=None)
 
 Bases: [`object`](https://docs.python.org/3/builtins/functions.html#object)
 
@@ -321,6 +321,12 @@ host that dedupes terminal announcements keys on `(job_id, run_token)`.
 
 * **Type:**
   This *run’s* identity
+
+#### submitted_by *: [str](https://docs.python.org/3/builtins/stdtypes.html#str) | [None](https://docs.python.org/3/builtins/constants.html#None)* *= None*
+
+Who submitted the run, as the host named them at [`enqueue()`](#nw.jobs.enqueue)
+(nw#192): an opaque id nw stores and returns, never interprets. `None`
+when the host did not say, and for every run recorded before the field.
 
 #### worker_responsive *: [bool](https://docs.python.org/3/builtins/functions.html#bool) | [None](https://docs.python.org/3/builtins/constants.html#None)* *= None*
 
@@ -596,7 +602,7 @@ is the figure the error message names.
 * **Return type:**
   [`float`](https://docs.python.org/3/builtins/functions.html#float) | [`None`](https://docs.python.org/3/builtins/constants.html#None)
 
-### nw.jobs.enqueue(project, kind, params, \*, on_event=None, dispatch=None, backend=None, idempotency_key=None, label=None, capture_context=None, secrets=None, estimated_usd=<object object>, config=JobsConfig(n_min=3, sample_window_k=20, pct_ceil=99, overrun_factor=1.5, cache_hit_floor_s=0.5, dur_buckets_s=(4.0, 8.0, 12.0), prior_total_s={'image': 12.0, 'video': 90.0, 'audio': 15.0}, default_prior_total_s=30.0, stale_running_s=900.0, heartbeat_interval_s=20.0, heartbeat_stale_s=120.0, terminal_hook_attempts=3, terminal_hook_lease_s=300.0, approval_threshold_usd=1.0, index_retention_s=2592000.0, never_started_after_s=None, index_sweep_interval_s=3600.0, jobs_dirname='.nw/jobs'))
+### nw.jobs.enqueue(project, kind, params, \*, on_event=None, dispatch=None, backend=None, idempotency_key=None, label=None, capture_context=None, secrets=None, estimated_usd=<object object>, submitted_by=None, config=JobsConfig(n_min=3, sample_window_k=20, pct_ceil=99, overrun_factor=1.5, cache_hit_floor_s=0.5, dur_buckets_s=(4.0, 8.0, 12.0), prior_total_s={'image': 12.0, 'video': 90.0, 'audio': 15.0}, default_prior_total_s=30.0, stale_running_s=900.0, heartbeat_interval_s=20.0, heartbeat_stale_s=120.0, terminal_hook_attempts=3, terminal_hook_lease_s=300.0, approval_threshold_usd=1.0, index_retention_s=2592000.0, never_started_after_s=None, index_sweep_interval_s=3600.0, jobs_dirname='.nw/jobs'))
 
 Enqueue a billable render as a background job. Returns a [`Job`](#nw.jobs.Job)
 (`status="queued"`) **immediately** — the call never blocks and never
@@ -672,12 +678,22 @@ already exists, that job is returned instead of launching a duplicate.
     so it never enters the job id: a price that drifts with the graph
     does not split dedup, and a dedup onto a live job keeps that
     job’s figure (nw#144). Omitted, nothing changes.
+  * **submitted_by** ([`str`](https://docs.python.org/3/builtins/stdtypes.html#str) | [`None`](https://docs.python.org/3/builtins/constants.html#None)) – who is submitting, as the host names its caller (a
+    principal id), recorded as [`Job.submitted_by`](#nw.jobs.Job.submitted_by). Like
+    `estimated_usd` it is not part of `params` and never enters the
+    job id, so two callers submitting the same work share one job, and
+    a dedup onto a live job keeps the submitter of the run already
+    going; a re-run of a finished key records the new one. So the
+    returned `Job.submitted_by` may differ from the argument: that is
+    how a host detects that its caller joined a run someone else
+    started, and must not bill the joiner for it.
   * **config** ([`JobsConfig`](#nw.jobs.JobsConfig)) – tunables (see [`JobsConfig`](#nw.jobs.JobsConfig)).
 * **Raises:**
   * [**KeyError**](https://docs.python.org/3/builtins/exceptions.html#KeyError) – if `kind` is not in `dispatch`.
   * [**ValueError**](https://docs.python.org/3/builtins/exceptions.html#ValueError) – if `params["units"]` is present but not a positive `int`,
-        or `estimated_usd` is neither `None` nor a finite, non-negative
-        number (see [`checked_usd()`](#nw.jobs.checked_usd)).
+        `estimated_usd` is neither `None` nor a finite, non-negative
+        number (see [`checked_usd()`](#nw.jobs.checked_usd)), or `submitted_by` is neither
+        `None` nor a string with a non-space character.
 * **Return type:**
   [`Job`](#nw.jobs.Job)
 

@@ -1,4 +1,4 @@
-> built 2026-11-02 13:06 UTC from 19934d9 (main) · nw 0.0.112. Details: build_info.json
+> built 2026-11-02 13:17 UTC from 0ffe898 (main) · nw 0.0.113. Details: build_info.json
 
 # index.html.md
 
@@ -791,7 +791,8 @@ Cancel every non-terminal member, then return [`status()`](_autosummary/nw.batch
 Enqueue every item as a job and record the batch. Never blocks.
 
 `enqueue_kwargs` (`dispatch`, `on_event`, `secrets`,
-`capture_context`, `backend`) go to each `enqueue` call unchanged.
+`capture_context`, `backend`, `submitted_by`) go to each `enqueue`
+call unchanged.
 Every item is validated (keys, `kind` in `dispatch`, `units`) before
 the first one launches, so a bad item leaves nothing running. Re-submitting
 a batch that exists returns it without enqueueing.
@@ -7310,7 +7311,7 @@ record’s `cost["estimate_source"]`): the host’s `estimated_usd=`, the
 re-quoted `params["plan"]`, `params["estimated_usd"]`, or (record only) a
 render event that replaced a non-host figure. `None` = none.
 
-### *class* nw.jobs.Job(job_id, kind, label, status, idempotency_key, params=dict(), created_at=None, started_at=None, finished_at=None, queue_wait_s=None, elapsed_s=None, progress=JobProgress(), predicted_total_s=None, remaining_s=None, eta_ts=None, eta_s=None, pct=None, confidence=None, label_hint=None, eta_key=None, cost=JobCost(), cached=False, worker_silent_s=None, provider_phase=None, provider_queue_position=None, provider_started_at=None, worker_responsive=None, artifact_ref=None, result=None, error=None, error_kind=None, error_detail=None, run_id=None, run_token=None, last_event_id=None)
+### *class* nw.jobs.Job(job_id, kind, label, status, idempotency_key, params=dict(), submitted_by=None, created_at=None, started_at=None, finished_at=None, queue_wait_s=None, elapsed_s=None, progress=JobProgress(), predicted_total_s=None, remaining_s=None, eta_ts=None, eta_s=None, pct=None, confidence=None, label_hint=None, eta_key=None, cost=JobCost(), cached=False, worker_silent_s=None, provider_phase=None, provider_queue_position=None, provider_started_at=None, worker_responsive=None, artifact_ref=None, result=None, error=None, error_kind=None, error_detail=None, run_id=None, run_token=None, last_event_id=None)
 
 Bases: [`object`](https://docs.python.org/3/builtins/functions.html#object)
 
@@ -7376,6 +7377,12 @@ host that dedupes terminal announcements keys on `(job_id, run_token)`.
 
 * **Type:**
   This *run’s* identity
+
+#### submitted_by *: [str](https://docs.python.org/3/builtins/stdtypes.html#str) | [None](https://docs.python.org/3/builtins/constants.html#None)* *= None*
+
+Who submitted the run, as the host named them at [`enqueue()`](_autosummary/nw.jobs.html.md#nw.jobs.enqueue)
+(nw#192): an opaque id nw stores and returns, never interprets. `None`
+when the host did not say, and for every run recorded before the field.
 
 #### worker_responsive *: [bool](https://docs.python.org/3/builtins/functions.html#bool) | [None](https://docs.python.org/3/builtins/constants.html#None)* *= None*
 
@@ -7651,7 +7658,7 @@ is the figure the error message names.
 * **Return type:**
   [`float`](https://docs.python.org/3/builtins/functions.html#float) | [`None`](https://docs.python.org/3/builtins/constants.html#None)
 
-### nw.jobs.enqueue(project, kind, params, \*, on_event=None, dispatch=None, backend=None, idempotency_key=None, label=None, capture_context=None, secrets=None, estimated_usd=<object object>, config=JobsConfig(n_min=3, sample_window_k=20, pct_ceil=99, overrun_factor=1.5, cache_hit_floor_s=0.5, dur_buckets_s=(4.0, 8.0, 12.0), prior_total_s={'image': 12.0, 'video': 90.0, 'audio': 15.0}, default_prior_total_s=30.0, stale_running_s=900.0, heartbeat_interval_s=20.0, heartbeat_stale_s=120.0, terminal_hook_attempts=3, terminal_hook_lease_s=300.0, approval_threshold_usd=1.0, index_retention_s=2592000.0, never_started_after_s=None, index_sweep_interval_s=3600.0, jobs_dirname='.nw/jobs'))
+### nw.jobs.enqueue(project, kind, params, \*, on_event=None, dispatch=None, backend=None, idempotency_key=None, label=None, capture_context=None, secrets=None, estimated_usd=<object object>, submitted_by=None, config=JobsConfig(n_min=3, sample_window_k=20, pct_ceil=99, overrun_factor=1.5, cache_hit_floor_s=0.5, dur_buckets_s=(4.0, 8.0, 12.0), prior_total_s={'image': 12.0, 'video': 90.0, 'audio': 15.0}, default_prior_total_s=30.0, stale_running_s=900.0, heartbeat_interval_s=20.0, heartbeat_stale_s=120.0, terminal_hook_attempts=3, terminal_hook_lease_s=300.0, approval_threshold_usd=1.0, index_retention_s=2592000.0, never_started_after_s=None, index_sweep_interval_s=3600.0, jobs_dirname='.nw/jobs'))
 
 Enqueue a billable render as a background job. Returns a [`Job`](_autosummary/nw.jobs.html.md#nw.jobs.Job)
 (`status="queued"`) **immediately** — the call never blocks and never
@@ -7727,12 +7734,22 @@ already exists, that job is returned instead of launching a duplicate.
     so it never enters the job id: a price that drifts with the graph
     does not split dedup, and a dedup onto a live job keeps that
     job’s figure (nw#144). Omitted, nothing changes.
+  * **submitted_by** ([`str`](https://docs.python.org/3/builtins/stdtypes.html#str) | [`None`](https://docs.python.org/3/builtins/constants.html#None)) – who is submitting, as the host names its caller (a
+    principal id), recorded as [`Job.submitted_by`](_autosummary/nw.jobs.html.md#nw.jobs.Job.submitted_by). Like
+    `estimated_usd` it is not part of `params` and never enters the
+    job id, so two callers submitting the same work share one job, and
+    a dedup onto a live job keeps the submitter of the run already
+    going; a re-run of a finished key records the new one. So the
+    returned `Job.submitted_by` may differ from the argument: that is
+    how a host detects that its caller joined a run someone else
+    started, and must not bill the joiner for it.
   * **config** ([`JobsConfig`](_autosummary/nw.jobs.html.md#nw.jobs.JobsConfig)) – tunables (see [`JobsConfig`](_autosummary/nw.jobs.html.md#nw.jobs.JobsConfig)).
 * **Raises:**
   * [**KeyError**](https://docs.python.org/3/builtins/exceptions.html#KeyError) – if `kind` is not in `dispatch`.
   * [**ValueError**](https://docs.python.org/3/builtins/exceptions.html#ValueError) – if `params["units"]` is present but not a positive `int`,
-        or `estimated_usd` is neither `None` nor a finite, non-negative
-        number (see [`checked_usd()`](_autosummary/nw.jobs.html.md#nw.jobs.checked_usd)).
+        `estimated_usd` is neither `None` nor a finite, non-negative
+        number (see [`checked_usd()`](_autosummary/nw.jobs.html.md#nw.jobs.checked_usd)), or `submitted_by` is neither
+        `None` nor a string with a non-space character.
 * **Return type:**
   [`Job`](_autosummary/nw.jobs.html.md#nw.jobs.Job)
 
@@ -11176,7 +11193,7 @@ produce different URLs. The local file paths are byte-stable.
 
 # About this build
 
-This documentation was built on **2026-11-02 13:06 UTC** from commit <a href="https://github.com/reeleehq/nw/commit/19934d97ad87514e520474cf7b9845c656942181"><code>19934d9</code></a> on branch <code>main</code>, for **nw 0.0.112** (from <code>pyproject.toml</code>).
+This documentation was built on **2026-11-02 13:17 UTC** from commit <a href="https://github.com/reeleehq/nw/commit/0ffe898ffb268aba8138943bffbbde3580558bc7"><code>0ffe898</code></a> on branch <code>main</code>, for **nw 0.0.113** (from <code>pyproject.toml</code>).
 
 #### NOTE
 Nothing suggests a mismatch: the tree was clean at the commit above, and the documented version is the one on PyPI.
@@ -11185,9 +11202,9 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 
 |                     |                                                                                                                                                    |
 |---------------------|----------------------------------------------------------------------------------------------------------------------------------------------------|
-| Commit              | <a href="https://github.com/reeleehq/nw/commit/19934d97ad87514e520474cf7b9845c656942181"><code>19934d97ad87514e520474cf7b9845c656942181</code></a> |
+| Commit              | <a href="https://github.com/reeleehq/nw/commit/0ffe898ffb268aba8138943bffbbde3580558bc7"><code>0ffe898ffb268aba8138943bffbbde3580558bc7</code></a> |
 | Branch              | <code>main</code>                                                                                                                                  |
-| Tags at this commit | <code>0.0.112</code>                                                                                                                               |
+| Tags at this commit | none                                                                                                                                               |
 | Working tree        | clean                                                                                                                                              |
 | Remote              | <code>https://github.com/reeleehq/nw</code>                                                                                                        |
 
@@ -11196,9 +11213,9 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 |              |                                                                                            |
 |--------------|--------------------------------------------------------------------------------------------|
 | Repository   | <code>reeleehq/nw</code>                                                                   |
-| Run          | <a href="https://github.com/reeleehq/nw/actions/runs/41449665959">41449665959</a>          |
+| Run          | <a href="https://github.com/reeleehq/nw/actions/runs/41451254183">41451254183</a>          |
 | Ref          | <code>refs/heads/main</code>                                                               |
-| Event commit | <code>5902c17d95019cc854e8928525e9483e4a90db8c</code> (in the history of the built commit) |
+| Event commit | <code>2cd6ef9937095602a8216623f52c419f8b2c8364</code> (in the history of the built commit) |
 
 ## Tools
 
@@ -11223,13 +11240,13 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 
 ## Package on PyPI
 
-Latest release: <a href="https://pypi.org/project/nw/0.0.112/">0.0.112</a>, the same as the documented version.
+Latest release: <a href="https://pypi.org/project/nw/0.0.113/">0.0.113</a>, the same as the documented version.
 
 ## Reproduce
 
 ```bash
 git clone https://github.com/reeleehq/nw && cd nw
-git checkout 19934d97ad87514e520474cf7b9845c656942181
+git checkout 0ffe898ffb268aba8138943bffbbde3580558bc7
 pip install "epythet==0.2.22"
 epythet quickstart . --ignore tests/ scrap/ examples/
 ```
