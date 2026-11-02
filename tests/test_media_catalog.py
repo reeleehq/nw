@@ -142,22 +142,25 @@ def test_blob_path_is_how_a_reader_finds_the_bytes(project):
         "/etc/passwd",
         "../../" + "a" * 64,
         "a" * 63,  # one short of a digest
+        "a" * 65,  # one over: a prefix match is not a digest
         "A" * 64,  # a digest, but not lowercase
-        "a" * 64 + "\n",  # fullmatch, not match: no trailing newline
+        pytest.param(
+            "a" * 64 + "\n",  # fullmatch, not match: no trailing newline
+            marks=pytest.mark.skipif(os.name == "nt", reason="no newline in a name"),
+        ),
         "./" + "a" * 64,
     ],
 )
 def test_blob_path_never_turns_a_path_shaped_id_into_a_path(project, path_shaped):
     """nw#191: ``blob_path`` is a host's only check of an artifact id before it
     becomes a file path (braidio's ``media_path`` relies on it). Every file a
-    loosened guard would hand back exists here, so ``None`` means "refused",
-    not "not found"."""
+    loosened guard would hand back exists here, blob and row, so ``None`` means
+    "refused", not "not found", and ``has`` is pinned on its own."""
     cat = HostArtifactCatalog(project)
-    cat.blobs_dir.mkdir(parents=True, exist_ok=True)
-    target = cat.blobs_dir / path_shaped
-    if not path_shaped.startswith("/") and "\n" not in path_shaped:
-        target.resolve().parent.mkdir(parents=True, exist_ok=True)
-        target.resolve().write_bytes(b"planted")
+    if not path_shaped.startswith("/"):
+        for planted in (cat.blobs_dir / path_shaped, cat.rows_dir / f"{path_shaped}.json"):
+            planted.resolve().parent.mkdir(parents=True, exist_ok=True)
+            planted.resolve().write_bytes(b"planted")
     assert cat.blob_path(path_shaped) is None
     assert not cat.has(path_shaped)
 
