@@ -70,6 +70,7 @@ from nw.secrets import (
     FAL_SECRET,
     Secrets,
     as_secrets,
+    failure_text,
     redact,
     redact_exception,
     using_secrets,
@@ -508,16 +509,15 @@ class BaseTransform:
                     # an *unproduced output*, exactly like an execution failure.
                     if on_failure == "halt":
                         raise
-                    e = redact_exception(e, secrets)
+                    e, text = failure_text(e, secrets)
                     failed.append(
                         FailedOutput(
                             skeleton=skel,
                             status="failed",
-                            reason=redact(
+                            reason=(
                                 f"the call succeeded but its result could not be "
                                 f"turned into a {self.output_kind or 'output'} "
-                                f"annotation: {type(e).__name__}: {e}",
-                                secrets,
+                                f"annotation: {text}"
                             ),
                             error=e,
                         )
@@ -528,18 +528,15 @@ class BaseTransform:
             # caller's secrets, and when falaw gives no reason (it does not, for
             # a failed call) the error's own text is the reason, so the record
             # says why (nw#205).
-            error = (
-                redact_exception(outcome.error, secrets)
+            error, text = (
+                failure_text(outcome.error, secrets)
                 if outcome.error is not None
-                else None
-            )
-            reason = outcome.reason or (
-                f"{type(error).__name__}: {error}" if error is not None else ""
+                else (None, "")
             )
             unproduced = FailedOutput(
                 skeleton=skel,
                 status=outcome.status,
-                reason=redact(reason, secrets),
+                reason=redact(outcome.reason, secrets) or text,
                 error=error,
                 blocked_by=tuple(outcome.blocked_by),
             )

@@ -697,3 +697,39 @@ def test_an_isolated_call_failure_is_explained_and_redacted(
     assert SENTINEL not in str(failed.error)
     assert SENTINEL not in caplog.text and "<redacted:elevenlabs>" in caplog.text
     assert _grep_tree(tmp_path) == []
+
+
+def test_an_error_that_cannot_render_still_isolates(monkeypatch, project):
+    """A failed call whose error's ``__str__`` raises is still recorded as an
+    unproduced output, named by its type: explaining a failure must not become
+    a second failure that loses the run's paid siblings (nw#205 review)."""
+
+    class Loud(Exception):
+        def __str__(self):
+            raise ValueError("cannot render")
+
+    (section,) = _sections(project, "intro")
+    _, skeleton = _SpendsASecret().plan(project, TransformInputs(primary=(section,)))
+    failed = SimpleNamespace(
+        ok=False, status="failed", reason="", error=Loud(), blocked_by=()
+    )
+    report = SimpleNamespace(
+        outcomes=(failed,),
+        produced=(),
+        estimated_spend_usd=0.0,
+        cache_hit_savings_usd=0.0,
+        has_unknown_costs=False,
+    )
+    transforms_module = importlib.import_module("nw.transforms")
+    monkeypatch.setattr(transforms_module, "execute_plan_isolated", lambda p, **k: report)
+
+    class _Base(BaseTransform):
+        name = "test.base_loud"
+        output_kind = RENDER_URI
+
+    call = CallPlan(tool="t", application="a", arguments={}, output_kind="video")
+    result = _Base().execute(
+        project, Plan(calls=(call,)), skeleton, on_failure="isolate"
+    )
+    (out,) = result.failed
+    assert out.reason.startswith("Loud: ")
