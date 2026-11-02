@@ -429,3 +429,20 @@ def test_a_graph_lacking_a_reuse_method_keeps_the_old_behaviour(tmp_path, fal):
 
     assert second.annotations[0].id != first.annotations[0].id
     assert len(_nodes(proj)) == 2
+
+
+def test_a_failing_lookup_writes_every_output(tmp_path, fal, monkeypatch, caplog):
+    """Fails if a raising reuse lookup propagates: the run's paid outputs would
+    never be written. Reuse only saves a write, so a failed lookup writes."""
+    proj, (shot,) = _project(tmp_path)
+    first = _Reusing().execute(proj, _plan(), (_skeleton(proj, (shot,)),))
+
+    def broken(*args, **kwargs):
+        raise OSError("graph unreadable")
+
+    monkeypatch.setattr(proj.graph, "fresh_equivalents", broken)
+    second = _Reusing().execute(proj, _plan(), (_skeleton(proj, (shot,)),))
+
+    assert second.annotations[0].id != first.annotations[0].id
+    assert len(_nodes(proj)) == 2
+    assert "fresh-output lookup failed" in caplog.text

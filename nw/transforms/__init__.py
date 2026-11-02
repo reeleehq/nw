@@ -65,6 +65,7 @@ plus the class-level ``name`` / ``input_kinds`` / ``output_kind`` /
 from __future__ import annotations
 
 import json
+import logging
 from dataclasses import dataclass, field, replace
 from pathlib import Path
 from collections.abc import Mapping
@@ -604,11 +605,7 @@ class BaseTransform:
         # existing node is returned in its place, and the record its success
         # settles is still retired (nw#203).
         reuse = _reuse_seam(project.graph) if self.reuse_fresh_outputs else None
-        equivalents = (
-            tuple(reuse.find(completed))
-            if reuse is not None and completed
-            else tuple(None for _ in completed)
-        )
+        equivalents = _equivalents_or_none(reuse, completed, transform=self.name)
         produced: list[Annotation] = []
         for i, ann, existing in zip(
             completed_indices, completed, equivalents, strict=True
@@ -695,6 +692,25 @@ class _ReuseSeam:
 
     find: Callable
     settle: Callable
+
+
+_logger = logging.getLogger(__name__)
+
+
+def _equivalents_or_none(reuse, completed, *, transform: str) -> tuple:
+    """``reuse.find(completed)``, or all ``None`` (write every output) when there
+    is no seam, nothing to find, or the lookup fails: reuse saves a write, and a
+    lookup that raises must not cost the run's paid outputs (nw#203)."""
+    if reuse is None or not completed:
+        return tuple(None for _ in completed)
+    try:
+        return tuple(reuse.find(completed))
+    except Exception:  # noqa: BLE001 — see the docstring
+        _logger.warning(
+            "%s: fresh-output lookup failed; writing every output", transform,
+            exc_info=True,
+        )
+        return tuple(None for _ in completed)
 
 
 def _reuse_seam(graph) -> Optional[_ReuseSeam]:

@@ -505,7 +505,8 @@ def fresh_equivalents(
     Only **stored** nodes are candidates. Two equivalent annotations in the
     same call are matched against the graph, not against each other, so a
     caller that writes the ``None`` entries writes both; a later call then
-    returns the newest of the two for each.
+    returns the newest of the two for each, so the result can name one node
+    twice.
 
     **No lock** spans this read and the caller's write: two executes racing
     on the same outputs both find nothing and both write — exactly what
