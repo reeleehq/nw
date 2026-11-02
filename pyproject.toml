@@ -91,6 +91,11 @@ storyboard = [
 fal = [
     "falaw[fal]>=0.0.49",
 ]
+# Sound design over a narration track (nw#190): the
+# `narration_to_sound_design.foley` transform runs foley.score in execute.
+sound = [
+    "foley",
+]
 dev = [
     "nw[storyboard,fal]",
     "pytest>=7.0",

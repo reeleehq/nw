@@ -14,6 +14,9 @@ with a matching ``body_schema_uri`` validates correctly. The schemas are:
   produced (nw#44), retired by a later successful retry
 - ``annot://schema/genre-envelope/v1`` — the resolved {genre, template, params}
   the project was created as (singleton per project)
+- ``annot://schema/narration-track/v1``, ``annot://schema/sound-design-config/v1``,
+  ``annot://schema/sound-design/v1`` — the inputs and output of the
+  ``narration_to_sound_design.foley`` Transform (nw#190)
 
 These are deliberately small and project-agnostic. Reelee will be able to
 walk the same graph for freshness analysis ("what's downstream of this
@@ -35,6 +38,17 @@ from .render_result import (
 )
 from .section import SECTION_BODY_SCHEMA_URI, SectionBodyV1
 from .shot import SHOT_BODY_SCHEMA_URI, ShotBodyV1
+from .sound_design import (
+    NARRATION_TRACK_BODY_SCHEMA_URI,
+    NARRATION_TRACK_TIER,
+    SOUND_DESIGN_BODY_SCHEMA_URI,
+    SOUND_DESIGN_CONFIG_BODY_SCHEMA_URI,
+    SOUND_DESIGN_CONFIG_TIER,
+    SOUND_DESIGN_TIER,
+    NarrationTrackBodyV1,
+    SoundDesignBodyV1,
+    SoundDesignConfigBodyV1,
+)
 from .unproduced_output import (
     UNPRODUCED_OUTPUT_BODY_SCHEMA_URI,
     UNPRODUCED_OUTPUT_TIER,
@@ -66,6 +80,15 @@ __all__ = [
     "SectionBodyV1",
     "SHOT_BODY_SCHEMA_URI",
     "ShotBodyV1",
+    "NARRATION_TRACK_BODY_SCHEMA_URI",
+    "NARRATION_TRACK_TIER",
+    "NarrationTrackBodyV1",
+    "SOUND_DESIGN_CONFIG_BODY_SCHEMA_URI",
+    "SOUND_DESIGN_CONFIG_TIER",
+    "SoundDesignConfigBodyV1",
+    "SOUND_DESIGN_BODY_SCHEMA_URI",
+    "SOUND_DESIGN_TIER",
+    "SoundDesignBodyV1",
     "UNPRODUCED_OUTPUT_BODY_SCHEMA_URI",
     "UNPRODUCED_OUTPUT_TIER",
     "UnproducedOutputBodyV1",
