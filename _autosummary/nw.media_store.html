@@ -142,6 +142,8 @@ data-aria-dark="Switch to auto color mode">
 </li>
 <li><a class="reference internal" href="#nw.media_store.StoreCatalogUnreadable"><code class="docutils literal notranslate"><span class="pre">StoreCatalogUnreadable</span></code></a></li>
 <li><a class="reference internal" href="#nw.media_store.SweepReport"><code class="docutils literal notranslate"><span class="pre">SweepReport</span></code></a></li>
+<li><a class="reference internal" href="#nw.media_store.hash_file"><code class="docutils literal notranslate"><span class="pre">hash_file()</span></code></a></li>
+<li><a class="reference internal" href="#nw.media_store.is_content_digest"><code class="docutils literal notranslate"><span class="pre">is_content_digest()</span></code></a></li>
 </ul>
 </div><div id="ethical-ad-placement" data-ea-publisher="readthedocs"></div></div>
   </aside>
@@ -226,6 +228,19 @@ Reference count = the number of live rows naming a blob (<code class="xref py py
 </tr>
 <tr class="row-even"><td><p><a class="reference internal" href="#nw.media_store.DEFAULT_GRACE_S" title="nw.media_store.DEFAULT_GRACE_S"><code class="xref py py-obj docutils literal notranslate"><span class="pre">DEFAULT_GRACE_S</span></code></a></p></td>
 <td><p>Seconds a blob must stay unreferenced, across two sweeps, before it is removed.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p class="rubric">Functions</p>
+<div class="table-wrapper autosummary longtable docutils container">
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#nw.media_store.hash_file" title="nw.media_store.hash_file"><code class="xref py py-obj docutils literal notranslate"><span class="pre">hash_file</span></code></a>(path, *[, chunk_size])</p></td>
+<td><p>SHA-256 of a file's bytes, read in chunks: the content id of that file.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#nw.media_store.is_content_digest" title="nw.media_store.is_content_digest"><code class="xref py py-obj docutils literal notranslate"><span class="pre">is_content_digest</span></code></a>(artifact_id)</p></td>
+<td><p>Whether <code class="docutils literal notranslate"><span class="pre">artifact_id</span></code> is a content id: exactly 64 lowercase hex characters, the SHA-256 of the bytes.</p></td>
 </tr>
 </tbody>
 </table>
@@ -371,6 +386,46 @@ there is size-checked, not re-hashed.</p>
 </dl>
 </dd></dl>
 
+<dl class="py function">
+<dt class="sig sig-object py" id="nw.media_store.hash_file">
+<span class="sig-prename descclassname"><span class="pre">nw.media_store.</span></span><span class="sig-name descname"><span class="pre">hash_file</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">chunk_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1048576</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/nw/media_store.html#hash_file"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nw.media_store.hash_file" title="Link to this definition">#</a></dt>
+<dd><p>SHA-256 of a file’s bytes, read in chunks: the content id of that file.</p>
+<p>The same digest lacing computes for an <code class="docutils literal notranslate"><span class="pre">asset_id</span></code> (pinned by a test), kept
+here so the writers can be reasoned about without the graph layer.</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span data-line="1"><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span><span class="w"> </span><span class="nn">tempfile</span><span class="o">,</span><span class="w"> </span><span class="nn">pathlib</span>
+</span><span data-line="2"><span class="gp">&gt;&gt;&gt; </span><span class="k">with</span> <span class="n">tempfile</span><span class="o">.</span><span class="n">TemporaryDirectory</span><span class="p">()</span> <span class="k">as</span> <span class="n">d</span><span class="p">:</span>
+</span><span data-line="3"><span class="gp">... </span>    <span class="n">p</span> <span class="o">=</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">(</span><span class="n">d</span><span class="p">,</span> <span class="s2">"x"</span><span class="p">);</span> <span class="n">_</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">write_bytes</span><span class="p">(</span><span class="sa">b</span><span class="s2">"abc"</span><span class="p">)</span>
+</span><span data-line="4"><span class="gp">... </span>    <span class="n">hash_file</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+</span><span data-line="5"><span class="go">'ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad'</span>
+</span></pre></div>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="nw.media_store.is_content_digest">
+<span class="sig-prename descclassname"><span class="pre">nw.media_store.</span></span><span class="sig-name descname"><span class="pre">is_content_digest</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">artifact_id</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/nw/media_store.html#is_content_digest"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nw.media_store.is_content_digest" title="Link to this definition">#</a></dt>
+<dd><p>Whether <code class="docutils literal notranslate"><span class="pre">artifact_id</span></code> is a content id: exactly 64 lowercase hex
+characters, the SHA-256 of the bytes. The one check every reader applies
+before an id becomes a file path (nw#194), so <code class="docutils literal notranslate"><span class="pre">../x</span></code>, <code class="docutils literal notranslate"><span class="pre">/etc/passwd</span></code>, a
+prefix match or a trailing newline never reach the filesystem.</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span data-line="1"><span class="gp">&gt;&gt;&gt; </span><span class="n">is_content_digest</span><span class="p">(</span><span class="s2">"ab"</span> <span class="o">*</span> <span class="mi">32</span><span class="p">),</span> <span class="n">is_content_digest</span><span class="p">(</span><span class="s2">"../"</span> <span class="o">+</span> <span class="s2">"a"</span> <span class="o">*</span> <span class="mi">64</span><span class="p">)</span>
+</span><span data-line="2"><span class="go">(True, False)</span>
+</span><span data-line="3"><span class="gp">&gt;&gt;&gt; </span><span class="n">is_content_digest</span><span class="p">(</span><span class="s2">"a"</span> <span class="o">*</span> <span class="mi">64</span> <span class="o">+</span> <span class="s2">"</span><span class="se">\n</span><span class="s2">"</span><span class="p">),</span> <span class="n">is_content_digest</span><span class="p">(</span><span class="kc">None</span><span class="p">)</span>
+</span><span data-line="4"><span class="go">(False, False)</span>
+</span></pre></div>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#bool" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></a></span></p>
+</dd>
+</dl>
+</dd></dl>
+
 </section>
 
         </article><button class="back-to-top" type="button">
@@ -413,7 +468,7 @@ there is size-checked, not re-hashed.</p>
     </div>
   </div>
 </footer>
-      <script src="../_static/documentation_options.js?v=ab1379f9"></script>
+      <script src="../_static/documentation_options.js?v=0f6bfde0"></script>
       <script src="../_static/doctools.js?v=fd6eb6e6"></script>
       <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script src="../_static/clipboard.min.js?v=a7894cd8"></script>

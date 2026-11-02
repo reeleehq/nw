@@ -11,6 +11,13 @@ nw.media\_store
       DEFAULT_STORE_ROOT
       DEFAULT_GRACE_S
    
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      hash_file
+      is_content_digest
+   
    .. rubric:: Classes
 
    .. autosummary::

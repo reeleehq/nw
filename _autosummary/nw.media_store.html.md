@@ -45,6 +45,12 @@ Reference count = the number of live rows naming a blob (`references()`).
 |-----------------------------------------------------------------------|---------------------------------------------------------------------------------|
 | [`DEFAULT_GRACE_S`](#nw.media_store.DEFAULT_GRACE_S)      | Seconds a blob must stay unreferenced, across two sweeps, before it is removed. |
 
+### Functions
+
+| [`hash_file`](#nw.media_store.hash_file)(path, \*[, chunk_size])   | SHA-256 of a file's bytes, read in chunks: the content id of that file.                               |
+|--------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------|
+| [`is_content_digest`](#nw.media_store.is_content_digest)(artifact_id)      | Whether `artifact_id` is a content id: exactly 64 lowercase hex characters, the SHA-256 of the bytes. |
+
 ### Classes
 
 | [`SharedMediaStore`](#nw.media_store.SharedMediaStore)([root, tenant, ...])     | The blob store at `root` for one `tenant` and `lifecycle_class`.   |
@@ -136,3 +142,38 @@ A registered catalog cannot be read, so a sweep cannot know what it holds.
 Bases: [`object`](https://docs.python.org/3/builtins/functions.html#object)
 
 What a sweep saw and (if applied) did.
+
+### nw.media_store.hash_file(path, , chunk_size=1048576)
+
+SHA-256 of a file’s bytes, read in chunks: the content id of that file.
+
+The same digest lacing computes for an `asset_id` (pinned by a test), kept
+here so the writers can be reasoned about without the graph layer.
+
+```pycon
+>>> import tempfile, pathlib
+>>> with tempfile.TemporaryDirectory() as d:
+...     p = pathlib.Path(d, "x"); _ = p.write_bytes(b"abc")
+...     hash_file(p)
+'ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad'
+```
+
+* **Return type:**
+  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
+
+### nw.media_store.is_content_digest(artifact_id)
+
+Whether `artifact_id` is a content id: exactly 64 lowercase hex
+characters, the SHA-256 of the bytes. The one check every reader applies
+before an id becomes a file path (nw#194), so `../x`, `/etc/passwd`, a
+prefix match or a trailing newline never reach the filesystem.
+
+```pycon
+>>> is_content_digest("ab" * 32), is_content_digest("../" + "a" * 64)
+(True, False)
+>>> is_content_digest("a" * 64 + "\n"), is_content_digest(None)
+(False, False)
+```
+
+* **Return type:**
+  [`bool`](https://docs.python.org/3/builtins/functions.html#bool)

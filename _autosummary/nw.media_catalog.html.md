@@ -70,7 +70,7 @@ registration unless told the caller already has.
 | [`assert_local_backend`](#nw.media_catalog.assert_local_backend)([env, remedy])              | Refuse to register into a filesystem the host will not read.                                  |
 |---------------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------------------|
 | [`catalog_row`](#nw.media_catalog.catalog_row)(artifact_id, \*, kind, generated_at) | The function spelling of [`CatalogRow.build()`](#nw.media_catalog.CatalogRow.build). |
-| [`hash_file`](#nw.media_catalog.hash_file)(path, \*[, chunk_size])                | SHA-256 of a file's bytes, read in chunks — the catalog id of that file.                      |
+| [`hash_file`](#nw.media_catalog.hash_file)(path, \*[, chunk_size])                | SHA-256 of a file's bytes, read in chunks: the content id of that file.                       |
 
 ### Classes
 
@@ -316,10 +316,10 @@ The function spelling of [`CatalogRow.build()`](#nw.media_catalog.CatalogRow.bui
 
 ### nw.media_catalog.hash_file(path, , chunk_size=1048576)
 
-SHA-256 of a file’s bytes, read in chunks — the catalog id of that file.
+SHA-256 of a file’s bytes, read in chunks: the content id of that file.
 
 The same digest lacing computes for an `asset_id` (pinned by a test), kept
-here so the writer can be reasoned about without the graph layer.
+here so the writers can be reasoned about without the graph layer.
 
 ```pycon
 >>> import tempfile, pathlib

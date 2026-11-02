@@ -1,4 +1,4 @@
-> built 2026-11-02 13:31 UTC from d50bd7e (main) · nw 0.0.116. Details: build_info.json
+> built 2026-11-02 13:37 UTC from d4269da (main) · nw 0.0.117. Details: build_info.json
 
 # index.html.md
 
@@ -8088,7 +8088,7 @@ registration unless told the caller already has.
 | [`assert_local_backend`](_autosummary/nw.media_catalog.html.md#nw.media_catalog.assert_local_backend)([env, remedy])              | Refuse to register into a filesystem the host will not read.                                  |
 |---------------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------------------|
 | [`catalog_row`](_autosummary/nw.media_catalog.html.md#nw.media_catalog.catalog_row)(artifact_id, \*, kind, generated_at) | The function spelling of [`CatalogRow.build()`](_autosummary/nw.media_catalog.html.md#nw.media_catalog.CatalogRow.build). |
-| [`hash_file`](_autosummary/nw.media_catalog.html.md#nw.media_catalog.hash_file)(path, \*[, chunk_size])                | SHA-256 of a file's bytes, read in chunks — the catalog id of that file.                      |
+| [`hash_file`](_autosummary/nw.media_catalog.html.md#nw.media_catalog.hash_file)(path, \*[, chunk_size])                | SHA-256 of a file's bytes, read in chunks: the content id of that file.                       |
 
 ### Classes
 
@@ -8334,10 +8334,10 @@ The function spelling of [`CatalogRow.build()`](_autosummary/nw.media_catalog.ht
 
 ### nw.media_catalog.hash_file(path, , chunk_size=1048576)
 
-SHA-256 of a file’s bytes, read in chunks — the catalog id of that file.
+SHA-256 of a file’s bytes, read in chunks: the content id of that file.
 
 The same digest lacing computes for an `asset_id` (pinned by a test), kept
-here so the writer can be reasoned about without the graph layer.
+here so the writers can be reasoned about without the graph layer.
 
 ```pycon
 >>> import tempfile, pathlib
@@ -8399,6 +8399,12 @@ Reference count = the number of live rows naming a blob (`references()`).
 | [`DEFAULT_STORE_ROOT`](_autosummary/nw.media_store.html.md#nw.media_store.DEFAULT_STORE_ROOT)   | The store's data home, under nw's (not any genre's).                            |
 |-----------------------------------------------------------------------|---------------------------------------------------------------------------------|
 | [`DEFAULT_GRACE_S`](_autosummary/nw.media_store.html.md#nw.media_store.DEFAULT_GRACE_S)      | Seconds a blob must stay unreferenced, across two sweeps, before it is removed. |
+
+### Functions
+
+| [`hash_file`](_autosummary/nw.media_store.html.md#nw.media_store.hash_file)(path, \*[, chunk_size])   | SHA-256 of a file's bytes, read in chunks: the content id of that file.                               |
+|--------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------|
+| [`is_content_digest`](_autosummary/nw.media_store.html.md#nw.media_store.is_content_digest)(artifact_id)      | Whether `artifact_id` is a content id: exactly 64 lowercase hex characters, the SHA-256 of the bytes. |
 
 ### Classes
 
@@ -8491,6 +8497,41 @@ A registered catalog cannot be read, so a sweep cannot know what it holds.
 Bases: [`object`](https://docs.python.org/3/builtins/functions.html#object)
 
 What a sweep saw and (if applied) did.
+
+### nw.media_store.hash_file(path, , chunk_size=1048576)
+
+SHA-256 of a file’s bytes, read in chunks: the content id of that file.
+
+The same digest lacing computes for an `asset_id` (pinned by a test), kept
+here so the writers can be reasoned about without the graph layer.
+
+```pycon
+>>> import tempfile, pathlib
+>>> with tempfile.TemporaryDirectory() as d:
+...     p = pathlib.Path(d, "x"); _ = p.write_bytes(b"abc")
+...     hash_file(p)
+'ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad'
+```
+
+* **Return type:**
+  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
+
+### nw.media_store.is_content_digest(artifact_id)
+
+Whether `artifact_id` is a content id: exactly 64 lowercase hex
+characters, the SHA-256 of the bytes. The one check every reader applies
+before an id becomes a file path (nw#194), so `../x`, `/etc/passwd`, a
+prefix match or a trailing newline never reach the filesystem.
+
+```pycon
+>>> is_content_digest("ab" * 32), is_content_digest("../" + "a" * 64)
+(True, False)
+>>> is_content_digest("a" * 64 + "\n"), is_content_digest(None)
+(False, False)
+```
+
+* **Return type:**
+  [`bool`](https://docs.python.org/3/builtins/functions.html#bool)
 
 
 # _autosummary/nw.migrate.html.md
@@ -11229,18 +11270,20 @@ produce different URLs. The local file paths are byte-stable.
 
 # About this build
 
-This documentation was built on **2026-11-02 13:31 UTC** from commit <a href="https://github.com/reeleehq/nw/commit/d50bd7e1f3803dbf6832912b84080d8cb667a15e"><code>d50bd7e</code></a> on branch <code>main</code>, for **nw 0.0.116** (from <code>pyproject.toml</code>).
+This documentation was built on **2026-11-02 13:37 UTC** from commit <a href="https://github.com/reeleehq/nw/commit/d4269da3fed8b2e91ff91a30dc58981b52205b9d"><code>d4269da</code></a> on branch <code>main</code>, for **nw 0.0.117** (from <code>pyproject.toml</code>).
 
-#### NOTE
-Nothing suggests a mismatch: the tree was clean at the commit above, and the documented version is the one on PyPI.
+#### WARNING
+The documentation and the package may be misaligned:
+
+- The documented version (0.0.117) is ahead of the latest release on PyPI (0.0.116): these docs describe unreleased code.
 
 ## Source
 
 |                     |                                                                                                                                                    |
 |---------------------|----------------------------------------------------------------------------------------------------------------------------------------------------|
-| Commit              | <a href="https://github.com/reeleehq/nw/commit/d50bd7e1f3803dbf6832912b84080d8cb667a15e"><code>d50bd7e1f3803dbf6832912b84080d8cb667a15e</code></a> |
+| Commit              | <a href="https://github.com/reeleehq/nw/commit/d4269da3fed8b2e91ff91a30dc58981b52205b9d"><code>d4269da3fed8b2e91ff91a30dc58981b52205b9d</code></a> |
 | Branch              | <code>main</code>                                                                                                                                  |
-| Tags at this commit | <code>0.0.116</code>                                                                                                                               |
+| Tags at this commit | <code>0.0.117</code>                                                                                                                               |
 | Working tree        | clean                                                                                                                                              |
 | Remote              | <code>https://github.com/reeleehq/nw</code>                                                                                                        |
 
@@ -11249,9 +11292,9 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 |              |                                                                                            |
 |--------------|--------------------------------------------------------------------------------------------|
 | Repository   | <code>reeleehq/nw</code>                                                                   |
-| Run          | <a href="https://github.com/reeleehq/nw/actions/runs/41453220943">41453220943</a>          |
+| Run          | <a href="https://github.com/reeleehq/nw/actions/runs/41454105247">41454105247</a>          |
 | Ref          | <code>refs/heads/main</code>                                                               |
-| Event commit | <code>47dbe6c7e9d4d9af196c55c1c0b1a31de4b49222</code> (in the history of the built commit) |
+| Event commit | <code>cb6cb274143937f5e92db1b8901f92e48037519d</code> (in the history of the built commit) |
 
 ## Tools
 
@@ -11276,13 +11319,13 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 
 ## Package on PyPI
 
-Latest release: <a href="https://pypi.org/project/nw/0.0.116/">0.0.116</a>, the same as the documented version.
+Latest release: <a href="https://pypi.org/project/nw/0.0.116/">0.0.116</a>, older than the documented version (0.0.117).
 
 ## Reproduce
 
 ```bash
 git clone https://github.com/reeleehq/nw && cd nw
-git checkout d50bd7e1f3803dbf6832912b84080d8cb667a15e
+git checkout d4269da3fed8b2e91ff91a30dc58981b52205b9d
 pip install "epythet==0.2.22"
 epythet quickstart . --ignore tests/ scrap/ examples/
 ```
