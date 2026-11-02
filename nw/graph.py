@@ -72,6 +72,7 @@ from .migrate import (
     _TIER_SECTION,
     _TIER_SHOT,
 )
+from . import _freshness_pass
 from .storage import (
     FolderStorage,
     ProjectLike,
@@ -154,12 +155,26 @@ class ProjectGraph:
     # -- lifecycle -----------------------------------------------------------
 
     @contextmanager
-    def _open(self) -> Iterator[IntervalAnnotationStore]:
+    def _open(
+        self, *, changes_freshness: bool = True
+    ) -> Iterator[IntervalAnnotationStore]:
+        """Open the graph store for a WRITE.
+
+        Every write path of this class comes through here, which makes it the
+        choke point where an open :func:`nw.freshness.freshness_pass` learns
+        that its held walk may be out of date (nw#209): on close, that
+        project's held state is dropped. ``changes_freshness=False`` is for
+        the unproduced-output records only — parentless sidecars no node
+        derives from, at a tier no reuse lookup reads — so retiring one on
+        every reused success does not throw the shared walk away.
+        """
         store = self.storage.open_graph()
         try:
             yield store
         finally:
             close_quietly(store)
+            if changes_freshness:
+                _freshness_pass.forget(self.storage)
 
     @contextmanager
     def _open_read(self) -> Iterator[Optional[IntervalAnnotationStore]]:
@@ -551,7 +566,7 @@ class ProjectGraph:
         """
         if _unproduced_output_key_for(ann) is None:
             return  # no Transform made it: nothing to settle, no store opened
-        with self._open() as store:
+        with self._open(changes_freshness=False) as store:
             _retire_settled_by(store, ann, instance_id, call_index)
 
     def remove_annotation(self, annotation_id: UUID) -> bool:
@@ -662,7 +677,7 @@ class ProjectGraph:
             call_index,
             frozenset(str(p) for p in parent_ids),
         )
-        with self._open() as store:
+        with self._open(changes_freshness=False) as store:
             store.add_tier(
                 Tier(name=UNPRODUCED_OUTPUT_TIER, stereotype=TierStereotype.NONE)
             )
@@ -895,6 +910,11 @@ def remove_annotations_with_traces(
         The subset of ``annotation_ids`` that was actually present. Trace
         removals are not reported: they are bookkeeping, not content.
     """
+    # The store does not know its project, so an open freshness pass drops
+    # every project's held walk (nw#209). First, so even a no-op call — the
+    # first save of a storyboard, about to add rows — leaves no tier read
+    # held from before its writes.
+    _freshness_pass.forget()
     wanted = set(annotation_ids)
     if not wanted:
         return set()

@@ -43,6 +43,7 @@ from typing import Any
 from uuid import UUID
 
 
+from . import _freshness_pass
 from .bodies.verifying_trace import (
     VERIFYING_TRACE_BODY_SCHEMA_URI,
     digest_vouches,
@@ -165,6 +166,15 @@ def _rewritten(ann: Any, fn, where) -> Any:
 
 
 def _rewrite(storage, fn: Callable[[Any], Any], where) -> int:
+    try:
+        return _rewrite_stores(storage, fn, where)
+    finally:
+        # A value rewritten in place re-stamps its children's traces, so an
+        # open freshness pass's held walk no longer describes it (nw#209).
+        _freshness_pass.forget(storage)
+
+
+def _rewrite_stores(storage, fn: Callable[[Any], Any], where) -> int:
     plan: dict[
         UUID, tuple[Any, Any]
     ] = {}  # id -> (old annotation, rewritten annotation)

@@ -54,7 +54,10 @@ it. Layering: `lacing → nw → falaw.Plan → backends` — nothing above
   schema, reference, producer `transform:<name>@<impl_version>`,
   *annotation* parents, JSON-equal body, **verified fresh** — equal parent
   ids are not enough, braidio#51); at most one walk per call, none without a
-  candidate (a fan-out pays one per unit). A Transform declaring
+  candidate. `fan_out_execute` opens a `freshness_pass()`, so one walk
+  serves every unit until a unit writes; the held walk is dropped at nw's
+  write choke points (graph write-opens, `remove_annotations_with_traces`,
+  `rewrite_values`), never by callers (nw#209). A Transform declaring
   `reuse_fresh_outputs = True` (opt-in; `narration_to_sound_design.foley`
   does) has `BaseTransform.execute` return that node instead of writing a
   duplicate (still retiring the unproduced record its success settles), so
