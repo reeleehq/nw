@@ -661,6 +661,10 @@ def enqueue(
             # run again, and a failure here must not undo a launched worker.
             with suppress(Exception):
                 rt.archive.pop(job_id, None)
+            # Under ``rt.lock``, so the last write is the newest launch on every
+            # replica. Best-effort: :func:`latest_job` still reads the index.
+            with suppress(Exception):
+                rt.latest[_safe_key(kind)] = {"job_id": job_id}
 
     except BaseException:
         # No worker will ever enter the hook's context: release what it
@@ -874,20 +878,28 @@ def list_jobs(
     project,
     *,
     status: str | None = None,
+    kind: str | None = None,
     limit: int = 50,
     config: JobsConfig = DEFAULT_CONFIG,
 ) -> list[Job]:
-    """Jobs for this project, **newest first**, optionally filtered by status.
+    """Jobs for this project, **newest first**, optionally filtered by status
+    and by ``kind`` (the :func:`enqueue` dispatch key). Both filters apply
+    before ``limit``: ``list_jobs(p, kind="footage.score", limit=1)`` is the
+    newest run of that kind in the index however many newer runs of other
+    kinds there are (nw#185).
 
     Backed by the per-project active-jobs index (not by scanning the au store,
     whose missing-key-returns-PENDING gotcha makes membership meaningless).
     Runs that ended more than ``config.index_retention_s`` ago move to the
-    archive during the scan and are not listed (:func:`_archive_old_runs`).
+    archive during the scan and are not listed (:func:`_archive_old_runs`);
+    :func:`latest_job` reaches them.
     """
     rt = _runtime(project, config)
     records = [r for r in (_index_snapshot(rt, k) for k in list(rt.index)) if r]
     records = _archive_old_runs(rt, records, config, project=project)
-    records.sort(key=lambda r: r.get("created_at") or "", reverse=True)
+    if kind is not None:
+        records = [r for r in records if r.get("kind") == kind]
+    records.sort(key=_created_key, reverse=True)
 
     jobs: list[Job] = []
     for record in records:
@@ -897,6 +909,58 @@ def list_jobs(
         if len(jobs) >= limit:
             break
     return jobs
+
+
+def latest_job(
+    project, *, kind: str, config: JobsConfig = DEFAULT_CONFIG
+) -> Job | None:
+    """The newest run of ``kind`` (by ``created_at``), wherever its record is:
+    live, recently finished, or archived (nw#169). ``None`` if this project
+    never ran one. For the index alone, ``list_jobs(p, kind=k, limit=1)``.
+
+    :func:`enqueue` records each launched run's id as its kind's latest
+    (``JobsConfig.jobs_dirname``/``latest``), so the archive is not scanned:
+    the answer is the newest of that run and the index's runs of ``kind``,
+    which also covers a pointer whose write failed or that a replica running
+    an older nw never wrote, for every run still in the index (nw#185). Only
+    a kind with no pointer at all (its last run predates the pointer) costs a
+    scan of the archive. Like :func:`get_job`, the read may reap a stale run.
+    """
+    rt = _runtime(project, config)
+    records = [r for r in (_index_snapshot(rt, k) for k in list(rt.index)) if r]
+    candidates = [r for r in records if r.get("kind") == kind]
+    pointed = _latest_pointer(rt, kind)
+    if pointed is not None:
+        candidates.append(_find_record(rt, pointed))
+    else:
+        archived = (rt.archive.get(k) for k in list(rt.archive))
+        candidates.extend(r for r in archived if r and r.get("kind") == kind)
+    candidates = [r for r in candidates if r and r.get("kind") == kind]
+    if not candidates:
+        return None
+    return _read_job(rt, max(candidates, key=_created_key), config, project=project)
+
+
+def _latest_pointer(rt, kind: str) -> str | None:
+    """The job id :func:`enqueue` last launched for ``kind``, or ``None``
+    (never written, unreadable, or a kind no store key can spell)."""
+    try:
+        entry = rt.latest.get(_safe_key(kind))
+    except (ValueError, OSError):
+        return None
+    job_id = entry.get("job_id") if isinstance(entry, Mapping) else None
+    return job_id if isinstance(job_id, str) and job_id else None
+
+
+def _created_key(record) -> datetime:
+    """``record``'s ``created_at`` as an aware datetime, for ordering runs.
+
+    Not the string: ``isoformat`` drops a zero microsecond, so
+    ``…:00Z`` would sort after ``…:00.5Z``. Unparseable reads as oldest."""
+    created = _parse_iso(record.get("created_at"))
+    if created is None:
+        return datetime.min.replace(tzinfo=timezone.utc)
+    return created if created.tzinfo else created.replace(tzinfo=timezone.utc)
 
 
 def archive_finished_runs(project, *, config: JobsConfig = DEFAULT_CONFIG) -> list[str]:
@@ -1097,7 +1161,7 @@ def summarize(
     index = AtomicJsonFiles(index_dir)
     au_store = FileSystemStore(str(au_dir), ttl_seconds=None)
     records = [r for r in (index.get(k) for k in list(index)) if r]
-    records.sort(key=lambda r: r.get("created_at") or "", reverse=True)
+    records.sort(key=_created_key, reverse=True)
 
     # A stand-in for the runtime, carrying only what the pure projection
     # touches. Deliberately not a real ``_JobsRuntime``: building one is the
@@ -1138,17 +1202,23 @@ def get_job(project, job_id: str, *, config: JobsConfig = DEFAULT_CONFIG) -> Job
     unknown. Reaps a stale-RUNNING record on read. Answers for an archived run
     too (nw#169): a finished, announced run, so the read writes nothing."""
     rt = _runtime(project, config)
-    # Index, archive, index: a re-run's enqueue writes the index before it
-    # drops the archived copy, so a read that missed both meanwhile finds
-    # the new run on the third look rather than calling a live job unknown.
-    record = (
+    record = _find_record(rt, job_id)
+    if record is None:
+        return None
+    return _read_job(rt, record, config, project=project)
+
+
+def _find_record(rt, job_id: str):
+    """``job_id``'s record from the index or the archive, ``None`` if neither.
+
+    Index, archive, index: a re-run's enqueue writes the index before it
+    drops the archived copy, so a read that missed both meanwhile finds the
+    new run on the third look rather than calling a live job unknown."""
+    return (
         _index_snapshot(rt, job_id)
         or _index_snapshot(rt, job_id, store=rt.archive)
         or _index_snapshot(rt, job_id)
     )
-    if record is None:
-        return None
-    return _read_job(rt, record, config, project=project)
 
 
 def cancel_job(
@@ -1886,6 +1956,8 @@ class _JobsRuntime:
     au_store: FileSystemStore
     index: MutableMapping
     archive: MutableMapping
+    latest: MutableMapping
+    """``{_safe_key(kind): {"job_id": ...}}``: each kind's last launch (nw#185)."""
     durations: MutableMapping
     backend: ThreadBackend
     middleware: DurationLearningMiddleware
@@ -1924,6 +1996,7 @@ def _runtime(project, config: JobsConfig = DEFAULT_CONFIG) -> _JobsRuntime:
             index = AtomicJsonFiles(base / "index")
             durations = AtomicJsonFiles(base / "durations")
             archive = AtomicJsonFiles(base / "index-archive")  # nw#169
+            latest = AtomicJsonFiles(base / "latest")  # nw#185
             # Cross-process (nw#148): every read-modify-write of the index and
             # the durations runs under this lock, so replicas sharing the jobs
             # root exclude each other exactly as threads do. ``dol``'s
@@ -1949,6 +2022,7 @@ def _runtime(project, config: JobsConfig = DEFAULT_CONFIG) -> _JobsRuntime:
                 au_store=au_store,
                 index=index,
                 archive=archive,
+                latest=latest,
                 durations=durations,
                 backend=backend,
                 middleware=middleware,

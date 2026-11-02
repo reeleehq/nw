@@ -3414,3 +3414,104 @@ def test_a_snapshot_of_a_replaced_run_never_sets_the_new_runs_floor(project, mon
     jobs._read_job(rt, snapshot, rt.config, project=project)
     with rt.lock:
         assert jobs._index_get_locked(rt, "j")["pct_floor"] is None
+
+
+# ---------------------------------------------------------------------------
+# latest of a kind — list_jobs(kind=) and latest_job (nw#185)
+# ---------------------------------------------------------------------------
+
+
+def _finished(project, kind, nonce, dispatch):
+    job = jobs.enqueue(project, kind, dict(VIDEO_PARAMS, nonce=nonce), dispatch=dispatch)
+    return _poll_until(project, job.job_id, lambda j: j.status in jobs.TERMINAL_STATUSES)
+
+
+def test_list_jobs_filters_kind_before_limit(project):
+    """The newest run of a kind is listed however many newer runs of other
+    kinds there are: the kind filter applies before ``limit``."""
+    ok = lambda project, params, **kw: {"ok": True}  # noqa: E731
+    dispatch = {"score": ok, "render": ok}
+    score = _finished(project, "score", 0, dispatch)
+    for i in range(3):
+        _finished(project, "render", i + 1, dispatch)
+
+    assert [j.job_id for j in jobs.list_jobs(project, kind="score", limit=1)] == [
+        score.job_id
+    ]
+    assert jobs.list_jobs(project, limit=1)[0].kind == "render"
+    assert jobs.list_jobs(project, kind="nothing") == []
+
+
+def test_latest_job_is_the_newest_run_of_its_kind(project):
+    ok = lambda project, params, **kw: {"ok": True}  # noqa: E731
+    dispatch = {"score": ok, "render": ok}
+    assert jobs.latest_job(project, kind="score") is None
+    _finished(project, "score", 0, dispatch)
+    newer = _finished(project, "score", 1, dispatch)
+    _finished(project, "render", 2, dispatch)
+    assert jobs.latest_job(project, kind="score").job_id == newer.job_id
+    assert jobs.latest_job(project, kind="render").kind == "render"
+
+
+def test_latest_job_reaches_an_archived_run(project):
+    """The run the pointer names answers after it left the index."""
+    rt = jobs._runtime(project)
+    _ended_run(rt, "old", days_ago=40)
+    with rt.lock:  # as enqueue would have recorded it
+        rt.latest[jobs._safe_key("op")] = {"job_id": "old"}
+    jobs.list_jobs(project)  # the sweep archives it
+    assert "old" in rt.archive and "old" not in rt.index
+    assert jobs.list_jobs(project, kind="op") == []
+    assert jobs.latest_job(project, kind="op").job_id == "old"
+
+
+def test_latest_job_without_a_pointer_scans_the_archive(project):
+    """A run that predates the pointer is still found, in the archive."""
+    rt = jobs._runtime(project)
+    _ended_run(rt, "older", days_ago=50)
+    _ended_run(rt, "old", days_ago=40)
+    _ended_run(rt, "other", days_ago=45, kind="render")
+    jobs.list_jobs(project)
+    assert not list(rt.latest)
+    assert jobs.latest_job(project, kind="op").job_id == "old"
+    assert jobs.latest_job(project, kind="render").job_id == "other"
+
+
+def test_latest_job_survives_a_stale_pointer(project):
+    """A pointer that missed a later launch (its write failed, or an older nw
+    on another replica launched it) loses to a newer run in the index, and one
+    naming a vanished or other-kind record is ignored."""
+    rt = jobs._runtime(project)
+    _ended_run(rt, "old", days_ago=40)
+    _ended_run(rt, "new", days_ago=1)
+    _ended_run(rt, "elsewhere", days_ago=0, kind="render")
+    jobs.list_jobs(project)
+    for stale in ("old", "gone", "elsewhere"):
+        with rt.lock:
+            rt.latest[jobs._safe_key("op")] = {"job_id": stale}
+        assert jobs.latest_job(project, kind="op").job_id == "new"
+
+
+def test_enqueue_records_the_latest_launch_of_its_kind(project):
+    ok = lambda project, params, **kw: {"ok": True}  # noqa: E731
+    rt = jobs._runtime(project)
+    a = _finished(project, "score", 0, {"score": ok})
+    assert rt.latest[jobs._safe_key("score")] == {"job_id": a.job_id}
+    b = _finished(project, "score", 1, {"score": ok})
+    assert rt.latest[jobs._safe_key("score")] == {"job_id": b.job_id}
+    with pytest.raises(KeyError):  # no launch, no pointer
+        jobs.enqueue(project, "unknown", VIDEO_PARAMS, dispatch={"score": ok})
+    assert jobs._safe_key("unknown") not in rt.latest
+
+
+def test_runs_order_by_time_not_by_string(project):
+    """``isoformat`` drops a zero microsecond: ``…:00Z`` is the older run even
+    though it sorts after ``…:00.5Z`` as a string."""
+    rt = jobs._runtime(project)
+    _ended_run(rt, "whole", days_ago=1)
+    _ended_run(rt, "half", days_ago=1)
+    with rt.lock:
+        jobs._index_update_locked(rt, "whole", created_at="2026-01-01T00:00:00Z")
+        jobs._index_update_locked(rt, "half", created_at="2026-01-01T00:00:00.500000Z")
+    assert [j.job_id for j in jobs.list_jobs(project)] == ["half", "whole"]
+    assert jobs.latest_job(project, kind="op").job_id == "half"
