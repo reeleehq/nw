@@ -434,7 +434,13 @@ def test_rows_load_through_the_hosts_own_model(tmp_path):
         [sys.executable, "-c", script],
         capture_output=True,
         text=True,
-        env={**os.environ, BACKEND_ENV_KEY: "", "PYTHONPATH": str(repo)},
+        env={
+            **os.environ,
+            BACKEND_ENV_KEY: "",
+            "PYTHONPATH": os.pathsep.join(
+                p for p in (str(repo), os.environ.get("PYTHONPATH")) if p
+            ),
+        },
     )
     assert proc.returncode == 0, proc.stderr
     assert proc.stdout.strip() == "4"
