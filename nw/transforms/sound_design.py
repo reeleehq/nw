@@ -72,6 +72,7 @@ from lacing import Annotation, Artifact, hash_file
 
 from nw._extras import is_missing, missing_extra
 from nw.bodies.sound_design import (
+    DFLT_ALLOW_GENERATE,
     NARRATION_TRACK_BODY_SCHEMA_URI,
     SOUND_DESIGN_BODY_SCHEMA_URI,
     SOUND_DESIGN_CONFIG_BODY_SCHEMA_URI,
@@ -147,6 +148,17 @@ def _jsonable(value):
     raise TypeError(f"not JSON-serializable: {type(value).__name__}")
 
 
+def _spend_kwargs(foley, arguments: Mapping) -> dict:
+    """``foley.score``'s spend knobs, from the call's arguments (nw#204): absent
+    means foley's default, so a plan made before them runs unchanged."""
+    kwargs = {}
+    if arguments.get("max_usd") is not None:
+        kwargs["budget"] = foley.Budget(max_usd=arguments["max_usd"])
+    if "allow_generate" in arguments:
+        kwargs["allow_generate"] = arguments["allow_generate"]
+    return kwargs
+
+
 def foley_executor(application: str, arguments: Mapping, *, on_event=None) -> dict:
     """The ``backend="foley"`` executor: run ``foley.score``, return the sidecar.
 
@@ -175,6 +187,7 @@ def foley_executor(application: str, arguments: Mapping, *, on_event=None) -> di
         commercial_ok=arguments["commercial_ok"],
         max_events=arguments["max_events"],
         master=arguments["master"],
+        **_spend_kwargs(foley, arguments),
     )
     woven = scored.weave
     if woven is None:
@@ -194,6 +207,18 @@ def foley_executor(application: str, arguments: Mapping, *, on_event=None) -> di
         "notes": [str(n) for n in woven.notes],
     }
     return {"output": json.dumps(sidecar, default=_jsonable)}
+
+
+def _spend_arguments(config: SoundDesignConfigBodyV1) -> dict:
+    """The config's spend knobs, only where they differ from foley's defaults:
+    a key absent from the arguments is absent from falaw's cache key, so a
+    design made before nw#204 stays a cache hit."""
+    arguments = {}
+    if config.max_usd is not None:
+        arguments["max_usd"] = config.max_usd
+    if config.allow_generate != DFLT_ALLOW_GENERATE:
+        arguments["allow_generate"] = config.allow_generate
+    return arguments
 
 
 class NarrationToSoundDesign(BaseTransform):
@@ -276,6 +301,7 @@ class NarrationToSoundDesign(BaseTransform):
                 "commercial_ok": config.commercial_ok,
                 "max_events": config.max_events,
                 "master": config.master,
+                **_spend_arguments(config),
             },
             output_kind="json",
             estimated_cost_usd=None,  # unknown, never free
