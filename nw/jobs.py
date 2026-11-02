@@ -943,7 +943,23 @@ def latest_job(
 
 _BACKFILLED = "%%backfilled"
 """``rt.latest``'s marker that the archive was scanned into the pointers
-(nw#185). No kind's key can be it: :func:`_safe_key` writes ``%`` as ``%25``."""
+(nw#185). No kind's key can be it: :func:`_pointer_key` never writes ``%%``
+but in its own ``%%sha256-`` prefix."""
+
+_MAX_POINTER_KEY_LEN = 200
+"""Longest ``rt.latest`` key spelled from the kind itself. The store's temp
+file wraps the key in ``.``, ``.`` + 8 random characters and ``.tmp``, and a
+file name holds 255 bytes; a pointer that cannot be written would keep its
+runs out of the archive (:func:`_archive_if_settled`)."""
+
+
+def _pointer_key(kind: str) -> str:
+    """``kind``'s key in ``rt.latest``: :func:`_safe_key`, or, past
+    :data:`_MAX_POINTER_KEY_LEN`, ``%%sha256-`` + the kind's digest."""
+    key = _safe_key(kind)
+    if len(key) <= _MAX_POINTER_KEY_LEN:
+        return key
+    return "%%sha256-" + hashlib.sha256(kind.encode("utf-8")).hexdigest()
 
 
 def _index_records(rt) -> list:
@@ -956,7 +972,7 @@ def _latest_archived(rt, kind: str):
     """The archived run of ``kind`` its pointer names, or ``None``; backfills
     the pointers first when there are none yet, and rescans to repair a
     pointer that does not resolve to a run of ``kind``."""
-    key = _safe_key(kind)
+    key = _pointer_key(kind)
     record = _pointed_record(rt, key, kind)
     if record is None and (key in rt.latest or _BACKFILLED not in rt.latest):
         try:
@@ -987,7 +1003,7 @@ def _advance_pointer_locked(rt, record) -> None:
     kind = record.get("kind")
     if not isinstance(kind, str) or not kind:
         return  # nothing latest_job can ask for
-    key = _safe_key(kind)
+    key = _pointer_key(kind)
     current = _pointed_record(rt, key, kind)
     if current is None or _created_key(current) < _created_key(record):
         rt.latest[key] = {"job_id": record["job_id"]}
@@ -1009,7 +1025,7 @@ def _backfill_pointers(rt, kind: str) -> None:
             k not in newest or _created_key(record) > _created_key(newest[k])
         ):
             newest[k] = record
-    key = _safe_key(kind)
+    key = _pointer_key(kind)
     with rt.lock:
         for record in newest.values():
             _advance_pointer_locked(rt, record)
@@ -2027,7 +2043,7 @@ class _JobsRuntime:
     index: MutableMapping
     archive: MutableMapping
     latest: MutableMapping
-    """``{_safe_key(kind): {"job_id": ...}}``: each kind's newest *archived* run,
+    """``{_pointer_key(kind): {"job_id": ...}}``: each kind's newest *archived* run,
     moved only by :func:`_archive_if_settled`, plus the :data:`_BACKFILLED`
     marker (nw#185, :func:`latest_job`)."""
     durations: MutableMapping
