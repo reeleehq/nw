@@ -509,15 +509,50 @@ class ProjectGraph:
         from lacing import Tier, TierStereotype
 
         trace = self._verifying_trace_for(ann.id, ann.provenance.was_derived_from)
-        retire_key = _unproduced_output_key_for(
-            ann, instance_id=instance_id, call_index=call_index
-        )
         with self._open() as store:
             store.add_tier(Tier(name=ann.tier, stereotype=TierStereotype.NONE))
             store.add(ann)
             _add_trace(store, trace)
-            if retire_key is not None:
-                _retire_unproduced_outputs(store, retire_key)
+            _retire_settled_by(store, ann, instance_id, call_index)
+
+    def fresh_equivalents(
+        self, annotations: Iterable[Annotation]
+    ) -> tuple[Optional[Annotation], ...]:
+        """For each of ``annotations``, the stored node it would only duplicate.
+
+        :func:`nw.freshness.fresh_equivalents` over this graph's project — the
+        rule (and its cost: at most one freshness walk per call) is stated
+        there. Read-only. The write side of a reuse is
+        :meth:`settle_unproduced_outputs`.
+        """
+        from .freshness import fresh_equivalents  # freshness imports this module
+
+        return fresh_equivalents(self.storage, annotations)
+
+    def settle_unproduced_outputs(
+        self,
+        ann: Annotation,
+        *,
+        instance_id: Optional[str] = None,
+        call_index: Optional[int] = None,
+    ) -> None:
+        """Retire the unproduced-output records ``ann``'s success settles, and
+        write nothing else.
+
+        The retirement half of :meth:`add_annotation`, for a success that is
+        **not** written because an equivalent node already exists
+        (:meth:`fresh_equivalents`, nw#203): the output was produced all the
+        same, so a record saying it is missing must go. Pass the annotation
+        *this run* completed (not the reused node): the record was built from
+        this run's skeleton, so its ``upstream`` is this run's
+        ``was_derived_from`` — which, since nw#55, may carry asset ids an
+        older reused node lacks. Same key and same arguments as
+        :meth:`add_annotation`; a no-op for an annotation no Transform made.
+        """
+        if _unproduced_output_key_for(ann) is None:
+            return  # no Transform made it: nothing to settle, no store opened
+        with self._open() as store:
+            _retire_settled_by(store, ann, instance_id, call_index)
 
     def remove_annotation(self, annotation_id: UUID) -> bool:
         """Remove one annotation from the project graph, with its verifying traces.
@@ -1232,6 +1267,25 @@ def _unproduced_output_key_matches(body: dict, key: _UnproducedOutputKey) -> boo
     if instance_id is not None and body_instance_id is not None:
         return body_instance_id == instance_id
     return frozenset(body.get("upstream") or ()) == upstream
+
+
+def _retire_settled_by(
+    store: IntervalAnnotationStore,
+    ann: Annotation,
+    instance_id: Optional[str],
+    call_index: Optional[int],
+) -> None:
+    """Retire the unproduced-output records ``ann``'s success settles (nw#44).
+
+    The one retirement rule :meth:`ProjectGraph.add_annotation` and
+    :meth:`ProjectGraph.settle_unproduced_outputs` share; a no-op for an
+    annotation no Transform produced.
+    """
+    key = _unproduced_output_key_for(
+        ann, instance_id=instance_id, call_index=call_index
+    )
+    if key is not None:
+        _retire_unproduced_outputs(store, key)
 
 
 def _retire_unproduced_outputs(

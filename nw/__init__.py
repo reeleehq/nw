@@ -111,6 +111,7 @@ from .bodies import UNPRODUCED_OUTPUT_BODY_SCHEMA_URI, UnproducedOutputBodyV1
 from .freshness import (
     FreshnessVerdict,
     all_stale,
+    fresh_equivalents,
     stale_after,
     stale_verdicts,
     stale_verdicts_all,
@@ -390,6 +391,7 @@ __all__ = [
     "suggest",
     "validate",
     "all_stale",
+    "fresh_equivalents",
     "stale_after",
     "stale_verdicts",
     "stale_verdicts_all",

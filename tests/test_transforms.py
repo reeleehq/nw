@@ -815,6 +815,7 @@ def test_transform_catalog_is_the_json_able_capability_surface():
         assert entry["output_kind"] == "annot://schema/test-output/v1"
         assert entry["is_batch"] is False
         assert entry["impl_version"] == "2"
+        assert entry["reuse_fresh_outputs"] is False  # opt-in (nw#203)
         assert entry["params_schema"]["properties"]["strength"]["default"] == 1.0
 
         class _Paramless(BaseTransform):
