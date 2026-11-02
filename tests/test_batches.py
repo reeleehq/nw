@@ -52,6 +52,16 @@ def test_roundtrip_partial_failure_keeps_successes(project):
     assert out["cancelled"] == [] and out["pending"] == []
 
 
+def test_a_batch_records_its_submitter_on_every_member(project):
+    """``submitted_by`` reaches each member through ``enqueue_kwargs`` (nw#192)."""
+    release = threading.Event()
+    release.set()
+    b = batches.enqueue_batch(
+        project, _items(2), kind="x", dispatch={"x": _stub(release)}, submitted_by="u"
+    )
+    assert {jobs.get_job(project, j).submitted_by for j in b.job_ids} == {"u"}
+
+
 def test_wait_times_out_with_current_aggregate(project):
     release = threading.Event()
     b = batches.enqueue_batch(
