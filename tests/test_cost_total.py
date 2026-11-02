@@ -35,3 +35,8 @@ def test_totals_compose_and_a_generator_is_read_once():
     stage = total_cost(_result(1.0, 0.5) for _ in range(2))
     assert stage == CostTotal(2.0, 1.0, False)
     assert total_cost([stage, _result(1.0, unknown=True)]) == CostTotal(3.0, 1.0, True)
+
+
+def test_a_cost_that_is_not_a_number_is_unknown_not_known():
+    assert total_cost([_result(float("nan"))]).has_unknown_costs is True
+    assert total_cost([_result(0.5, float("inf"))]).has_unknown_costs is True

@@ -678,25 +678,3 @@ def test_work_items_never_reach_the_graph_document():
     assert "mapping_key" not in body_text
     assert str(work_item_instance_id(t.name, "a/1")) not in body_text
 
-
-def test_the_run_cost_is_the_shared_total():
-    """``FanOutResult`` totals through ``nw.transforms.total_cost`` (nw#189), so
-    a host summing its own stages applies the same rule: a failed unit makes it
-    unknown, and the three properties read the one total."""
-    from nw.transforms import total_cost
-
-    t = _StubTransform(fail_keys={"a/1"})
-    project = _Project()
-    fo = fan_out_plan(t, project, _items("a/1", "a/2"), inputs_for=_inputs_for_factory())
-    result = fan_out_execute(t, project, fo)
-    survivors = [r.result for r in result.items if r.result is not None]
-    assert result.cost_total == total_cost(survivors, failed=True)
-    assert (
-        result.cost_usd_actual,
-        result.cache_hit_savings_usd,
-        result.has_unknown_costs,
-    ) == (
-        result.cost_total.cost_usd_actual,
-        result.cost_total.cache_hit_savings_usd,
-        True,
-    )

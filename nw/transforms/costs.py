@@ -6,8 +6,9 @@ two copies of the same rule drift, so they all call :func:`total_cost`:
 
 - ``cost_usd_actual`` and ``cache_hit_savings_usd`` are float sums (``0.0``
   for no results, never the integer ``0``);
-- ``has_unknown_costs`` is true when any result says so, **or** when the caller
-  says something ``failed``: a step that raised may have been billed for calls
+- ``has_unknown_costs`` is true when any result says so, when a cost is not a
+  finite number (a NaN or infinity is no reading of what was spent), **or** when
+  the caller says something ``failed``: a step that raised may have been billed for calls
   its discarded result would have carried, so the total is then a lower bound,
   never a reading of "free".
 
@@ -24,6 +25,7 @@ CostTotal(cost_usd_actual=0.0, cache_hit_savings_usd=0.0, has_unknown_costs=True
 
 from __future__ import annotations
 
+import math
 from collections.abc import Iterable
 from dataclasses import dataclass
 from typing import Protocol
@@ -55,8 +57,12 @@ def total_cost(results: Iterable[Costed], *, failed: bool = False) -> CostTotal:
     the sums: what the failed step spent is not in ``results``.
     """
     results = tuple(results)
+    cost = sum((r.cost_usd_actual for r in results), 0.0)
+    saved = sum((r.cache_hit_savings_usd for r in results), 0.0)
     return CostTotal(
-        cost_usd_actual=sum((r.cost_usd_actual for r in results), 0.0),
-        cache_hit_savings_usd=sum((r.cache_hit_savings_usd for r in results), 0.0),
-        has_unknown_costs=failed or any(r.has_unknown_costs for r in results),
+        cost_usd_actual=cost,
+        cache_hit_savings_usd=saved,
+        has_unknown_costs=failed
+        or not (math.isfinite(cost) and math.isfinite(saved))
+        or any(r.has_unknown_costs for r in results),
     )
