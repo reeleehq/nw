@@ -480,7 +480,10 @@ def enqueue(
             ``estimated_usd`` it is not part of ``params`` and never enters the
             job id, so two callers submitting the same work share one job, and
             a dedup onto a live job keeps the submitter of the run already
-            going; a re-run of a finished key records the new one.
+            going; a re-run of a finished key records the new one. So the
+            returned ``Job.submitted_by`` may differ from the argument: that is
+            how a host detects that its caller joined a run someone else
+            started, and must not bill the joiner for it.
         config: tunables (see :class:`JobsConfig`).
 
     Raises:
@@ -488,15 +491,15 @@ def enqueue(
         ValueError: if ``params["units"]`` is present but not a positive ``int``,
             ``estimated_usd`` is neither ``None`` nor a finite, non-negative
             number (see :func:`checked_usd`), or ``submitted_by`` is neither
-            ``None`` nor a non-empty string.
+            ``None`` nor a string with a non-space character.
     """
     if estimated_usd is not _UNSET:
         estimated_usd = checked_usd(estimated_usd)
     if submitted_by is not None and not (
-        isinstance(submitted_by, str) and submitted_by
+        isinstance(submitted_by, str) and submitted_by.strip()
     ):
         raise ValueError(
-            f"submitted_by must be None or a non-empty string, not {submitted_by!r}"
+            f"submitted_by must be None or a non-blank string, not {submitted_by!r}"
         )
     rt = _runtime(project, config)
     dispatch = dispatch or {}

@@ -2372,8 +2372,8 @@ def test_a_rerun_of_a_finished_job_records_its_own_submitter(project):
     dispatch = {"op": _blocking_stub(release)}
     first = jobs.enqueue(project, "op", VIDEO_PARAMS, dispatch=dispatch, submitted_by="a")
     _run_to_the_end(project, first)
-    rerun = jobs.enqueue(project, "op", VIDEO_PARAMS, dispatch=dispatch)
-    assert rerun.job_id == first.job_id and rerun.submitted_by is None
+    rerun = jobs.enqueue(project, "op", VIDEO_PARAMS, dispatch=dispatch, submitted_by="b")
+    assert rerun.job_id == first.job_id and rerun.submitted_by == "b"
     _run_to_the_end(project, rerun)
 
 
@@ -2387,7 +2387,7 @@ def test_a_record_from_before_the_field_reads_none(project, parked):
     assert jobs.get_job(project, job.job_id).submitted_by is None
 
 
-@pytest.mark.parametrize("bad", ["", 7, b"u", ["u"]])
+@pytest.mark.parametrize("bad", ["", "  ", 7, b"u", ["u"]])
 def test_a_submitter_that_is_not_a_name_is_refused_before_anything_runs(project, bad):
     calls = []
     with pytest.raises(ValueError, match="submitted_by"):
