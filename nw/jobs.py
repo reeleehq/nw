@@ -272,6 +272,10 @@ class Job:
     status: str
     idempotency_key: str
     params: dict = field(default_factory=dict)
+    submitted_by: str | None = None
+    """Who submitted the run, as the host named them at :func:`enqueue`
+    (nw#192): an opaque id nw stores and returns, never interprets. ``None``
+    when the host did not say, and for every run recorded before the field."""
 
     created_at: str | None = None
     started_at: str | None = None
@@ -394,6 +398,7 @@ def enqueue(
     capture_context: Callable[[], AbstractContextManager[Any]] | None = None,
     secrets: Mapping[str, str] | None = None,
     estimated_usd: float | None | object = _UNSET,
+    submitted_by: str | None = None,
     config: JobsConfig = DEFAULT_CONFIG,
 ) -> Job:
     """Enqueue a billable render as a background job. Returns a :class:`Job`
@@ -470,16 +475,29 @@ def enqueue(
             so it never enters the job id: a price that drifts with the graph
             does not split dedup, and a dedup onto a live job keeps that
             job's figure (nw#144). Omitted, nothing changes.
+        submitted_by: who is submitting, as the host names its caller (a
+            principal id), recorded as :attr:`Job.submitted_by`. Like
+            ``estimated_usd`` it is not part of ``params`` and never enters the
+            job id, so two callers submitting the same work share one job, and
+            a dedup onto a live job keeps the submitter of the run already
+            going; a re-run of a finished key records the new one.
         config: tunables (see :class:`JobsConfig`).
 
     Raises:
         KeyError: if ``kind`` is not in ``dispatch``.
         ValueError: if ``params["units"]`` is present but not a positive ``int``,
-            or ``estimated_usd`` is neither ``None`` nor a finite, non-negative
-            number (see :func:`checked_usd`).
+            ``estimated_usd`` is neither ``None`` nor a finite, non-negative
+            number (see :func:`checked_usd`), or ``submitted_by`` is neither
+            ``None`` nor a non-empty string.
     """
     if estimated_usd is not _UNSET:
         estimated_usd = checked_usd(estimated_usd)
+    if submitted_by is not None and not (
+        isinstance(submitted_by, str) and submitted_by
+    ):
+        raise ValueError(
+            f"submitted_by must be None or a non-empty string, not {submitted_by!r}"
+        )
     rt = _runtime(project, config)
     dispatch = dispatch or {}
     idempotency_key = idempotency_key or _default_idempotency_key(project, kind, params)
@@ -529,6 +547,7 @@ def enqueue(
                 "kind": kind,
                 "label": label,
                 "idempotency_key": idempotency_key,
+                "submitted_by": submitted_by,
                 "params": _finite_json(params),
                 "created_at": now_iso(),
                 "started_at": None,
@@ -1203,6 +1222,7 @@ def to_dict(job: Job) -> dict:
         "run_token": job.run_token,
         "idempotency_key": job.idempotency_key,
         "params": job.params,
+        "submitted_by": job.submitted_by,
         "created_at": job.created_at,
         "started_at": job.started_at,
         "finished_at": job.finished_at,
@@ -2628,6 +2648,7 @@ def _project_job(rt, record, au_result, config) -> Job:
         status=status,
         idempotency_key=record.get("idempotency_key", record["job_id"]),
         params=record.get("params", {}),
+        submitted_by=record.get("submitted_by"),
         created_at=created_at,
         started_at=started_at,
         finished_at=finished_at,

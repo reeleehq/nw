@@ -92,7 +92,8 @@ def enqueue_batch(
     """Enqueue every item as a job and record the batch. Never blocks.
 
     ``enqueue_kwargs`` (``dispatch``, ``on_event``, ``secrets``,
-    ``capture_context``, ``backend``) go to each ``enqueue`` call unchanged.
+    ``capture_context``, ``backend``, ``submitted_by``) go to each ``enqueue``
+    call unchanged.
     Every item is validated (keys, ``kind`` in ``dispatch``, ``units``) before
     the first one launches, so a bad item leaves nothing running. Re-submitting
     a batch that exists returns it without enqueueing.
