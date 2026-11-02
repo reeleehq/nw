@@ -2668,6 +2668,15 @@ def _project_job(rt, record, au_result, config) -> Job:
 ERROR_KIND_REFUSED = "refused"
 ERROR_KIND_CANCELLED = "cancelled"
 ERROR_KIND_CRASHED = "crashed"
+#: The whole ``Job.error_kind`` vocabulary, in that order. A host that exports it
+#: to clients reads this rather than listing the constants itself, so a kind added
+#: here reaches it without an edit (nw#178, reelee#787). ``Job.error_kind`` only:
+#: :func:`nw.batches.output` adds ``batches.MISSING`` for a job whose record is gone.
+ERROR_KINDS: tuple[str, ...] = (
+    ERROR_KIND_REFUSED,
+    ERROR_KIND_CANCELLED,
+    ERROR_KIND_CRASHED,
+)
 
 
 def error_detail_of(
