@@ -149,7 +149,7 @@ Body of a sound-design annotation: the mix and everything published with it.
 
 Configuration for the model, should be a dictionary conforming to [`ConfigDict`][pydantic.config.ConfigDict].
 
-### *class* nw.bodies.SoundDesignConfigBodyV1(, enabled=True, max_events=6, master='podcast', commercial_ok=True)
+### *class* nw.bodies.SoundDesignConfigBodyV1(, enabled=True, max_events=6, master='podcast', commercial_ok=True, max_usd=None, allow_generate=True)
 
 Bases: `BaseModel`
 

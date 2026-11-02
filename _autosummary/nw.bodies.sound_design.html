@@ -129,6 +129,7 @@ data-aria-dark="Switch to auto color mode">
       <i class="i-lucide close"></i>
     </button>
     <div class="sy-scrollbar sy-rside-inner px-6 xl:top-16 xl:sticky xl:pl-0 pt-6 pb-4"><div class="localtoc"><h3>On this page</h3><ul>
+<li><a class="reference internal" href="#nw.bodies.sound_design.DFLT_ALLOW_GENERATE"><code class="docutils literal notranslate"><span class="pre">DFLT_ALLOW_GENERATE</span></code></a></li>
 <li><a class="reference internal" href="#nw.bodies.sound_design.DFLT_COMMERCIAL_OK"><code class="docutils literal notranslate"><span class="pre">DFLT_COMMERCIAL_OK</span></code></a></li>
 <li><a class="reference internal" href="#nw.bodies.sound_design.DFLT_MASTER"><code class="docutils literal notranslate"><span class="pre">DFLT_MASTER</span></code></a></li>
 <li><a class="reference internal" href="#nw.bodies.sound_design.DFLT_MAX_EVENTS"><code class="docutils literal notranslate"><span class="pre">DFLT_MAX_EVENTS</span></code></a></li>
@@ -228,6 +229,9 @@ annotation ids.</p>
 <tr class="row-odd"><td><p><a class="reference internal" href="#nw.bodies.sound_design.DFLT_COMMERCIAL_OK" title="nw.bodies.sound_design.DFLT_COMMERCIAL_OK"><code class="xref py py-obj docutils literal notranslate"><span class="pre">DFLT_COMMERCIAL_OK</span></code></a></p></td>
 <td><p>commercial publishing (<code class="docutils literal notranslate"><span class="pre">foley.licensing.DEFAULT_INTENDED_USE</span></code>).</p></td>
 </tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#nw.bodies.sound_design.DFLT_ALLOW_GENERATE" title="nw.bodies.sound_design.DFLT_ALLOW_GENERATE"><code class="xref py py-obj docutils literal notranslate"><span class="pre">DFLT_ALLOW_GENERATE</span></code></a></p></td>
+<td><p>a sound no library has may be generated (a paid fallback).</p></td>
+</tr>
 </tbody>
 </table>
 </div>
@@ -247,6 +251,17 @@ annotation ids.</p>
 </tbody>
 </table>
 </div>
+<dl class="py data">
+<dt class="sig sig-object py" id="nw.bodies.sound_design.DFLT_ALLOW_GENERATE">
+<span class="sig-prename descclassname"><span class="pre">nw.bodies.sound_design.</span></span><span class="sig-name descname"><span class="pre">DFLT_ALLOW_GENERATE</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">True</span></span><a class="headerlink" href="#nw.bodies.sound_design.DFLT_ALLOW_GENERATE" title="Link to this definition">#</a></dt>
+<dd><p>a sound no library has may be generated (a paid fallback).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>foley’s default</p>
+</dd>
+</dl>
+</dd></dl>
+
 <dl class="py data">
 <dt class="sig sig-object py" id="nw.bodies.sound_design.DFLT_COMMERCIAL_OK">
 <span class="sig-prename descclassname"><span class="pre">nw.bodies.sound_design.</span></span><span class="sig-name descname"><span class="pre">DFLT_COMMERCIAL_OK</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">True</span></span><a class="headerlink" href="#nw.bodies.sound_design.DFLT_COMMERCIAL_OK" title="Link to this definition">#</a></dt>
@@ -304,7 +319,7 @@ records which intent a mix was licence-checked under.</p>
 
 <dl class="py class">
 <dt class="sig sig-object py" id="nw.bodies.sound_design.SoundDesignConfigBodyV1">
-<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">nw.bodies.sound_design.</span></span><span class="sig-name descname"><span class="pre">SoundDesignConfigBodyV1</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">enabled</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_events</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">6</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">master</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'podcast'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">commercial_ok</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/nw/bodies/sound_design.html#SoundDesignConfigBodyV1"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nw.bodies.sound_design.SoundDesignConfigBodyV1" title="Link to this definition">#</a></dt>
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">nw.bodies.sound_design.</span></span><span class="sig-name descname"><span class="pre">SoundDesignConfigBodyV1</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">enabled</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_events</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">6</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">master</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'podcast'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">commercial_ok</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_usd</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">allow_generate</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/nw/bodies/sound_design.html#SoundDesignConfigBodyV1"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nw.bodies.sound_design.SoundDesignConfigBodyV1" title="Link to this definition">#</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">BaseModel</span></code></p>
 <p>Body of a sound-design-config annotation: the switch and the knobs.</p>
 <dl class="field-list simple">
@@ -359,7 +374,7 @@ records which intent a mix was licence-checked under.</p>
     </div>
   </div>
 </footer>
-      <script src="../_static/documentation_options.js?v=cdca99f8"></script>
+      <script src="../_static/documentation_options.js?v=fa321392"></script>
       <script src="../_static/doctools.js?v=fd6eb6e6"></script>
       <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script src="../_static/clipboard.min.js?v=a7894cd8"></script>

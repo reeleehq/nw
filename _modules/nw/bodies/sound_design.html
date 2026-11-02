@@ -214,143 +214,167 @@ data-aria-dark="Switch to auto color mode">
 </span><span data-line="53"><span class="sd">"""foley's default rights intent: commercial publishing</span>
 </span><span data-line="54"><span class="sd">(``foley.licensing.DEFAULT_INTENDED_USE``). Stated, not deferred, so the graph</span>
 </span><span data-line="55"><span class="sd">records which intent a mix was licence-checked under."""</span>
-</span><span data-line="56">
-</span><span data-line="57">
+</span><span data-line="56"><span class="n">DFLT_ALLOW_GENERATE</span> <span class="o">=</span> <span class="kc">True</span>
+</span><span data-line="57"><span class="sd">"""foley's default: a sound no library has may be generated (a paid fallback)."""</span>
+</span><span data-line="58">
+</span><span data-line="59">
 <div class="viewcode-block" id="NarrationTrackBodyV1">
 <a class="viewcode-back" href="../../../_autosummary/nw.bodies.sound_design.html#nw.bodies.NarrationTrackBodyV1">[docs]</a>
-</span><span data-line="58"><span class="k">class</span><span class="w"> </span><span class="nc">NarrationTrackBodyV1</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">):</span>
-</span><span data-line="59"><span class="w">    </span><span class="sd">"""Body of a narration-track annotation: one audio file + its sentences."""</span>
-</span><span data-line="60">
-</span><span data-line="61">    <span class="n">model_config</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"frozen"</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span> <span class="s2">"extra"</span><span class="p">:</span> <span class="s2">"forbid"</span><span class="p">}</span>
+</span><span data-line="60"><span class="k">class</span><span class="w"> </span><span class="nc">NarrationTrackBodyV1</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">):</span>
+</span><span data-line="61"><span class="w">    </span><span class="sd">"""Body of a narration-track annotation: one audio file + its sentences."""</span>
 </span><span data-line="62">
-</span><span data-line="63">    <span class="n">audio_path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
-</span><span data-line="64">        <span class="o">...</span><span class="p">,</span>
-</span><span data-line="65">        <span class="n">min_length</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
-</span><span data-line="66">        <span class="n">description</span><span class="o">=</span><span class="p">(</span>
-</span><span data-line="67">            <span class="s2">"The narration audio file foley aligns and weaves into, relative "</span>
-</span><span data-line="68">            <span class="s2">"to the project root (POSIX separators; no ``..``)."</span>
-</span><span data-line="69">        <span class="p">),</span>
-</span><span data-line="70">    <span class="p">)</span>
-</span><span data-line="71">    <span class="n">artifact_id</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
-</span><span data-line="72">        <span class="kc">None</span><span class="p">,</span>
-</span><span data-line="73">        <span class="n">description</span><span class="o">=</span><span class="p">(</span>
-</span><span data-line="74">            <span class="s2">"``asset_id`` (bare 64-hex sha256) of the narration audio, when it "</span>
-</span><span data-line="75">            <span class="s2">"is a known artifact. Enters the sound design's provenance."</span>
-</span><span data-line="76">        <span class="p">),</span>
-</span><span data-line="77">    <span class="p">)</span>
-</span><span data-line="78">    <span class="n">segments</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
-</span><span data-line="79">        <span class="o">...</span><span class="p">,</span>
-</span><span data-line="80">        <span class="n">min_length</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
-</span><span data-line="81">        <span class="n">description</span><span class="o">=</span><span class="s2">"Sentence-level narration text, in render order."</span><span class="p">,</span>
-</span><span data-line="82">    <span class="p">)</span>
-</span><span data-line="83">    <span class="n">segment_starts</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">]]</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
-</span><span data-line="84">        <span class="kc">None</span><span class="p">,</span>
-</span><span data-line="85">        <span class="n">description</span><span class="o">=</span><span class="p">(</span>
-</span><span data-line="86">            <span class="s2">"Each segment's start in the audio, in seconds (one per segment, "</span>
-</span><span data-line="87">            <span class="s2">"non-decreasing). ``None`` lets foley align the whole file."</span>
-</span><span data-line="88">        <span class="p">),</span>
-</span><span data-line="89">    <span class="p">)</span>
-</span><span data-line="90">
-</span><span data-line="91">    <span class="nd">@field_validator</span><span class="p">(</span><span class="s2">"audio_path"</span><span class="p">)</span>
-</span><span data-line="92">    <span class="nd">@classmethod</span>
-</span><span data-line="93">    <span class="k">def</span><span class="w"> </span><span class="nf">_inside_the_project</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
-</span><span data-line="94">        <span class="n">posix</span><span class="p">,</span> <span class="n">windows</span> <span class="o">=</span> <span class="n">PurePosixPath</span><span class="p">(</span><span class="n">value</span><span class="p">),</span> <span class="n">PureWindowsPath</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
-</span><span data-line="95">        <span class="k">if</span> <span class="n">posix</span><span class="o">.</span><span class="n">is_absolute</span><span class="p">()</span> <span class="ow">or</span> <span class="n">windows</span><span class="o">.</span><span class="n">is_absolute</span><span class="p">()</span> <span class="ow">or</span> <span class="n">windows</span><span class="o">.</span><span class="n">drive</span><span class="p">:</span>
-</span><span data-line="96">            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-</span><span data-line="97">                <span class="sa">f</span><span class="s2">"audio_path must be relative to the project root, got </span><span class="si">{</span><span class="n">value</span><span class="si">!r}</span><span class="s2">"</span>
-</span><span data-line="98">            <span class="p">)</span>
-</span><span data-line="99">        <span class="k">if</span> <span class="s2">".."</span> <span class="ow">in</span> <span class="n">posix</span><span class="o">.</span><span class="n">parts</span> <span class="ow">or</span> <span class="s2">".."</span> <span class="ow">in</span> <span class="n">windows</span><span class="o">.</span><span class="n">parts</span><span class="p">:</span>
-</span><span data-line="100">            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"audio_path must not leave the project, got </span><span class="si">{</span><span class="n">value</span><span class="si">!r}</span><span class="s2">"</span><span class="p">)</span>
-</span><span data-line="101">        <span class="k">return</span> <span class="n">value</span>
-</span><span data-line="102">
-</span><span data-line="103">    <span class="nd">@model_validator</span><span class="p">(</span><span class="n">mode</span><span class="o">=</span><span class="s2">"after"</span><span class="p">)</span>
-</span><span data-line="104">    <span class="k">def</span><span class="w"> </span><span class="nf">_one_start_per_segment</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-</span><span data-line="105">        <span class="n">starts</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">segment_starts</span>
-</span><span data-line="106">        <span class="k">if</span> <span class="n">starts</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">starts</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">segments</span><span class="p">):</span>
-</span><span data-line="107">            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-</span><span data-line="108">                <span class="sa">f</span><span class="s2">"segment_starts has </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">starts</span><span class="p">)</span><span class="si">}</span><span class="s2"> entries for "</span>
-</span><span data-line="109">                <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">segments</span><span class="p">)</span><span class="si">}</span><span class="s2"> segments; give one start per segment."</span>
-</span><span data-line="110">            <span class="p">)</span>
-</span><span data-line="111">        <span class="k">return</span> <span class="bp">self</span></div>
+</span><span data-line="63">    <span class="n">model_config</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"frozen"</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span> <span class="s2">"extra"</span><span class="p">:</span> <span class="s2">"forbid"</span><span class="p">}</span>
+</span><span data-line="64">
+</span><span data-line="65">    <span class="n">audio_path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+</span><span data-line="66">        <span class="o">...</span><span class="p">,</span>
+</span><span data-line="67">        <span class="n">min_length</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+</span><span data-line="68">        <span class="n">description</span><span class="o">=</span><span class="p">(</span>
+</span><span data-line="69">            <span class="s2">"The narration audio file foley aligns and weaves into, relative "</span>
+</span><span data-line="70">            <span class="s2">"to the project root (POSIX separators; no ``..``)."</span>
+</span><span data-line="71">        <span class="p">),</span>
+</span><span data-line="72">    <span class="p">)</span>
+</span><span data-line="73">    <span class="n">artifact_id</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+</span><span data-line="74">        <span class="kc">None</span><span class="p">,</span>
+</span><span data-line="75">        <span class="n">description</span><span class="o">=</span><span class="p">(</span>
+</span><span data-line="76">            <span class="s2">"``asset_id`` (bare 64-hex sha256) of the narration audio, when it "</span>
+</span><span data-line="77">            <span class="s2">"is a known artifact. Enters the sound design's provenance."</span>
+</span><span data-line="78">        <span class="p">),</span>
+</span><span data-line="79">    <span class="p">)</span>
+</span><span data-line="80">    <span class="n">segments</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+</span><span data-line="81">        <span class="o">...</span><span class="p">,</span>
+</span><span data-line="82">        <span class="n">min_length</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+</span><span data-line="83">        <span class="n">description</span><span class="o">=</span><span class="s2">"Sentence-level narration text, in render order."</span><span class="p">,</span>
+</span><span data-line="84">    <span class="p">)</span>
+</span><span data-line="85">    <span class="n">segment_starts</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">]]</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+</span><span data-line="86">        <span class="kc">None</span><span class="p">,</span>
+</span><span data-line="87">        <span class="n">description</span><span class="o">=</span><span class="p">(</span>
+</span><span data-line="88">            <span class="s2">"Each segment's start in the audio, in seconds (one per segment, "</span>
+</span><span data-line="89">            <span class="s2">"non-decreasing). ``None`` lets foley align the whole file."</span>
+</span><span data-line="90">        <span class="p">),</span>
+</span><span data-line="91">    <span class="p">)</span>
+</span><span data-line="92">
+</span><span data-line="93">    <span class="nd">@field_validator</span><span class="p">(</span><span class="s2">"audio_path"</span><span class="p">)</span>
+</span><span data-line="94">    <span class="nd">@classmethod</span>
+</span><span data-line="95">    <span class="k">def</span><span class="w"> </span><span class="nf">_inside_the_project</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+</span><span data-line="96">        <span class="n">posix</span><span class="p">,</span> <span class="n">windows</span> <span class="o">=</span> <span class="n">PurePosixPath</span><span class="p">(</span><span class="n">value</span><span class="p">),</span> <span class="n">PureWindowsPath</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+</span><span data-line="97">        <span class="k">if</span> <span class="n">posix</span><span class="o">.</span><span class="n">is_absolute</span><span class="p">()</span> <span class="ow">or</span> <span class="n">windows</span><span class="o">.</span><span class="n">is_absolute</span><span class="p">()</span> <span class="ow">or</span> <span class="n">windows</span><span class="o">.</span><span class="n">drive</span><span class="p">:</span>
+</span><span data-line="98">            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+</span><span data-line="99">                <span class="sa">f</span><span class="s2">"audio_path must be relative to the project root, got </span><span class="si">{</span><span class="n">value</span><span class="si">!r}</span><span class="s2">"</span>
+</span><span data-line="100">            <span class="p">)</span>
+</span><span data-line="101">        <span class="k">if</span> <span class="s2">".."</span> <span class="ow">in</span> <span class="n">posix</span><span class="o">.</span><span class="n">parts</span> <span class="ow">or</span> <span class="s2">".."</span> <span class="ow">in</span> <span class="n">windows</span><span class="o">.</span><span class="n">parts</span><span class="p">:</span>
+</span><span data-line="102">            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"audio_path must not leave the project, got </span><span class="si">{</span><span class="n">value</span><span class="si">!r}</span><span class="s2">"</span><span class="p">)</span>
+</span><span data-line="103">        <span class="k">return</span> <span class="n">value</span>
+</span><span data-line="104">
+</span><span data-line="105">    <span class="nd">@model_validator</span><span class="p">(</span><span class="n">mode</span><span class="o">=</span><span class="s2">"after"</span><span class="p">)</span>
+</span><span data-line="106">    <span class="k">def</span><span class="w"> </span><span class="nf">_one_start_per_segment</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+</span><span data-line="107">        <span class="n">starts</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">segment_starts</span>
+</span><span data-line="108">        <span class="k">if</span> <span class="n">starts</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">starts</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">segments</span><span class="p">):</span>
+</span><span data-line="109">            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+</span><span data-line="110">                <span class="sa">f</span><span class="s2">"segment_starts has </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">starts</span><span class="p">)</span><span class="si">}</span><span class="s2"> entries for "</span>
+</span><span data-line="111">                <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">segments</span><span class="p">)</span><span class="si">}</span><span class="s2"> segments; give one start per segment."</span>
+</span><span data-line="112">            <span class="p">)</span>
+</span><span data-line="113">        <span class="k">return</span> <span class="bp">self</span></div>
 
-</span><span data-line="112">
-</span><span data-line="113">
+</span><span data-line="114">
+</span><span data-line="115">
 <div class="viewcode-block" id="SoundDesignConfigBodyV1">
 <a class="viewcode-back" href="../../../_autosummary/nw.bodies.sound_design.html#nw.bodies.SoundDesignConfigBodyV1">[docs]</a>
-</span><span data-line="114"><span class="k">class</span><span class="w"> </span><span class="nc">SoundDesignConfigBodyV1</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">):</span>
-</span><span data-line="115"><span class="w">    </span><span class="sd">"""Body of a sound-design-config annotation: the switch and the knobs."""</span>
-</span><span data-line="116">
-</span><span data-line="117">    <span class="n">model_config</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"frozen"</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span> <span class="s2">"extra"</span><span class="p">:</span> <span class="s2">"forbid"</span><span class="p">}</span>
+</span><span data-line="116"><span class="k">class</span><span class="w"> </span><span class="nc">SoundDesignConfigBodyV1</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">):</span>
+</span><span data-line="117"><span class="w">    </span><span class="sd">"""Body of a sound-design-config annotation: the switch and the knobs."""</span>
 </span><span data-line="118">
-</span><span data-line="119">    <span class="n">enabled</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
-</span><span data-line="120">        <span class="kc">True</span><span class="p">,</span>
-</span><span data-line="121">        <span class="n">description</span><span class="o">=</span><span class="p">(</span>
-</span><span data-line="122">            <span class="s2">"``False``: the Transform plans nothing and spends nothing; the "</span>
-</span><span data-line="123">            <span class="s2">"graph does not schedule it."</span>
-</span><span data-line="124">        <span class="p">),</span>
-</span><span data-line="125">    <span class="p">)</span>
-</span><span data-line="126">    <span class="n">max_events</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
-</span><span data-line="127">        <span class="n">DFLT_MAX_EVENTS</span><span class="p">,</span> <span class="n">ge</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">"Density cap per segment (restraint)."</span>
-</span><span data-line="128">    <span class="p">)</span>
-</span><span data-line="129">    <span class="n">master</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
-</span><span data-line="130">        <span class="n">DFLT_MASTER</span><span class="p">,</span>
-</span><span data-line="131">        <span class="n">min_length</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
-</span><span data-line="132">        <span class="n">description</span><span class="o">=</span><span class="s2">"foley's delivery profile name (``foley.MASTER_PROFILES``)."</span><span class="p">,</span>
-</span><span data-line="133">    <span class="p">)</span>
-</span><span data-line="134">    <span class="n">commercial_ok</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
-</span><span data-line="135">        <span class="n">DFLT_COMMERCIAL_OK</span><span class="p">,</span>
-</span><span data-line="136">        <span class="n">description</span><span class="o">=</span><span class="p">(</span>
-</span><span data-line="137">            <span class="s2">"Rights intent for foley's fail-closed licence gate: ``True`` admits "</span>
-</span><span data-line="138">            <span class="s2">"only commercially licensed sounds; ``False`` also admits "</span>
-</span><span data-line="139">            <span class="s2">"non-commercial ones."</span>
-</span><span data-line="140">        <span class="p">),</span>
-</span><span data-line="141">    <span class="p">)</span></div>
+</span><span data-line="119">    <span class="n">model_config</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"frozen"</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span> <span class="s2">"extra"</span><span class="p">:</span> <span class="s2">"forbid"</span><span class="p">}</span>
+</span><span data-line="120">
+</span><span data-line="121">    <span class="n">enabled</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+</span><span data-line="122">        <span class="kc">True</span><span class="p">,</span>
+</span><span data-line="123">        <span class="n">description</span><span class="o">=</span><span class="p">(</span>
+</span><span data-line="124">            <span class="s2">"``False``: the Transform plans nothing and spends nothing; the "</span>
+</span><span data-line="125">            <span class="s2">"graph does not schedule it."</span>
+</span><span data-line="126">        <span class="p">),</span>
+</span><span data-line="127">    <span class="p">)</span>
+</span><span data-line="128">    <span class="n">max_events</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+</span><span data-line="129">        <span class="n">DFLT_MAX_EVENTS</span><span class="p">,</span> <span class="n">ge</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">"Density cap per segment (restraint)."</span>
+</span><span data-line="130">    <span class="p">)</span>
+</span><span data-line="131">    <span class="n">master</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+</span><span data-line="132">        <span class="n">DFLT_MASTER</span><span class="p">,</span>
+</span><span data-line="133">        <span class="n">min_length</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+</span><span data-line="134">        <span class="n">description</span><span class="o">=</span><span class="s2">"foley's delivery profile name (``foley.MASTER_PROFILES``)."</span><span class="p">,</span>
+</span><span data-line="135">    <span class="p">)</span>
+</span><span data-line="136">    <span class="n">commercial_ok</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+</span><span data-line="137">        <span class="n">DFLT_COMMERCIAL_OK</span><span class="p">,</span>
+</span><span data-line="138">        <span class="n">description</span><span class="o">=</span><span class="p">(</span>
+</span><span data-line="139">            <span class="s2">"Rights intent for foley's fail-closed licence gate: ``True`` admits "</span>
+</span><span data-line="140">            <span class="s2">"only commercially licensed sounds; ``False`` also admits "</span>
+</span><span data-line="141">            <span class="s2">"non-commercial ones."</span>
+</span><span data-line="142">        <span class="p">),</span>
+</span><span data-line="143">    <span class="p">)</span>
+</span><span data-line="144">    <span class="n">max_usd</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+</span><span data-line="145">        <span class="kc">None</span><span class="p">,</span>
+</span><span data-line="146">        <span class="n">ge</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+</span><span data-line="147">        <span class="n">allow_inf_nan</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+</span><span data-line="148">        <span class="n">description</span><span class="o">=</span><span class="p">(</span>
+</span><span data-line="149">            <span class="s2">"The run's spend cap in USD, passed to foley as its budget. foley "</span>
+</span><span data-line="150">            <span class="s2">"checks each segment's worst case against what is left and raises "</span>
+</span><span data-line="151">            <span class="s2">"when it does not fit, so a cap below what one segment may spend "</span>
+</span><span data-line="152">            <span class="s2">"fails the render, and one below the run's total can fail a later "</span>
+</span><span data-line="153">            <span class="s2">"segment after earlier ones were paid for (reeleehq/foley#281). "</span>
+</span><span data-line="154">            <span class="s2">"Calls of unknown cost are refused unless foley is told to approve "</span>
+</span><span data-line="155">            <span class="s2">"them, and then they are not counted. ``None``: foley's default "</span>
+</span><span data-line="156">            <span class="s2">"cap (it depends on the LLM). The cost stays *unknown*."</span>
+</span><span data-line="157">        <span class="p">),</span>
+</span><span data-line="158">    <span class="p">)</span>
+</span><span data-line="159">    <span class="n">allow_generate</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+</span><span data-line="160">        <span class="n">DFLT_ALLOW_GENERATE</span><span class="p">,</span>
+</span><span data-line="161">        <span class="n">description</span><span class="o">=</span><span class="p">(</span>
+</span><span data-line="162">            <span class="s2">"``False``: retrieval only, no paid generation fallback (offline or "</span>
+</span><span data-line="163">            <span class="s2">"CI renders)."</span>
+</span><span data-line="164">        <span class="p">),</span>
+</span><span data-line="165">    <span class="p">)</span></div>
 
-</span><span data-line="142">
-</span><span data-line="143">
+</span><span data-line="166">
+</span><span data-line="167">
 <div class="viewcode-block" id="SoundDesignBodyV1">
 <a class="viewcode-back" href="../../../_autosummary/nw.bodies.sound_design.html#nw.bodies.SoundDesignBodyV1">[docs]</a>
-</span><span data-line="144"><span class="k">class</span><span class="w"> </span><span class="nc">SoundDesignBodyV1</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">):</span>
-</span><span data-line="145"><span class="w">    </span><span class="sd">"""Body of a sound-design annotation: the mix and everything published with it."""</span>
-</span><span data-line="146">
-</span><span data-line="147">    <span class="n">model_config</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"frozen"</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span> <span class="s2">"extra"</span><span class="p">:</span> <span class="s2">"forbid"</span><span class="p">}</span>
-</span><span data-line="148">
-</span><span data-line="149">    <span class="n">artifact_id</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
-</span><span data-line="150">        <span class="kc">None</span><span class="p">,</span>
-</span><span data-line="151">        <span class="n">description</span><span class="o">=</span><span class="p">(</span>
-</span><span data-line="152">            <span class="s2">"sha256 of the mastered FLAC mix, a blob in falaw's content store "</span>
-</span><span data-line="153">            <span class="s2">"(``falaw.content.default_content_store().get_blob(artifact_id)``). "</span>
-</span><span data-line="154">            <span class="s2">"``None`` in a skeleton; filled by ``execute``."</span>
-</span><span data-line="155">        <span class="p">),</span>
-</span><span data-line="156">    <span class="p">)</span>
-</span><span data-line="157">    <span class="n">duration_s</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">ge</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">"Length of the mix, seconds."</span><span class="p">)</span>
-</span><span data-line="158">    <span class="n">timeline</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
-</span><span data-line="159">        <span class="n">default_factory</span><span class="o">=</span><span class="nb">dict</span><span class="p">,</span>
-</span><span data-line="160">        <span class="n">description</span><span class="o">=</span><span class="s2">"foley's editable ``SoundDesignTimeline.to_dict()``."</span><span class="p">,</span>
-</span><span data-line="161">    <span class="p">)</span>
-</span><span data-line="162">    <span class="n">events</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">dict</span><span class="p">]</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
-</span><span data-line="163">        <span class="n">default_factory</span><span class="o">=</span><span class="nb">list</span><span class="p">,</span>
-</span><span data-line="164">        <span class="n">description</span><span class="o">=</span><span class="s2">"Per-event rationale (``ScoredEvent.to_dict()``), in order."</span><span class="p">,</span>
-</span><span data-line="165">    <span class="p">)</span>
-</span><span data-line="166">    <span class="n">credits</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
-</span><span data-line="167">        <span class="n">default_factory</span><span class="o">=</span><span class="nb">dict</span><span class="p">,</span>
-</span><span data-line="168">        <span class="n">description</span><span class="o">=</span><span class="s2">"The credits manifest; must be published with the output."</span><span class="p">,</span>
-</span><span data-line="169">    <span class="p">)</span>
-</span><span data-line="170">    <span class="n">captions_vtt</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="s2">""</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">"SDH captions, WebVTT."</span><span class="p">)</span>
-</span><span data-line="171">    <span class="n">master_report</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
-</span><span data-line="172">        <span class="n">default_factory</span><span class="o">=</span><span class="nb">dict</span><span class="p">,</span>
-</span><span data-line="173">        <span class="n">description</span><span class="o">=</span><span class="s2">"Measured delivery figures (integrated LUFS, true peak)."</span><span class="p">,</span>
-</span><span data-line="174">    <span class="p">)</span>
-</span><span data-line="175">    <span class="n">notes</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
-</span><span data-line="176">        <span class="n">default_factory</span><span class="o">=</span><span class="nb">list</span><span class="p">,</span>
-</span><span data-line="177">        <span class="n">description</span><span class="o">=</span><span class="s1">'What to know about how the mix was made ("word timings are estimates").'</span><span class="p">,</span>
-</span><span data-line="178">    <span class="p">)</span></div>
+</span><span data-line="168"><span class="k">class</span><span class="w"> </span><span class="nc">SoundDesignBodyV1</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">):</span>
+</span><span data-line="169"><span class="w">    </span><span class="sd">"""Body of a sound-design annotation: the mix and everything published with it."""</span>
+</span><span data-line="170">
+</span><span data-line="171">    <span class="n">model_config</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"frozen"</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span> <span class="s2">"extra"</span><span class="p">:</span> <span class="s2">"forbid"</span><span class="p">}</span>
+</span><span data-line="172">
+</span><span data-line="173">    <span class="n">artifact_id</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+</span><span data-line="174">        <span class="kc">None</span><span class="p">,</span>
+</span><span data-line="175">        <span class="n">description</span><span class="o">=</span><span class="p">(</span>
+</span><span data-line="176">            <span class="s2">"sha256 of the mastered FLAC mix, a blob in falaw's content store "</span>
+</span><span data-line="177">            <span class="s2">"(``falaw.content.default_content_store().get_blob(artifact_id)``). "</span>
+</span><span data-line="178">            <span class="s2">"``None`` in a skeleton; filled by ``execute``."</span>
+</span><span data-line="179">        <span class="p">),</span>
+</span><span data-line="180">    <span class="p">)</span>
+</span><span data-line="181">    <span class="n">duration_s</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">ge</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">"Length of the mix, seconds."</span><span class="p">)</span>
+</span><span data-line="182">    <span class="n">timeline</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+</span><span data-line="183">        <span class="n">default_factory</span><span class="o">=</span><span class="nb">dict</span><span class="p">,</span>
+</span><span data-line="184">        <span class="n">description</span><span class="o">=</span><span class="s2">"foley's editable ``SoundDesignTimeline.to_dict()``."</span><span class="p">,</span>
+</span><span data-line="185">    <span class="p">)</span>
+</span><span data-line="186">    <span class="n">events</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">dict</span><span class="p">]</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+</span><span data-line="187">        <span class="n">default_factory</span><span class="o">=</span><span class="nb">list</span><span class="p">,</span>
+</span><span data-line="188">        <span class="n">description</span><span class="o">=</span><span class="s2">"Per-event rationale (``ScoredEvent.to_dict()``), in order."</span><span class="p">,</span>
+</span><span data-line="189">    <span class="p">)</span>
+</span><span data-line="190">    <span class="n">credits</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+</span><span data-line="191">        <span class="n">default_factory</span><span class="o">=</span><span class="nb">dict</span><span class="p">,</span>
+</span><span data-line="192">        <span class="n">description</span><span class="o">=</span><span class="s2">"The credits manifest; must be published with the output."</span><span class="p">,</span>
+</span><span data-line="193">    <span class="p">)</span>
+</span><span data-line="194">    <span class="n">captions_vtt</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="s2">""</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">"SDH captions, WebVTT."</span><span class="p">)</span>
+</span><span data-line="195">    <span class="n">master_report</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+</span><span data-line="196">        <span class="n">default_factory</span><span class="o">=</span><span class="nb">dict</span><span class="p">,</span>
+</span><span data-line="197">        <span class="n">description</span><span class="o">=</span><span class="s2">"Measured delivery figures (integrated LUFS, true peak)."</span><span class="p">,</span>
+</span><span data-line="198">    <span class="p">)</span>
+</span><span data-line="199">    <span class="n">notes</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+</span><span data-line="200">        <span class="n">default_factory</span><span class="o">=</span><span class="nb">list</span><span class="p">,</span>
+</span><span data-line="201">        <span class="n">description</span><span class="o">=</span><span class="s1">'What to know about how the mix was made ("word timings are estimates").'</span><span class="p">,</span>
+</span><span data-line="202">    <span class="p">)</span></div>
 
-</span><span data-line="179">
-</span><span data-line="180">
-</span><span data-line="181"><span class="n">register_body_schema</span><span class="p">(</span><span class="n">NARRATION_TRACK_BODY_SCHEMA_URI</span><span class="p">,</span> <span class="n">NarrationTrackBodyV1</span><span class="p">)</span>
-</span><span data-line="182"><span class="n">register_body_schema</span><span class="p">(</span><span class="n">SOUND_DESIGN_CONFIG_BODY_SCHEMA_URI</span><span class="p">,</span> <span class="n">SoundDesignConfigBodyV1</span><span class="p">)</span>
-</span><span data-line="183"><span class="n">register_body_schema</span><span class="p">(</span><span class="n">SOUND_DESIGN_BODY_SCHEMA_URI</span><span class="p">,</span> <span class="n">SoundDesignBodyV1</span><span class="p">)</span>
+</span><span data-line="203">
+</span><span data-line="204">
+</span><span data-line="205"><span class="n">register_body_schema</span><span class="p">(</span><span class="n">NARRATION_TRACK_BODY_SCHEMA_URI</span><span class="p">,</span> <span class="n">NarrationTrackBodyV1</span><span class="p">)</span>
+</span><span data-line="206"><span class="n">register_body_schema</span><span class="p">(</span><span class="n">SOUND_DESIGN_CONFIG_BODY_SCHEMA_URI</span><span class="p">,</span> <span class="n">SoundDesignConfigBodyV1</span><span class="p">)</span>
+</span><span data-line="207"><span class="n">register_body_schema</span><span class="p">(</span><span class="n">SOUND_DESIGN_BODY_SCHEMA_URI</span><span class="p">,</span> <span class="n">SoundDesignBodyV1</span><span class="p">)</span>
 </span></pre></div>
         </article><button class="back-to-top" type="button">
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
@@ -378,7 +402,7 @@ data-aria-dark="Switch to auto color mode">
     </div>
   </div>
 </footer>
-      <script src="../../../_static/documentation_options.js?v=cdca99f8"></script>
+      <script src="../../../_static/documentation_options.js?v=fa321392"></script>
       <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
       <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>

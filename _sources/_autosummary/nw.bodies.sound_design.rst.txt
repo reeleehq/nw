@@ -11,6 +11,7 @@ nw.bodies.sound\_design
       DFLT_MAX_EVENTS
       DFLT_MASTER
       DFLT_COMMERCIAL_OK
+      DFLT_ALLOW_GENERATE
    
    .. rubric:: Classes
 

@@ -1,4 +1,4 @@
-> built 2026-11-02 14:18 UTC from 299d601 (main) · nw 0.0.121. Details: build_info.json
+> built 2026-11-02 14:25 UTC from fe27b8f (main) · nw 0.0.122. Details: build_info.json
 
 # index.html.md
 
@@ -1199,7 +1199,7 @@ Body of a sound-design annotation: the mix and everything published with it.
 
 Configuration for the model, should be a dictionary conforming to [`ConfigDict`][pydantic.config.ConfigDict].
 
-### *class* nw.bodies.SoundDesignConfigBodyV1(, enabled=True, max_events=6, master='podcast', commercial_ok=True)
+### *class* nw.bodies.SoundDesignConfigBodyV1(, enabled=True, max_events=6, master='podcast', commercial_ok=True, max_usd=None, allow_generate=True)
 
 Bases: `BaseModel`
 
@@ -1437,10 +1437,11 @@ annotation ids.
 
 ### Module Attributes
 
-| [`DFLT_MAX_EVENTS`](_autosummary/nw.bodies.sound_design.html.md#nw.bodies.sound_design.DFLT_MAX_EVENTS)    | foley's density cap per segment (`foley.score(max_events=6)`).   |
-|---------------------------------------------------------------------|------------------------------------------------------------------|
-| [`DFLT_MASTER`](_autosummary/nw.bodies.sound_design.html.md#nw.bodies.sound_design.DFLT_MASTER)        | foley's delivery profile (`foley.score(master="podcast")`).      |
-| [`DFLT_COMMERCIAL_OK`](_autosummary/nw.bodies.sound_design.html.md#nw.bodies.sound_design.DFLT_COMMERCIAL_OK) | commercial publishing (`foley.licensing.DEFAULT_INTENDED_USE`).  |
+| [`DFLT_MAX_EVENTS`](_autosummary/nw.bodies.sound_design.html.md#nw.bodies.sound_design.DFLT_MAX_EVENTS)     | foley's density cap per segment (`foley.score(max_events=6)`).   |
+|----------------------------------------------------------------------|------------------------------------------------------------------|
+| [`DFLT_MASTER`](_autosummary/nw.bodies.sound_design.html.md#nw.bodies.sound_design.DFLT_MASTER)         | foley's delivery profile (`foley.score(master="podcast")`).      |
+| [`DFLT_COMMERCIAL_OK`](_autosummary/nw.bodies.sound_design.html.md#nw.bodies.sound_design.DFLT_COMMERCIAL_OK)  | commercial publishing (`foley.licensing.DEFAULT_INTENDED_USE`).  |
+| [`DFLT_ALLOW_GENERATE`](_autosummary/nw.bodies.sound_design.html.md#nw.bodies.sound_design.DFLT_ALLOW_GENERATE) | a sound no library has may be generated (a paid fallback).       |
 
 ### Classes
 
@@ -1448,6 +1449,13 @@ annotation ids.
 |------------------------------------------------------------------------------------------------|------------------------------------------------------------------------------|
 | [`SoundDesignBodyV1`](_autosummary/nw.bodies.sound_design.html.md#nw.bodies.sound_design.SoundDesignBodyV1)(\*[, artifact_id, ...])     | Body of a sound-design annotation: the mix and everything published with it. |
 | [`SoundDesignConfigBodyV1`](_autosummary/nw.bodies.sound_design.html.md#nw.bodies.sound_design.SoundDesignConfigBodyV1)(\*[, enabled, ...])   | Body of a sound-design-config annotation: the switch and the knobs.          |
+
+### nw.bodies.sound_design.DFLT_ALLOW_GENERATE *= True*
+
+a sound no library has may be generated (a paid fallback).
+
+* **Type:**
+  foley’s default
 
 ### nw.bodies.sound_design.DFLT_COMMERCIAL_OK *= True*
 
@@ -1486,7 +1494,7 @@ Body of a sound-design annotation: the mix and everything published with it.
 
 Configuration for the model, should be a dictionary conforming to [`ConfigDict`][pydantic.config.ConfigDict].
 
-### *class* nw.bodies.sound_design.SoundDesignConfigBodyV1(, enabled=True, max_events=6, master='podcast', commercial_ok=True)
+### *class* nw.bodies.sound_design.SoundDesignConfigBodyV1(, enabled=True, max_events=6, master='podcast', commercial_ok=True, max_usd=None, allow_generate=True)
 
 Bases: `BaseModel`
 
@@ -11426,7 +11434,7 @@ produce different URLs. The local file paths are byte-stable.
 
 # About this build
 
-This documentation was built on **2026-11-02 14:18 UTC** from commit <a href="https://github.com/reeleehq/nw/commit/299d60106de1ad206e0e84de92e196cf6ccf7dac"><code>299d601</code></a> on branch <code>main</code>, for **nw 0.0.121** (from <code>pyproject.toml</code>).
+This documentation was built on **2026-11-02 14:25 UTC** from commit <a href="https://github.com/reeleehq/nw/commit/fe27b8f636d6d39f9505849b68de2adba1d56a37"><code>fe27b8f</code></a> on branch <code>main</code>, for **nw 0.0.122** (from <code>pyproject.toml</code>).
 
 #### NOTE
 Nothing suggests a mismatch: the tree was clean at the commit above, and the documented version is the one on PyPI.
@@ -11435,9 +11443,9 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 
 |                     |                                                                                                                                                    |
 |---------------------|----------------------------------------------------------------------------------------------------------------------------------------------------|
-| Commit              | <a href="https://github.com/reeleehq/nw/commit/299d60106de1ad206e0e84de92e196cf6ccf7dac"><code>299d60106de1ad206e0e84de92e196cf6ccf7dac</code></a> |
+| Commit              | <a href="https://github.com/reeleehq/nw/commit/fe27b8f636d6d39f9505849b68de2adba1d56a37"><code>fe27b8f636d6d39f9505849b68de2adba1d56a37</code></a> |
 | Branch              | <code>main</code>                                                                                                                                  |
-| Tags at this commit | <code>0.0.121</code>                                                                                                                               |
+| Tags at this commit | <code>0.0.122</code>                                                                                                                               |
 | Working tree        | clean                                                                                                                                              |
 | Remote              | <code>https://github.com/reeleehq/nw</code>                                                                                                        |
 
@@ -11446,9 +11454,9 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 |              |                                                                                            |
 |--------------|--------------------------------------------------------------------------------------------|
 | Repository   | <code>reeleehq/nw</code>                                                                   |
-| Run          | <a href="https://github.com/reeleehq/nw/actions/runs/41460170711">41460170711</a>          |
+| Run          | <a href="https://github.com/reeleehq/nw/actions/runs/41461278091">41461278091</a>          |
 | Ref          | <code>refs/heads/main</code>                                                               |
-| Event commit | <code>6d5c67e77141f64592f44eec0509641bc0dce4f3</code> (in the history of the built commit) |
+| Event commit | <code>f94639bb81232e73c0296c1c4b613693707f772a</code> (in the history of the built commit) |
 
 ## Tools
 
@@ -11473,13 +11481,13 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 
 ## Package on PyPI
 
-Latest release: <a href="https://pypi.org/project/nw/0.0.121/">0.0.121</a>, the same as the documented version.
+Latest release: <a href="https://pypi.org/project/nw/0.0.122/">0.0.122</a>, the same as the documented version.
 
 ## Reproduce
 
 ```bash
 git clone https://github.com/reeleehq/nw && cd nw
-git checkout 299d60106de1ad206e0e84de92e196cf6ccf7dac
+git checkout fe27b8f636d6d39f9505849b68de2adba1d56a37
 pip install "epythet==0.2.22"
 epythet quickstart . --ignore tests/ scrap/ examples/
 ```

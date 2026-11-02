@@ -31,10 +31,11 @@ annotation ids.
 
 ### Module Attributes
 
-| [`DFLT_MAX_EVENTS`](#nw.bodies.sound_design.DFLT_MAX_EVENTS)    | foley's density cap per segment (`foley.score(max_events=6)`).   |
-|---------------------------------------------------------------------|------------------------------------------------------------------|
-| [`DFLT_MASTER`](#nw.bodies.sound_design.DFLT_MASTER)        | foley's delivery profile (`foley.score(master="podcast")`).      |
-| [`DFLT_COMMERCIAL_OK`](#nw.bodies.sound_design.DFLT_COMMERCIAL_OK) | commercial publishing (`foley.licensing.DEFAULT_INTENDED_USE`).  |
+| [`DFLT_MAX_EVENTS`](#nw.bodies.sound_design.DFLT_MAX_EVENTS)     | foley's density cap per segment (`foley.score(max_events=6)`).   |
+|----------------------------------------------------------------------|------------------------------------------------------------------|
+| [`DFLT_MASTER`](#nw.bodies.sound_design.DFLT_MASTER)         | foley's delivery profile (`foley.score(master="podcast")`).      |
+| [`DFLT_COMMERCIAL_OK`](#nw.bodies.sound_design.DFLT_COMMERCIAL_OK)  | commercial publishing (`foley.licensing.DEFAULT_INTENDED_USE`).  |
+| [`DFLT_ALLOW_GENERATE`](#nw.bodies.sound_design.DFLT_ALLOW_GENERATE) | a sound no library has may be generated (a paid fallback).       |
 
 ### Classes
 
@@ -42,6 +43,13 @@ annotation ids.
 |------------------------------------------------------------------------------------------------|------------------------------------------------------------------------------|
 | [`SoundDesignBodyV1`](#nw.bodies.sound_design.SoundDesignBodyV1)(\*[, artifact_id, ...])     | Body of a sound-design annotation: the mix and everything published with it. |
 | [`SoundDesignConfigBodyV1`](#nw.bodies.sound_design.SoundDesignConfigBodyV1)(\*[, enabled, ...])   | Body of a sound-design-config annotation: the switch and the knobs.          |
+
+### nw.bodies.sound_design.DFLT_ALLOW_GENERATE *= True*
+
+a sound no library has may be generated (a paid fallback).
+
+* **Type:**
+  foley’s default
 
 ### nw.bodies.sound_design.DFLT_COMMERCIAL_OK *= True*
 
@@ -80,7 +88,7 @@ Body of a sound-design annotation: the mix and everything published with it.
 
 Configuration for the model, should be a dictionary conforming to [`ConfigDict`][pydantic.config.ConfigDict].
 
-### *class* nw.bodies.sound_design.SoundDesignConfigBodyV1(, enabled=True, max_events=6, master='podcast', commercial_ok=True)
+### *class* nw.bodies.sound_design.SoundDesignConfigBodyV1(, enabled=True, max_events=6, master='podcast', commercial_ok=True, max_usd=None, allow_generate=True)
 
 Bases: `BaseModel`
 
