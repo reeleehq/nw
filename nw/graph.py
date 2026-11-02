@@ -163,7 +163,9 @@ class ProjectGraph:
         Every write path of this class comes through here, which makes it the
         choke point where every open :func:`nw.freshness.freshness_pass`, in
         any thread, learns that its held walk may be out of date (nw#209):
-        the write epoch moves on open and again on close.
+        the write epoch moves on open and again on close. The bump on close
+        carries the safety (a walk that overlapped the write is stamped older
+        than it); the one on open only drops a held walk sooner.
         ``changes_freshness=False`` is for
         the unproduced-output records only — parentless sidecars no node
         derives from, at a tier no reuse lookup reads — so retiring one on
@@ -914,9 +916,10 @@ def remove_annotations_with_traces(
         removals are not reported: they are bookkeeping, not content.
     """
     # A deletion changes its dependents' freshness, so every open freshness
-    # pass drops its held walk (nw#209) — before, and again after. Before
-    # even a no-op call: the first save of a storyboard, about to add rows,
-    # must leave no tier read held from before its writes.
+    # pass drops its held walk (nw#209) — before, and again after. A
+    # storyboard save's own adds come after this (and do not bump): a tier
+    # read held across them can only miss a reuse, never answer a wrong
+    # "fresh", since an added row changes no other node's freshness.
     _freshness_pass.forget()
     try:
         return _remove_with_traces(store, annotation_ids, annotations)
