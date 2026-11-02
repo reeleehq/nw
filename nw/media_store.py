@@ -349,4 +349,6 @@ __all__ = [
     "SharedMediaStore",
     "StoreCatalogUnreadable",
     "SweepReport",
+    "hash_file",
+    "is_content_digest",
 ]
