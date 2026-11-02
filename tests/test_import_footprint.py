@@ -284,4 +284,4 @@ def test_the_subprocess_imports_the_tree_under_test():
     """Fails if the footprint checks silently measure another checkout of nw
     (an editable install elsewhere), which makes every other test here moot."""
     out = _ok("import nw, pathlib; print(pathlib.Path(nw.__file__).resolve())")
-    assert out.strip() == str(_REPO_ROOT / "nw" / "__init__.py")
+    assert Path(out.strip()) == _REPO_ROOT / "nw" / "__init__.py"
