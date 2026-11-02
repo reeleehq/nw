@@ -1,4 +1,4 @@
-> built 2026-11-02 14:10 UTC from 2526e44 (main) · nw 0.0.120. Details: build_info.json
+> built 2026-11-02 14:18 UTC from 299d601 (main) · nw 0.0.121. Details: build_info.json
 
 # index.html.md
 
@@ -10219,6 +10219,7 @@ TypeError: Object of type Secrets is not JSON serializable
 | [`using_secrets`](_autosummary/nw.secrets.html.md#nw.secrets.using_secrets)(secrets)           | Bind the secrets nw itself knows how to use, for the duration of a block.                                       |
 | [`redact`](_autosummary/nw.secrets.html.md#nw.secrets.redact)(text, secrets)            | `text` with every secret value replaced by `<redacted:name>`.                                                   |
 | [`redact_exception`](_autosummary/nw.secrets.html.md#nw.secrets.redact_exception)(error, secrets) | The exception to re-raise so that nothing it *renders* carries a secret.                                        |
+| [`failure_text`](_autosummary/nw.secrets.html.md#nw.secrets.failure_text)(error, secrets)     | `(scrubbed error, "<Type>: <message>")` for a failure nw records.                                               |
 
 ### Classes
 
@@ -10291,6 +10292,29 @@ Secrets(<1 redacted: fal>)
 
 * **Return type:**
   [`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[[`Secrets`](_autosummary/nw.secrets.html.md#nw.secrets.Secrets)]
+
+### nw.secrets.failure_text(error, secrets)
+
+`(scrubbed error, "<Type>: <message>")` for a failure nw records.
+
+The one way nw turns an exception it caught into text it files or logs
+(a unit’s or an unproduced output’s `reason`): [`redact_exception()`](_autosummary/nw.secrets.html.md#nw.secrets.redact_exception)
+first, the original type’s name even when that had to fall back to
+[`RedactedError`](_autosummary/nw.secrets.html.md#nw.secrets.RedactedError), and a rendering that survives a `__str__` that
+raises, so explaining a failure never becomes a second one (nw#205).
+
+```pycon
+>>> class Loud(Exception):
+...     def __str__(self):
+...         raise ValueError("no")
+>>> failure_text(Loud(), None)[1].startswith("Loud: Loud(")
+True
+>>> failure_text(RuntimeError("key=sk-1"), {"fal": "sk-1"})[1]
+'RuntimeError: key=<redacted:fal>'
+```
+
+* **Return type:**
+  [`tuple`](https://docs.python.org/3/builtins/stdtypes.html#tuple)[[`BaseException`](https://docs.python.org/3/builtins/exceptions.html#BaseException), [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]
 
 ### nw.secrets.redact(text, secrets)
 
@@ -11402,20 +11426,18 @@ produce different URLs. The local file paths are byte-stable.
 
 # About this build
 
-This documentation was built on **2026-11-02 14:10 UTC** from commit <a href="https://github.com/reeleehq/nw/commit/2526e447d56fc71800fb95779e35aa7de2484828"><code>2526e44</code></a> on branch <code>main</code>, for **nw 0.0.120** (from <code>pyproject.toml</code>).
+This documentation was built on **2026-11-02 14:18 UTC** from commit <a href="https://github.com/reeleehq/nw/commit/299d60106de1ad206e0e84de92e196cf6ccf7dac"><code>299d601</code></a> on branch <code>main</code>, for **nw 0.0.121** (from <code>pyproject.toml</code>).
 
-#### WARNING
-The documentation and the package may be misaligned:
-
-- The documented version (0.0.120) is ahead of the latest release on PyPI (0.0.119): these docs describe unreleased code.
+#### NOTE
+Nothing suggests a mismatch: the tree was clean at the commit above, and the documented version is the one on PyPI.
 
 ## Source
 
 |                     |                                                                                                                                                    |
 |---------------------|----------------------------------------------------------------------------------------------------------------------------------------------------|
-| Commit              | <a href="https://github.com/reeleehq/nw/commit/2526e447d56fc71800fb95779e35aa7de2484828"><code>2526e447d56fc71800fb95779e35aa7de2484828</code></a> |
+| Commit              | <a href="https://github.com/reeleehq/nw/commit/299d60106de1ad206e0e84de92e196cf6ccf7dac"><code>299d60106de1ad206e0e84de92e196cf6ccf7dac</code></a> |
 | Branch              | <code>main</code>                                                                                                                                  |
-| Tags at this commit | <code>0.0.120</code>                                                                                                                               |
+| Tags at this commit | <code>0.0.121</code>                                                                                                                               |
 | Working tree        | clean                                                                                                                                              |
 | Remote              | <code>https://github.com/reeleehq/nw</code>                                                                                                        |
 
@@ -11424,9 +11446,9 @@ The documentation and the package may be misaligned:
 |              |                                                                                            |
 |--------------|--------------------------------------------------------------------------------------------|
 | Repository   | <code>reeleehq/nw</code>                                                                   |
-| Run          | <a href="https://github.com/reeleehq/nw/actions/runs/41459026275">41459026275</a>          |
+| Run          | <a href="https://github.com/reeleehq/nw/actions/runs/41460170711">41460170711</a>          |
 | Ref          | <code>refs/heads/main</code>                                                               |
-| Event commit | <code>df962dd506368495addca16d9f431d2f8c0f5237</code> (in the history of the built commit) |
+| Event commit | <code>6d5c67e77141f64592f44eec0509641bc0dce4f3</code> (in the history of the built commit) |
 
 ## Tools
 
@@ -11451,13 +11473,13 @@ The documentation and the package may be misaligned:
 
 ## Package on PyPI
 
-Latest release: <a href="https://pypi.org/project/nw/0.0.119/">0.0.119</a>, older than the documented version (0.0.120).
+Latest release: <a href="https://pypi.org/project/nw/0.0.121/">0.0.121</a>, the same as the documented version.
 
 ## Reproduce
 
 ```bash
 git clone https://github.com/reeleehq/nw && cd nw
-git checkout 2526e447d56fc71800fb95779e35aa7de2484828
+git checkout 299d60106de1ad206e0e84de92e196cf6ccf7dac
 pip install "epythet==0.2.22"
 epythet quickstart . --ignore tests/ scrap/ examples/
 ```

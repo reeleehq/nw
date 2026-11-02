@@ -240,7 +240,7 @@ data-aria-dark="Switch to auto color mode">
 </span><span data-line="75"><span class="kn">from</span><span class="w"> </span><span class="nn">falaw</span><span class="w"> </span><span class="kn">import</span> <span class="n">Plan</span>
 </span><span data-line="76"><span class="kn">from</span><span class="w"> </span><span class="nn">lacing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Annotation</span><span class="p">,</span> <span class="n">TimeInterval</span>
 </span><span data-line="77">
-</span><span data-line="78"><span class="kn">from</span><span class="w"> </span><span class="nn">nw.secrets</span><span class="w"> </span><span class="kn">import</span> <span class="n">as_secrets</span><span class="p">,</span> <span class="n">redact</span><span class="p">,</span> <span class="n">redact_exception</span><span class="p">,</span> <span class="n">using_secrets</span>
+</span><span data-line="78"><span class="kn">from</span><span class="w"> </span><span class="nn">nw.secrets</span><span class="w"> </span><span class="kn">import</span> <span class="n">as_secrets</span><span class="p">,</span> <span class="n">failure_text</span><span class="p">,</span> <span class="n">using_secrets</span>
 </span><span data-line="79"><span class="kn">from</span><span class="w"> </span><span class="nn">nw.transforms._cache_mode</span><span class="w"> </span><span class="kn">import</span> <span class="n">resolve_cache_mode</span>
 </span><span data-line="80"><span class="kn">from</span><span class="w"> </span><span class="nn">nw.transforms.costs</span><span class="w"> </span><span class="kn">import</span> <span class="n">CostTotal</span><span class="p">,</span> <span class="n">total_cost</span>
 </span><span data-line="81">
@@ -866,14 +866,14 @@ data-aria-dark="Switch to auto color mode">
 </span><span data-line="675">        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>  <span class="c1"># noqa: BLE001 — per-unit isolation is the feature</span>
 </span><span data-line="676">            <span class="c1"># The message may quote the key (an auth error echoing it); the</span>
 </span><span data-line="677">            <span class="c1"># reason lands in the run record, so scrub before filing.</span>
-</span><span data-line="678">            <span class="n">e</span> <span class="o">=</span> <span class="n">redact_exception</span><span class="p">(</span><span class="n">e</span><span class="p">,</span> <span class="n">secrets</span><span class="p">)</span>
+</span><span data-line="678">            <span class="n">e</span><span class="p">,</span> <span class="n">reason</span> <span class="o">=</span> <span class="n">failure_text</span><span class="p">(</span><span class="n">e</span><span class="p">,</span> <span class="n">secrets</span><span class="p">)</span>
 </span><span data-line="679">            <span class="n">results</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
 </span><span data-line="680">                <span class="n">FanOutItemResult</span><span class="p">(</span>
 </span><span data-line="681">                    <span class="n">item</span><span class="o">=</span><span class="n">unit</span><span class="o">.</span><span class="n">item</span><span class="p">,</span>
 </span><span data-line="682">                    <span class="n">instance_id</span><span class="o">=</span><span class="n">unit</span><span class="o">.</span><span class="n">instance_id</span><span class="p">,</span>
 </span><span data-line="683">                    <span class="n">status</span><span class="o">=</span><span class="s2">"failed"</span><span class="p">,</span>
 </span><span data-line="684">                    <span class="n">error</span><span class="o">=</span><span class="n">e</span><span class="p">,</span>
-</span><span data-line="685">                    <span class="n">reason</span><span class="o">=</span><span class="n">redact</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">e</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">"</span><span class="p">,</span> <span class="n">secrets</span><span class="p">),</span>
+</span><span data-line="685">                    <span class="n">reason</span><span class="o">=</span><span class="n">reason</span><span class="p">,</span>
 </span><span data-line="686">                <span class="p">)</span>
 </span><span data-line="687">            <span class="p">)</span>
 </span><span data-line="688">            <span class="k">if</span> <span class="n">on_failure</span> <span class="o">==</span> <span class="s2">"halt"</span><span class="p">:</span>
@@ -933,7 +933,7 @@ data-aria-dark="Switch to auto color mode">
     </div>
   </div>
 </footer>
-      <script src="../../../_static/documentation_options.js?v=69b21de1"></script>
+      <script src="../../../_static/documentation_options.js?v=cdca99f8"></script>
       <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
       <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>

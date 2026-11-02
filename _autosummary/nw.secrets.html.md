@@ -54,6 +54,7 @@ TypeError: Object of type Secrets is not JSON serializable
 | [`using_secrets`](#nw.secrets.using_secrets)(secrets)           | Bind the secrets nw itself knows how to use, for the duration of a block.                                       |
 | [`redact`](#nw.secrets.redact)(text, secrets)            | `text` with every secret value replaced by `<redacted:name>`.                                                   |
 | [`redact_exception`](#nw.secrets.redact_exception)(error, secrets) | The exception to re-raise so that nothing it *renders* carries a secret.                                        |
+| [`failure_text`](#nw.secrets.failure_text)(error, secrets)     | `(scrubbed error, "<Type>: <message>")` for a failure nw records.                                               |
 
 ### Classes
 
@@ -126,6 +127,29 @@ Secrets(<1 redacted: fal>)
 
 * **Return type:**
   [`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[[`Secrets`](#nw.secrets.Secrets)]
+
+### nw.secrets.failure_text(error, secrets)
+
+`(scrubbed error, "<Type>: <message>")` for a failure nw records.
+
+The one way nw turns an exception it caught into text it files or logs
+(a unit’s or an unproduced output’s `reason`): [`redact_exception()`](#nw.secrets.redact_exception)
+first, the original type’s name even when that had to fall back to
+[`RedactedError`](#nw.secrets.RedactedError), and a rendering that survives a `__str__` that
+raises, so explaining a failure never becomes a second one (nw#205).
+
+```pycon
+>>> class Loud(Exception):
+...     def __str__(self):
+...         raise ValueError("no")
+>>> failure_text(Loud(), None)[1].startswith("Loud: Loud(")
+True
+>>> failure_text(RuntimeError("key=sk-1"), {"fal": "sk-1"})[1]
+'RuntimeError: key=<redacted:fal>'
+```
+
+* **Return type:**
+  [`tuple`](https://docs.python.org/3/builtins/stdtypes.html#tuple)[[`BaseException`](https://docs.python.org/3/builtins/exceptions.html#BaseException), [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)]
 
 ### nw.secrets.redact(text, secrets)
 
