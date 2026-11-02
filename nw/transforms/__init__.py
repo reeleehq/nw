@@ -460,9 +460,11 @@ class BaseTransform:
     honour it with no plumbing.
 
     Cost: one indexed tier read per ``execute``, plus at most one freshness
-    walk, and none when no candidate exists. A **fan-out** calls ``execute``
-    once per unit, so it pays one tier read and one walk *per unit*: no pass
-    shares a walk across units yet."""
+    walk, and none when no candidate exists. A **fan-out** shares them across
+    its units: :func:`~nw.transforms.fanout.fan_out_execute` opens a
+    :func:`nw.freshness.freshness_pass`, so a re-run whose units all reuse
+    pays one tier read and one walk in total, and a unit that writes makes
+    the next lookup walk again (nw#209)."""
 
     def plan(
         self,

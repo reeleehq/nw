@@ -75,6 +75,7 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 from falaw import Plan
 from lacing import Annotation, TimeInterval
 
+from nw.freshness import freshness_pass
 from nw.secrets import as_secrets, failure_text, using_secrets
 from nw.transforms._cache_mode import resolve_cache_mode
 from nw.transforms.costs import CostTotal, total_cost
@@ -547,6 +548,11 @@ def accepts_keyword(execute: Callable, name: str) -> bool:
     )
 
 
+# One freshness walk for the whole fan-out, not one per unit: a Transform that
+# declares `reuse_fresh_outputs` looks its outputs up per unit, and the pass
+# shares the walk until a write (nw#209). Free for every other Transform —
+# opening a pass reads nothing.
+@freshness_pass()
 def fan_out_execute(
     transform,
     project,
@@ -604,6 +610,10 @@ def fan_out_execute(
     override that predates the seam. It reaches nothing else: not the units,
     not the run record (:meth:`FanOutResult.to_record`; a failing unit's
     ``reason`` is redacted), not a log line.
+
+    Units run inside one :func:`nw.freshness.freshness_pass`, so a Transform
+    that declares ``reuse_fresh_outputs`` walks freshness once for the whole
+    fan-out, not once per unit, until a unit writes (nw#209).
 
     Units run **sequentially**. Concurrency *within* a unit is falaw's
     (``execute_plan_isolated`` bounds it); concurrency *across* units is the

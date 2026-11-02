@@ -108,13 +108,16 @@ parents by id is not enough, because a parent rewritten in place keeps its
 id (braidio#51). :meth:`nw.transforms.BaseTransform.execute` uses it, for a
 Transform that declares ``reuse_fresh_outputs``, so that re-running it on
 unchanged inputs (a falaw cache hit) returns the node it already wrote
-instead of adding a second one.
+instead of adding a second one. Inside a :func:`freshness_pass` (which
+:func:`~nw.transforms.fanout.fan_out_execute` opens around its units), one
+walk serves every lookup until something is written (nw#209).
 """
 
 from __future__ import annotations
 
 import json
-from collections.abc import Callable, Iterable
+from collections.abc import Callable, Iterable, Iterator
+from contextlib import contextmanager
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional
@@ -133,6 +136,7 @@ from .bodies.verifying_trace import (
     VERIFYING_TRACE_BODY_SCHEMA_URI,
     VerifyingTraceBodyV1,
 )
+from . import _freshness_pass
 from .graph import annotations_at_tier, iter_all_annotations
 from .storage import ProjectLike
 
@@ -517,7 +521,9 @@ def fresh_equivalents(
     runs **at most once per call**, over the candidates that survived it, and
     **not at all** when none did — so a first run, or a run whose outputs are
     all new, pays nothing for this. Pass every annotation of one write batch
-    in a single call to share the walk. Read-only: nothing is written.
+    in a single call to share the walk. Inside a :func:`freshness_pass`, the
+    tier reads and the walk are shared **across calls** too, until the next
+    write. Read-only: nothing is written.
     """
     annotations = tuple(annotations)
     if not annotations:
@@ -536,9 +542,13 @@ def fresh_equivalents(
             json.dumps(value_of(ann), sort_keys=True, default=str),
         )
 
+    held = _freshness_pass.held(project_root)
+    held_tiers = held.setdefault("tiers", {}) if held is not None else {}
     stored: dict[tuple, list[Annotation]] = {}
     for tier in dict.fromkeys(a.tier for a in annotations):
-        for e in annotations_at_tier(project_root, tier):
+        if tier not in held_tiers:
+            held_tiers[tier] = annotations_at_tier(project_root, tier)
+        for e in held_tiers[tier]:
             stored.setdefault(_identity(e), []).append(e)
 
     candidates_per_input = [
@@ -549,7 +559,15 @@ def fresh_equivalents(
     if not candidate_ids:
         return tuple(None for _ in annotations)
 
-    fresh = _fresh_among(project_root, candidate_ids)
+    if held is None:
+        fresh = _fresh_among(project_root, candidate_ids)
+    else:
+        # One walk of every derived node, held until a write drops it: later
+        # lookups in the pass ask about other candidates, and a scoped walk
+        # would have to run again for each.
+        if "fresh" not in held:
+            held["fresh"] = _fresh_among(project_root, None)
+        fresh = held["fresh"]
 
     def _newest_fresh(cands: list[Annotation]) -> Optional[Annotation]:
         ordered = sorted(
@@ -561,8 +579,9 @@ def fresh_equivalents(
     return tuple(_newest_fresh(cands) for cands in candidates_per_input)
 
 
-def _fresh_among(project_root: "ProjectLike", ids: set[UUID]) -> set[UUID]:
-    """Which of ``ids`` the snapshot walk verifies fresh — one walk.
+def _fresh_among(project_root: "ProjectLike", ids: Optional[set[UUID]]) -> set[UUID]:
+    """Which of ``ids`` (every annotation, when ``None``) the snapshot walk
+    verifies fresh — one walk.
 
     Classifies only ``ids`` (and, through the upstream-stale recursion, their
     derived ancestors), with :func:`stale_verdicts_all`'s recursion scope, so
@@ -571,12 +590,68 @@ def _fresh_among(project_root: "ProjectLike", ids: set[UUID]) -> set[UUID]:
     """
     annotations = list(iter_all_annotations(project_root))
     derived = {a.id for a in annotations if a.provenance.was_derived_from}
-    present = {a.id for a in annotations} & ids
+    present = {a.id for a in annotations}
+    if ids is not None:
+        present &= ids
     verdicts = _verdicts_for(
         annotations, scope=present & derived, recursion_scope=derived
     )
     fresh = {v.annotation.id for v in verdicts if not v.is_stale}
     return fresh | (present - derived)
+
+
+@contextmanager
+def freshness_pass() -> Iterator[None]:
+    """Share one freshness walk across many :func:`fresh_equivalents` lookups.
+
+    While the pass is open, each project's tier reads and its freshness walk
+    are taken once, on the first lookup that needs them, and reused by every
+    later lookup — until a write drops them. Opening a pass reads and walks
+    nothing, so it costs nothing to a run that never looks anything up.
+    :func:`~nw.transforms.fanout.fan_out_execute` opens one around its units,
+    which is what turns a K-unit re-run with ``reuse_fresh_outputs`` from K
+    walks into one (nw#209). Nested passes share the outermost one.
+
+    **Why a held walk stays valid** (braidio#171's rule): a node's freshness
+    is a function of its own parents, so *adding* a node changes no other
+    node's verdict. What can change one is a write to an existing node, a
+    deletion, or a trace written later. So the held state is dropped by
+    nw's write paths themselves, not by callers reporting their outputs — no
+    caller can forget to:
+
+    - every write-open of :class:`~nw.graph.ProjectGraph` (``add_annotation``
+      and every entity upsert, ``remove_annotation``, ``backfill_traces``,
+      a genre spec's entity sync). Unproduced-output records (nw#44) do not:
+      they are parentless sidecars no node derives from, at a tier no lookup
+      reads;
+    - :func:`~nw.graph.remove_annotations_with_traces` (also a storyboard
+      re-save);
+    - :func:`nw.rewrite_values`.
+
+    :func:`~nw.graph.collect_orphan_traces` does not: an orphan trace is
+    never consulted, so removing one changes no answer.
+
+    Not seen: a write that bypasses nw's writers (a raw ``store.add`` /
+    ``store.remove`` on an opened store) or another process. Either can make
+    a held answer stale for the rest of the pass — the window that, without
+    a pass, is the one between a lookup and its write. A Transform that
+    writes behind nw's back should not declare ``reuse_fresh_outputs``.
+
+    State is per context (a :mod:`contextvars` variable) and keyed by the
+    **resolved project root**: two projects in one pass never share it, two
+    storages over one root do, and a thread that did not inherit the context
+    sees no pass. Invalidation is not per context: a write in *any* thread
+    moves a process-wide write epoch, and a held walk older than the epoch
+    is discarded on its next use — so a request thread editing a shot while
+    a fan-out runs on a worker drops that fan-out's walk too. It over-drops
+    (a write to one project drops every project's held walk), which is safe.
+
+    Held answers are **shared objects**: the annotations a lookup returns
+    inside a pass may be the same instances later lookups return. Do not
+    mutate them.
+    """
+    with _freshness_pass.open_pass():
+        yield
 
 
 # --- internals ---------------------------------------------------------------
