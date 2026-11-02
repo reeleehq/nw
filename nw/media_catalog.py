@@ -58,15 +58,17 @@ registration unless told the caller already has.
 from __future__ import annotations
 
 import errno
-import hashlib
 import json
 import os
-import re
 import shutil
 import time
 from dataclasses import KW_ONLY, dataclass, field
 from pathlib import Path
 from typing import TYPE_CHECKING, Iterator, Mapping, Optional
+
+# Content addressing has one home, the shared store (nw#194): the id check
+# every reader applies before an id becomes a path, and the digest itself.
+from .media_store import hash_file, is_content_digest
 
 if TYPE_CHECKING:
     from .media_store import SharedMediaStore
@@ -99,11 +101,6 @@ _OBJECT_STORE_BACKENDS = frozenset({"aws"})
 #: links outright. Everything else propagates. Same allow-list as the host's own
 #: project fork.
 _LINK_REFUSALS = (errno.EXDEV, errno.EMLINK, errno.EPERM)
-
-#: The host's ``content_hash`` validator, mirrored: 64 lowercase hex characters and
-#: nothing else. Always ``fullmatch`` — ``$`` also matches before a trailing newline.
-_IS_DIGEST = re.compile(r"[0-9a-f]{64}")
-_HASH_CHUNK = 1 << 20
 
 
 class CrossDeviceCatalog(OSError):
@@ -151,25 +148,6 @@ def assert_local_backend(
         "reporting success. Register with the backend unset (or 'fs') and upload "
         f"afterwards, or {remedy}."
     )
-
-
-def hash_file(path, *, chunk_size: int = _HASH_CHUNK) -> str:
-    """SHA-256 of a file's bytes, read in chunks — the catalog id of that file.
-
-    The same digest lacing computes for an ``asset_id`` (pinned by a test), kept
-    here so the writer can be reasoned about without the graph layer.
-
-    >>> import tempfile, pathlib
-    >>> with tempfile.TemporaryDirectory() as d:
-    ...     p = pathlib.Path(d, "x"); _ = p.write_bytes(b"abc")
-    ...     hash_file(p)
-    'ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad'
-    """
-    h = hashlib.sha256()
-    with open(path, "rb") as f:
-        while chunk := f.read(chunk_size):
-            h.update(chunk)
-    return h.hexdigest()
 
 
 class CatalogRow:
@@ -352,7 +330,7 @@ class HostArtifactCatalog:
 
     def blob_path(self, artifact_id: str) -> Optional[Path]:
         """Where ``artifact_id``'s bytes are, or ``None`` if they are not stored."""
-        if not _IS_DIGEST.fullmatch(artifact_id or ""):
+        if not is_content_digest(artifact_id):
             return None
         blob = self.blobs_dir / artifact_id
         return blob if blob.is_file() else None
@@ -523,7 +501,7 @@ class HostArtifactCatalog:
 
 
 def _check_digest(aid: str) -> None:
-    if not _IS_DIGEST.fullmatch(aid or ""):
+    if not is_content_digest(aid):
         raise ValueError(
             f"artifact_id {aid!r} is not a 64-character lowercase hex digest. "
             "The catalog is content-addressed and the host validates the same "
