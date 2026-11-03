@@ -380,6 +380,14 @@ def test_a_host_can_leave_the_reference_out_of_the_identity(tmp_path):
     assert nw.fresh_equivalents(proj, [elsewhere]) == (None,)
     (found,) = nw.fresh_equivalents(proj, [elsewhere], reference_of=lambda a: None)
     assert found is not None and found.id == stored.id
+    # one pass, two callers with different identities: neither sees the other's
+    with nw.freshness_pass():
+        assert nw.fresh_equivalents(proj, [elsewhere]) == (None,)
+        (again,) = nw.fresh_equivalents(
+            proj, [elsewhere], reference_of=lambda a: None
+        )
+        assert again is not None and again.id == stored.id
+        assert nw.fresh_equivalents(proj, [elsewhere]) == (None,)
 
 
 def test_a_node_whose_trace_is_gone_is_not_reused(tmp_path, fal):

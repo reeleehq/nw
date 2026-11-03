@@ -448,11 +448,10 @@ def body_value(ann: Annotation) -> object:
 
 
 def reference_value(ann: Annotation) -> object:
-    """``ann.reference`` JSON-normalised — where two annotations are compared
-    to sit (the default ``reference_of`` of :func:`fresh_equivalents`)."""
-    return json.loads(
-        json.dumps(ann.reference.model_dump(mode="json"), sort_keys=True, default=str)
-    )
+    """``ann.reference`` in json mode — where two annotations are compared to
+    sit (the default ``reference_of`` of :func:`fresh_equivalents`, whose
+    identity key sorts and dumps it)."""
+    return ann.reference.model_dump(mode="json")
 
 
 def annotation_parent_ids(ann: Annotation) -> frozenset[UUID]:
@@ -488,8 +487,7 @@ def fresh_equivalents(
       the JSON-compared reference). Stricter than braidio's original rule,
       deliberately: two outputs at different places are different nodes even
       when every other field agrees, and a missed reuse only costs a write.
-      A host whose references carry no place, only a per-node token (braidio
-      keys every non-media node by a fresh uuid), passes
+      A host whose references carry no place, only a per-node token, passes
       ``reference_of=lambda a: None`` so the reference is not compared
       (nw#218);
     - the same producer, ``provenance.was_generated_by``
