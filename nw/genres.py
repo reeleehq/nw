@@ -736,6 +736,65 @@ def _accepts_placement(factory: "GenreProjectFactory") -> bool:
     return True
 
 
+#: The host's answer to "where are this caller's placed projects?" — the DUAL of
+#: placement (:data:`PLACEMENT_ARG`). A host that places a guest genre's projects in
+#: the caller's own space (``create_genre_project(..., projects_dir=...)``) is the one
+#: that knows where that space is; registering it here lets the guest genre's OWN
+#: tools (a ``muvid_*`` tool, a ``braidio_*`` tool) find a project the host created,
+#: without the guest depending on the host or on its storage layout. One host per
+#: process: a second, different registration is an error at boot, not a silent
+#: override. ``None`` until a host registers one (a process with no host).
+_caller_projects_dir: "Optional[Callable[[str], Union[str, Path]]]" = None
+
+
+def register_caller_projects_dir(
+    locator: "Callable[[str], Union[str, Path]]",
+) -> "Callable[[str], Union[str, Path]]":
+    """Register the host's ``locator(caller) -> directory`` of the caller's placed
+    projects (the ``projects_dir`` it passes to :func:`create_genre_project`); returns
+    it for inline use. Registering the same callable again is a no-op; a different one
+    raises :class:`ValueError` (two hosts in one process must not race for it).
+
+    >>> _ = register_caller_projects_dir(lambda caller: f"/data/projects/{caller}")
+    >>> caller_projects_dir("u@x.com").as_posix()
+    '/data/projects/u@x.com'
+    >>> _reset_caller_projects_dir()
+    >>> caller_projects_dir("u@x.com") is None
+    True
+    """
+    global _caller_projects_dir
+    if not callable(locator):
+        raise TypeError(
+            f"register_caller_projects_dir expects a callable, got {type(locator).__name__}"
+        )
+    if _caller_projects_dir is not None and _caller_projects_dir is not locator:
+        raise ValueError(
+            "a caller-projects locator is already registered in this process; one "
+            "host owns where callers' projects live"
+        )
+    _caller_projects_dir = locator
+    return locator
+
+
+def caller_projects_dir(caller: str) -> Optional[Path]:
+    """The directory the host keeps ``caller``'s placed projects in, or ``None`` when
+    no host registered a locator (:func:`register_caller_projects_dir`).
+
+    A guest genre's tool opens ``caller_projects_dir(caller) / <project_id>`` only after
+    checking the folder is a direct child of it and a project of ITS genre; the
+    caller scoping is the host's, inherited because the locator is per caller.
+    """
+    if _caller_projects_dir is None:
+        return None
+    return Path(_caller_projects_dir(caller))
+
+
+def _reset_caller_projects_dir() -> None:
+    """Forget the registered locator (tests only)."""
+    global _caller_projects_dir
+    _caller_projects_dir = None
+
+
 def can_place_genre_project(slug: str) -> bool:
     """True iff ``slug``'s registered factory accepts host **placement**.
 
