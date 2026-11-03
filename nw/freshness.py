@@ -447,6 +447,14 @@ def body_value(ann: Annotation) -> object:
     return json.loads(json.dumps(ann.body, sort_keys=True, default=str))
 
 
+def reference_value(ann: Annotation) -> object:
+    """``ann.reference`` JSON-normalised — where two annotations are compared
+    to sit (the default ``reference_of`` of :func:`fresh_equivalents`)."""
+    return json.loads(
+        json.dumps(ann.reference.model_dump(mode="json"), sort_keys=True, default=str)
+    )
+
+
 def annotation_parent_ids(ann: Annotation) -> frozenset[UUID]:
     """The **annotation** ids in ``ann.provenance.was_derived_from``.
 
@@ -467,6 +475,7 @@ def fresh_equivalents(
     annotations: Iterable[Annotation],
     *,
     value_of: Callable[[Annotation], object] = body_value,
+    reference_of: Callable[[Annotation], object] = reference_value,
 ) -> tuple[Optional[Annotation], ...]:
     """For each of ``annotations``, the existing node it would only duplicate.
 
@@ -475,9 +484,14 @@ def fresh_equivalents(
     equivalent to a new annotation ``A`` when **all** of these hold:
 
     - same ``tier``, same ``body_schema_uri`` and the same ``reference``
-      (where it sits — JSON-compared). Stricter than braidio's original rule,
+      (where it sits — ``reference_of``, by default :func:`reference_value`,
+      the JSON-compared reference). Stricter than braidio's original rule,
       deliberately: two outputs at different places are different nodes even
-      when every other field agrees, and a missed reuse only costs a write;
+      when every other field agrees, and a missed reuse only costs a write.
+      A host whose references carry no place, only a per-node token (braidio
+      keys every non-media node by a fresh uuid), passes
+      ``reference_of=lambda a: None`` so the reference is not compared
+      (nw#218);
     - the same producer, ``provenance.was_generated_by``
       (``transform:<name>@<impl_version>``): another Transform's node is not
       this one's output, and after an ``impl_version`` bump the old
@@ -530,9 +544,7 @@ def fresh_equivalents(
         return ()
 
     def _identity(ann: Annotation) -> tuple:
-        reference = json.dumps(
-            ann.reference.model_dump(mode="json"), sort_keys=True, default=str
-        )
+        reference = json.dumps(reference_of(ann), sort_keys=True, default=str)
         return (
             ann.tier,
             ann.body_schema_uri,

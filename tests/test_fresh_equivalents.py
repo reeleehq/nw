@@ -368,6 +368,20 @@ def test_a_different_reference_is_not_reused(tmp_path, fal):
     assert len(_nodes(proj)) == 2
 
 
+def test_a_host_can_leave_the_reference_out_of_the_identity(tmp_path):
+    """nw#218: a host whose references are per-node tokens (braidio's node refs
+    carry a fresh uuid) opts out with ``reference_of``; the default still
+    refuses a node at another place."""
+    proj, (shot,) = _project(tmp_path)
+    stored = _skeleton(proj, (shot,), interval=(1, 2))
+    proj.graph.add_annotation(stored)
+    elsewhere = _skeleton(proj, (shot,), interval=(3, 4))
+
+    assert nw.fresh_equivalents(proj, [elsewhere]) == (None,)
+    (found,) = nw.fresh_equivalents(proj, [elsewhere], reference_of=lambda a: None)
+    assert found is not None and found.id == stored.id
+
+
 def test_a_node_whose_trace_is_gone_is_not_reused(tmp_path, fal):
     """Fails if reuse trusts a node it cannot verify: with its verifying trace
     gone it is unverifiable, and unverifiable means stale (nw.freshness)."""
