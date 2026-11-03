@@ -412,6 +412,7 @@ data-aria-dark="Switch to auto color mode">
 <li><a class="reference internal" href="#nw.as_project_storage"><code class="docutils literal notranslate"><span class="pre">as_project_storage()</span></code></a></li>
 <li><a class="reference internal" href="#nw.as_secrets"><code class="docutils literal notranslate"><span class="pre">as_secrets()</span></code></a></li>
 <li><a class="reference internal" href="#nw.backfill_traces"><code class="docutils literal notranslate"><span class="pre">backfill_traces()</span></code></a></li>
+<li><a class="reference internal" href="#nw.caller_projects_dir"><code class="docutils literal notranslate"><span class="pre">caller_projects_dir()</span></code></a></li>
 <li><a class="reference internal" href="#nw.can_place_genre_project"><code class="docutils literal notranslate"><span class="pre">can_place_genre_project()</span></code></a></li>
 <li><a class="reference internal" href="#nw.clone_project"><code class="docutils literal notranslate"><span class="pre">clone_project()</span></code></a></li>
 <li><a class="reference internal" href="#nw.collect_orphan_traces"><code class="docutils literal notranslate"><span class="pre">collect_orphan_traces()</span></code></a></li>
@@ -459,6 +460,7 @@ data-aria-dark="Switch to auto color mode">
 <li><a class="reference internal" href="#nw.recommend_genre"><code class="docutils literal notranslate"><span class="pre">recommend_genre()</span></code></a></li>
 <li><a class="reference internal" href="#nw.redact"><code class="docutils literal notranslate"><span class="pre">redact()</span></code></a></li>
 <li><a class="reference internal" href="#nw.redact_exception"><code class="docutils literal notranslate"><span class="pre">redact_exception()</span></code></a></li>
+<li><a class="reference internal" href="#nw.register_caller_projects_dir"><code class="docutils literal notranslate"><span class="pre">register_caller_projects_dir()</span></code></a></li>
 <li><a class="reference internal" href="#nw.register_check"><code class="docutils literal notranslate"><span class="pre">register_check()</span></code></a></li>
 <li><a class="reference internal" href="#nw.register_genre"><code class="docutils literal notranslate"><span class="pre">register_genre()</span></code></a></li>
 <li><a class="reference internal" href="#nw.register_genre_initializer"><code class="docutils literal notranslate"><span class="pre">register_genre_initializer()</span></code></a></li>
@@ -614,6 +616,12 @@ are recorded as linked artifacts), see
 </tr>
 <tr class="row-odd"><td><p><a class="reference internal" href="#nw.create_genre_project" title="nw.create_genre_project"><code class="xref py py-obj docutils literal notranslate"><span class="pre">create_genre_project</span></code></a>(genre, caller, ...[, ...])</p></td>
 <td><p>Create + seed a new project for a PLUGGED-IN <code class="docutils literal notranslate"><span class="pre">genre</span></code> in <code class="docutils literal notranslate"><span class="pre">caller</span></code>'s space.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#nw.register_caller_projects_dir" title="nw.register_caller_projects_dir"><code class="xref py py-obj docutils literal notranslate"><span class="pre">register_caller_projects_dir</span></code></a>(locator)</p></td>
+<td><p>Register the host's <code class="docutils literal notranslate"><span class="pre">locator(caller)</span> <span class="pre">-&gt;</span> <span class="pre">directory</span></code> of the caller's placed projects (the <code class="docutils literal notranslate"><span class="pre">projects_dir</span></code> it passes to <a class="reference internal" href="#nw.create_genre_project" title="nw.create_genre_project"><code class="xref py py-func docutils literal notranslate"><span class="pre">create_genre_project()</span></code></a>); returns it for inline use.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#nw.caller_projects_dir" title="nw.caller_projects_dir"><code class="xref py py-obj docutils literal notranslate"><span class="pre">caller_projects_dir</span></code></a>(caller)</p></td>
+<td><p>The directory the host keeps <code class="docutils literal notranslate"><span class="pre">caller</span></code>'s placed projects in, or <code class="docutils literal notranslate"><span class="pre">None</span></code> when no host registered a locator (<a class="reference internal" href="#nw.register_caller_projects_dir" title="nw.register_caller_projects_dir"><code class="xref py py-func docutils literal notranslate"><span class="pre">register_caller_projects_dir()</span></code></a>) or the locator has none for this caller.</p></td>
 </tr>
 <tr class="row-even"><td><p><a class="reference internal" href="#nw.register_genre_ops" title="nw.register_genre_ops"><code class="xref py py-obj docutils literal notranslate"><span class="pre">register_genre_ops</span></code></a>(genre_slug, ops)</p></td>
 <td><p>Register the operations a genre offers on its projects; returns them as a tuple.</p></td>
@@ -3654,6 +3662,22 @@ silently averaged away.</p>
 </dd></dl>
 
 <dl class="py function">
+<dt class="sig sig-object py" id="nw.caller_projects_dir">
+<span class="sig-prename descclassname"><span class="pre">nw.</span></span><span class="sig-name descname"><span class="pre">caller_projects_dir</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">caller</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/nw/genres.html#caller_projects_dir"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nw.caller_projects_dir" title="Link to this definition">#</a></dt>
+<dd><p>The directory the host keeps <code class="docutils literal notranslate"><span class="pre">caller</span></code>’s placed projects in, or <code class="docutils literal notranslate"><span class="pre">None</span></code> when
+no host registered a locator (<a class="reference internal" href="#nw.register_caller_projects_dir" title="nw.register_caller_projects_dir"><code class="xref py py-func docutils literal notranslate"><span class="pre">register_caller_projects_dir()</span></code></a>) or the
+locator has none for this caller.</p>
+<p>A guest genre’s tool opens <code class="docutils literal notranslate"><span class="pre">caller_projects_dir(caller)</span> <span class="pre">/</span> <span class="pre">&lt;project_id&gt;</span></code> only after
+checking the folder is a direct child of it and a project of ITS genre; the
+caller scoping is the host’s, inherited because the locator is per caller.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.15)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Path</span></code></a>]</span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
 <dt class="sig sig-object py" id="nw.can_place_genre_project">
 <span class="sig-prename descclassname"><span class="pre">nw.</span></span><span class="sig-name descname"><span class="pre">can_place_genre_project</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">slug</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/nw/genres.html#can_place_genre_project"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nw.can_place_genre_project" title="Link to this definition">#</a></dt>
 <dd><p>True iff <code class="docutils literal notranslate"><span class="pre">slug</span></code>’s registered factory accepts host <strong>placement</strong>.</p>
@@ -4667,6 +4691,29 @@ it does (a fan-out unit’s <code class="docutils literal notranslate"><span cla
 </dd></dl>
 
 <dl class="py function">
+<dt class="sig sig-object py" id="nw.register_caller_projects_dir">
+<span class="sig-prename descclassname"><span class="pre">nw.</span></span><span class="sig-name descname"><span class="pre">register_caller_projects_dir</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">locator</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/nw/genres.html#register_caller_projects_dir"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nw.register_caller_projects_dir" title="Link to this definition">#</a></dt>
+<dd><p>Register the host’s <code class="docutils literal notranslate"><span class="pre">locator(caller)</span> <span class="pre">-&gt;</span> <span class="pre">directory</span></code> of the caller’s placed
+projects (the <code class="docutils literal notranslate"><span class="pre">projects_dir</span></code> it passes to <a class="reference internal" href="#nw.create_genre_project" title="nw.create_genre_project"><code class="xref py py-func docutils literal notranslate"><span class="pre">create_genre_project()</span></code></a>); returns
+it for inline use. Registering the same locator again is a no-op — the same object,
+or the same named function re-created by a module reload; a different one raises
+<a class="reference external" href="https://docs.python.org/3/builtins/exceptions.html#ValueError" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">ValueError</span></code></a> (two hosts in one process must not race for it).</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span data-line="1"><span class="gp">&gt;&gt;&gt; </span><span class="n">_</span> <span class="o">=</span> <span class="n">register_caller_projects_dir</span><span class="p">(</span><span class="k">lambda</span> <span class="n">caller</span><span class="p">:</span> <span class="sa">f</span><span class="s2">"/data/projects/</span><span class="si">{</span><span class="n">caller</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+</span><span data-line="2"><span class="gp">&gt;&gt;&gt; </span><span class="n">caller_projects_dir</span><span class="p">(</span><span class="s2">"u@x.com"</span><span class="p">)</span><span class="o">.</span><span class="n">as_posix</span><span class="p">()</span>
+</span><span data-line="3"><span class="go">'/data/projects/u@x.com'</span>
+</span><span data-line="4"><span class="gp">&gt;&gt;&gt; </span><span class="n">_reset_caller_projects_dir</span><span class="p">()</span>
+</span><span data-line="5"><span class="gp">&gt;&gt;&gt; </span><span class="n">caller_projects_dir</span><span class="p">(</span><span class="s2">"u@x.com"</span><span class="p">)</span> <span class="ow">is</span> <span class="kc">None</span>
+</span><span data-line="6"><span class="go">True</span>
+</span></pre></div>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Callable" title="(in Python v3.15)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Callable</span></code></a>[[<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>], <a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Union" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Union</span></code></a>[<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Path</span></code></a>]]</span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
 <dt class="sig sig-object py" id="nw.register_check">
 <span class="sig-prename descclassname"><span class="pre">nw.</span></span><span class="sig-name descname"><span class="pre">register_check</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">check</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/nw/validation.html#register_check"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nw.register_check" title="Link to this definition">#</a></dt>
 <dd><p>Add a check to the menu, as a call or as a decorator.</p>
@@ -5459,7 +5506,7 @@ addressable across runs.</p>
     </div>
   </div>
 </footer>
-      <script src="../_static/documentation_options.js?v=31bb835f"></script>
+      <script src="../_static/documentation_options.js?v=06430935"></script>
       <script src="../_static/doctools.js?v=fd6eb6e6"></script>
       <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
