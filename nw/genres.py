@@ -752,8 +752,9 @@ def register_caller_projects_dir(
 ) -> "Callable[[str], Union[str, Path]]":
     """Register the host's ``locator(caller) -> directory`` of the caller's placed
     projects (the ``projects_dir`` it passes to :func:`create_genre_project`); returns
-    it for inline use. Registering the same callable again is a no-op; a different one
-    raises :class:`ValueError` (two hosts in one process must not race for it).
+    it for inline use. Registering the same locator again is a no-op — the same object,
+    or the same named function re-created by a module reload; a different one raises
+    :class:`ValueError` (two hosts in one process must not race for it).
 
     >>> _ = register_caller_projects_dir(lambda caller: f"/data/projects/{caller}")
     >>> caller_projects_dir("u@x.com").as_posix()
@@ -767,13 +768,29 @@ def register_caller_projects_dir(
         raise TypeError(
             f"register_caller_projects_dir expects a callable, got {type(locator).__name__}"
         )
-    if _caller_projects_dir is not None and _caller_projects_dir is not locator:
+    if _caller_projects_dir is not None and not _same_locator(
+        _caller_projects_dir, locator
+    ):
         raise ValueError(
             "a caller-projects locator is already registered in this process; one "
             "host owns where callers' projects live"
         )
     _caller_projects_dir = locator
     return locator
+
+
+def _same_locator(a: Callable, b: Callable) -> bool:
+    """``a is b``, or the same NAMED function from a reloaded module (a lambda has no
+    name to match, so two lambdas are two hosts)."""
+    if a is b:
+        return True
+    name = getattr(a, "__qualname__", "")
+    return (
+        bool(name)
+        and "<lambda>" not in name
+        and (a.__module__, name)
+        == (getattr(b, "__module__", None), getattr(b, "__qualname__", None))
+    )
 
 
 def caller_projects_dir(caller: str) -> Optional[Path]:

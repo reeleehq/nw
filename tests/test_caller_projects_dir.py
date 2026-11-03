@@ -42,3 +42,15 @@ def test_one_host_per_process():
 def test_a_non_callable_is_refused():
     with pytest.raises(TypeError):
         nw.register_caller_projects_dir("/srv/projects")
+
+
+def test_a_reloaded_module_re_registering_its_locator_is_the_same_host():
+    namespace: dict = {"__name__": "host_app"}
+    code = "def locate(caller):\n    return f'/srv/{caller}'\n"
+    exec(code, namespace)
+    first = namespace["locate"]
+    exec(code, namespace)  # what importlib.reload does: a new function object
+    assert namespace["locate"] is not first
+    nw.register_caller_projects_dir(first)
+    nw.register_caller_projects_dir(namespace["locate"])
+    assert nw.caller_projects_dir("u").as_posix() == "/srv/u"
