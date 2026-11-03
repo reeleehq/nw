@@ -54,3 +54,8 @@ def test_a_reloaded_module_re_registering_its_locator_is_the_same_host():
     nw.register_caller_projects_dir(first)
     nw.register_caller_projects_dir(namespace["locate"])
     assert nw.caller_projects_dir("u").as_posix() == "/srv/u"
+
+
+def test_a_locator_may_have_no_directory_for_a_caller():
+    nw.register_caller_projects_dir(lambda caller: None if caller == "guest" else "/p")
+    assert nw.caller_projects_dir("guest") is None

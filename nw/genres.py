@@ -795,7 +795,8 @@ def _same_locator(a: Callable, b: Callable) -> bool:
 
 def caller_projects_dir(caller: str) -> Optional[Path]:
     """The directory the host keeps ``caller``'s placed projects in, or ``None`` when
-    no host registered a locator (:func:`register_caller_projects_dir`).
+    no host registered a locator (:func:`register_caller_projects_dir`) or the
+    locator has none for this caller.
 
     A guest genre's tool opens ``caller_projects_dir(caller) / <project_id>`` only after
     checking the folder is a direct child of it and a project of ITS genre; the
@@ -803,7 +804,8 @@ def caller_projects_dir(caller: str) -> Optional[Path]:
     """
     if _caller_projects_dir is None:
         return None
-    return Path(_caller_projects_dir(caller))
+    found = _caller_projects_dir(caller)
+    return None if found is None else Path(found)
 
 
 def _reset_caller_projects_dir() -> None:
