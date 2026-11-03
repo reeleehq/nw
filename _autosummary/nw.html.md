@@ -2694,7 +2694,7 @@ The one spelling we print. Input is permissive; output never varies.
 * **Return type:**
   [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
 
-### nw.fresh_equivalents(project_root, annotations, \*, value_of=<function body_value>)
+### nw.fresh_equivalents(project_root, annotations, \*, value_of=<function body_value>, reference_of=<function reference_value>)
 
 For each of `annotations`, the existing node it would only duplicate.
 
@@ -2703,9 +2703,13 @@ it, or `None` when there is none (write it). An existing node `E` is
 equivalent to a new annotation `A` when **all** of these hold:
 
 - same `tier`, same `body_schema_uri` and the same `reference`
-  (where it sits — JSON-compared). Stricter than braidio’s original rule,
+  (where it sits — `reference_of`, by default `reference_value()`,
+  the JSON-compared reference). Stricter than braidio’s original rule,
   deliberately: two outputs at different places are different nodes even
-  when every other field agrees, and a missed reuse only costs a write;
+  when every other field agrees, and a missed reuse only costs a write.
+  A host whose references carry no place, only a per-node token, passes
+  `reference_of=lambda a: None` so the reference is not compared
+  (nw#218);
 - the same producer, `provenance.was_generated_by`
   (`transform:<name>@<impl_version>`): another Transform’s node is not
   this one’s output, and after an `impl_version` bump the old

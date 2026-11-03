@@ -140,6 +140,7 @@ data-aria-dark="Switch to auto color mode">
 <li><a class="reference internal" href="#nw.freshness.fresh_equivalents"><code class="docutils literal notranslate"><span class="pre">fresh_equivalents()</span></code></a></li>
 <li><a class="reference internal" href="#nw.freshness.freshness_pass"><code class="docutils literal notranslate"><span class="pre">freshness_pass()</span></code></a></li>
 <li><a class="reference internal" href="#nw.freshness.is_verifiable_digest_scheme"><code class="docutils literal notranslate"><span class="pre">is_verifiable_digest_scheme()</span></code></a></li>
+<li><a class="reference internal" href="#nw.freshness.reference_value"><code class="docutils literal notranslate"><span class="pre">reference_value()</span></code></a></li>
 <li><a class="reference internal" href="#nw.freshness.stale_after"><code class="docutils literal notranslate"><span class="pre">stale_after()</span></code></a></li>
 <li><a class="reference internal" href="#nw.freshness.stale_verdicts"><code class="docutils literal notranslate"><span class="pre">stale_verdicts()</span></code></a></li>
 <li><a class="reference internal" href="#nw.freshness.stale_verdicts_all"><code class="docutils literal notranslate"><span class="pre">stale_verdicts_all()</span></code></a></li>
@@ -326,13 +327,16 @@ walk serves every lookup until something is written (nw#209).</p>
 <tr class="row-even"><td><p><a class="reference internal" href="#nw.freshness.is_verifiable_digest_scheme" title="nw.freshness.is_verifiable_digest_scheme"><code class="xref py py-obj docutils literal notranslate"><span class="pre">is_verifiable_digest_scheme</span></code></a>(scheme)</p></td>
 <td><p>Whether a trace recorded under <code class="docutils literal notranslate"><span class="pre">scheme</span></code> can still be verified.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#nw.freshness.stale_after" title="nw.freshness.stale_after"><code class="xref py py-obj docutils literal notranslate"><span class="pre">stale_after</span></code></a>(project_root, changed_id)</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#nw.freshness.reference_value" title="nw.freshness.reference_value"><code class="xref py py-obj docutils literal notranslate"><span class="pre">reference_value</span></code></a>(ann)</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">ann.reference</span></code> in json mode — where two annotations are compared to sit (the default <code class="docutils literal notranslate"><span class="pre">reference_of</span></code> of <a class="reference internal" href="#nw.freshness.fresh_equivalents" title="nw.freshness.fresh_equivalents"><code class="xref py py-func docutils literal notranslate"><span class="pre">fresh_equivalents()</span></code></a>, whose identity key sorts and dumps it).</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#nw.freshness.stale_after" title="nw.freshness.stale_after"><code class="xref py py-obj docutils literal notranslate"><span class="pre">stale_after</span></code></a>(project_root, changed_id)</p></td>
 <td><p>Return every annotation that <code class="docutils literal notranslate"><span class="pre">changed_id</span></code> actually invalidated.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#nw.freshness.stale_verdicts" title="nw.freshness.stale_verdicts"><code class="xref py py-obj docutils literal notranslate"><span class="pre">stale_verdicts</span></code></a>(project_root, changed_id)</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#nw.freshness.stale_verdicts" title="nw.freshness.stale_verdicts"><code class="xref py py-obj docutils literal notranslate"><span class="pre">stale_verdicts</span></code></a>(project_root, changed_id)</p></td>
 <td><p>Classify every annotation downstream of <code class="docutils literal notranslate"><span class="pre">changed_id</span></code>.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#nw.freshness.stale_verdicts_all" title="nw.freshness.stale_verdicts_all"><code class="xref py py-obj docutils literal notranslate"><span class="pre">stale_verdicts_all</span></code></a>(project_root)</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#nw.freshness.stale_verdicts_all" title="nw.freshness.stale_verdicts_all"><code class="xref py py-obj docutils literal notranslate"><span class="pre">stale_verdicts_all</span></code></a>(project_root)</p></td>
 <td><p>Classify every derived annotation in the project — the snapshot form.</p></td>
 </tr>
 </tbody>
@@ -418,16 +422,20 @@ difference either.</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="nw.freshness.fresh_equivalents">
-<span class="sig-prename descclassname"><span class="pre">nw.freshness.</span></span><span class="sig-name descname"><span class="pre">fresh_equivalents</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">project_root</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">annotations</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">value_of</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">&lt;function</span> <span class="pre">body_value&gt;</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/nw/freshness.html#fresh_equivalents"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nw.freshness.fresh_equivalents" title="Link to this definition">#</a></dt>
+<span class="sig-prename descclassname"><span class="pre">nw.freshness.</span></span><span class="sig-name descname"><span class="pre">fresh_equivalents</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">project_root</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">annotations</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">value_of</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">&lt;function</span> <span class="pre">body_value&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reference_of</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">&lt;function</span> <span class="pre">reference_value&gt;</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/nw/freshness.html#fresh_equivalents"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nw.freshness.fresh_equivalents" title="Link to this definition">#</a></dt>
 <dd><p>For each of <code class="docutils literal notranslate"><span class="pre">annotations</span></code>, the existing node it would only duplicate.</p>
 <p>Returns one entry per input, in order: the stored annotation equivalent to
 it, or <code class="docutils literal notranslate"><span class="pre">None</span></code> when there is none (write it). An existing node <code class="docutils literal notranslate"><span class="pre">E</span></code> is
 equivalent to a new annotation <code class="docutils literal notranslate"><span class="pre">A</span></code> when <strong>all</strong> of these hold:</p>
 <ul class="simple">
 <li><p>same <code class="docutils literal notranslate"><span class="pre">tier</span></code>, same <code class="docutils literal notranslate"><span class="pre">body_schema_uri</span></code> and the same <code class="docutils literal notranslate"><span class="pre">reference</span></code>
-(where it sits — JSON-compared). Stricter than braidio’s original rule,
+(where it sits — <code class="docutils literal notranslate"><span class="pre">reference_of</span></code>, by default <a class="reference internal" href="#nw.freshness.reference_value" title="nw.freshness.reference_value"><code class="xref py py-func docutils literal notranslate"><span class="pre">reference_value()</span></code></a>,
+the JSON-compared reference). Stricter than braidio’s original rule,
 deliberately: two outputs at different places are different nodes even
-when every other field agrees, and a missed reuse only costs a write;</p></li>
+when every other field agrees, and a missed reuse only costs a write.
+A host whose references carry no place, only a per-node token, passes
+<code class="docutils literal notranslate"><span class="pre">reference_of=lambda</span> <span class="pre">a:</span> <span class="pre">None</span></code> so the reference is not compared
+(nw#218);</p></li>
 <li><p>the same producer, <code class="docutils literal notranslate"><span class="pre">provenance.was_generated_by</span></code>
 (<code class="docutils literal notranslate"><span class="pre">transform:&lt;name&gt;&#64;&lt;impl_version&gt;</span></code>): another Transform’s node is not
 this one’s output, and after an <code class="docutils literal notranslate"><span class="pre">impl_version</span></code> bump the old
@@ -543,6 +551,19 @@ the producer none (see <code class="docutils literal notranslate"><span class="p
 <dl class="field-list simple">
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#bool" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></a></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="nw.freshness.reference_value">
+<span class="sig-prename descclassname"><span class="pre">nw.freshness.</span></span><span class="sig-name descname"><span class="pre">reference_value</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ann</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/nw/freshness.html#reference_value"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nw.freshness.reference_value" title="Link to this definition">#</a></dt>
+<dd><p><code class="docutils literal notranslate"><span class="pre">ann.reference</span></code> in json mode — where two annotations are compared to
+sit (the default <code class="docutils literal notranslate"><span class="pre">reference_of</span></code> of <a class="reference internal" href="#nw.freshness.fresh_equivalents" title="nw.freshness.fresh_equivalents"><code class="xref py py-func docutils literal notranslate"><span class="pre">fresh_equivalents()</span></code></a>, whose
+identity key sorts and dumps it).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#object" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></span></p>
 </dd>
 </dl>
 </dd></dl>
@@ -665,7 +686,7 @@ projects, not installing a pure wrapper.</p>
     </div>
   </div>
 </footer>
-      <script src="../_static/documentation_options.js?v=95c30746"></script>
+      <script src="../_static/documentation_options.js?v=31bb835f"></script>
       <script src="../_static/doctools.js?v=fd6eb6e6"></script>
       <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script src="../_static/clipboard.min.js?v=a7894cd8"></script>

@@ -121,16 +121,17 @@ walk serves every lookup until something is written (nw#209).
 
 ### Functions
 
-| [`all_stale`](#nw.freshness.all_stale)(project_root)                          | Every annotation that is currently stale, regardless of cause.                                                     |
-|---------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------------------------------------|
-| [`annotation_parent_ids`](#nw.freshness.annotation_parent_ids)(ann)                       | The **annotation** ids in `ann.provenance.was_derived_from`.                                                       |
-| [`body_value`](#nw.freshness.body_value)(ann)                                  | `ann.body` JSON-normalised — the value two annotations are compared by.                                            |
-| [`fresh_equivalents`](#nw.freshness.fresh_equivalents)(project_root, annotations, \*) | For each of `annotations`, the existing node it would only duplicate.                                              |
-| [`freshness_pass`](#nw.freshness.freshness_pass)()                                 | Share one freshness walk across many [`fresh_equivalents()`](#nw.freshness.fresh_equivalents) lookups. |
-| [`is_verifiable_digest_scheme`](#nw.freshness.is_verifiable_digest_scheme)(scheme)              | Whether a trace recorded under `scheme` can still be verified.                                                     |
-| [`stale_after`](#nw.freshness.stale_after)(project_root, changed_id)            | Return every annotation that `changed_id` actually invalidated.                                                    |
-| [`stale_verdicts`](#nw.freshness.stale_verdicts)(project_root, changed_id)         | Classify every annotation downstream of `changed_id`.                                                              |
-| [`stale_verdicts_all`](#nw.freshness.stale_verdicts_all)(project_root)                 | Classify every derived annotation in the project — the snapshot form.                                              |
+| [`all_stale`](#nw.freshness.all_stale)(project_root)                          | Every annotation that is currently stale, regardless of cause.                                                                                                                                                        |
+|---------------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| [`annotation_parent_ids`](#nw.freshness.annotation_parent_ids)(ann)                       | The **annotation** ids in `ann.provenance.was_derived_from`.                                                                                                                                                          |
+| [`body_value`](#nw.freshness.body_value)(ann)                                  | `ann.body` JSON-normalised — the value two annotations are compared by.                                                                                                                                               |
+| [`fresh_equivalents`](#nw.freshness.fresh_equivalents)(project_root, annotations, \*) | For each of `annotations`, the existing node it would only duplicate.                                                                                                                                                 |
+| [`freshness_pass`](#nw.freshness.freshness_pass)()                                 | Share one freshness walk across many [`fresh_equivalents()`](#nw.freshness.fresh_equivalents) lookups.                                                                                                    |
+| [`is_verifiable_digest_scheme`](#nw.freshness.is_verifiable_digest_scheme)(scheme)              | Whether a trace recorded under `scheme` can still be verified.                                                                                                                                                        |
+| [`reference_value`](#nw.freshness.reference_value)(ann)                             | `ann.reference` in json mode — where two annotations are compared to sit (the default `reference_of` of [`fresh_equivalents()`](#nw.freshness.fresh_equivalents), whose identity key sorts and dumps it). |
+| [`stale_after`](#nw.freshness.stale_after)(project_root, changed_id)            | Return every annotation that `changed_id` actually invalidated.                                                                                                                                                       |
+| [`stale_verdicts`](#nw.freshness.stale_verdicts)(project_root, changed_id)         | Classify every annotation downstream of `changed_id`.                                                                                                                                                                 |
+| [`stale_verdicts_all`](#nw.freshness.stale_verdicts_all)(project_root)                 | Classify every derived annotation in the project — the snapshot form.                                                                                                                                                 |
 
 ### Classes
 
@@ -191,7 +192,7 @@ difference either.
 * **Return type:**
   [`object`](https://docs.python.org/3/builtins/functions.html#object)
 
-### nw.freshness.fresh_equivalents(project_root, annotations, \*, value_of=<function body_value>)
+### nw.freshness.fresh_equivalents(project_root, annotations, \*, value_of=<function body_value>, reference_of=<function reference_value>)
 
 For each of `annotations`, the existing node it would only duplicate.
 
@@ -200,9 +201,13 @@ it, or `None` when there is none (write it). An existing node `E` is
 equivalent to a new annotation `A` when **all** of these hold:
 
 - same `tier`, same `body_schema_uri` and the same `reference`
-  (where it sits — JSON-compared). Stricter than braidio’s original rule,
+  (where it sits — `reference_of`, by default [`reference_value()`](#nw.freshness.reference_value),
+  the JSON-compared reference). Stricter than braidio’s original rule,
   deliberately: two outputs at different places are different nodes even
-  when every other field agrees, and a missed reuse only costs a write;
+  when every other field agrees, and a missed reuse only costs a write.
+  A host whose references carry no place, only a per-node token, passes
+  `reference_of=lambda a: None` so the reference is not compared
+  (nw#218);
 - the same producer, `provenance.was_generated_by`
   (`transform:<name>@<impl_version>`): another Transform’s node is not
   this one’s output, and after an `impl_version` bump the old
@@ -319,6 +324,15 @@ the producer none (see `vouches` in the verdict walk, nw#179).
 
 * **Return type:**
   [`bool`](https://docs.python.org/3/builtins/functions.html#bool)
+
+### nw.freshness.reference_value(ann)
+
+`ann.reference` in json mode — where two annotations are compared to
+sit (the default `reference_of` of [`fresh_equivalents()`](#nw.freshness.fresh_equivalents), whose
+identity key sorts and dumps it).
+
+* **Return type:**
+  [`object`](https://docs.python.org/3/builtins/functions.html#object)
 
 ### nw.freshness.stale_after(project_root, changed_id)
 

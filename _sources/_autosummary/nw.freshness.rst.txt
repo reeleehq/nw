@@ -20,6 +20,7 @@ nw.freshness
       fresh_equivalents
       freshness_pass
       is_verifiable_digest_scheme
+      reference_value
       stale_after
       stale_verdicts
       stale_verdicts_all

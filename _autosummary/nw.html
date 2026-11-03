@@ -4008,16 +4008,20 @@ execute time changes nothing.</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="nw.fresh_equivalents">
-<span class="sig-prename descclassname"><span class="pre">nw.</span></span><span class="sig-name descname"><span class="pre">fresh_equivalents</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">project_root</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">annotations</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">value_of</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">&lt;function</span> <span class="pre">body_value&gt;</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/nw/freshness.html#fresh_equivalents"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nw.fresh_equivalents" title="Link to this definition">#</a></dt>
+<span class="sig-prename descclassname"><span class="pre">nw.</span></span><span class="sig-name descname"><span class="pre">fresh_equivalents</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">project_root</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">annotations</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">value_of</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">&lt;function</span> <span class="pre">body_value&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reference_of</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">&lt;function</span> <span class="pre">reference_value&gt;</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/nw/freshness.html#fresh_equivalents"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nw.fresh_equivalents" title="Link to this definition">#</a></dt>
 <dd><p>For each of <code class="docutils literal notranslate"><span class="pre">annotations</span></code>, the existing node it would only duplicate.</p>
 <p>Returns one entry per input, in order: the stored annotation equivalent to
 it, or <code class="docutils literal notranslate"><span class="pre">None</span></code> when there is none (write it). An existing node <code class="docutils literal notranslate"><span class="pre">E</span></code> is
 equivalent to a new annotation <code class="docutils literal notranslate"><span class="pre">A</span></code> when <strong>all</strong> of these hold:</p>
 <ul class="simple">
 <li><p>same <code class="docutils literal notranslate"><span class="pre">tier</span></code>, same <code class="docutils literal notranslate"><span class="pre">body_schema_uri</span></code> and the same <code class="docutils literal notranslate"><span class="pre">reference</span></code>
-(where it sits — JSON-compared). Stricter than braidio’s original rule,
+(where it sits — <code class="docutils literal notranslate"><span class="pre">reference_of</span></code>, by default <code class="xref py py-func docutils literal notranslate"><span class="pre">reference_value()</span></code>,
+the JSON-compared reference). Stricter than braidio’s original rule,
 deliberately: two outputs at different places are different nodes even
-when every other field agrees, and a missed reuse only costs a write;</p></li>
+when every other field agrees, and a missed reuse only costs a write.
+A host whose references carry no place, only a per-node token, passes
+<code class="docutils literal notranslate"><span class="pre">reference_of=lambda</span> <span class="pre">a:</span> <span class="pre">None</span></code> so the reference is not compared
+(nw#218);</p></li>
 <li><p>the same producer, <code class="docutils literal notranslate"><span class="pre">provenance.was_generated_by</span></code>
 (<code class="docutils literal notranslate"><span class="pre">transform:&lt;name&gt;&#64;&lt;impl_version&gt;</span></code>): another Transform’s node is not
 this one’s output, and after an <code class="docutils literal notranslate"><span class="pre">impl_version</span></code> bump the old
@@ -5455,7 +5459,7 @@ addressable across runs.</p>
     </div>
   </div>
 </footer>
-      <script src="../_static/documentation_options.js?v=95c30746"></script>
+      <script src="../_static/documentation_options.js?v=31bb835f"></script>
       <script src="../_static/doctools.js?v=fd6eb6e6"></script>
       <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script src="../_static/clipboard.min.js?v=a7894cd8"></script>

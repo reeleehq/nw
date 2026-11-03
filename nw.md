@@ -1,4 +1,4 @@
-> built 2026-11-02 15:08 UTC from 7c31126 (main) · nw 0.0.124. Details: build_info.json
+> built 2026-11-03 12:27 UTC from d6a7064 (main) · nw 0.0.125. Details: build_info.json
 
 # index.html.md
 
@@ -2627,16 +2627,17 @@ walk serves every lookup until something is written (nw#209).
 
 ### Functions
 
-| [`all_stale`](_autosummary/nw.freshness.html.md#nw.freshness.all_stale)(project_root)                          | Every annotation that is currently stale, regardless of cause.                                                     |
-|---------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------------------------------------|
-| [`annotation_parent_ids`](_autosummary/nw.freshness.html.md#nw.freshness.annotation_parent_ids)(ann)                       | The **annotation** ids in `ann.provenance.was_derived_from`.                                                       |
-| [`body_value`](_autosummary/nw.freshness.html.md#nw.freshness.body_value)(ann)                                  | `ann.body` JSON-normalised — the value two annotations are compared by.                                            |
-| [`fresh_equivalents`](_autosummary/nw.freshness.html.md#nw.freshness.fresh_equivalents)(project_root, annotations, \*) | For each of `annotations`, the existing node it would only duplicate.                                              |
-| [`freshness_pass`](_autosummary/nw.freshness.html.md#nw.freshness.freshness_pass)()                                 | Share one freshness walk across many [`fresh_equivalents()`](_autosummary/nw.freshness.html.md#nw.freshness.fresh_equivalents) lookups. |
-| [`is_verifiable_digest_scheme`](_autosummary/nw.freshness.html.md#nw.freshness.is_verifiable_digest_scheme)(scheme)              | Whether a trace recorded under `scheme` can still be verified.                                                     |
-| [`stale_after`](_autosummary/nw.freshness.html.md#nw.freshness.stale_after)(project_root, changed_id)            | Return every annotation that `changed_id` actually invalidated.                                                    |
-| [`stale_verdicts`](_autosummary/nw.freshness.html.md#nw.freshness.stale_verdicts)(project_root, changed_id)         | Classify every annotation downstream of `changed_id`.                                                              |
-| [`stale_verdicts_all`](_autosummary/nw.freshness.html.md#nw.freshness.stale_verdicts_all)(project_root)                 | Classify every derived annotation in the project — the snapshot form.                                              |
+| [`all_stale`](_autosummary/nw.freshness.html.md#nw.freshness.all_stale)(project_root)                          | Every annotation that is currently stale, regardless of cause.                                                                                                                                                        |
+|---------------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| [`annotation_parent_ids`](_autosummary/nw.freshness.html.md#nw.freshness.annotation_parent_ids)(ann)                       | The **annotation** ids in `ann.provenance.was_derived_from`.                                                                                                                                                          |
+| [`body_value`](_autosummary/nw.freshness.html.md#nw.freshness.body_value)(ann)                                  | `ann.body` JSON-normalised — the value two annotations are compared by.                                                                                                                                               |
+| [`fresh_equivalents`](_autosummary/nw.freshness.html.md#nw.freshness.fresh_equivalents)(project_root, annotations, \*) | For each of `annotations`, the existing node it would only duplicate.                                                                                                                                                 |
+| [`freshness_pass`](_autosummary/nw.freshness.html.md#nw.freshness.freshness_pass)()                                 | Share one freshness walk across many [`fresh_equivalents()`](_autosummary/nw.freshness.html.md#nw.freshness.fresh_equivalents) lookups.                                                                                                    |
+| [`is_verifiable_digest_scheme`](_autosummary/nw.freshness.html.md#nw.freshness.is_verifiable_digest_scheme)(scheme)              | Whether a trace recorded under `scheme` can still be verified.                                                                                                                                                        |
+| [`reference_value`](_autosummary/nw.freshness.html.md#nw.freshness.reference_value)(ann)                             | `ann.reference` in json mode — where two annotations are compared to sit (the default `reference_of` of [`fresh_equivalents()`](_autosummary/nw.freshness.html.md#nw.freshness.fresh_equivalents), whose identity key sorts and dumps it). |
+| [`stale_after`](_autosummary/nw.freshness.html.md#nw.freshness.stale_after)(project_root, changed_id)            | Return every annotation that `changed_id` actually invalidated.                                                                                                                                                       |
+| [`stale_verdicts`](_autosummary/nw.freshness.html.md#nw.freshness.stale_verdicts)(project_root, changed_id)         | Classify every annotation downstream of `changed_id`.                                                                                                                                                                 |
+| [`stale_verdicts_all`](_autosummary/nw.freshness.html.md#nw.freshness.stale_verdicts_all)(project_root)                 | Classify every derived annotation in the project — the snapshot form.                                                                                                                                                 |
 
 ### Classes
 
@@ -2697,7 +2698,7 @@ difference either.
 * **Return type:**
   [`object`](https://docs.python.org/3/builtins/functions.html#object)
 
-### nw.freshness.fresh_equivalents(project_root, annotations, \*, value_of=<function body_value>)
+### nw.freshness.fresh_equivalents(project_root, annotations, \*, value_of=<function body_value>, reference_of=<function reference_value>)
 
 For each of `annotations`, the existing node it would only duplicate.
 
@@ -2706,9 +2707,13 @@ it, or `None` when there is none (write it). An existing node `E` is
 equivalent to a new annotation `A` when **all** of these hold:
 
 - same `tier`, same `body_schema_uri` and the same `reference`
-  (where it sits — JSON-compared). Stricter than braidio’s original rule,
+  (where it sits — `reference_of`, by default [`reference_value()`](_autosummary/nw.freshness.html.md#nw.freshness.reference_value),
+  the JSON-compared reference). Stricter than braidio’s original rule,
   deliberately: two outputs at different places are different nodes even
-  when every other field agrees, and a missed reuse only costs a write;
+  when every other field agrees, and a missed reuse only costs a write.
+  A host whose references carry no place, only a per-node token, passes
+  `reference_of=lambda a: None` so the reference is not compared
+  (nw#218);
 - the same producer, `provenance.was_generated_by`
   (`transform:<name>@<impl_version>`): another Transform’s node is not
   this one’s output, and after an `impl_version` bump the old
@@ -2825,6 +2830,15 @@ the producer none (see `vouches` in the verdict walk, nw#179).
 
 * **Return type:**
   [`bool`](https://docs.python.org/3/builtins/functions.html#bool)
+
+### nw.freshness.reference_value(ann)
+
+`ann.reference` in json mode — where two annotations are compared to
+sit (the default `reference_of` of [`fresh_equivalents()`](_autosummary/nw.freshness.html.md#nw.freshness.fresh_equivalents), whose
+identity key sorts and dumps it).
+
+* **Return type:**
+  [`object`](https://docs.python.org/3/builtins/functions.html#object)
 
 ### nw.freshness.stale_after(project_root, changed_id)
 
@@ -6283,7 +6297,7 @@ The one spelling we print. Input is permissive; output never varies.
 * **Return type:**
   [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
 
-### nw.fresh_equivalents(project_root, annotations, \*, value_of=<function body_value>)
+### nw.fresh_equivalents(project_root, annotations, \*, value_of=<function body_value>, reference_of=<function reference_value>)
 
 For each of `annotations`, the existing node it would only duplicate.
 
@@ -6292,9 +6306,13 @@ it, or `None` when there is none (write it). An existing node `E` is
 equivalent to a new annotation `A` when **all** of these hold:
 
 - same `tier`, same `body_schema_uri` and the same `reference`
-  (where it sits — JSON-compared). Stricter than braidio’s original rule,
+  (where it sits — `reference_of`, by default `reference_value()`,
+  the JSON-compared reference). Stricter than braidio’s original rule,
   deliberately: two outputs at different places are different nodes even
-  when every other field agrees, and a missed reuse only costs a write;
+  when every other field agrees, and a missed reuse only costs a write.
+  A host whose references carry no place, only a per-node token, passes
+  `reference_of=lambda a: None` so the reference is not compared
+  (nw#218);
 - the same producer, `provenance.was_generated_by`
   (`transform:<name>@<impl_version>`): another Transform’s node is not
   this one’s output, and after an `impl_version` bump the old
@@ -11810,7 +11828,7 @@ produce different URLs. The local file paths are byte-stable.
 
 # About this build
 
-This documentation was built on **2026-11-02 15:08 UTC** from commit <a href="https://github.com/reeleehq/nw/commit/7c311265e0d475778199a978513079b14b1d80bc"><code>7c31126</code></a> on branch <code>main</code>, for **nw 0.0.124** (from <code>pyproject.toml</code>).
+This documentation was built on **2026-11-03 12:27 UTC** from commit <a href="https://github.com/reeleehq/nw/commit/d6a70646232f0c711d3234a146d44bdfcf0106dc"><code>d6a7064</code></a> on branch <code>main</code>, for **nw 0.0.125** (from <code>pyproject.toml</code>).
 
 #### NOTE
 Nothing suggests a mismatch: the tree was clean at the commit above, and the documented version is the one on PyPI.
@@ -11819,9 +11837,9 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 
 |                     |                                                                                                                                                    |
 |---------------------|----------------------------------------------------------------------------------------------------------------------------------------------------|
-| Commit              | <a href="https://github.com/reeleehq/nw/commit/7c311265e0d475778199a978513079b14b1d80bc"><code>7c311265e0d475778199a978513079b14b1d80bc</code></a> |
+| Commit              | <a href="https://github.com/reeleehq/nw/commit/d6a70646232f0c711d3234a146d44bdfcf0106dc"><code>d6a70646232f0c711d3234a146d44bdfcf0106dc</code></a> |
 | Branch              | <code>main</code>                                                                                                                                  |
-| Tags at this commit | <code>0.0.124</code>                                                                                                                               |
+| Tags at this commit | <code>0.0.125</code>                                                                                                                               |
 | Working tree        | clean                                                                                                                                              |
 | Remote              | <code>https://github.com/reeleehq/nw</code>                                                                                                        |
 
@@ -11830,9 +11848,9 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 |              |                                                                                            |
 |--------------|--------------------------------------------------------------------------------------------|
 | Repository   | <code>reeleehq/nw</code>                                                                   |
-| Run          | <a href="https://github.com/reeleehq/nw/actions/runs/41468001385">41468001385</a>          |
+| Run          | <a href="https://github.com/reeleehq/nw/actions/runs/41634357118">41634357118</a>          |
 | Ref          | <code>refs/heads/main</code>                                                               |
-| Event commit | <code>de7da237f5f3cc523a7c1bec8df9455588e19c9c</code> (in the history of the built commit) |
+| Event commit | <code>76bbe60d56d30fe40d9b294dff39466781134c2a</code> (in the history of the built commit) |
 
 ## Tools
 
@@ -11857,13 +11875,13 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 
 ## Package on PyPI
 
-Latest release: <a href="https://pypi.org/project/nw/0.0.124/">0.0.124</a>, the same as the documented version.
+Latest release: <a href="https://pypi.org/project/nw/0.0.125/">0.0.125</a>, the same as the documented version.
 
 ## Reproduce
 
 ```bash
 git clone https://github.com/reeleehq/nw && cd nw
-git checkout 7c311265e0d475778199a978513079b14b1d80bc
+git checkout d6a70646232f0c711d3234a146d44bdfcf0106dc
 pip install "epythet==0.2.22"
 epythet quickstart . --ignore tests/ scrap/ examples/
 ```
