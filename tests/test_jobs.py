@@ -3336,11 +3336,11 @@ def _flaky(real, failures):
     as Windows does while a reader holds the file open."""
     calls = []
 
-    def op(*args):
+    def op(*args, **kwargs):
         calls.append(args)
         if len(calls) <= failures:
             raise PermissionError("in use by another process")
-        return real(*args)
+        return real(*args, **kwargs)
 
     return op
 

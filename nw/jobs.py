@@ -1666,7 +1666,9 @@ class AtomicJsonFiles(MutableMapping):
     default). A read is milliseconds; the retries outlast it, and they cost
     nothing unless a write is actually refused. The collision also refuses
     the *reader* for the instant of the swap, so a read retries the same way
-    (nw#225). Off Windows the default retries nothing, on either side.
+    (nw#225). Off Windows the default retries nothing, on either side. A file
+    that stays refused (a real access problem) raises after the ~0.6 s of
+    retries, per read.
 
     The write and the delete are :func:`dol.atomic_write` /
     :func:`dol.atomic_delete` with a :class:`dol.atomic.Retry` (nw#213); files
