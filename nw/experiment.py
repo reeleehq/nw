@@ -68,13 +68,13 @@ def clone_project(
     # A clone copies folders, so it serves nw's folder layout only; ask the
     # storage rather than naming the marker file (nw#236).
     src_storage = as_project_storage(src)
+    if not is_project(src_storage):
+        raise FileNotFoundError(f"{src} is not an nw project.")
     if not isinstance(src_storage, FolderStorage):
         raise ValueError(
             f"{src} keeps its documents in {type(src_storage).__name__}, not "
             "nw's folder layout; clone_project copies folders only."
         )
-    if not is_project(src_storage):
-        raise FileNotFoundError(f"{src} is not an nw project.")
 
     if dst.exists():
         if not force:

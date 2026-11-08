@@ -9,7 +9,9 @@ import pytest
 import nw
 
 from nw import (
+    MappingStorage,
     Project,
+    register_project_storage,
     ShotSpec,
     apply_to_projects,
     clone_project,
@@ -148,31 +150,28 @@ def test_summarize_all_returns_summaries(tmp_path):
 
 
 def test_clone_refuses_a_folder_that_is_not_a_project(tmp_path):
-    import pytest
-
     (tmp_path / "plain").mkdir()
     with pytest.raises(FileNotFoundError, match="not an nw project"):
-        nw.clone_project(tmp_path / "plain", tmp_path / "dst")
+        clone_project(tmp_path / "plain", tmp_path / "dst")
 
 
 def test_clone_refuses_a_genre_storage_project_by_name(tmp_path):
     """nw#236: a project whose documents live in a genre's storage cannot be
     cloned by copying folders; say so instead of 'no project.json'."""
-    import pytest
     from lacing.store import MemoryStore
 
     from nw.storage import project_storages
 
     root = tmp_path / "genre_proj"
     stores: dict = {}
-    storage = nw.MappingStorage(
+    storage = MappingStorage(
         root=root, graph={}, docs={},
         store_factory=lambda m: stores.setdefault(id(m), MemoryStore()),
     )
-    nw.Project.init(root, storage=storage)
-    nw.register_project_storage("test_clone", lambda r: storage if r == root.resolve() else None)
+    Project.init(root, storage=storage)
+    register_project_storage("test_clone", lambda r: storage if r == root.resolve() else None)
     try:
         with pytest.raises(ValueError, match="folder layout"):
-            nw.clone_project(root, tmp_path / "dst")
+            clone_project(root, tmp_path / "dst")
     finally:
         del project_storages["test_clone"]
