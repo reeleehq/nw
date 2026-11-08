@@ -2022,7 +2022,7 @@ consumes every clip). `context` is side material keyed by kind name, so
 a Transform that declares `input_kinds=(beat, character-ref)` receives
 the Beat in `primary` and the CharacterRefs in `context["character-ref"]`.
 
-### *class* nw.TransformResult(annotations, artifacts=(), cost_usd_actual=0.0, cache_hit_savings_usd=0.0, has_unknown_costs=False, failed=(), blocked=())
+### *class* nw.TransformResult(annotations, artifacts=(), cost_usd_actual=0.0, cache_hit_savings_usd=0.0, has_unknown_costs=False, failed=(), blocked=(), reused_ids=frozenset({}))
 
 Bases: [`object`](https://docs.python.org/3/builtins/functions.html#object)
 
@@ -2036,8 +2036,9 @@ The annotations this run wrote — unless the Transform declares
 `reuse_fresh_outputs` (nw#203): then an output whose fresh equivalent
 already exists is returned as that **existing** node and nothing is
 written, so its `id` is not the skeleton’s. Read ids from here, never
-from the skeleton; a row whose id is not its skeleton’s was not written
-by this run.
+from the skeleton; which rows this run wrote is [`written`](#nw.TransformResult.written) (and
+which it reused, [`reused_ids`](#nw.TransformResult.reused_ids)) — never infer it from skeleton ids
+(nw#215).
 
 #### artifacts *: [tuple](https://docs.python.org/3/builtins/stdtypes.html#tuple)[Artifact, ...]*
 
@@ -2091,6 +2092,27 @@ distinction every cost gate in the federation is required to read.
 #### *property* is_complete *: [bool](https://docs.python.org/3/builtins/functions.html#bool)*
 
 Whether every planned output was produced.
+
+#### reused_ids *: [frozenset](https://docs.python.org/3/builtins/stdtypes.html#frozenset)[[UUID](https://docs.python.org/3/library/uuid.html#uuid.UUID)]*
+
+Ids of the [`annotations`](#nw.TransformResult.annotations) returned as an existing node instead of
+being written (`reuse_fresh_outputs`, nw#203), set by the default
+`BaseTransform.execute()`.
+
+**An obligation on an overriding** `execute`, like stamping
+`impl_version` and recording unproduced outputs: one that returns a node
+it did not write in this call must put that id here. The empty default is
+right only for an override that writes everything it returns (nw#215).
+
+#### *property* written *: [tuple](https://docs.python.org/3/builtins/stdtypes.html#tuple)[Annotation, ...]*
+
+all of them minus the reused.
+
+What a consumer that drops, re-ids or counts the rows a run produced
+reads, instead of comparing ids against its skeletons (nw#215).
+
+* **Type:**
+  The [`annotations`](#nw.TransformResult.annotations) this run wrote
 
 ### *exception* nw.UnknownGenreOpError
 

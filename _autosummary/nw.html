@@ -384,6 +384,8 @@ data-aria-dark="Switch to auto color mode">
 <li><a class="reference internal" href="#nw.TransformResult.failed"><code class="docutils literal notranslate"><span class="pre">TransformResult.failed</span></code></a></li>
 <li><a class="reference internal" href="#nw.TransformResult.has_unknown_costs"><code class="docutils literal notranslate"><span class="pre">TransformResult.has_unknown_costs</span></code></a></li>
 <li><a class="reference internal" href="#nw.TransformResult.is_complete"><code class="docutils literal notranslate"><span class="pre">TransformResult.is_complete</span></code></a></li>
+<li><a class="reference internal" href="#nw.TransformResult.reused_ids"><code class="docutils literal notranslate"><span class="pre">TransformResult.reused_ids</span></code></a></li>
+<li><a class="reference internal" href="#nw.TransformResult.written"><code class="docutils literal notranslate"><span class="pre">TransformResult.written</span></code></a></li>
 </ul>
 </li>
 <li><a class="reference internal" href="#nw.UnknownGenreOpError"><code class="docutils literal notranslate"><span class="pre">UnknownGenreOpError</span></code></a></li>
@@ -3236,7 +3238,7 @@ the Beat in <code class="docutils literal notranslate"><span class="pre">primary
 
 <dl class="py class">
 <dt class="sig sig-object py" id="nw.TransformResult">
-<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">nw.</span></span><span class="sig-name descname"><span class="pre">TransformResult</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">annotations</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">artifacts</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">()</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cost_usd_actual</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cache_hit_savings_usd</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">has_unknown_costs</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">failed</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">()</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">blocked</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">()</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/nw/transforms.html#TransformResult"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nw.TransformResult" title="Link to this definition">#</a></dt>
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">nw.</span></span><span class="sig-name descname"><span class="pre">TransformResult</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">annotations</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">artifacts</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">()</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cost_usd_actual</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cache_hit_savings_usd</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">has_unknown_costs</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">failed</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">()</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">blocked</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">()</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reused_ids</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">frozenset({})</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/nw/transforms.html#TransformResult"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nw.TransformResult" title="Link to this definition">#</a></dt>
 <dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/builtins/functions.html#object" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
 <p>The outputs of a Transform’s <a class="reference internal" href="#nw.Transform.execute" title="nw.Transform.execute"><code class="xref py py-meth docutils literal notranslate"><span class="pre">execute()</span></code></a>.</p>
 <dl class="field-list simple">
@@ -3249,8 +3251,9 @@ the Beat in <code class="docutils literal notranslate"><span class="pre">primary
 <code class="docutils literal notranslate"><span class="pre">reuse_fresh_outputs</span></code> (nw#203): then an output whose fresh equivalent
 already exists is returned as that <strong>existing</strong> node and nothing is
 written, so its <code class="docutils literal notranslate"><span class="pre">id</span></code> is not the skeleton’s. Read ids from here, never
-from the skeleton; a row whose id is not its skeleton’s was not written
-by this run.</p>
+from the skeleton; which rows this run wrote is <a class="reference internal" href="#nw.TransformResult.written" title="nw.TransformResult.written"><code class="xref py py-attr docutils literal notranslate"><span class="pre">written</span></code></a> (and
+which it reused, <a class="reference internal" href="#nw.TransformResult.reused_ids" title="nw.TransformResult.reused_ids"><code class="xref py py-attr docutils literal notranslate"><span class="pre">reused_ids</span></code></a>) — never infer it from skeleton ids
+(nw#215).</p>
 </dd></dl>
 
 <dl class="py attribute">
@@ -3318,6 +3321,31 @@ distinction every cost gate in the federation is required to read.</p>
 <dt class="sig sig-object py" id="nw.TransformResult.is_complete">
 <span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">is_complete</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#bool" title="(in Python v3.15)"><span class="pre">bool</span></a></span><a class="headerlink" href="#nw.TransformResult.is_complete" title="Link to this definition">#</a></dt>
 <dd><p>Whether every planned output was produced.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="nw.TransformResult.reused_ids">
+<span class="sig-name descname"><span class="pre">reused_ids</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#frozenset" title="(in Python v3.15)"><span class="pre">frozenset</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/uuid.html#uuid.UUID" title="(in Python v3.15)"><span class="pre">UUID</span></a><span class="p"><span class="pre">]</span></span></span><a class="headerlink" href="#nw.TransformResult.reused_ids" title="Link to this definition">#</a></dt>
+<dd><p>Ids of the <a class="reference internal" href="#nw.TransformResult.annotations" title="nw.TransformResult.annotations"><code class="xref py py-attr docutils literal notranslate"><span class="pre">annotations</span></code></a> returned as an existing node instead of
+being written (<code class="docutils literal notranslate"><span class="pre">reuse_fresh_outputs</span></code>, nw#203), set by the default
+<code class="xref py py-meth docutils literal notranslate"><span class="pre">BaseTransform.execute()</span></code>.</p>
+<p><strong>An obligation on an overriding</strong> <code class="docutils literal notranslate"><span class="pre">execute</span></code>, like stamping
+<code class="docutils literal notranslate"><span class="pre">impl_version</span></code> and recording unproduced outputs: one that returns a node
+it did not write in this call must put that id here. The empty default is
+right only for an override that writes everything it returns (nw#215).</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="nw.TransformResult.written">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">written</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#tuple" title="(in Python v3.15)"><span class="pre">tuple</span></a><span class="p"><span class="pre">[</span></span><span class="pre">Annotation</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="p"><span class="pre">...</span></span><span class="p"><span class="pre">]</span></span></span><a class="headerlink" href="#nw.TransformResult.written" title="Link to this definition">#</a></dt>
+<dd><p>all of them minus the reused.</p>
+<p>What a consumer that drops, re-ids or counts the rows a run produced
+reads, instead of comparing ids against its skeletons (nw#215).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The <a class="reference internal" href="#nw.TransformResult.annotations" title="nw.TransformResult.annotations"><code class="xref py py-attr docutils literal notranslate"><span class="pre">annotations</span></code></a> this run wrote</p>
+</dd>
+</dl>
 </dd></dl>
 
 </dd></dl>
@@ -5547,7 +5575,7 @@ addressable across runs.</p>
     </div>
   </div>
 </footer>
-      <script src="../_static/documentation_options.js?v=ee59aaf7"></script>
+      <script src="../_static/documentation_options.js?v=0d7dcda5"></script>
       <script src="../_static/doctools.js?v=fd6eb6e6"></script>
       <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script src="../_static/clipboard.min.js?v=a7894cd8"></script>

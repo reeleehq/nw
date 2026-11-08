@@ -1,4 +1,4 @@
-> built 2026-11-08 22:21 UTC from 7c51389 (main) · nw 0.0.129. Details: build_info.json
+> built 2026-11-08 22:36 UTC from 2da051d (main) · nw 0.0.130. Details: build_info.json
 
 # index.html.md
 
@@ -5625,7 +5625,7 @@ consumes every clip). `context` is side material keyed by kind name, so
 a Transform that declares `input_kinds=(beat, character-ref)` receives
 the Beat in `primary` and the CharacterRefs in `context["character-ref"]`.
 
-### *class* nw.TransformResult(annotations, artifacts=(), cost_usd_actual=0.0, cache_hit_savings_usd=0.0, has_unknown_costs=False, failed=(), blocked=())
+### *class* nw.TransformResult(annotations, artifacts=(), cost_usd_actual=0.0, cache_hit_savings_usd=0.0, has_unknown_costs=False, failed=(), blocked=(), reused_ids=frozenset({}))
 
 Bases: [`object`](https://docs.python.org/3/builtins/functions.html#object)
 
@@ -5639,8 +5639,9 @@ The annotations this run wrote — unless the Transform declares
 `reuse_fresh_outputs` (nw#203): then an output whose fresh equivalent
 already exists is returned as that **existing** node and nothing is
 written, so its `id` is not the skeleton’s. Read ids from here, never
-from the skeleton; a row whose id is not its skeleton’s was not written
-by this run.
+from the skeleton; which rows this run wrote is [`written`](_autosummary/nw.html.md#nw.TransformResult.written) (and
+which it reused, [`reused_ids`](_autosummary/nw.html.md#nw.TransformResult.reused_ids)) — never infer it from skeleton ids
+(nw#215).
 
 #### artifacts *: [tuple](https://docs.python.org/3/builtins/stdtypes.html#tuple)[Artifact, ...]*
 
@@ -5694,6 +5695,27 @@ distinction every cost gate in the federation is required to read.
 #### *property* is_complete *: [bool](https://docs.python.org/3/builtins/functions.html#bool)*
 
 Whether every planned output was produced.
+
+#### reused_ids *: [frozenset](https://docs.python.org/3/builtins/stdtypes.html#frozenset)[[UUID](https://docs.python.org/3/library/uuid.html#uuid.UUID)]*
+
+Ids of the [`annotations`](_autosummary/nw.html.md#nw.TransformResult.annotations) returned as an existing node instead of
+being written (`reuse_fresh_outputs`, nw#203), set by the default
+`BaseTransform.execute()`.
+
+**An obligation on an overriding** `execute`, like stamping
+`impl_version` and recording unproduced outputs: one that returns a node
+it did not write in this call must put that id here. The empty default is
+right only for an override that writes everything it returns (nw#215).
+
+#### *property* written *: [tuple](https://docs.python.org/3/builtins/stdtypes.html#tuple)[Annotation, ...]*
+
+all of them minus the reused.
+
+What a consumer that drops, re-ids or counts the rows a run produced
+reads, instead of comparing ids against its skeletons (nw#215).
+
+* **Type:**
+  The [`annotations`](_autosummary/nw.html.md#nw.TransformResult.annotations) this run wrote
 
 ### *exception* nw.UnknownGenreOpError
 
@@ -11982,18 +12004,20 @@ produce different URLs. The local file paths are byte-stable.
 
 # About this build
 
-This documentation was built on **2026-11-08 22:21 UTC** from commit <a href="https://github.com/reeleehq/nw/commit/7c51389e2e9a667e29504e7ff9ac72d2a4e362cd"><code>7c51389</code></a> on branch <code>main</code>, for **nw 0.0.129** (from <code>pyproject.toml</code>).
+This documentation was built on **2026-11-08 22:36 UTC** from commit <a href="https://github.com/reeleehq/nw/commit/2da051dd10e32a71ab4371b07b667c784be8c025"><code>2da051d</code></a> on branch <code>main</code>, for **nw 0.0.130** (from <code>pyproject.toml</code>).
 
-#### NOTE
-Nothing suggests a mismatch: the tree was clean at the commit above, and the documented version is the one on PyPI.
+#### WARNING
+The documentation and the package may be misaligned:
+
+- The documented version (0.0.130) is ahead of the latest release on PyPI (0.0.129): these docs describe unreleased code.
 
 ## Source
 
 |                     |                                                                                                                                                    |
 |---------------------|----------------------------------------------------------------------------------------------------------------------------------------------------|
-| Commit              | <a href="https://github.com/reeleehq/nw/commit/7c51389e2e9a667e29504e7ff9ac72d2a4e362cd"><code>7c51389e2e9a667e29504e7ff9ac72d2a4e362cd</code></a> |
+| Commit              | <a href="https://github.com/reeleehq/nw/commit/2da051dd10e32a71ab4371b07b667c784be8c025"><code>2da051dd10e32a71ab4371b07b667c784be8c025</code></a> |
 | Branch              | <code>main</code>                                                                                                                                  |
-| Tags at this commit | <code>0.0.129</code>                                                                                                                               |
+| Tags at this commit | <code>0.0.130</code>                                                                                                                               |
 | Working tree        | clean                                                                                                                                              |
 | Remote              | <code>https://github.com/reeleehq/nw</code>                                                                                                        |
 
@@ -12002,9 +12026,9 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 |              |                                                                                            |
 |--------------|--------------------------------------------------------------------------------------------|
 | Repository   | <code>reeleehq/nw</code>                                                                   |
-| Run          | <a href="https://github.com/reeleehq/nw/actions/runs/42529582182">42529582182</a>          |
+| Run          | <a href="https://github.com/reeleehq/nw/actions/runs/42530848681">42530848681</a>          |
 | Ref          | <code>refs/heads/main</code>                                                               |
-| Event commit | <code>fa0c8ebc3adcb59bc0d1f2ead9d2ae223dc7ab10</code> (in the history of the built commit) |
+| Event commit | <code>bce6e23acc2c450dae20024812a7dac9b9aed18e</code> (in the history of the built commit) |
 
 ## Tools
 
@@ -12029,13 +12053,13 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 
 ## Package on PyPI
 
-Latest release: <a href="https://pypi.org/project/nw/0.0.129/">0.0.129</a>, the same as the documented version.
+Latest release: <a href="https://pypi.org/project/nw/0.0.129/">0.0.129</a>, older than the documented version (0.0.130).
 
 ## Reproduce
 
 ```bash
 git clone https://github.com/reeleehq/nw && cd nw
-git checkout 7c51389e2e9a667e29504e7ff9ac72d2a4e362cd
+git checkout 2da051dd10e32a71ab4371b07b667c784be8c025
 pip install "epythet==0.2.22"
 epythet quickstart . --ignore tests/ scrap/ examples/
 ```
