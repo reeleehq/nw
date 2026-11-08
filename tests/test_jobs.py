@@ -985,6 +985,37 @@ def test_a_run_that_reports_no_unknown_cost_is_not_flagged(project):
     assert not done.cost.actual_is_lower_bound
 
 
+def test_a_render_that_raises_after_reporting_spend_reads_as_a_lower_bound(project):
+    """nw#232: the render billed, reported an exact-looking figure, then raised;
+    the terminal reconcile never runs, so the flag must not stay ``False``."""
+
+    def bills_then_raises(project, params, *, job_id, on_event, should_cancel):
+        on_event({"kind": "journey.stage_completed", "actual_usd": 0.3,
+                  "has_unknown_costs": False})
+        raise RuntimeError("provider fell over after billing")
+
+    job = jobs.enqueue(
+        project, "journey.full_auto", VIDEO_PARAMS,
+        dispatch={"journey.full_auto": bills_then_raises},
+    )
+    done = _poll_until(project, job.job_id, lambda j: j.status == jobs.FAILED)
+    assert done.cost.actual_usd == 0.3
+    assert done.cost.actual_is_lower_bound is True
+
+
+def test_a_render_that_raises_before_reporting_spend_claims_nothing(project):
+    def raises_at_once(project, params, *, job_id, on_event, should_cancel):
+        raise RuntimeError("refused before any call")
+
+    job = jobs.enqueue(
+        project, "journey.full_auto", VIDEO_PARAMS,
+        dispatch={"journey.full_auto": raises_at_once},
+    )
+    done = _poll_until(project, job.job_id, lambda j: j.status == jobs.FAILED)
+    assert done.cost.actual_usd is None  # unknown already; no flag invented
+    assert done.cost.actual_is_lower_bound is None
+
+
 def test_an_unreported_flag_is_none_not_false(project):
     """Absence is not a claim of exactness.
 

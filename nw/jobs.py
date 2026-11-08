@@ -2280,6 +2280,7 @@ def _bind_worker(
                             job_id,
                             error_kind=error_kind_of(e),
                             error_detail=error_detail_of(e, secrets=secrets),
+                            **_cost_after_a_raise(_index_get_locked(rt, job_id)),
                         )
                     # au persists the RENDERED exception text as the job's
                     # error; a provider echoing the key back would put it in
@@ -2484,6 +2485,18 @@ def _mirror_event_into_index(rt, job_id, ev) -> None:
                 updates["artifact_ref"] = fields[src]
                 break
         _index_update_locked(rt, job_id, **updates)
+
+
+def _cost_after_a_raise(record) -> dict:
+    """The ``cost`` update for a run whose render raised (nw#232): a spend it
+    already reported is a lower bound — the render may have billed more before
+    it raised, and :func:`_reconcile_terminal`, which would carry the final
+    figures, never runs. ``{}`` when nothing was reported: an absent
+    ``actual_usd`` already reads as unknown."""
+    cost = dict((record or {}).get("cost") or {})
+    if cost.get("actual_usd") is None:
+        return {}
+    return {"cost": {**cost, "actual_is_lower_bound": True}}
 
 
 def _reconcile_terminal(rt, job_id, result) -> None:
