@@ -52,9 +52,14 @@ The call, end to end:
 
 **Hosts with their own narration schema** subclass with their own
 ``input_kinds`` (the config stays the second kind) and override
+:meth:`~NarrationToSoundDesign.narration_track` — ``(project, narration) ->``
+:class:`NarrationTrack` — when what foley needs is read from the project (a
+host whose spoken text lives on other nodes than the narration's own body;
+nw#221). Its default reads the narration body through the three finer seams,
 :meth:`~NarrationToSoundDesign.narration_segments`,
-:meth:`~NarrationToSoundDesign.narration_audio_path` and, optionally,
-:meth:`~NarrationToSoundDesign.narration_segment_starts`.
+:meth:`~NarrationToSoundDesign.narration_audio_path` and
+:meth:`~NarrationToSoundDesign.narration_segment_starts`, so a host overriding
+those keeps working unchanged.
 """
 
 from __future__ import annotations
@@ -64,7 +69,7 @@ import json
 from collections.abc import Iterator, Mapping
 from contextlib import contextmanager
 from contextvars import ContextVar
-from dataclasses import replace
+from dataclasses import dataclass, replace
 from pathlib import Path, PurePath
 from typing import Optional
 from uuid import uuid4
@@ -225,6 +230,21 @@ def _spend_arguments(config: SoundDesignConfigBodyV1) -> dict:
     return arguments
 
 
+@dataclass(frozen=True)
+class NarrationTrack:
+    """What foley needs from one narration: its spoken text, its audio, and
+    where each sentence starts.
+
+    ``audio_path`` is relative to ``project.root`` (an absolute path also
+    works, but pins the plan and its cache key to this machine's layout).
+    ``segment_starts`` is ``None`` to let foley align the file.
+    """
+
+    segments: list[str]
+    audio_path: PurePath
+    segment_starts: Optional[list[float]] = None
+
+
 class NarrationToSoundDesign(BaseTransform):
     """``narration-track/v1`` + ``sound-design-config/v1`` → ``sound-design/v1``."""
 
@@ -239,6 +259,20 @@ class NarrationToSoundDesign(BaseTransform):
     attributed_to = f"agent:{NAME}"
 
     # --- host seams: how a narration node yields what foley needs -------------
+
+    def narration_track(self, project, narration: Annotation) -> NarrationTrack:
+        """Everything foley needs from ``narration``, read with the project.
+
+        The seam :meth:`plan` calls (nw#221). Override it when the text or its
+        timing lives elsewhere in the project, and compute it once here. The
+        default assembles the three finer seams below, which read only the
+        narration body.
+        """
+        return NarrationTrack(
+            segments=self.narration_segments(narration),
+            audio_path=self.narration_audio_path(project, narration),
+            segment_starts=self.narration_segment_starts(narration),
+        )
 
     def narration_segments(self, narration: Annotation) -> list[str]:
         """Sentence-level narration text, in render order."""
@@ -282,7 +316,8 @@ class NarrationToSoundDesign(BaseTransform):
         config = self.config(inputs)
         if not config.enabled:
             return Plan(calls=()), ()
-        audio = self.narration_audio_path(project, narration)
+        track = self.narration_track(project, narration)
+        audio = PurePath(track.audio_path)
         sha = hash_file(Path(project.root) / audio)
         declared = (
             narration.body.get("artifact_id")
@@ -300,12 +335,14 @@ class NarrationToSoundDesign(BaseTransform):
             application=SOUND_DESIGN_APPLICATION,
             backend=SOUND_DESIGN_BACKEND,
             arguments={
-                "segments": self.narration_segments(narration),
+                "segments": list(track.segments),
                 "audio": {
                     "path": audio.as_posix(),
                     "sha256": sha,
                 },
-                "segment_starts": self.narration_segment_starts(narration),
+                "segment_starts": (
+                    None if track.segment_starts is None else list(track.segment_starts)
+                ),
                 "commercial_ok": config.commercial_ok,
                 "max_events": config.max_events,
                 "master": config.master,

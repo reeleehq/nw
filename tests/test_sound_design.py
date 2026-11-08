@@ -584,6 +584,49 @@ def test_a_host_subclass_supplies_its_own_extraction(project):
     assert host_node.id in skel.provenance.was_derived_from
 
 
+def test_a_host_reads_the_text_from_the_project_through_narration_track(project):
+    """nw#221: a host whose spoken text lives elsewhere in the project (not in
+    the narration node's body) overrides one seam that gets the project, read
+    once per plan, instead of binding a ContextVar around ``plan``."""
+    from nw.transforms.sound_design import NarrationTrack
+
+    (project.root / "beats").mkdir()
+    (project.root / "beats" / "mix.wav").write_bytes(b"RIFF-episode")
+    (project.root / "beats" / "talk.json").write_text(
+        '[["Hello.", 0.0], ["Bye.", 1.5]]'
+    )
+    reads = []
+
+    class _EpisodeShaped(NarrationToSoundDesign):
+        name = "test.episode_sound_design"
+
+        def narration_track(self, project, narration):
+            reads.append(narration.id)
+            talk = json.loads((project.root / "beats" / "talk.json").read_text())
+            return NarrationTrack(
+                segments=[t for t, _ in talk],
+                audio_path=Path("beats", "mix.wav"),
+                segment_starts=[s for _, s in talk],
+            )
+
+    episode = _authored(
+        project,
+        tier="episode",
+        uri="annot://schema/episode/v1",
+        body={"members": ["b1", "b2"]},  # names its text, does not hold it
+    )
+    cfg = _inputs(project).context
+    plan, (skel,) = _EpisodeShaped().plan(
+        project, TransformInputs(primary=(episode,), context=cfg)
+    )
+    args = plan.calls[0].arguments
+    assert args["segments"] == ["Hello.", "Bye."]
+    assert args["segment_starts"] == [0.0, 1.5]
+    assert args["audio"]["path"] == "beats/mix.wav"
+    assert reads == [episode.id]  # once per plan
+    assert episode.id in skel.provenance.was_derived_from
+
+
 # ---------------------------------------------------------------------------
 # the real foley, offline: an in-memory library, generation off
 # ---------------------------------------------------------------------------
