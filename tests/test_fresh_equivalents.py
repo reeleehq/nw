@@ -287,6 +287,45 @@ def test_several_skeletons_share_one_freshness_walk(tmp_path, fal, monkeypatch):
     assert len(_nodes(proj)) == 3
 
 
+# --- which rows a run wrote (nw#215) -----------------------------------------
+
+
+def test_the_result_says_which_outputs_it_reused_and_which_it_wrote(tmp_path, fal):
+    """Fails if a consumer still has to infer reuse from skeleton ids: the
+    result names the reused rows (``reused_ids``) and the written ones
+    (``written``), for a run that mixes both."""
+    proj, shots = _project(tmp_path, sections=("a", "b", "c"))
+
+    def skeletons(n):
+        return tuple(
+            _skeleton(proj, (s,), shot_id=f"s{i}") for i, s in enumerate(shots[:n])
+        )
+
+    first = _Reusing().execute(proj, _plan(2), skeletons(2))
+    assert first.reused_ids == frozenset()
+    assert first.written == first.annotations
+
+    second = _Reusing().execute(proj, _plan(3), skeletons(3))
+    old_ids = {a.id for a in first.annotations}
+    assert second.reused_ids == old_ids
+    (new,) = second.written
+    assert new.id not in old_ids and new in second.annotations
+    assert len(_nodes(proj)) == 3
+
+
+def test_a_transform_that_does_not_reuse_reports_nothing_reused(tmp_path, fal):
+    proj, (shot,) = _project(tmp_path)
+
+    class _Plain(_Reusing):
+        name = "test.plain"
+        reuse_fresh_outputs = False
+
+    for _ in range(2):
+        result = _Plain().execute(proj, _plan(), (_skeleton(proj, (shot,)),))
+        assert result.reused_ids == frozenset()
+        assert result.written == result.annotations
+
+
 # --- unproduced-output records (nw#44) ----------------------------------------
 
 
