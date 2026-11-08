@@ -49,6 +49,8 @@ from dataclasses import KW_ONLY, dataclass, field
 from pathlib import Path
 from typing import Optional
 
+from nw.paths import check_path_segment
+
 #: The store's data home, under nw's (not any genre's).
 DEFAULT_STORE_ROOT = Path("~/.local/share/nw/media")
 DEFAULT_TENANT = "local"
@@ -73,8 +75,11 @@ class StoreCatalogUnreadable(RuntimeError):
 
 
 def _segment(name: str, what: str) -> str:
-    if not _SEGMENT.fullmatch(name or "") or name == _META_DIR or ".." in name:
-        raise ValueError(f"{what} {name!r} is not a safe single path segment")
+    """``name`` as a tenant / class folder: :func:`nw.paths.check_path_segment`
+    with this store's stricter slug policy, never ``_nw`` or containing ``..``."""
+    check_path_segment(name, what=what, pattern=_SEGMENT)
+    if name == _META_DIR or ".." in name:
+        raise ValueError(f"invalid {what}: {name!r} is reserved or not a safe segment")
     return name
 
 

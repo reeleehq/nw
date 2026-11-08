@@ -69,3 +69,46 @@ def test_a_suffix_leaving_no_room_is_refused():
 def test_a_non_string_is_refused():
     with pytest.raises(TypeError):
         safe_path_segment(None)  # type: ignore[arg-type]
+
+
+# --- the validating half: check_path_segment (nw#227) ------------------------
+
+import re  # noqa: E402
+
+from nw.paths import check_path_segment  # noqa: E402
+
+
+@pytest.mark.parametrize("bad", ["", ".", "..", "a/b", "../x", "a\\b", "x\x00y"])
+def test_check_path_segment_refuses_anything_but_one_child(bad):
+    with pytest.raises(ValueError, match="invalid name"):
+        check_path_segment(bad, what="name")
+
+
+def test_check_path_segment_returns_a_good_name_unchanged():
+    assert check_path_segment("ep_01") == "ep_01"
+    assert check_path_segment(" padded ") == " padded "  # no silent rewrite
+
+
+def test_a_stricter_pattern_is_the_callers_policy():
+    slug = re.compile(r"[a-z0-9-]+")
+    assert check_path_segment("ok-1", pattern=slug) == "ok-1"
+    with pytest.raises(ValueError):
+        check_path_segment("Not A Slug", pattern=slug)
+
+
+def test_a_non_string_is_refused_by_the_validator_too():
+    with pytest.raises(ValueError):
+        check_path_segment(None)  # type: ignore[arg-type]
+
+
+def test_character_and_environment_names_cannot_leave_the_project(tmp_path):
+    import nw
+
+    proj = nw.Project.init(tmp_path / "p")
+    with pytest.raises(ValueError, match="character name"):
+        proj.add_character("../../escape")
+    with pytest.raises(ValueError, match="environment name"):
+        proj.add_environment("../escape")
+    assert not (tmp_path / "escape").exists()
+    proj.add_character("thor")  # an ordinary name still works
+    assert (tmp_path / "p" / "characters" / "thor").is_dir()

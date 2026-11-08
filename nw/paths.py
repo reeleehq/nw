@@ -1,5 +1,9 @@
 """Turning a caller-editable id into a file name that cannot leave its directory.
 
+Two modes, one module: :func:`safe_path_segment` **maps** any id to a safe
+name (never refuses), and :func:`check_path_segment` **validates** a name a
+caller chose and refuses one that is not a single direct child (nw#227).
+
 An id that came out of a body a caller can edit (a storyboard panel's
 ``panel_id``, a clip's id, a take's key) is *data*, and joining data onto a
 directory as ``dir / f"{id}.png"`` lets ``../../x`` write anywhere the process
@@ -33,7 +37,7 @@ from __future__ import annotations
 import hashlib
 import re
 
-__all__ = ["MAX_NAME_BYTES", "is_kept", "safe_path_segment"]
+__all__ = ["MAX_NAME_BYTES", "check_path_segment", "is_kept", "safe_path_segment"]
 
 MAX_NAME_BYTES = 255
 """The longest file name, in bytes, the filesystems nw runs on accept."""
@@ -98,3 +102,30 @@ def safe_path_segment(
     if not slug or _WINDOWS_DEVICE.fullmatch(slug):
         slug = ("_" + slug)[:slug_room]
     return f"{slug}.{digest}{suffix}"
+
+
+def check_path_segment(
+    value: str, *, what: str = "path segment", pattern: "re.Pattern | None" = None
+) -> str:
+    """``value``, refused unless it names a direct child of the directory it is
+    joined to: not empty, not ``.`` or ``..``, no ``/``, ``\\`` or NUL
+    (nw#227). Returns it unchanged.
+
+    ``pattern`` is a stricter policy a caller adds (``fullmatch``), e.g. a
+    store whose names must be slugs. ``what`` names the value in the error.
+
+    >>> check_path_segment("ep_01", what="project_id")
+    'ep_01'
+    >>> check_path_segment("../escape", what="project_id")
+    Traceback (most recent call last):
+        ...
+    ValueError: invalid project_id: '../escape' is not a single path segment
+    """
+    if (
+        not isinstance(value, str)
+        or value in ("", ".", "..")
+        or any(c in value for c in ("/", "\\", "\x00"))
+        or (pattern is not None and not pattern.fullmatch(value))
+    ):
+        raise ValueError(f"invalid {what}: {value!r} is not a single path segment")
+    return value
