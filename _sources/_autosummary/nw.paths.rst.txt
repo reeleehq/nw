@@ -1,0 +1,19 @@
+nw.paths
+========
+
+.. automodule:: nw.paths
+
+   
+   .. rubric:: Module Attributes
+
+   .. autosummary::
+   
+      MAX_NAME_BYTES
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      is_kept
+      safe_path_segment
+   

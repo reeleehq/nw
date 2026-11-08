@@ -1,4 +1,4 @@
-> built 2026-11-03 13:18 UTC from 1e5c9e9 (main) · nw 0.0.126. Details: build_info.json
+> built 2026-11-08 21:39 UTC from 952cfb9 (main) · nw 0.0.127. Details: build_info.json
 
 # index.html.md
 
@@ -3683,6 +3683,7 @@ are recorded as linked artifacts), see
 | [`mark_rewritten`](_autosummary/nw.html.md#nw.mark_rewritten)(project, marker)                   | Record `marker` as done without scanning: for a project created already in today's vocabulary, so opening it never pays for the scan.                                                                                              |
 | [`rewrite_values`](_autosummary/nw.html.md#nw.rewrite_values)(project, fn, \*[, marker, where])  | Apply `fn(body) -> body` to every stored annotation body; return how many changed.                                                                                                                                                 |
 | [`require_fields`](_autosummary/nw.html.md#nw.require_fields)(cls, fields, \*[, remedy])         | Raise [`NwTooOldError`](_autosummary/nw.html.md#nw.NwTooOldError) unless `cls` accepts every keyword in `fields` (names, or a mapping whose keys are the names).                                                                |
+| [`safe_path_segment`](_autosummary/nw.html.md#nw.safe_path_segment)(value, \*[, suffix, max_bytes]) | A single file name for `value` (plus `suffix`) that is always a direct child of the directory it is joined to.                                                                                                                     |
 | [`unmark_rewritten`](_autosummary/nw.html.md#nw.unmark_rewritten)(project, marker)                 | Forget that `marker` ran, so the next [`rewrite_values()`](_autosummary/nw.html.md#nw.rewrite_values) with it scans again (a test simulating a project made before the rename).                                                  |
 | [`adopt_tenant_id`](_autosummary/nw.html.md#nw.adopt_tenant_id)(project, \*[, dry_run])           | Pin a legacy project's historical tenant into `project.json` (nw#112).                                                                                                                                                             |
 | [`as_project_storage`](_autosummary/nw.html.md#nw.as_project_storage)(project)                       | The [`ProjectStorage`](_autosummary/nw.html.md#nw.ProjectStorage) for a path, a storage, or an `nw.Project`.                                                                                                                     |
@@ -7188,6 +7189,30 @@ mid-rewrite leaves that trace stale (conservative, never wrong-fresh).
 * **Return type:**
   [`int`](https://docs.python.org/3/builtins/functions.html#int)
 
+### nw.safe_path_segment(value, , suffix='', max_bytes=255)
+
+A single file name for `value` (plus `suffix`) that is always a direct
+child of the directory it is joined to.
+
+```pycon
+>>> safe_path_segment("p0a1", suffix=".png")
+'p0a1.png'
+>>> safe_path_segment("../../x", suffix=".png")
+'x.9cdf6a50.png'
+>>> safe_path_segment("..")
+'_.5ec1f7e7'
+>>> safe_path_segment("con", suffix=".png")
+'_con.1143da2b.png'
+```
+
+Deterministic, so the same id always lands on the same file. `suffix` is
+appended verbatim and is the caller’s (a literal like `".png"`, never
+data). Raises `ValueError` when `suffix` leaves no room for a name
+within `max_bytes`.
+
+* **Return type:**
+  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
+
 ### nw.shot_report(project, shot_id, , freeze_sample_fps=4.0, duration_tolerance_s=0.1)
 
 Inspect `shots/<shot_id>/output.mp4` and return a typed report.
@@ -7503,6 +7528,7 @@ True
 | [`media_catalog`](_autosummary/nw.media_catalog.html.md#module-nw.media_catalog)             | Make a genre project's media *retrievable* from its host — the host's artifact catalog.                                         |
 | [`media_store`](_autosummary/nw.media_store.html.md#module-nw.media_store)                 | One content-addressed blob store per user, shared by every genre and host (nw#95).                                              |
 | [`migrate`](_autosummary/nw.migrate.html.md#module-nw.migrate)                         | Idempotent migration: project.json (sections/shots/refs) → lacing graph.                                                        |
+| [`paths`](_autosummary/nw.paths.html.md#module-nw.paths)                             | Turning a caller-editable id into a file name that cannot leave its directory.                                                  |
 | [`pricing`](_autosummary/nw.pricing.html.md#module-nw.pricing)                         | Re-quoting a persisted plan at today's rates (nw#74).                                                                           |
 | [`project`](_autosummary/nw.project.html.md#module-nw.project)                         | Project facade: a folder on disk → typed reads, typed writes, typed summary.                                                    |
 | [`renderers`](_autosummary/nw.renderers.html.md#module-nw.renderers)                     | Render strategies — pluggable, plan-producing, **shot-typed**.                                                                  |
@@ -9255,6 +9281,91 @@ The id a shared backend keys the project’s graph on.
 The id minted at `Project.init` (`project.json`’s `tenant_id`); for a
 project that predates it, its historical [`project_asset_id()`](_autosummary/nw.migrate.html.md#nw.migrate.project_asset_id). The rule
 is [`nw.storage.tenant_id_of()`](_autosummary/nw.storage.html.md#nw.storage.tenant_id_of).
+
+* **Return type:**
+  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
+
+
+# _autosummary/nw.paths.html.md
+
+# nw.paths
+
+Turning a caller-editable id into a file name that cannot leave its directory.
+
+An id that came out of a body a caller can edit (a storyboard panel’s
+`panel_id`, a clip’s id, a take’s key) is *data*, and joining data onto a
+directory as `dir / f"{id}.png"` lets `../../x` write anywhere the process
+can. [`safe_path_segment()`](_autosummary/nw.paths.html.md#nw.paths.safe_path_segment) is the one mapping from such an id to a single
+path segment, shared by every genre that names files after ids (nw#220; reelee
+fixed the same pattern for its Ken Burns clips in reelee#930).
+
+The mapping, and why each part is there:
+
+- **An id that is already a safe slug is kept as is**, so the file of a panel
+  that has always rendered to `storyboard/<panel_id>.png` keeps that name and
+  a re-render still overwrites it.
+- \*\*Anything else becomes its slug, a `.` and a short digest of the id.\*\* The
+  digest keeps two odd ids that slug alike (`a/b`, `a\b`) apart, and the
+  `.` is never in a kept id, so a mapped name cannot equal a kept one.
+- **The name fits a file name’s byte limit**, suffix included, and never spells
+  a Windows device name (`CON`, `NUL`, `COM1` …), which Windows refuses
+  whatever the extension.
+
+Not handled: two kept ids differing only in case (`Panel1`, `panel1`) share
+a file on a case-insensitive filesystem, so editing an id to `P0A1` beside
+`p0a1` overwrites that file — inside the directory, never outside it. Folding
+case would rename every existing mixed-case file, and the ids artful mints
+(`new_panel_id`) are lowercase.
+
+No dependency beyond the standard library.
+
+### Module Attributes
+
+| [`MAX_NAME_BYTES`](_autosummary/nw.paths.html.md#nw.paths.MAX_NAME_BYTES)   | The longest file name, in bytes, the filesystems nw runs on accept.   |
+|-------------------------------------------------------------------|-----------------------------------------------------------------------|
+
+### Functions
+
+| [`is_kept`](_autosummary/nw.paths.html.md#nw.paths.is_kept)(name)                                     | Whether [`safe_path_segment()`](_autosummary/nw.paths.html.md#nw.paths.safe_path_segment) keeps `name` verbatim (its stem).   |
+|----------------------------------------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------|
+| [`safe_path_segment`](_autosummary/nw.paths.html.md#nw.paths.safe_path_segment)(value, \*[, suffix, max_bytes]) | A single file name for `value` (plus `suffix`) that is always a direct child of the directory it is joined to.   |
+
+### nw.paths.MAX_NAME_BYTES *= 255*
+
+The longest file name, in bytes, the filesystems nw runs on accept.
+
+### nw.paths.is_kept(name)
+
+Whether [`safe_path_segment()`](_autosummary/nw.paths.html.md#nw.paths.safe_path_segment) keeps `name` verbatim (its stem).
+
+```pycon
+>>> is_kept("p0a1"), is_kept("x.9cdf6a50"), is_kept("nul")
+(True, False, False)
+```
+
+* **Return type:**
+  [`bool`](https://docs.python.org/3/builtins/functions.html#bool)
+
+### nw.paths.safe_path_segment(value, , suffix='', max_bytes=255)
+
+A single file name for `value` (plus `suffix`) that is always a direct
+child of the directory it is joined to.
+
+```pycon
+>>> safe_path_segment("p0a1", suffix=".png")
+'p0a1.png'
+>>> safe_path_segment("../../x", suffix=".png")
+'x.9cdf6a50.png'
+>>> safe_path_segment("..")
+'_.5ec1f7e7'
+>>> safe_path_segment("con", suffix=".png")
+'_con.1143da2b.png'
+```
+
+Deterministic, so the same id always lands on the same file. `suffix` is
+appended verbatim and is the caller’s (a literal like `".png"`, never
+data). Raises `ValueError` when `suffix` leaves no room for a name
+within `max_bytes`.
 
 * **Return type:**
   [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
@@ -11863,18 +11974,20 @@ produce different URLs. The local file paths are byte-stable.
 
 # About this build
 
-This documentation was built on **2026-11-03 13:18 UTC** from commit <a href="https://github.com/reeleehq/nw/commit/1e5c9e90461b1f91ff69f6f65895e8a59c2a954d"><code>1e5c9e9</code></a> on branch <code>main</code>, for **nw 0.0.126** (from <code>pyproject.toml</code>).
+This documentation was built on **2026-11-08 21:39 UTC** from commit <a href="https://github.com/reeleehq/nw/commit/952cfb9d8c57dc5d062d61ff209a4afc7cf744bc"><code>952cfb9</code></a> on branch <code>main</code>, for **nw 0.0.127** (from <code>pyproject.toml</code>).
 
-#### NOTE
-Nothing suggests a mismatch: the tree was clean at the commit above, and the documented version is the one on PyPI.
+#### WARNING
+The documentation and the package may be misaligned:
+
+- The documented version (0.0.127) is ahead of the latest release on PyPI (0.0.126): these docs describe unreleased code.
 
 ## Source
 
 |                     |                                                                                                                                                    |
 |---------------------|----------------------------------------------------------------------------------------------------------------------------------------------------|
-| Commit              | <a href="https://github.com/reeleehq/nw/commit/1e5c9e90461b1f91ff69f6f65895e8a59c2a954d"><code>1e5c9e90461b1f91ff69f6f65895e8a59c2a954d</code></a> |
+| Commit              | <a href="https://github.com/reeleehq/nw/commit/952cfb9d8c57dc5d062d61ff209a4afc7cf744bc"><code>952cfb9d8c57dc5d062d61ff209a4afc7cf744bc</code></a> |
 | Branch              | <code>main</code>                                                                                                                                  |
-| Tags at this commit | <code>0.0.126</code>                                                                                                                               |
+| Tags at this commit | <code>0.0.127</code>                                                                                                                               |
 | Working tree        | clean                                                                                                                                              |
 | Remote              | <code>https://github.com/reeleehq/nw</code>                                                                                                        |
 
@@ -11883,9 +11996,9 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 |              |                                                                                            |
 |--------------|--------------------------------------------------------------------------------------------|
 | Repository   | <code>reeleehq/nw</code>                                                                   |
-| Run          | <a href="https://github.com/reeleehq/nw/actions/runs/41640159748">41640159748</a>          |
+| Run          | <a href="https://github.com/reeleehq/nw/actions/runs/42526055944">42526055944</a>          |
 | Ref          | <code>refs/heads/main</code>                                                               |
-| Event commit | <code>e4fd8530dcd4e4eee3d44913bf0a8da31b44f6ec</code> (in the history of the built commit) |
+| Event commit | <code>c43d2199802d3062d9a6c63cb8e62bd57f00c0ea</code> (in the history of the built commit) |
 
 ## Tools
 
@@ -11894,7 +12007,7 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 | epythet  | 0.2.22  |
 | Sphinx   | 9.1.1   |
 | docutils | 0.22.4  |
-| Python   | 3.12.15 |
+| Python   | 3.12.16 |
 
 ## Configuration as resolved
 
@@ -11910,13 +12023,13 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 
 ## Package on PyPI
 
-Latest release: <a href="https://pypi.org/project/nw/0.0.126/">0.0.126</a>, the same as the documented version.
+Latest release: <a href="https://pypi.org/project/nw/0.0.126/">0.0.126</a>, older than the documented version (0.0.127).
 
 ## Reproduce
 
 ```bash
 git clone https://github.com/reeleehq/nw && cd nw
-git checkout 1e5c9e90461b1f91ff69f6f65895e8a59c2a954d
+git checkout 952cfb9d8c57dc5d062d61ff209a4afc7cf744bc
 pip install "epythet==0.2.22"
 epythet quickstart . --ignore tests/ scrap/ examples/
 ```

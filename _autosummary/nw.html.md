@@ -80,6 +80,7 @@ are recorded as linked artifacts), see
 | [`mark_rewritten`](#nw.mark_rewritten)(project, marker)                   | Record `marker` as done without scanning: for a project created already in today's vocabulary, so opening it never pays for the scan.                                                                                              |
 | [`rewrite_values`](#nw.rewrite_values)(project, fn, \*[, marker, where])  | Apply `fn(body) -> body` to every stored annotation body; return how many changed.                                                                                                                                                 |
 | [`require_fields`](#nw.require_fields)(cls, fields, \*[, remedy])         | Raise [`NwTooOldError`](#nw.NwTooOldError) unless `cls` accepts every keyword in `fields` (names, or a mapping whose keys are the names).                                                                |
+| [`safe_path_segment`](#nw.safe_path_segment)(value, \*[, suffix, max_bytes]) | A single file name for `value` (plus `suffix`) that is always a direct child of the directory it is joined to.                                                                                                                     |
 | [`unmark_rewritten`](#nw.unmark_rewritten)(project, marker)                 | Forget that `marker` ran, so the next [`rewrite_values()`](#nw.rewrite_values) with it scans again (a test simulating a project made before the rename).                                                  |
 | [`adopt_tenant_id`](#nw.adopt_tenant_id)(project, \*[, dry_run])           | Pin a legacy project's historical tenant into `project.json` (nw#112).                                                                                                                                                             |
 | [`as_project_storage`](#nw.as_project_storage)(project)                       | The [`ProjectStorage`](#nw.ProjectStorage) for a path, a storage, or an `nw.Project`.                                                                                                                     |
@@ -3585,6 +3586,30 @@ mid-rewrite leaves that trace stale (conservative, never wrong-fresh).
 * **Return type:**
   [`int`](https://docs.python.org/3/builtins/functions.html#int)
 
+### nw.safe_path_segment(value, , suffix='', max_bytes=255)
+
+A single file name for `value` (plus `suffix`) that is always a direct
+child of the directory it is joined to.
+
+```pycon
+>>> safe_path_segment("p0a1", suffix=".png")
+'p0a1.png'
+>>> safe_path_segment("../../x", suffix=".png")
+'x.9cdf6a50.png'
+>>> safe_path_segment("..")
+'_.5ec1f7e7'
+>>> safe_path_segment("con", suffix=".png")
+'_con.1143da2b.png'
+```
+
+Deterministic, so the same id always lands on the same file. `suffix` is
+appended verbatim and is the caller’s (a literal like `".png"`, never
+data). Raises `ValueError` when `suffix` leaves no room for a name
+within `max_bytes`.
+
+* **Return type:**
+  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
+
 ### nw.shot_report(project, shot_id, , freeze_sample_fps=4.0, duration_tolerance_s=0.1)
 
 Inspect `shots/<shot_id>/output.mp4` and return a typed report.
@@ -3900,6 +3925,7 @@ True
 | [`media_catalog`](nw.media_catalog.html.md#module-nw.media_catalog)             | Make a genre project's media *retrievable* from its host — the host's artifact catalog.                                         |
 | [`media_store`](nw.media_store.html.md#module-nw.media_store)                 | One content-addressed blob store per user, shared by every genre and host (nw#95).                                              |
 | [`migrate`](nw.migrate.html.md#module-nw.migrate)                         | Idempotent migration: project.json (sections/shots/refs) → lacing graph.                                                        |
+| [`paths`](nw.paths.html.md#module-nw.paths)                             | Turning a caller-editable id into a file name that cannot leave its directory.                                                  |
 | [`pricing`](nw.pricing.html.md#module-nw.pricing)                         | Re-quoting a persisted plan at today's rates (nw#74).                                                                           |
 | [`project`](nw.project.html.md#module-nw.project)                         | Project facade: a folder on disk → typed reads, typed writes, typed summary.                                                    |
 | [`renderers`](nw.renderers.html.md#module-nw.renderers)                     | Render strategies — pluggable, plan-producing, **shot-typed**.                                                                  |

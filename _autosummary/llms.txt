@@ -31,6 +31,7 @@
 - [nw.media_catalog](nw.media_catalog.html.md): Make a genre project’s media &#42;retrievable&#42; from its host — the host’s artifact catalog.
 - [nw.media_store](nw.media_store.html.md): One content-addressed blob store per user, shared by every genre and host (nw#95).
 - [nw.migrate](nw.migrate.html.md): Idempotent migration: project.json (sections/shots/refs) → lacing graph.
+- [nw.paths](nw.paths.html.md): Turning a caller-editable id into a file name that cannot leave its directory.
 - [nw.pricing](nw.pricing.html.md): Re-quoting a persisted plan at today’s rates (nw#74).
 - [nw.project](nw.project.html.md): Project facade: a folder on disk → typed reads, typed writes, typed summary.
 - [nw.renderers](nw.renderers.html.md): Render strategies — pluggable, plan-producing, &#42;&#42;shot-typed&#42;&#42;.

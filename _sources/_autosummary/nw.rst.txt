@@ -38,6 +38,7 @@
       mark_rewritten
       rewrite_values
       require_fields
+      safe_path_segment
       unmark_rewritten
       adopt_tenant_id
       as_project_storage
@@ -178,6 +179,7 @@
    media_catalog
    media_store
    migrate
+   paths
    pricing
    project
    renderers
