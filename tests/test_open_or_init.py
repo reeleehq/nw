@@ -31,6 +31,13 @@ def test_is_project_never_writes(tmp_path):
     assert list((tmp_path / "plain").iterdir()) == []
 
 
+def test_a_file_or_a_directory_named_like_the_marker_is_not_a_project(tmp_path):
+    (tmp_path / "f").write_text("x")
+    assert nw.is_project(tmp_path / "f") is False
+    (tmp_path / "d" / nw.storage.PROJECT_FILE_NAME).mkdir(parents=True)
+    assert nw.is_project(tmp_path / "d") is False
+
+
 def test_is_project_accepts_a_path_a_storage_or_a_project(tmp_path):
     proj = nw.Project.init(tmp_path / "p")
     assert nw.is_project(proj.root) and nw.is_project(str(proj.root))
@@ -83,6 +90,19 @@ def test_an_explicit_storage_is_honoured(tmp_path):
     made = nw.Project.open_or_init(tmp_path, title="explicit", storage=storage)
     assert made.storage is storage
     assert nw.Project.open_or_init(tmp_path, storage=storage).read_spec().title == "explicit"
+
+
+def test_an_explicit_storage_elsewhere_creates_the_project_where_it_lives(tmp_path):
+    """With an explicit storage whose root differs from ``root``, the project is
+    made at ``storage.root`` (what the lock covers and what Project opens),
+    never half-made at ``root``."""
+    app_root = tmp_path / "app_root"
+    storage = _mapping_storage(app_root)
+    made = nw.Project.open_or_init(tmp_path / "other_root", title="t", storage=storage)
+    assert made.root == storage.root and app_root.is_dir()
+    assert not (tmp_path / "other_root").exists()
+    again = nw.Project.open_or_init(tmp_path / "other_root", storage=storage)
+    assert again.read_spec().title == "t"
 
 
 def test_two_callers_racing_to_create_both_get_the_project(tmp_path, monkeypatch):

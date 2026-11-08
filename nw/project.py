@@ -260,25 +260,30 @@ def genre_status_of(
     return status
 
 
-_CREATION_LOCK_PREFIX = "nw-project-create-"
-"""Name prefix of :func:`_creation_lock`'s lock files in the temp directory."""
+_CREATION_LOCKS_DIR = "nw-project-create-locks"
+"""Folder of the temp directory holding :func:`_creation_lock`'s lock files
+(one per project root ever created, a few bytes each; delete it at will)."""
 
 
 def _creation_lock(root: Path) -> AbstractContextManager:
     """An exclusive lock, across processes on this host, on creating ``root``.
 
-    Lives in the system temp directory, keyed by a digest of the resolved root,
-    so taking it writes nothing in the folder being created (which
-    :meth:`Project.init` requires to be empty) or in the host's projects
-    directory. Advisory and best effort, as :func:`dol.atomic.file_lock` is.
+    Lives in the system temp directory, keyed by a digest of the resolved,
+    case-normalised root, so taking it writes nothing in the folder being
+    created (which :meth:`Project.init` requires to be empty) or in the host's
+    projects directory. Advisory and best effort, as
+    :func:`dol.atomic.file_lock` is: yields whether the lock is held.
     """
     import hashlib
+    import os
     import tempfile
 
     from dol.atomic import file_lock
 
-    digest = hashlib.sha256(str(Path(root).resolve()).encode("utf-8")).hexdigest()
-    return file_lock(Path(tempfile.gettempdir()) / f"{_CREATION_LOCK_PREFIX}{digest[:32]}")
+    locks = Path(tempfile.gettempdir()) / _CREATION_LOCKS_DIR
+    locks.mkdir(exist_ok=True)
+    key = os.path.normcase(str(Path(root).resolve()))
+    return file_lock(locks / hashlib.sha256(key.encode("utf-8")).hexdigest()[:32])
 
 
 class Project:
@@ -420,18 +425,26 @@ class Project:
         a project is refused by :meth:`init` (``FileExistsError``), never
         overwritten.
 
-        Two callers creating the same project at once both get it: the create
-        runs under a cross-process lock on this host (:func:`_creation_lock`),
-        and the loser finds the winner's project when it gets the lock. An
-        existing project is opened without taking the lock.
+        Two callers creating the same project at once both get it, on a host
+        whose temp directory takes advisory locks: the create runs under a
+        cross-process lock (:func:`_creation_lock`), and the loser finds the
+        winner's project when it gets the lock. Where locking is unavailable
+        the create runs unlocked (logged at debug). An existing project is
+        opened without taking the lock.
+
+        The project is created at ``storage.root``, the place the lock covers
+        and the one :class:`Project` opens; with an explicit ``storage``,
+        ``root`` is only what resolved it.
         """
         storage = storage if storage is not None else as_project_storage(root)
         if is_project(storage):
-            return cls(root, storage=storage)
-        with _creation_lock(storage.root):
+            return cls(storage.root, storage=storage)
+        with _creation_lock(storage.root) as held:
+            if not held:
+                _logger.debug("open_or_init: no creation lock for %s", storage.root)
             if is_project(storage):
-                return cls(root, storage=storage)
-            return cls.init(root, title=title, storage=storage)
+                return cls(storage.root, storage=storage)
+            return cls.init(storage.root, title=title, storage=storage)
 
     # -- properties --------------------------------------------------------
 
