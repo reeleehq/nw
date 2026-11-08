@@ -355,11 +355,20 @@ class Project:
             storage: Where the project's documents and annotation stores
                 live (:mod:`nw.storage`). ``None`` is nw's own folder layout.
                 A non-folder storage may share ``root`` with the app that owns
-                it, so its folder only has to be free of an nw project.
+                it, so its folder only has to be free of an nw project. Its
+                ``root`` must be ``root`` (``ValueError`` otherwise).
         """
         root = Path(root).resolve()
         if storage is None:
             storage = FolderStorage(root)
+        elif Path(storage.root).resolve() != root:
+            # init would make `root` while the project lives at storage.root,
+            # which Project then opens: a half-made project every retry fails
+            # on (nw#236). Refuse the disagreement instead of guessing.
+            raise ValueError(
+                f"Project.init: root {root} is not the storage's root "
+                f"{Path(storage.root).resolve()}; pass storage.root"
+            )
         docs = storage.docs
         owns_folder = isinstance(storage, FolderStorage)
 

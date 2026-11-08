@@ -19,6 +19,7 @@ from pathlib import Path
 from typing import Callable, Iterable, Optional, TypeVar
 
 from .project import Project
+from .storage import PROJECT_FILE_NAME, FolderStorage, as_project_storage, is_project
 from .schema import ProjectSummary
 
 
@@ -64,8 +65,16 @@ def clone_project(
     src = Path(src_root).resolve()
     dst = Path(dst_root).resolve()
 
-    if not (src / "project.json").exists():
-        raise FileNotFoundError(f"{src} is not an nw project (no project.json).")
+    # A clone copies folders, so it serves nw's folder layout only; ask the
+    # storage rather than naming the marker file (nw#236).
+    src_storage = as_project_storage(src)
+    if not is_project(src_storage):
+        raise FileNotFoundError(f"{src} is not an nw project.")
+    if not isinstance(src_storage, FolderStorage):
+        raise ValueError(
+            f"{src} keeps its documents in {type(src_storage).__name__}, not "
+            "nw's folder layout; clone_project copies folders only."
+        )
 
     if dst.exists():
         if not force:
@@ -76,8 +85,8 @@ def clone_project(
 
     dst.mkdir(parents=True)
 
-    # Copy project.json — always preserved (it's the SSOT pointer).
-    shutil.copy2(src / "project.json", dst / "project.json")
+    # Copy the project document — always preserved (it's the SSOT pointer).
+    shutil.copy2(src / PROJECT_FILE_NAME, dst / PROJECT_FILE_NAME)
 
     # Copy each preserve subtree, when it exists in src.
     preserve_set = set(preserve)

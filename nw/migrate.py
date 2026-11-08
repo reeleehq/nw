@@ -58,6 +58,9 @@ from .graph_backend import SCOPE_GRAPH, open_graph_store, selected_backend
 
 _PROJECT_GRAPH_DB_NAME = "project.annot.sqlite"
 _MIGRATED_SENTINEL_NAME = "migrated_to_graph"
+# This module reads ``project.json`` by path on purpose: only nw's folder
+# layout (``FolderStorage``) has a pre-graph past to migrate from, so it never
+# goes through a genre's storage (nw#236).
 _BACKUP_NAME = "project.json.pre-graph.bak"
 
 # Tiers used for project-graph annotations.

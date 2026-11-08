@@ -140,3 +140,12 @@ def test_two_callers_racing_to_create_both_get_the_project(tmp_path, monkeypatch
     assert errors == [] and len(results) == 2
     assert {p.root for p in results} == {root.resolve()}
     assert {p.read_spec().title for p in results} == {"race"}
+
+
+def test_init_refuses_a_root_that_is_not_the_storages(tmp_path):
+    """nw#236: init would make ``root`` while the project lives at
+    ``storage.root`` — a half-made project every retry fails on."""
+    storage = _mapping_storage(tmp_path / "app_root")
+    with pytest.raises(ValueError, match="not the storage's root"):
+        nw.Project.init(tmp_path / "other_root", storage=storage)
+    assert not (tmp_path / "other_root").exists()
