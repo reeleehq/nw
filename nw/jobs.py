@@ -1047,6 +1047,8 @@ def _created_key(record) -> datetime:
     created = _parse_iso(record.get("created_at"))
     if created is None:
         return datetime.min.replace(tzinfo=timezone.utc)
+    # A string without an offset is a legacy index entry nw itself wrote in
+    # UTC, so here naive means UTC, unlike au's naive datetimes in _iso (nw#229).
     return created if created.tzinfo else created.replace(tzinfo=timezone.utc)
 
 
@@ -3340,8 +3342,13 @@ _now_iso = now_iso  # historical private spelling
 
 
 def _iso(dt: datetime) -> str:
-    if dt.tzinfo is None:
-        dt = dt.replace(tzinfo=timezone.utc)
+    """``dt`` as a UTC ISO string ending in ``Z``.
+
+    A naive ``dt`` is **local** time, not UTC: nw's own clock is aware, and
+    the naive ones that reach here are au's ``created_at`` / ``completed_at``
+    (``datetime.now()``), which labelling as UTC shifted by the machine's
+    offset (nw#229). ``astimezone`` reads a naive value as local.
+    """
     return dt.astimezone(timezone.utc).isoformat().replace("+00:00", "Z")
 
 
