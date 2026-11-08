@@ -384,7 +384,8 @@ def test_cancel_running_flips_to_cancelled_not_failed(project):
     _poll_until(project, job.job_id, lambda j: j.status == jobs.RUNNING)
 
     cancelled = jobs.cancel_job(project, job.job_id)
-    assert cancelled.status in (jobs.CANCELLING, jobs.CANCELLED)
+    # au>=0.1.11's compare-and-set CANCELLED (nw#216): no `cancelling` window.
+    assert cancelled.status == jobs.CANCELLED
 
     # Let the worker finish (it will try to write COMPLETED) — cancel_requested
     # is authoritative, so the job must still read `cancelled`, never succeeded.
@@ -396,6 +397,21 @@ def test_cancel_running_flips_to_cancelled_not_failed(project):
     assert final.error is None  # not a failure
 
 
+def test_a_cancel_racing_the_workers_running_write_is_never_lost(project):
+    """nw#216 / reelee#765: before au 0.1.11 a cancel landing between the
+    worker's RUNNING read and its write was overwritten (~5% of runs), and the
+    job read ``cancelling`` until its worker ended. Cancel the instant it is
+    enqueued, many times, so the window is hit."""
+    for i in range(50):
+        release = threading.Event()
+        job = jobs.enqueue(
+            project, "op", {**VIDEO_PARAMS, "i": i}, dispatch={"op": _blocking_stub(release)}
+        )
+        assert jobs.cancel_job(project, job.job_id).status == jobs.CANCELLED, i
+        release.set()
+        _poll_until(project, job.job_id, lambda j: j.status == jobs.CANCELLED)
+
+
 def test_cancel_is_idempotent(project):
     release = threading.Event()
     dispatch = {"op": _blocking_stub(release)}
@@ -403,7 +419,7 @@ def test_cancel_is_idempotent(project):
     _poll_until(project, job.job_id, lambda j: j.status == jobs.RUNNING)
     jobs.cancel_job(project, job.job_id)
     again = jobs.cancel_job(project, job.job_id)  # second cancel: no error
-    assert again.status in (jobs.CANCELLING, jobs.CANCELLED)
+    assert again.status == jobs.CANCELLED
     release.set()
     _poll_until(project, job.job_id, lambda j: j.status == jobs.CANCELLED)
 
