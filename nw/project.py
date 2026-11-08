@@ -550,7 +550,8 @@ class Project:
                 mirror_genre_envelope(self.storage, body)
         except Exception:
             _logger.debug(
-                "resolved_genre: could not sync %s's envelope mirror", self.root,
+                "resolved_genre: could not sync %s's envelope mirror",
+                self.root,
                 exc_info=True,
             )
         return None if body is None else body.as_envelope()

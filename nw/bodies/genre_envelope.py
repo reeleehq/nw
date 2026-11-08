@@ -65,7 +65,11 @@ class GenreEnvelopeBodyV1(BaseModel):
     def as_envelope(self) -> dict:
         """The plain ``{genre, template, params}`` dict
         :func:`nw.genres.resolve_genre` returns (``params`` a fresh dict)."""
-        return {"genre": self.genre, "template": self.template, "params": dict(self.params)}
+        return {
+            "genre": self.genre,
+            "template": self.template,
+            "params": dict(self.params),
+        }
 
 
 register_body_schema(GENRE_ENVELOPE_BODY_SCHEMA_URI, GenreEnvelopeBodyV1)

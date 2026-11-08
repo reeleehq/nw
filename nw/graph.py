@@ -454,7 +454,8 @@ class ProjectGraph:
             mirror_genre_envelope(self.storage, body)
         except Exception:
             _logger.warning(
-                "set_genre_envelope: could not mirror %s's envelope", self.project_root,
+                "set_genre_envelope: could not mirror %s's envelope",
+                self.project_root,
                 exc_info=True,
             )
         return ann_id
