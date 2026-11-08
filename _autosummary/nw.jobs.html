@@ -286,8 +286,9 @@ that key is live returns the existing job instead of launching a duplicate.</p><
 <li><p><strong>Cancel is boundary-grained and race-proof.</strong> <code class="docutils literal notranslate"><span class="pre">cancel_job</span></code> flips the au
 record terminal <em>and</em> sets a durable should-cancel flag; the <code class="docutils literal notranslate"><span class="pre">cancel_requested</span></code>
 flag is the authority for cancellation intent, so a job reads
-<code class="docutils literal notranslate"><span class="pre">cancelling</span></code> → <code class="docutils literal notranslate"><span class="pre">cancelled</span></code> regardless of whether the still-running
-<code class="docutils literal notranslate"><span class="pre">ThreadBackend</span></code> thread later clobbers the store with COMPLETED. The key
+<code class="docutils literal notranslate"><span class="pre">cancelling</span></code> → <code class="docutils literal notranslate"><span class="pre">cancelled</span></code> even where the store’s compare-and-set does
+not span writers (au&gt;=0.1.11 makes RUNNING, the outcome and CANCELLED
+compare-and-set, so the thread no longer overwrites a cancel, nw#216). The key
 stays live until that thread has exited, in this process or any replica
 sharing the store: each run carries a <code class="docutils literal notranslate"><span class="pre">run_token</span></code>, its heartbeat stamps
 only its own record, and <code class="docutils literal notranslate"><span class="pre">worker_exited_at</span></code> is written once the run’s
@@ -1004,8 +1005,8 @@ Best-effort per run, like <code class="docutils literal notranslate"><span class
 boundary) <em>and</em> flips the au record terminal at once via <code class="docutils literal notranslate"><span class="pre">au.cancel_task</span></code>
 (which builds the handle <strong>with the backend</strong> so <code class="docutils literal notranslate"><span class="pre">terminate</span></code> is reached).
 The <code class="docutils literal notranslate"><span class="pre">cancel_requested</span></code> flag is authoritative, so the job reads
-<code class="docutils literal notranslate"><span class="pre">cancelling</span></code> → <code class="docutils literal notranslate"><span class="pre">cancelled</span></code> even if the still-running thread later
-overwrites the store with COMPLETED.</p>
+<code class="docutils literal notranslate"><span class="pre">cancelling</span></code> → <code class="docutils literal notranslate"><span class="pre">cancelled</span></code> even where the store’s compare-and-set does
+not span writers (au&gt;=0.1.11, nw#216).</p>
 <p><strong>A job that has already finished is not cancelled — the call is a no-op</strong>
 and returns the job unchanged. Because the flag is authoritative for
 status, setting it on a terminal record rewrote a SUCCEEDED job to
@@ -1485,7 +1486,7 @@ cannot silently claim one name.</p>
     </div>
   </div>
 </footer>
-      <script src="../_static/documentation_options.js?v=a23b8d2c"></script>
+      <script src="../_static/documentation_options.js?v=4a212eee"></script>
       <script src="../_static/doctools.js?v=fd6eb6e6"></script>
       <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script src="../_static/clipboard.min.js?v=a7894cd8"></script>

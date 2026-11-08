@@ -1,4 +1,4 @@
-> built 2026-11-08 21:39 UTC from 952cfb9 (main) · nw 0.0.127. Details: build_info.json
+> built 2026-11-08 21:46 UTC from a92c0bc (main) · nw 0.0.128. Details: build_info.json
 
 # index.html.md
 
@@ -7696,8 +7696,9 @@ Design decisions (from the `nw.jobs`-on-`au` design report,
 - **Cancel is boundary-grained and race-proof.** `cancel_job` flips the au
   record terminal *and* sets a durable should-cancel flag; the `cancel_requested`
   flag is the authority for cancellation intent, so a job reads
-  `cancelling` → `cancelled` regardless of whether the still-running
-  `ThreadBackend` thread later clobbers the store with COMPLETED. The key
+  `cancelling` → `cancelled` even where the store’s compare-and-set does
+  not span writers (au>=0.1.11 makes RUNNING, the outcome and CANCELLED
+  compare-and-set, so the thread no longer overwrites a cancel, nw#216). The key
   stays live until that thread has exited, in this process or any replica
   sharing the store: each run carries a `run_token`, its heartbeat stamps
   only its own record, and `worker_exited_at` is written once the run’s
@@ -8219,8 +8220,8 @@ Sets a durable should-cancel flag (a running stage stops at its next
 boundary) *and* flips the au record terminal at once via `au.cancel_task`
 (which builds the handle **with the backend** so `terminate` is reached).
 The `cancel_requested` flag is authoritative, so the job reads
-`cancelling` → `cancelled` even if the still-running thread later
-overwrites the store with COMPLETED.
+`cancelling` → `cancelled` even where the store’s compare-and-set does
+not span writers (au>=0.1.11, nw#216).
 
 **A job that has already finished is not cancelled — the call is a no-op**
 and returns the job unchanged. Because the flag is authoritative for
@@ -11974,20 +11975,18 @@ produce different URLs. The local file paths are byte-stable.
 
 # About this build
 
-This documentation was built on **2026-11-08 21:39 UTC** from commit <a href="https://github.com/reeleehq/nw/commit/952cfb9d8c57dc5d062d61ff209a4afc7cf744bc"><code>952cfb9</code></a> on branch <code>main</code>, for **nw 0.0.127** (from <code>pyproject.toml</code>).
+This documentation was built on **2026-11-08 21:46 UTC** from commit <a href="https://github.com/reeleehq/nw/commit/a92c0bc6b4081c9bd5110c0e61327db629de4a40"><code>a92c0bc</code></a> on branch <code>main</code>, for **nw 0.0.128** (from <code>pyproject.toml</code>).
 
-#### WARNING
-The documentation and the package may be misaligned:
-
-- The documented version (0.0.127) is ahead of the latest release on PyPI (0.0.126): these docs describe unreleased code.
+#### NOTE
+Nothing suggests a mismatch: the tree was clean at the commit above, and the documented version is the one on PyPI.
 
 ## Source
 
 |                     |                                                                                                                                                    |
 |---------------------|----------------------------------------------------------------------------------------------------------------------------------------------------|
-| Commit              | <a href="https://github.com/reeleehq/nw/commit/952cfb9d8c57dc5d062d61ff209a4afc7cf744bc"><code>952cfb9d8c57dc5d062d61ff209a4afc7cf744bc</code></a> |
+| Commit              | <a href="https://github.com/reeleehq/nw/commit/a92c0bc6b4081c9bd5110c0e61327db629de4a40"><code>a92c0bc6b4081c9bd5110c0e61327db629de4a40</code></a> |
 | Branch              | <code>main</code>                                                                                                                                  |
-| Tags at this commit | <code>0.0.127</code>                                                                                                                               |
+| Tags at this commit | <code>0.0.128</code>                                                                                                                               |
 | Working tree        | clean                                                                                                                                              |
 | Remote              | <code>https://github.com/reeleehq/nw</code>                                                                                                        |
 
@@ -11996,9 +11995,9 @@ The documentation and the package may be misaligned:
 |              |                                                                                            |
 |--------------|--------------------------------------------------------------------------------------------|
 | Repository   | <code>reeleehq/nw</code>                                                                   |
-| Run          | <a href="https://github.com/reeleehq/nw/actions/runs/42526055944">42526055944</a>          |
+| Run          | <a href="https://github.com/reeleehq/nw/actions/runs/42526609295">42526609295</a>          |
 | Ref          | <code>refs/heads/main</code>                                                               |
-| Event commit | <code>c43d2199802d3062d9a6c63cb8e62bd57f00c0ea</code> (in the history of the built commit) |
+| Event commit | <code>203d53f2290a681ae5a43f678ad2967753b5e64f</code> (in the history of the built commit) |
 
 ## Tools
 
@@ -12023,13 +12022,13 @@ The documentation and the package may be misaligned:
 
 ## Package on PyPI
 
-Latest release: <a href="https://pypi.org/project/nw/0.0.126/">0.0.126</a>, older than the documented version (0.0.127).
+Latest release: <a href="https://pypi.org/project/nw/0.0.128/">0.0.128</a>, the same as the documented version.
 
 ## Reproduce
 
 ```bash
 git clone https://github.com/reeleehq/nw && cd nw
-git checkout 952cfb9d8c57dc5d062d61ff209a4afc7cf744bc
+git checkout a92c0bc6b4081c9bd5110c0e61327db629de4a40
 pip install "epythet==0.2.22"
 epythet quickstart . --ignore tests/ scrap/ examples/
 ```
