@@ -3736,3 +3736,26 @@ def test_runs_order_by_time_not_by_string(project):
         jobs._index_update_locked(rt, "half", created_at="2026-01-01T00:00:00.500000Z")
     assert [j.job_id for j in jobs.list_jobs(project)] == ["half", "whole"]
     assert jobs.latest_job(project, kind="op").job_id == "half"
+
+
+@pytest.mark.skipif(not hasattr(__import__("time"), "tzset"), reason="needs time.tzset")
+def test_a_naive_au_timestamp_is_local_time_not_utc():
+    """nw#229: au stamps ``datetime.now()`` (naive, local); reading it as UTC
+    shifted started_at/finished_at by the machine's offset."""
+    import time
+    from datetime import datetime, timezone
+
+    before = os.environ.get("TZ")
+    os.environ["TZ"] = "Asia/Tokyo"  # UTC+9, no DST
+    time.tzset()
+    try:
+        naive_local = datetime(2026, 1, 1, 9, 0, 0)
+        assert jobs._iso(naive_local) == "2026-01-01T00:00:00Z"
+        aware = datetime(2026, 1, 1, 0, 0, 0, tzinfo=timezone.utc)
+        assert jobs._iso(aware) == "2026-01-01T00:00:00Z"
+    finally:
+        if before is None:
+            os.environ.pop("TZ", None)
+        else:
+            os.environ["TZ"] = before
+        time.tzset()

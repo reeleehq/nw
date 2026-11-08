@@ -3316,8 +3316,13 @@ _now_iso = now_iso  # historical private spelling
 
 
 def _iso(dt: datetime) -> str:
-    if dt.tzinfo is None:
-        dt = dt.replace(tzinfo=timezone.utc)
+    """``dt`` as a UTC ISO string ending in ``Z``.
+
+    A naive ``dt`` is **local** time, not UTC: nw's own clock is aware, and
+    the naive ones that reach here are au's ``created_at`` / ``completed_at``
+    (``datetime.now()``), which labelling as UTC shifted by the machine's
+    offset (nw#229). ``astimezone`` reads a naive value as local.
+    """
     return dt.astimezone(timezone.utc).isoformat().replace("+00:00", "Z")
 
 
