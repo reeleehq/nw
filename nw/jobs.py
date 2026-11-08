@@ -107,6 +107,7 @@ from au.base import ComputationBackend
 from dol.atomic import FileLock
 from xdol import Registry
 
+from nw.paths import MAX_NAME_BYTES as _MAX_NAME_BYTES
 from nw.secrets import as_secrets, redact_exception, using_secrets
 
 _logger = logging.getLogger(__name__)
@@ -3217,9 +3218,6 @@ def _durations_get(durations: MutableMapping, eta_key: str) -> list:
 def _durations_put(durations: MutableMapping, eta_key: str, samples: list) -> None:
     durations[_safe_key(eta_key)] = {"eta_key": eta_key, "samples": samples}
 
-
-_MAX_NAME_BYTES = 255
-"""The longest file name the filesystems nw runs on accept."""
 
 _TEMP_RANDOM_LEN = 8
 """Random characters ``tempfile.mkstemp`` puts in a name."""

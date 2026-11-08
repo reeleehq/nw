@@ -62,6 +62,7 @@ from lacing import (
 from .graph import remove_annotations_with_traces
 from .graph_backend import SCOPE_STORYBOARD, open_graph_store, selected_backend
 from .migrate import project_tenant_id
+from .paths import safe_path_segment
 from .project import Project
 from .transforms import OnFailure
 
@@ -311,7 +312,10 @@ def execute_render_panel_images(
     Returns a NEW :class:`Storyboard` (input ``storyboard`` is unchanged) with
     the materialized seed images attached as ``role="seed"`` PanelImages.
 
-    Files land under ``<project_root>/storyboard/<panel_id>.png``. The
+    Files land under ``<project_root>/storyboard/<panel_id>.png`` — the id
+    itself when it is a safe slug, else :func:`nw.paths.safe_path_segment`'s
+    slug-plus-digest, so an edited ``panel_id`` of ``../../x`` stays inside
+    ``storyboard/`` (nw#220). The
     PanelImage record stores both the project-relative path and the
     artifact_id (content hash via lacing.Artifact), so downstream consumers
     can prefer one or the other.
@@ -358,7 +362,8 @@ def execute_render_panel_images(
             continue  # this call failed or was blocked; the panel keeps no seed
         if not artifact.url:
             continue  # silently skip; rare but safer than failing the batch
-        local = storyboard_dir / f"{panel_id}.png"
+        # The id comes from a body a caller can edit: never join it raw (nw#220).
+        local = storyboard_dir / safe_path_segment(panel_id, suffix=".png")
         _download_to(artifact.url, local)
 
         panel = new_panels[panel_id]

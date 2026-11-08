@@ -288,6 +288,49 @@ def test_execute_attaches_seed_images_and_downloads(tmp_path, monkeypatch, fake_
     assert image_url in fake_assets.fetched
 
 
+def test_an_edited_panel_id_cannot_write_outside_storyboard(
+    tmp_path, monkeypatch, fake_assets
+):
+    """nw#220: ``panel_id`` comes from a body a caller can edit, so ``../../x``
+    must still land a file inside ``storyboard/`` — and the PanelImage path must
+    name that file."""
+    image_url = "https://example.invalid/panel.png"
+    _patch_fal(monkeypatch, image_url=image_url)
+    fake_image = b"\x89PNG\r\n\x1a\n" + b"\x00" * 100
+    fake_assets.serve(image_url, fake_image)
+    written: list[Path] = []
+
+    def fake_urlretrieve(url, dst):
+        written.append(Path(dst))
+        Path(dst).write_bytes(fake_image)
+        return (dst, None)
+
+    import urllib.request
+
+    monkeypatch.setattr(urllib.request, "urlretrieve", fake_urlretrieve)
+
+    proj = _seed_project_with_shots(tmp_path)
+    sb, _ = nw.storyboard_from_shots(proj)
+    hostile, kept = "../../escape", sb.panels[1].panel_id
+    sb = sb.model_copy(
+        update={"panels": (sb.panels[0].model_copy(update={"panel_id": hostile}),)
+        + sb.panels[1:]}
+    )
+    plan, panel_ids = nw.plan_render_panel_images(sb)
+    updated = nw.execute_render_panel_images(proj, sb, plan, panel_ids, use_cache=False)
+
+    storyboard_dir = (proj.root / "storyboard").resolve()
+    assert written and all(p.resolve().parent == storyboard_dir for p in written)
+    assert not (tmp_path.parent / "escape.png").exists()
+    by_id = {p.panel_id: p for p in updated.panels}
+    (seed,) = [i for i in by_id[hostile].images if i.role == "seed"]
+    assert (proj.root / seed.path).resolve().parent == storyboard_dir
+    assert (proj.root / seed.path).is_file()
+    # A safe id keeps the name every earlier render gave it.
+    (kept_seed,) = [i for i in by_id[kept].images if i.role == "seed"]
+    assert Path(kept_seed.path) == Path("storyboard") / f"{kept}.png"
+
+
 def test_execute_mismatched_panel_ids_raises():
     """plan_ids must match plan length."""
     from artful import Storyboard
