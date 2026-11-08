@@ -1,4 +1,4 @@
-> built 2026-11-08 21:46 UTC from a92c0bc (main) · nw 0.0.128. Details: build_info.json
+> built 2026-11-08 22:21 UTC from 7c51389 (main) · nw 0.0.129. Details: build_info.json
 
 # index.html.md
 
@@ -5674,7 +5674,7 @@ as `status="failed"` — and a failed call is excluded here, because falaw
 cannot know whether the vendor billed it and inventing a number would be
 worse. Under `"halt"` the run aborted anyway; under `"isolate"` it
 continues, so a caller accumulating this across a fan-out with failures will
-under-count. Read `failed` alongside it.
+under-count — which is why [`has_unknown_costs`](_autosummary/nw.html.md#nw.TransformResult.has_unknown_costs) is then True (nw#214).
 
 #### failed *: [tuple](https://docs.python.org/3/builtins/stdtypes.html#tuple)[[FailedOutput](_autosummary/nw.html.md#nw.FailedOutput), ...]*
 
@@ -5682,9 +5682,14 @@ Outputs whose own call failed. Empty unless `on_failure="isolate"`.
 
 #### has_unknown_costs *: [bool](https://docs.python.org/3/builtins/functions.html#bool)*
 
-Whether any executed call had no price. Carried so `$0.00` stays
-distinguishable from “we do not know”, which is the distinction every cost
-gate in the federation is required to read.
+a call that may have
+billed had no price, **or a call failed** (priced or not — the vendor may
+have billed it, and falaw leaves it out of the sum; nw#214). Carried so
+`$0.00` stays distinguishable from “we do not know”, which is the
+distinction every cost gate in the federation is required to read.
+
+* **Type:**
+  Whether [`cost_usd_actual`](_autosummary/nw.html.md#nw.TransformResult.cost_usd_actual) is a lower bound
 
 #### *property* is_complete *: [bool](https://docs.python.org/3/builtins/functions.html#bool)*
 
@@ -7710,8 +7715,8 @@ Design decisions (from the `nw.jobs`-on-`au` design report,
   with back-off, median (not mean), honest “estimating…” before enough
   history, and **cache-hits excluded from learning**.
 - **A cost never travels without its honesty flag.** `JobCost.actual_usd` is
-  paired with `actual_is_lower_bound`, because an unpriceable call that
-  actually billed contributes `0.0` to the sum — so a bare `$0` means
+  paired with `actual_is_lower_bound`, because a call that may have billed
+  but has no price (or failed) contributes `0.0` to the sum — so a bare `$0` means
   *either* “nothing was spent” *or* “we do not know what was spent”, and a
   spend surface that cannot tell them apart shows the second as free.
 - **An estimate is re-quoted, never remembered.** When `params["plan"]` is
@@ -8020,8 +8025,10 @@ Bases: [`object`](https://docs.python.org/3/builtins/functions.html#object)
 
 #### actual_is_lower_bound *: [bool](https://docs.python.org/3/builtins/functions.html#bool) | [None](https://docs.python.org/3/builtins/constants.html#None)* *= None*
 
-True when the run reported `has_unknown_costs` — some call that
-actually billed had no price, so `actual_usd` UNDER-states the spend.
+True when the run reported `has_unknown_costs` — some call that may
+have billed is not in `actual_usd` (it had no price, or it failed:
+falaw cannot know whether a failed call was billed, nw#214), so the figure
+UNDER-states the spend.
 
 Its whole job is to keep a `$0` readable. Without it, `actual_usd`
 conflates two answers a spend surface must never merge: “this run cost
@@ -11975,7 +11982,7 @@ produce different URLs. The local file paths are byte-stable.
 
 # About this build
 
-This documentation was built on **2026-11-08 21:46 UTC** from commit <a href="https://github.com/reeleehq/nw/commit/a92c0bc6b4081c9bd5110c0e61327db629de4a40"><code>a92c0bc</code></a> on branch <code>main</code>, for **nw 0.0.128** (from <code>pyproject.toml</code>).
+This documentation was built on **2026-11-08 22:21 UTC** from commit <a href="https://github.com/reeleehq/nw/commit/7c51389e2e9a667e29504e7ff9ac72d2a4e362cd"><code>7c51389</code></a> on branch <code>main</code>, for **nw 0.0.129** (from <code>pyproject.toml</code>).
 
 #### NOTE
 Nothing suggests a mismatch: the tree was clean at the commit above, and the documented version is the one on PyPI.
@@ -11984,9 +11991,9 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 
 |                     |                                                                                                                                                    |
 |---------------------|----------------------------------------------------------------------------------------------------------------------------------------------------|
-| Commit              | <a href="https://github.com/reeleehq/nw/commit/a92c0bc6b4081c9bd5110c0e61327db629de4a40"><code>a92c0bc6b4081c9bd5110c0e61327db629de4a40</code></a> |
+| Commit              | <a href="https://github.com/reeleehq/nw/commit/7c51389e2e9a667e29504e7ff9ac72d2a4e362cd"><code>7c51389e2e9a667e29504e7ff9ac72d2a4e362cd</code></a> |
 | Branch              | <code>main</code>                                                                                                                                  |
-| Tags at this commit | <code>0.0.128</code>                                                                                                                               |
+| Tags at this commit | <code>0.0.129</code>                                                                                                                               |
 | Working tree        | clean                                                                                                                                              |
 | Remote              | <code>https://github.com/reeleehq/nw</code>                                                                                                        |
 
@@ -11995,9 +12002,9 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 |              |                                                                                            |
 |--------------|--------------------------------------------------------------------------------------------|
 | Repository   | <code>reeleehq/nw</code>                                                                   |
-| Run          | <a href="https://github.com/reeleehq/nw/actions/runs/42526609295">42526609295</a>          |
+| Run          | <a href="https://github.com/reeleehq/nw/actions/runs/42529582182">42529582182</a>          |
 | Ref          | <code>refs/heads/main</code>                                                               |
-| Event commit | <code>203d53f2290a681ae5a43f678ad2967753b5e64f</code> (in the history of the built commit) |
+| Event commit | <code>fa0c8ebc3adcb59bc0d1f2ead9d2ae223dc7ab10</code> (in the history of the built commit) |
 
 ## Tools
 
@@ -12022,13 +12029,13 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 
 ## Package on PyPI
 
-Latest release: <a href="https://pypi.org/project/nw/0.0.128/">0.0.128</a>, the same as the documented version.
+Latest release: <a href="https://pypi.org/project/nw/0.0.129/">0.0.129</a>, the same as the documented version.
 
 ## Reproduce
 
 ```bash
 git clone https://github.com/reeleehq/nw && cd nw
-git checkout a92c0bc6b4081c9bd5110c0e61327db629de4a40
+git checkout 7c51389e2e9a667e29504e7ff9ac72d2a4e362cd
 pip install "epythet==0.2.22"
 epythet quickstart . --ignore tests/ scrap/ examples/
 ```

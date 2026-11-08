@@ -3290,7 +3290,7 @@ as <code class="docutils literal notranslate"><span class="pre">status=&quot;fai
 cannot know whether the vendor billed it and inventing a number would be
 worse. Under <code class="docutils literal notranslate"><span class="pre">&quot;halt&quot;</span></code> the run aborted anyway; under <code class="docutils literal notranslate"><span class="pre">&quot;isolate&quot;</span></code> it
 continues, so a caller accumulating this across a fan-out with failures will
-under-count. Read <code class="docutils literal notranslate"><span class="pre">failed</span></code> alongside it.</p>
+under-count — which is why <a class="reference internal" href="#nw.TransformResult.has_unknown_costs" title="nw.TransformResult.has_unknown_costs"><code class="xref py py-attr docutils literal notranslate"><span class="pre">has_unknown_costs</span></code></a> is then True (nw#214).</p>
 </dd></dl>
 
 <dl class="py attribute">
@@ -3302,9 +3302,16 @@ under-count. Read <code class="docutils literal notranslate"><span class="pre">f
 <dl class="py attribute">
 <dt class="sig sig-object py" id="nw.TransformResult.has_unknown_costs">
 <span class="sig-name descname"><span class="pre">has_unknown_costs</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#bool" title="(in Python v3.15)"><span class="pre">bool</span></a></span><a class="headerlink" href="#nw.TransformResult.has_unknown_costs" title="Link to this definition">#</a></dt>
-<dd><p>Whether any executed call had no price. Carried so <code class="docutils literal notranslate"><span class="pre">$0.00</span></code> stays
-distinguishable from “we do not know”, which is the distinction every cost
-gate in the federation is required to read.</p>
+<dd><p>a call that may have
+billed had no price, <strong>or a call failed</strong> (priced or not — the vendor may
+have billed it, and falaw leaves it out of the sum; nw#214). Carried so
+<code class="docutils literal notranslate"><span class="pre">$0.00</span></code> stays distinguishable from “we do not know”, which is the
+distinction every cost gate in the federation is required to read.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Whether <a class="reference internal" href="#nw.TransformResult.cost_usd_actual" title="nw.TransformResult.cost_usd_actual"><code class="xref py py-attr docutils literal notranslate"><span class="pre">cost_usd_actual</span></code></a> is a lower bound</p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py property">
@@ -5540,7 +5547,7 @@ addressable across runs.</p>
     </div>
   </div>
 </footer>
-      <script src="../_static/documentation_options.js?v=4a212eee"></script>
+      <script src="../_static/documentation_options.js?v=ee59aaf7"></script>
       <script src="../_static/doctools.js?v=fd6eb6e6"></script>
       <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script src="../_static/clipboard.min.js?v=a7894cd8"></script>

@@ -2071,7 +2071,7 @@ as `status="failed"` — and a failed call is excluded here, because falaw
 cannot know whether the vendor billed it and inventing a number would be
 worse. Under `"halt"` the run aborted anyway; under `"isolate"` it
 continues, so a caller accumulating this across a fan-out with failures will
-under-count. Read `failed` alongside it.
+under-count — which is why [`has_unknown_costs`](#nw.TransformResult.has_unknown_costs) is then True (nw#214).
 
 #### failed *: [tuple](https://docs.python.org/3/builtins/stdtypes.html#tuple)[[FailedOutput](#nw.FailedOutput), ...]*
 
@@ -2079,9 +2079,14 @@ Outputs whose own call failed. Empty unless `on_failure="isolate"`.
 
 #### has_unknown_costs *: [bool](https://docs.python.org/3/builtins/functions.html#bool)*
 
-Whether any executed call had no price. Carried so `$0.00` stays
-distinguishable from “we do not know”, which is the distinction every cost
-gate in the federation is required to read.
+a call that may have
+billed had no price, **or a call failed** (priced or not — the vendor may
+have billed it, and falaw leaves it out of the sum; nw#214). Carried so
+`$0.00` stays distinguishable from “we do not know”, which is the
+distinction every cost gate in the federation is required to read.
+
+* **Type:**
+  Whether [`cost_usd_actual`](#nw.TransformResult.cost_usd_actual) is a lower bound
 
 #### *property* is_complete *: [bool](https://docs.python.org/3/builtins/functions.html#bool)*
 
