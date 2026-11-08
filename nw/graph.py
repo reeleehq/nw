@@ -76,6 +76,7 @@ from . import _freshness_pass
 from .storage import (
     FolderStorage,
     ProjectLike,
+    ProjectStorage,
     as_project_storage,
     close_quietly,
     open_graph_for_read,
@@ -131,6 +132,24 @@ class StoredUnproducedOutput:
 # ---------------------------------------------------------------------------
 # ProjectGraph
 # ---------------------------------------------------------------------------
+
+
+GENRE_ENVELOPE_DOC = ".nw/genre_envelope.json"
+"""The document key mirroring a project's genre envelope (nw#223): what
+:func:`nw.project_genre` reads instead of opening the graph."""
+
+
+def mirror_genre_envelope(storage: ProjectStorage, body: GenreEnvelopeBodyV1) -> None:
+    """Write ``body`` to ``storage``'s :data:`GENRE_ENVELOPE_DOC` unless it
+    already holds exactly that (so a repeated read-side backfill writes
+    nothing)."""
+    doc = body.model_dump(mode="json")
+    try:
+        if storage.docs[GENRE_ENVELOPE_DOC] == doc:
+            return
+    except Exception:  # absent, or a malformed / half-written mirror: rewrite it
+        pass
+    storage.docs[GENRE_ENVELOPE_DOC] = doc
 
 
 class ProjectGraph:
@@ -407,6 +426,14 @@ class ProjectGraph:
         re-initializing replaces the recorded envelope in place — the
         annotation id is stable across replacements, like every entity
         upsert. A no-op write (same envelope) writes nothing.
+
+        Also mirrored into the project's documents (:data:`GENRE_ENVELOPE_DOC`,
+        after the graph write), so a host lister can classify a project with
+        :func:`nw.project_genre` without opening its graph (nw#223). The graph
+        stays the authority: two concurrent re-initializations can leave the
+        mirror one envelope behind (the write is not under a project lock),
+        and the next :meth:`nw.Project.resolved_genre` heals it. A mirror
+        write that fails is logged and leaves the graph write standing.
         """
         from lacing import Tier, TierStereotype
 
@@ -414,7 +441,7 @@ class ProjectGraph:
             store.add_tier(
                 Tier(name=GENRE_ENVELOPE_TIER, stereotype=TierStereotype.NONE)
             )
-            return _upsert(
+            ann_id = _upsert(
                 store,
                 tier=GENRE_ENVELOPE_TIER,
                 schema_uri=GENRE_ENVELOPE_BODY_SCHEMA_URI,
@@ -423,6 +450,14 @@ class ProjectGraph:
                 asset_id=self.asset_id,
                 was_attributed_to=was_attributed_to,
             )
+        try:
+            mirror_genre_envelope(self.storage, body)
+        except Exception:
+            _logger.warning(
+                "set_genre_envelope: could not mirror %s's envelope", self.project_root,
+                exc_info=True,
+            )
+        return ann_id
 
     def upsert_entity(
         self,

@@ -36,6 +36,7 @@ kept, because a rename is not a change of look.
 from __future__ import annotations
 
 import copy
+from contextlib import suppress
 import logging
 import re
 from collections.abc import Callable, Mapping
@@ -44,6 +45,7 @@ from uuid import UUID
 
 
 from . import _freshness_pass
+from .bodies.genre_envelope import GENRE_ENVELOPE_TIER, GenreEnvelopeBodyV1
 from .bodies.verifying_trace import (
     VERIFYING_TRACE_BODY_SCHEMA_URI,
     digest_vouches,
@@ -195,6 +197,7 @@ def _rewrite_stores(storage, fn: Callable[[Any], Any], where) -> int:
                 if restamped is not None:
                     store.update(restamped)
     written = 0
+    envelope = None
     with storage.open_stores() as stores:
         for store in stores:
             for ann in list(store.all()):
@@ -202,6 +205,17 @@ def _rewrite_stores(storage, fn: Callable[[Any], Any], where) -> int:
                 if new is not None:
                     store.update(new)
                     written += 1
+                    if new.tier == GENRE_ENVELOPE_TIER:
+                        envelope = new
+    if envelope is not None:
+        # The envelope's document mirror (nw#223) must follow a rename too, or
+        # nw.project_genre keeps answering the old slug.
+        from .graph import mirror_genre_envelope
+
+        with suppress(Exception):
+            mirror_genre_envelope(
+                storage, GenreEnvelopeBodyV1.model_validate(envelope.body)
+            )
     return written
 
 

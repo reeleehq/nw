@@ -209,3 +209,165 @@ def test_envelope_never_shadows_the_last_authored_change(
 
     brief = proj.resumption_brief()
     assert brief.last_authored_change_id == section_id
+
+
+# --- the cheap read: no graph open (nw#223) ----------------------------------
+
+
+def _no_graph_opens(monkeypatch):
+    """Make any graph open in nw raise, so a read that opens one fails loudly."""
+    import nw.graph as graph_module
+    import nw.storage as storage_module
+
+    def refuse(*a, **k):
+        raise AssertionError("opened the graph")
+
+    monkeypatch.setattr(storage_module.FolderStorage, "open_graph", refuse)
+    monkeypatch.setattr(storage_module.FolderStorage, "open_graph_readonly", refuse)
+    monkeypatch.setattr(graph_module, "open_graph_for_read", refuse)
+
+
+def test_project_genre_reads_the_envelope_without_opening_the_graph(
+    tmp_path, clean_genre_registries, monkeypatch
+):
+    _demo_genre()
+    proj = nw.Project.init(tmp_path / "p")
+    nw.initialize_genre("env_demo", proj, template="duo")
+    expected = proj.resolved_genre()
+
+    _no_graph_opens(monkeypatch)
+    assert nw.project_genre(tmp_path / "p") == expected
+    assert nw.project_genre(proj) == expected
+
+
+def test_project_genre_follows_a_reinitialization(tmp_path, clean_genre_registries):
+    _demo_genre()
+    proj = nw.Project.init(tmp_path / "p")
+    nw.initialize_genre("env_demo", proj, template="duo")
+    nw.initialize_genre("env_demo", proj)
+    assert nw.project_genre(proj)["params"] == {"format_id": "solo"}
+
+
+def test_no_genre_or_no_project_reads_none(tmp_path):
+    assert nw.project_genre(nw.Project.init(tmp_path / "p")) is None
+    assert nw.project_genre(tmp_path / "nothing-here") is None
+
+
+def test_a_malformed_mirror_reads_none_never_raises(tmp_path, clean_genre_registries):
+    from nw.graph import GENRE_ENVELOPE_DOC
+
+    proj = nw.Project.init(tmp_path / "p")
+    proj.storage.docs[GENRE_ENVELOPE_DOC] = {"not": "an envelope"}
+    assert nw.project_genre(proj) is None
+
+
+def test_an_envelope_recorded_before_the_mirror_is_backfilled_by_resolved_genre(
+    tmp_path, clean_genre_registries
+):
+    """A project whose envelope predates nw#223 reads None until the
+    authoritative read runs once; from then on the cheap read answers."""
+    from nw.graph import GENRE_ENVELOPE_DOC
+
+    _demo_genre()
+    proj = nw.Project.init(tmp_path / "p")
+    nw.initialize_genre("env_demo", proj)
+    del proj.storage.docs[GENRE_ENVELOPE_DOC]  # as written before nw#223
+    assert nw.project_genre(proj) is None
+
+    expected = nw.Project(tmp_path / "p").resolved_genre()
+    assert nw.project_genre(tmp_path / "p") == expected
+
+
+def test_a_mapping_storage_project_mirrors_into_its_own_docs(
+    tmp_path, clean_genre_registries
+):
+    from lacing.store import MemoryStore
+
+    _demo_genre()
+    stores: dict = {}
+    storage = nw.MappingStorage(
+        root=tmp_path, graph={}, docs={},
+        store_factory=lambda m: stores.setdefault(id(m), MemoryStore()),
+    )
+    proj = nw.Project.init(tmp_path, storage=storage)
+    nw.initialize_genre("env_demo", proj)
+    assert nw.project_genre(storage)["genre"] == "env_demo"
+    assert not list(tmp_path.glob(".nw/*"))  # nothing on the host's disk
+
+
+def test_a_half_written_mirror_never_breaks_the_authoritative_path(
+    tmp_path, clean_genre_registries
+):
+    """Bad bytes in the mirror (a non-atomic doc write caught mid-way): the
+    graph read still answers and heals it, and a re-init still succeeds."""
+    from nw.graph import GENRE_ENVELOPE_DOC
+
+    _demo_genre()
+    proj = nw.Project.init(tmp_path / "p")
+    nw.initialize_genre("env_demo", proj)
+    (tmp_path / "p" / GENRE_ENVELOPE_DOC).write_text("{bad")
+    assert nw.project_genre(proj) is None
+    assert proj.resolved_genre()["genre"] == "env_demo"
+    assert nw.project_genre(proj)["genre"] == "env_demo"  # healed
+
+    (tmp_path / "p" / GENRE_ENVELOPE_DOC).write_text("{bad")
+    nw.initialize_genre("env_demo", proj, template="duo")
+    assert nw.project_genre(proj)["params"] == {"format_id": "duo"}
+
+
+def test_a_rewrite_of_the_envelope_reaches_the_mirror(tmp_path, clean_genre_registries):
+    """``rewrite_values`` (a slug rename) is the envelope's second write path."""
+    _demo_genre()
+    proj = nw.Project.init(tmp_path / "p")
+    nw.initialize_genre("env_demo", proj)
+
+    def rename(body):
+        if isinstance(body, dict) and body.get("genre") == "env_demo":
+            body["genre"] = "env_renamed"
+        return body
+
+    nw.rewrite_values(proj, rename)
+    assert nw.project_genre(proj)["genre"] == "env_renamed"
+
+
+def test_a_docs_mapping_that_refuses_writes_does_not_break_resolved_genre(
+    tmp_path, clean_genre_registries
+):
+    from collections.abc import MutableMapping
+
+    from lacing.store import MemoryStore
+
+    class _ReadOnlyAfterInit(dict, MutableMapping):
+        frozen = False
+
+        def __setitem__(self, k, v):
+            if self.frozen:
+                raise TypeError("read-only")
+            super().__setitem__(k, v)
+
+    _demo_genre()
+    docs = _ReadOnlyAfterInit()
+    stores: dict = {}
+    storage = nw.MappingStorage(
+        root=tmp_path, graph={}, docs=docs,
+        store_factory=lambda m: stores.setdefault(id(m), MemoryStore()),
+    )
+    proj = nw.Project.init(tmp_path, storage=storage)
+    nw.initialize_genre("env_demo", proj)
+    from nw.graph import GENRE_ENVELOPE_DOC
+
+    del docs[GENRE_ENVELOPE_DOC]
+    docs.frozen = True
+    assert proj.resolved_genre()["genre"] == "env_demo"
+
+
+def test_an_envelope_gone_from_the_graph_clears_the_mirror(
+    tmp_path, clean_genre_registries
+):
+    _demo_genre()
+    proj = nw.Project.init(tmp_path / "p")
+    nw.initialize_genre("env_demo", proj)
+    (env,) = _envelope_annotations(proj)
+    proj.graph.remove_annotation(env.id)
+    assert proj.resolved_genre() is None
+    assert nw.project_genre(proj) is None
