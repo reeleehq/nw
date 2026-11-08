@@ -26,7 +26,8 @@ instead, so re-running on unchanged inputs adds nothing. Its
 ``result.annotations[i].id`` may then differ from the skeleton's: a caller
 that deletes or re-ids returned rows must touch only ``result.written`` (the
 reused ids are ``result.reused_ids``, nw#215), or it destroys a live node it
-did not create. Off by default for exactly that reason.
+did not create. Off by default for exactly that reason. An overriding
+``execute`` that returns a node it did not write owes the same report.
 
 ``execute``'s two cache knobs are a read half and a write half, not one
 switch: ``force=True`` skips the cache **read** and keeps the **write** (so a
@@ -231,10 +232,14 @@ class TransformResult:
     """Outputs never attempted because an upstream call failed."""
 
     reused_ids: frozenset[UUID] = frozenset()
-    """Ids of the :attr:`annotations` returned as an existing fresh node instead
-    of being written (``reuse_fresh_outputs``, nw#203). Empty for every
-    Transform that does not reuse, which is the right default for an override
-    that builds its own result (nw#215)."""
+    """Ids of the :attr:`annotations` returned as an existing node instead of
+    being written (``reuse_fresh_outputs``, nw#203), set by the default
+    :meth:`BaseTransform.execute`.
+
+    **An obligation on an overriding** ``execute``, like stamping
+    ``impl_version`` and recording unproduced outputs: one that returns a node
+    it did not write in this call must put that id here. The empty default is
+    right only for an override that writes everything it returns (nw#215)."""
 
     @property
     def written(self) -> tuple[Annotation, ...]:

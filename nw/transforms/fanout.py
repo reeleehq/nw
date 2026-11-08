@@ -490,6 +490,13 @@ class FanOutResult:
                             if r.result is not None
                             else []
                         ),
+                        # Which of those were reused, not written (nw#215):
+                        # a reader counting what a run produced subtracts them.
+                        "reused_ids": (
+                            sorted(str(i) for i in r.result.reused_ids)
+                            if r.result is not None
+                            else []
+                        ),
                         "artifact_ids": (
                             [a.asset_id for a in r.result.artifacts]
                             if r.result is not None
