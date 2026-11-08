@@ -3670,6 +3670,7 @@ def test_every_key_that_could_be_written_keeps_its_name():
     duration sample moves."""
     edge = "k" * jobs._MAX_STORE_KEY_LEN
     assert jobs._safe_key(edge) == edge
+    assert jobs._MAX_STORE_KEY_LEN == 241  # frozen: moving it moves keys (nw#213)
 
 
 @pytest.mark.skipif(os.name == "nt", reason="Windows caps the whole path, not the name")
@@ -3711,6 +3712,10 @@ def test_records_are_owner_only(tmp_path):
     store = jobs.AtomicJsonFiles(tmp_path / "s")
     store["k"] = {"v": 1}
     assert ((tmp_path / "s" / "k").stat().st_mode & 0o777) == 0o600
+
+
+def test_a_single_exception_class_is_accepted_as_retry_on(tmp_path):
+    jobs.AtomicJsonFiles(tmp_path / "s", retry_on=PermissionError)["k"] = 1
 
 
 def test_a_bad_retry_configuration_is_refused_at_construction(tmp_path):

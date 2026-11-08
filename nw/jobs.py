@@ -1683,7 +1683,7 @@ class AtomicJsonFiles(MutableMapping):
         self._rootdir.mkdir(parents=True, exist_ok=True)
         # Validated here (dol's Retry), not at the first contended write.
         self._retry = Retry(
-            on=SHARING_VIOLATIONS if retry_on is None else tuple(retry_on),
+            on=SHARING_VIOLATIONS if retry_on is None else retry_on,
             attempts=attempts,
             backoff_s=backoff_s,
         )
@@ -3201,16 +3201,12 @@ def _durations_put(durations: MutableMapping, eta_key: str, samples: list) -> No
     durations[_safe_key(eta_key)] = {"eta_key": eta_key, "samples": samples}
 
 
-_TEMP_RANDOM_LEN = 8
-"""Random characters the store's temp names carried when this limit was set."""
-
-_MAX_STORE_KEY_LEN = (
-    _MAX_NAME_BYTES - len(".") - len(".") - _TEMP_RANDOM_LEN - len(".tmp")
-)
-"""Longest key :func:`_safe_key` leaves unhashed. Set when the temp file was
-``.<key>.<random>.tmp``; :func:`dol.atomic_write` clips the name in its temp
-file, so the limit no longer binds, but it stays: moving it would move every
-key between the old and the new limit to a different file (nw#213)."""
+_MAX_STORE_KEY_LEN = 241
+"""Longest key :func:`_safe_key` leaves unhashed. **Frozen**: moving it would
+move every key between the old and the new limit to a different file. It was
+derived from the store's old temp name, ``.<key>.<8 random>.tmp`` within 255
+bytes (``255 - 14``); :func:`dol.atomic_write` clips the key in its temp name,
+so the limit no longer binds anything (nw#213)."""
 
 
 def _safe_key(key: str) -> str:
