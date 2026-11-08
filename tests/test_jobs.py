@@ -3746,7 +3746,7 @@ def test_a_naive_au_timestamp_is_local_time_not_utc():
     from datetime import datetime, timezone
 
     before = os.environ.get("TZ")
-    os.environ["TZ"] = "Asia/Tokyo"  # UTC+9, no DST
+    os.environ["TZ"] = "JST-9"  # UTC+9, no DST; POSIX form needs no tzdata
     time.tzset()
     try:
         naive_local = datetime(2026, 1, 1, 9, 0, 0)

@@ -1045,6 +1045,8 @@ def _created_key(record) -> datetime:
     created = _parse_iso(record.get("created_at"))
     if created is None:
         return datetime.min.replace(tzinfo=timezone.utc)
+    # A string without an offset is a legacy index entry nw itself wrote in
+    # UTC, so here naive means UTC, unlike au's naive datetimes in _iso (nw#229).
     return created if created.tzinfo else created.replace(tzinfo=timezone.utc)
 
 
