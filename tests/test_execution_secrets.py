@@ -347,6 +347,7 @@ def test_base_transform_execute_binds_the_fal_secret_around_plan_execution(
         return SimpleNamespace(
             outcomes=(),
             produced=(),
+            failed=(),
             estimated_spend_usd=0.0,
             cache_hit_savings_usd=0.0,
             has_unknown_costs=False,
@@ -673,6 +674,7 @@ def test_an_isolated_call_failure_is_explained_and_redacted(
         return SimpleNamespace(
             outcomes=(failed,),
             produced=(),
+            failed=(failed,),
             estimated_spend_usd=0.0,
             cache_hit_savings_usd=0.0,
             has_unknown_costs=False,
@@ -719,6 +721,7 @@ def test_an_error_that_cannot_render_still_isolates(monkeypatch, project):
     report = SimpleNamespace(
         outcomes=(failed,),
         produced=(),
+        failed=(failed,),
         estimated_spend_usd=0.0,
         cache_hit_savings_usd=0.0,
         has_unknown_costs=False,

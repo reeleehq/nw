@@ -367,6 +367,9 @@ def test_cost_counts_only_what_actually_ran(patch_execute):
     # are both excluded.
     assert result.cost_usd_actual == 4.0
     assert result.cache_hit_savings_usd == 2.0
+    # The failed $2 call may have billed before it raised, and falaw leaves it
+    # out of the sum without flagging it: the $4 is a lower bound (nw#214).
+    assert result.has_unknown_costs is True
 
 
 def test_an_unknown_cost_stays_distinguishable_from_zero(patch_execute):
@@ -684,3 +687,41 @@ def test_render_strategy_bypasses_the_cache_read_on_force(patch_render_execute):
 
     assert kwargs["use_cache"] is True, "the cache WRITE stays on"
     assert kwargs["refresh"] is True, "the cache READ is skipped"
+
+
+def test_a_shot_whose_priced_call_failed_reads_as_a_lower_bound(monkeypatch, tmp_path):
+    """The render-strategy adapter builds its own TransformResult (it bypasses
+    BaseTransform.execute); its failed-shot branch must carry nw#214's rule too."""
+    import uuid
+
+    import nw
+    import nw.workflow as workflow
+    from lacing import Annotation, MediaRef, TimeInterval
+    from nw.transforms import TransformInputs
+    from nw.transforms._adapters import render_strategy as rs_module
+    from nw.transforms._provenance import derive_provenance
+
+    plan = _plan(1, cost=2.0)
+    report = _report(plan.calls, succeeded={}, failures={0: ("failed", "boom")})
+    assert report.has_unknown_costs is False  # falaw's flag alone reads exact
+    monkeypatch.setattr(rs_module, "execute_plan_isolated", lambda p, **k: report)
+    monkeypatch.setattr(workflow, "prepare_shot", lambda *a, **k: None)
+
+    project = nw.Project.init(tmp_path / "proj", title="lower bound")
+    (name, *_) = [n for n in nw.list_transforms() if n.startswith("shot_to_render_result.")]
+    t = nw.get_transform(name)
+    skel = Annotation(
+        id=uuid.uuid4(),
+        tier="render-result",
+        reference=MediaRef(
+            asset_id=project.graph.asset_id, interval=TimeInterval.from_seconds(0, 0)
+        ),
+        body={"shot_id": "s01"},
+        body_schema_uri="annot://schema/render-result/v1",
+        provenance=derive_provenance(
+            t, TransformInputs(primary=()), attributed_to="agent:test"
+        ),
+    )
+    result = t.execute(project, plan, (skel,), on_failure="isolate")
+    assert len(result.failed) == 1
+    assert result.cost_usd_actual == 0.0 and result.has_unknown_costs is True

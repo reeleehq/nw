@@ -53,8 +53,8 @@ Design decisions (from the ``nw.jobs``-on-``au`` design report,
   with back-off, median (not mean), honest "estimating…" before enough
   history, and **cache-hits excluded from learning**.
 - **A cost never travels without its honesty flag.** ``JobCost.actual_usd`` is
-  paired with ``actual_is_lower_bound``, because an unpriceable call that
-  actually billed contributes ``0.0`` to the sum — so a bare ``$0`` means
+  paired with ``actual_is_lower_bound``, because a call that may have billed
+  but has no price (or failed) contributes ``0.0`` to the sum — so a bare ``$0`` means
   *either* "nothing was spent" *or* "we do not know what was spent", and a
   spend surface that cannot tell them apart shows the second as free.
 - **An estimate is re-quoted, never remembered.** When ``params["plan"]`` is
@@ -248,8 +248,10 @@ class JobCost:
     actual_usd: float | None = None
     cache_hit_savings_usd: float | None = None
     actual_is_lower_bound: bool | None = None
-    """True when the run reported ``has_unknown_costs`` — some call that
-    actually billed had no price, so :attr:`actual_usd` UNDER-states the spend.
+    """True when the run reported ``has_unknown_costs`` — some call that may
+    have billed is not in :attr:`actual_usd` (it had no price, or it failed:
+    falaw cannot know whether a failed call was billed, nw#214), so the figure
+    UNDER-states the spend.
 
     Its whole job is to keep a ``$0`` readable. Without it, ``actual_usd``
     conflates two answers a spend surface must never merge: "this run cost
