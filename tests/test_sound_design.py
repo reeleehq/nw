@@ -21,7 +21,7 @@ import os
 import subprocess
 import sys
 import textwrap
-from pathlib import Path
+from pathlib import Path, PurePath
 from types import ModuleType, SimpleNamespace
 from uuid import uuid4
 
@@ -582,6 +582,73 @@ def test_a_host_subclass_supplies_its_own_extraction(project):
     assert args["segment_starts"] == [0.0, 2.0]
     assert args["audio"]["path"] == "beats/mix.wav"
     assert host_node.id in skel.provenance.was_derived_from
+
+
+def test_a_host_reads_the_text_from_the_project_through_narration_track(project):
+    """nw#221: a host whose spoken text lives elsewhere in the project (not in
+    the narration node's body) overrides one seam that gets the project, read
+    once per plan, instead of binding a ContextVar around ``plan``."""
+    from nw.transforms.sound_design import NarrationTrack
+
+    (project.root / "beats").mkdir()
+    (project.root / "beats" / "mix.wav").write_bytes(b"RIFF-episode")
+    (project.root / "beats" / "talk.json").write_text(
+        '[["Hello.", 0.0], ["Bye.", 1.5]]'
+    )
+    reads = []
+
+    class _EpisodeShaped(NarrationToSoundDesign):
+        name = "test.episode_sound_design"
+
+        def narration_track(self, project, narration):
+            reads.append(narration.id)
+            talk = json.loads((project.root / "beats" / "talk.json").read_text())
+            return NarrationTrack(
+                segments=[t for t, _ in talk],
+                audio_path=Path("beats", "mix.wav"),
+                segment_starts=[s for _, s in talk],
+            )
+
+    episode = _authored(
+        project,
+        tier="episode",
+        uri="annot://schema/episode/v1",
+        body={"members": ["b1", "b2"]},  # names its text, does not hold it
+    )
+    cfg = _inputs(project).context
+    plan, (skel,) = _EpisodeShaped().plan(
+        project, TransformInputs(primary=(episode,), context=cfg)
+    )
+    args = plan.calls[0].arguments
+    assert args["segments"] == ["Hello.", "Bye."]
+    assert args["segment_starts"] == [0.0, 1.5]
+    assert args["audio"]["path"] == "beats/mix.wav"
+    assert reads == [episode.id]  # once per plan
+    assert episode.id in skel.provenance.was_derived_from
+
+
+def test_narration_track_checks_what_the_stored_body_checks():
+    from nw.transforms.sound_design import NarrationTrack
+
+    assert NarrationTrack(["a"], "x/y.wav").audio_path == PurePath("x", "y.wav")
+    with pytest.raises(ValueError, match="no segments"):
+        NarrationTrack([], "y.wav")
+    with pytest.raises(ValueError, match="one start per segment"):
+        NarrationTrack(["a", "b"], "y.wav", segment_starts=[0.0])
+
+
+def test_a_disabled_design_never_reads_the_narration_track(project):
+    """A host overriding narration_track can rely on it running only when a
+    design is wanted (braidio's own guard around plan() becomes redundant)."""
+
+    class _Refusing(NarrationToSoundDesign):
+        name = "test.refusing_sound_design"
+
+        def narration_track(self, project, narration):  # pragma: no cover
+            raise AssertionError("read while disabled")
+
+    plan, skel = _Refusing().plan(project, _inputs(project, config={"enabled": False}))
+    assert plan.calls == () and skel == ()
 
 
 # ---------------------------------------------------------------------------
