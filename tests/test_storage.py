@@ -211,3 +211,40 @@ def test_json_docs_delete_removes_the_file_without_the_trash(tmp_path, monkeypat
         warnings.simplefilter("error")
         del docs["a/b.json"]
     assert not (tmp_path / "a" / "b.json").exists()
+
+
+# --- json_docs writes are atomic (nw#244) ------------------------------------
+
+
+def test_a_failed_document_write_leaves_the_old_document_whole(tmp_path, monkeypatch):
+    """A write that fails at the swap (or a reader racing it) must find the old
+    document, never a truncated one: the write is temp-file + os.replace."""
+    import os
+
+    import pytest
+
+    from nw.storage import json_docs
+
+    docs = json_docs(tmp_path)
+    docs["project.json"] = {"title": "old"}
+
+    def refuse(*a, **k):
+        raise OSError("swap refused")
+
+    monkeypatch.setattr(os, "replace", refuse)
+    with pytest.raises(OSError):
+        docs["project.json"] = {"title": "new", "big": "x" * 10_000}
+    monkeypatch.undo()
+    assert docs["project.json"] == {"title": "old"}
+    assert sorted(p.name for p in tmp_path.iterdir()) == ["project.json"]  # no temp left
+
+
+def test_documents_still_round_trip_nested_keys_and_delete(tmp_path):
+    from nw.storage import json_docs
+
+    docs = json_docs(tmp_path)
+    docs["characters/thor/card.json"] = {"a": 1}
+    assert docs["characters/thor/card.json"] == {"a": 1}
+    assert "characters/thor/card.json" in list(docs)
+    del docs["characters/thor/card.json"]
+    assert "characters/thor/card.json" not in docs

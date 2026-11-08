@@ -55,7 +55,9 @@ from typing import (
     runtime_checkable,
 )
 
-from dol import Files, mk_dirs_if_missing, wrap_kvs
+from dol import mk_dirs_if_missing, wrap_kvs
+from dol.atomic import atomic_write
+from dol.filesys import FileBytesPersister, with_relative_paths
 from lacing import IntervalAnnotationStore
 from xdol import Registry
 
@@ -188,6 +190,20 @@ def project_lock(storage: ProjectStorage, name: str) -> Iterator[None]:
 # ---------------------------------------------------------------------------
 
 
+@with_relative_paths
+class _AtomicFiles(FileBytesPersister):
+    """dol's ``Files`` whose write is :func:`dol.atomic_write` (temp file, then
+    ``os.replace``, retried on a Windows sharing violation): a reader sees the
+    old document or the new one, never a truncated one (nw#244). dol's own
+    write is a plain ``open(..., "wb")``, which a concurrent reader can catch
+    empty. A bridge until dol's ``Files`` takes a ``write=`` seam
+    (i2mint/dol, filed from nw#244)."""
+
+    def __setitem__(self, k, v):
+        self._check_value_before_open(v)  # refuse a non-bytes value before any write
+        atomic_write(k, v)
+
+
 def json_docs(root: str | Path) -> MutableMapping[str, Any]:
     """The folder-backed store for a project's JSON documents.
 
@@ -196,10 +212,11 @@ def json_docs(root: str | Path) -> MutableMapping[str, Any]:
     ``"shots/<id>/shot.json"``, the ``".nw/migrated_to_graph"`` sentinel).
     Values are Python objects; on disk they are ``indent=2`` JSON. Parent
     directories are created on write; a missing key raises ``KeyError``; a
-    delete removes the file (never to the OS trash, dol's default).
+    delete removes the file (never to the OS trash, dol's default). Writes are
+    atomic (:class:`_AtomicFiles`, nw#244).
     """
     return wrap_kvs(
-        mk_dirs_if_missing(Files(str(root), delete_func=os.remove)),
+        mk_dirs_if_missing(_AtomicFiles(str(root), delete_func=os.remove)),
         data_of_obj=lambda obj: json.dumps(obj, indent=2).encode("utf-8"),
         obj_of_data=lambda data: json.loads(data),
     )
