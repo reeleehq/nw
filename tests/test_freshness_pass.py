@@ -101,6 +101,19 @@ def test_a_fan_out_rerun_walks_once_not_per_unit(tmp_path, fal, monkeypatch):
     assert len(_nodes(proj)) == 3
 
 
+def test_a_fan_out_record_says_which_units_outputs_were_reused(tmp_path, fal):
+    """nw#215: each unit's ``reused_ids`` reaches the run record, so a reader
+    counting what a run produced does not count reused rows as written."""
+    proj, shots = _project(tmp_path, sections=("a", "b"))
+    t = _FanReusing()
+    first = fan_out_execute(t, proj, _fan_out(t, proj, shots)).to_record()
+    assert all(row["reused_ids"] == [] for row in first["items"])
+
+    second = fan_out_execute(t, proj, _fan_out(t, proj, shots)).to_record()
+    for row in second["items"]:
+        assert row["annotation_ids"] and row["reused_ids"] == sorted(row["annotation_ids"])
+
+
 def test_a_write_inside_the_pass_makes_the_next_lookup_walk_again(tmp_path, fal):
     """Fails if a graph write does not drop the held walk: a parent rewritten
     in place mid-pass keeps its id, the held walk still says the old output is

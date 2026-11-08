@@ -62,7 +62,8 @@ it. Layering: `lacing → nw → falaw.Plan → backends` — nothing above
   does) has `BaseTransform.execute` return that node instead of writing a
   duplicate (still retiring the unproduced record its success settles), so
   `result.annotations[i].id` may differ from the skeleton's — a caller that
-  deletes or re-ids returned rows must compare ids first.
+  deletes, re-ids or counts returned rows reads `result.written` (and
+  `result.reused_ids`, nw#215), never skeleton ids.
 - **Graph** (`nw/graph.py`) — `ProjectGraph` over lacing stores.
   `add_annotation` is **the single choke point every derived annotation
   passes through** and records the verifying trace at persist time; bypass

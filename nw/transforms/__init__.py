@@ -24,8 +24,10 @@ annotation parents and value, verified fresh
 (:func:`nw.freshness.fresh_equivalents`) — and returns that existing node
 instead, so re-running on unchanged inputs adds nothing. Its
 ``result.annotations[i].id`` may then differ from the skeleton's: a caller
-that deletes or re-ids returned rows must compare ids first, or it destroys a
-live node it did not create. Off by default for exactly that reason.
+that deletes or re-ids returned rows must touch only ``result.written`` (the
+reused ids are ``result.reused_ids``, nw#215), or it destroys a live node it
+did not create. Off by default for exactly that reason. An overriding
+``execute`` that returns a node it did not write owes the same report.
 
 ``execute``'s two cache knobs are a read half and a write half, not one
 switch: ``force=True`` skips the cache **read** and keeps the **write** (so a
@@ -70,6 +72,7 @@ from dataclasses import dataclass, field, replace
 from pathlib import Path
 from collections.abc import Mapping
 from typing import Callable, Literal, Optional, Protocol, runtime_checkable
+from uuid import UUID
 
 from pydantic import BaseModel
 from xdol import Registry
@@ -184,8 +187,9 @@ class TransformResult:
     ``reuse_fresh_outputs`` (nw#203): then an output whose fresh equivalent
     already exists is returned as that **existing** node and nothing is
     written, so its ``id`` is not the skeleton's. Read ids from here, never
-    from the skeleton; a row whose id is not its skeleton's was not written
-    by this run."""
+    from the skeleton; which rows this run wrote is :attr:`written` (and
+    which it reused, :attr:`reused_ids`) — never infer it from skeleton ids
+    (nw#215)."""
 
     artifacts: tuple[Artifact, ...] = ()
     """The ``lacing.Artifact``\\ s produced (images, videos, audio, json …).
@@ -226,6 +230,24 @@ class TransformResult:
 
     blocked: tuple[FailedOutput, ...] = ()
     """Outputs never attempted because an upstream call failed."""
+
+    reused_ids: frozenset[UUID] = frozenset()
+    """Ids of the :attr:`annotations` returned as an existing node instead of
+    being written (``reuse_fresh_outputs``, nw#203), set by the default
+    :meth:`BaseTransform.execute`.
+
+    **An obligation on an overriding** ``execute``, like stamping
+    ``impl_version`` and recording unproduced outputs: one that returns a node
+    it did not write in this call must put that id here. The empty default is
+    right only for an override that writes everything it returns (nw#215)."""
+
+    @property
+    def written(self) -> tuple[Annotation, ...]:
+        """The :attr:`annotations` this run wrote: all of them minus the reused.
+
+        What a consumer that drops, re-ids or counts the rows a run produced
+        reads, instead of comparing ids against its skeletons (nw#215)."""
+        return tuple(a for a in self.annotations if a.id not in self.reused_ids)
 
     @property
     def is_complete(self) -> bool:
@@ -612,6 +634,7 @@ class BaseTransform:
         reuse = _reuse_seam(project.graph) if self.reuse_fresh_outputs else None
         equivalents = _equivalents_or_none(reuse, completed, transform=self.name)
         produced: list[Annotation] = []
+        reused_ids: set[UUID] = set()
         for i, ann, existing in zip(
             completed_indices, completed, equivalents, strict=True
         ):
@@ -623,6 +646,7 @@ class BaseTransform:
             else:
                 reuse.settle(ann, instance_id=unit_instance_id, call_index=i)
                 produced.append(existing)
+                reused_ids.add(existing.id)
         # A failed/blocked output's reason otherwise lives only in this
         # in-memory result — gone the moment the caller drops it, and
         # unexplained again on reload (nw#44).
@@ -648,6 +672,7 @@ class BaseTransform:
             has_unknown_costs=cost.has_unknown_costs,
             failed=tuple(failed),
             blocked=tuple(blocked),
+            reused_ids=frozenset(reused_ids),
         )
 
     def _complete_annotation(
