@@ -616,6 +616,35 @@ def test_stale_running_is_reaped(project):
     reaped = jobs.get_job(project, job_id, config=cfg)
     assert reaped.status == jobs.FAILED
     assert jobs.REAPED_REASON in (reaped.error or "")
+    assert reaped.cost.actual_is_lower_bound is None  # reported no spend: no claim
+
+
+def test_a_reaped_run_that_reported_spend_reads_as_a_lower_bound(project):
+    """nw#232: a worker killed mid-render after an exact-looking cost event
+    never reaches the terminal reconcile; the reaper must flag the figure."""
+    from datetime import datetime, timedelta, timezone
+    import au
+
+    cfg = JobsConfig(stale_running_s=0.0)
+    rt = jobs._runtime(project, cfg)
+    job_id = "orphan-that-billed"
+    old = (datetime.now(timezone.utc) - timedelta(seconds=120)).isoformat().replace(
+        "+00:00", "Z"
+    )
+    rt.index[job_id] = {
+        "job_id": job_id, "kind": "op", "label": "orphan", "idempotency_key": job_id,
+        "params": {}, "created_at": old, "started_at": old, "finished_at": None,
+        "eta_candidates": [], "output_kind": None, "expected_cache_hit": False,
+        "cached": False, "cancel_requested": False, "pct_floor": None, "progress": {},
+        "cost": {"actual_usd": 0.3, "actual_is_lower_bound": False},
+        "artifact_ref": None, "result": None, "error": None, "last_event_id": None,
+    }
+    rt.au_store[job_id] = au.ComputationResult(None, au.ComputationStatus.RUNNING)
+
+    reaped = jobs.get_job(project, job_id, config=cfg)
+    assert reaped.status == jobs.FAILED
+    assert reaped.cost.actual_usd == 0.3
+    assert reaped.cost.actual_is_lower_bound is True
 
 
 def test_live_worker_is_not_reaped(project):
@@ -983,6 +1012,37 @@ def test_a_run_that_reports_no_unknown_cost_is_not_flagged(project):
 
     assert done.cost.actual_usd == 0.42
     assert not done.cost.actual_is_lower_bound
+
+
+def test_a_render_that_raises_after_reporting_spend_reads_as_a_lower_bound(project):
+    """nw#232: the render billed, reported an exact-looking figure, then raised;
+    the terminal reconcile never runs, so the flag must not stay ``False``."""
+
+    def bills_then_raises(project, params, *, job_id, on_event, should_cancel):
+        on_event({"kind": "journey.stage_completed", "actual_usd": 0.3,
+                  "has_unknown_costs": False})
+        raise RuntimeError("provider fell over after billing")
+
+    job = jobs.enqueue(
+        project, "journey.full_auto", VIDEO_PARAMS,
+        dispatch={"journey.full_auto": bills_then_raises},
+    )
+    done = _poll_until(project, job.job_id, lambda j: j.status == jobs.FAILED)
+    assert done.cost.actual_usd == 0.3
+    assert done.cost.actual_is_lower_bound is True
+
+
+def test_a_render_that_raises_before_reporting_spend_claims_nothing(project):
+    def raises_at_once(project, params, *, job_id, on_event, should_cancel):
+        raise RuntimeError("refused before any call")
+
+    job = jobs.enqueue(
+        project, "journey.full_auto", VIDEO_PARAMS,
+        dispatch={"journey.full_auto": raises_at_once},
+    )
+    done = _poll_until(project, job.job_id, lambda j: j.status == jobs.FAILED)
+    assert done.cost.actual_usd is None  # unknown already; no flag invented
+    assert done.cost.actual_is_lower_bound is None
 
 
 def test_an_unreported_flag_is_none_not_false(project):
