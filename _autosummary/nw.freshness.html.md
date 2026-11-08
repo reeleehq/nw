@@ -126,12 +126,14 @@ walk serves every lookup until something is written (nw#209).
 | [`annotation_parent_ids`](#nw.freshness.annotation_parent_ids)(ann)                       | The **annotation** ids in `ann.provenance.was_derived_from`.                                                                                                                                                          |
 | [`body_value`](#nw.freshness.body_value)(ann)                                  | `ann.body` JSON-normalised — the value two annotations are compared by.                                                                                                                                               |
 | [`fresh_equivalents`](#nw.freshness.fresh_equivalents)(project_root, annotations, \*) | For each of `annotations`, the existing node it would only duplicate.                                                                                                                                                 |
+| [`fresh_ids`](#nw.freshness.fresh_ids)(project_root)                          | The ids of every annotation in the project the snapshot walk verifies fresh (parentless ones included: they are never stale) — nw#222.                                                                                |
 | [`freshness_pass`](#nw.freshness.freshness_pass)()                                 | Share one freshness walk across many [`fresh_equivalents()`](#nw.freshness.fresh_equivalents) lookups.                                                                                                    |
 | [`is_verifiable_digest_scheme`](#nw.freshness.is_verifiable_digest_scheme)(scheme)              | Whether a trace recorded under `scheme` can still be verified.                                                                                                                                                        |
 | [`reference_value`](#nw.freshness.reference_value)(ann)                             | `ann.reference` in json mode — where two annotations are compared to sit (the default `reference_of` of [`fresh_equivalents()`](#nw.freshness.fresh_equivalents), whose identity key sorts and dumps it). |
 | [`stale_after`](#nw.freshness.stale_after)(project_root, changed_id)            | Return every annotation that `changed_id` actually invalidated.                                                                                                                                                       |
 | [`stale_verdicts`](#nw.freshness.stale_verdicts)(project_root, changed_id)         | Classify every annotation downstream of `changed_id`.                                                                                                                                                                 |
 | [`stale_verdicts_all`](#nw.freshness.stale_verdicts_all)(project_root)                 | Classify every derived annotation in the project — the snapshot form.                                                                                                                                                 |
+| [`walk_count`](#nw.freshness.walk_count)()                                     | How many freshness walks this process has run — a supported counter for a host's "one walk per no-op re-run" guard (nw#222).                                                                                          |
 
 ### Classes
 
@@ -257,6 +259,26 @@ write. Read-only: nothing is written.
 
 * **Return type:**
   [`tuple`](https://docs.python.org/3/builtins/stdtypes.html#tuple)[[`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[`Annotation`], [`...`](https://docs.python.org/3/builtins/constants.html#Ellipsis)]
+
+### nw.freshness.fresh_ids(project_root)
+
+The ids of every annotation in the project the snapshot walk verifies
+fresh (parentless ones included: they are never stale) — nw#222.
+
+Inside a [`freshness_pass()`](#nw.freshness.freshness_pass), answered from the pass’s held walk,
+taking it when none is held yet, so a host choosing among candidates
+(“the current episode”, “the freshest take”) shares the one walk its
+[`fresh_equivalents()`](#nw.freshness.fresh_equivalents) lookups use, and a write drops both. Outside a
+pass, one walk per call. The set is shared within the pass: do not rely on
+mutating it (it is a `frozenset`).
+
+Parentless rows are in it too (imports, and nw’s sidecars: verifying
+traces, unproduced-output records, the genre envelope), since nothing can
+make them stale: use it for membership (“is this candidate fresh?”), not
+as an inventory of fresh outputs.
+
+* **Return type:**
+  [`frozenset`](https://docs.python.org/3/builtins/stdtypes.html#frozenset)[[`UUID`](https://docs.python.org/3/library/uuid.html#uuid.UUID)]
 
 ### nw.freshness.freshness_pass()
 
@@ -404,3 +426,16 @@ projects, not installing a pure wrapper.
 
 * **Return type:**
   [`list`](https://docs.python.org/3/builtins/stdtypes.html#list)[[`FreshnessVerdict`](#nw.freshness.FreshnessVerdict)]
+
+### nw.freshness.walk_count()
+
+How many freshness walks this process has run — a supported counter
+for a host’s “one walk per no-op re-run” guard (nw#222).
+
+A walk is one classification of verdicts (what [`stale_verdicts()`](#nw.freshness.stale_verdicts),
+[`stale_verdicts_all()`](#nw.freshness.stale_verdicts_all), [`fresh_ids()`](#nw.freshness.fresh_ids) outside or first inside a
+pass, and [`fresh_equivalents()`](#nw.freshness.fresh_equivalents) without a held walk each run once).
+Process-wide and monotonic: read it before and after, and compare.
+
+* **Return type:**
+  [`int`](https://docs.python.org/3/builtins/functions.html#int)

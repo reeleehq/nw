@@ -1,4 +1,4 @@
-> built 2026-11-08 23:14 UTC from 6625980 (main) · nw 0.0.132. Details: build_info.json
+> built 2026-11-08 23:31 UTC from 32dec1a (main) · nw 0.0.133. Details: build_info.json
 
 # index.html.md
 
@@ -2632,12 +2632,14 @@ walk serves every lookup until something is written (nw#209).
 | [`annotation_parent_ids`](_autosummary/nw.freshness.html.md#nw.freshness.annotation_parent_ids)(ann)                       | The **annotation** ids in `ann.provenance.was_derived_from`.                                                                                                                                                          |
 | [`body_value`](_autosummary/nw.freshness.html.md#nw.freshness.body_value)(ann)                                  | `ann.body` JSON-normalised — the value two annotations are compared by.                                                                                                                                               |
 | [`fresh_equivalents`](_autosummary/nw.freshness.html.md#nw.freshness.fresh_equivalents)(project_root, annotations, \*) | For each of `annotations`, the existing node it would only duplicate.                                                                                                                                                 |
+| [`fresh_ids`](_autosummary/nw.freshness.html.md#nw.freshness.fresh_ids)(project_root)                          | The ids of every annotation in the project the snapshot walk verifies fresh (parentless ones included: they are never stale) — nw#222.                                                                                |
 | [`freshness_pass`](_autosummary/nw.freshness.html.md#nw.freshness.freshness_pass)()                                 | Share one freshness walk across many [`fresh_equivalents()`](_autosummary/nw.freshness.html.md#nw.freshness.fresh_equivalents) lookups.                                                                                                    |
 | [`is_verifiable_digest_scheme`](_autosummary/nw.freshness.html.md#nw.freshness.is_verifiable_digest_scheme)(scheme)              | Whether a trace recorded under `scheme` can still be verified.                                                                                                                                                        |
 | [`reference_value`](_autosummary/nw.freshness.html.md#nw.freshness.reference_value)(ann)                             | `ann.reference` in json mode — where two annotations are compared to sit (the default `reference_of` of [`fresh_equivalents()`](_autosummary/nw.freshness.html.md#nw.freshness.fresh_equivalents), whose identity key sorts and dumps it). |
 | [`stale_after`](_autosummary/nw.freshness.html.md#nw.freshness.stale_after)(project_root, changed_id)            | Return every annotation that `changed_id` actually invalidated.                                                                                                                                                       |
 | [`stale_verdicts`](_autosummary/nw.freshness.html.md#nw.freshness.stale_verdicts)(project_root, changed_id)         | Classify every annotation downstream of `changed_id`.                                                                                                                                                                 |
 | [`stale_verdicts_all`](_autosummary/nw.freshness.html.md#nw.freshness.stale_verdicts_all)(project_root)                 | Classify every derived annotation in the project — the snapshot form.                                                                                                                                                 |
+| [`walk_count`](_autosummary/nw.freshness.html.md#nw.freshness.walk_count)()                                     | How many freshness walks this process has run — a supported counter for a host's "one walk per no-op re-run" guard (nw#222).                                                                                          |
 
 ### Classes
 
@@ -2763,6 +2765,26 @@ write. Read-only: nothing is written.
 
 * **Return type:**
   [`tuple`](https://docs.python.org/3/builtins/stdtypes.html#tuple)[[`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[`Annotation`], [`...`](https://docs.python.org/3/builtins/constants.html#Ellipsis)]
+
+### nw.freshness.fresh_ids(project_root)
+
+The ids of every annotation in the project the snapshot walk verifies
+fresh (parentless ones included: they are never stale) — nw#222.
+
+Inside a [`freshness_pass()`](_autosummary/nw.freshness.html.md#nw.freshness.freshness_pass), answered from the pass’s held walk,
+taking it when none is held yet, so a host choosing among candidates
+(“the current episode”, “the freshest take”) shares the one walk its
+[`fresh_equivalents()`](_autosummary/nw.freshness.html.md#nw.freshness.fresh_equivalents) lookups use, and a write drops both. Outside a
+pass, one walk per call. The set is shared within the pass: do not rely on
+mutating it (it is a `frozenset`).
+
+Parentless rows are in it too (imports, and nw’s sidecars: verifying
+traces, unproduced-output records, the genre envelope), since nothing can
+make them stale: use it for membership (“is this candidate fresh?”), not
+as an inventory of fresh outputs.
+
+* **Return type:**
+  [`frozenset`](https://docs.python.org/3/builtins/stdtypes.html#frozenset)[[`UUID`](https://docs.python.org/3/library/uuid.html#uuid.UUID)]
 
 ### nw.freshness.freshness_pass()
 
@@ -2910,6 +2932,19 @@ projects, not installing a pure wrapper.
 
 * **Return type:**
   [`list`](https://docs.python.org/3/builtins/stdtypes.html#list)[[`FreshnessVerdict`](_autosummary/nw.freshness.html.md#nw.freshness.FreshnessVerdict)]
+
+### nw.freshness.walk_count()
+
+How many freshness walks this process has run — a supported counter
+for a host’s “one walk per no-op re-run” guard (nw#222).
+
+A walk is one classification of verdicts (what [`stale_verdicts()`](_autosummary/nw.freshness.html.md#nw.freshness.stale_verdicts),
+[`stale_verdicts_all()`](_autosummary/nw.freshness.html.md#nw.freshness.stale_verdicts_all), [`fresh_ids()`](_autosummary/nw.freshness.html.md#nw.freshness.fresh_ids) outside or first inside a
+pass, and [`fresh_equivalents()`](_autosummary/nw.freshness.html.md#nw.freshness.fresh_equivalents) without a held walk each run once).
+Process-wide and monotonic: read it before and after, and compare.
+
+* **Return type:**
+  [`int`](https://docs.python.org/3/builtins/functions.html#int)
 
 
 # _autosummary/nw.genres.html.md
@@ -3736,6 +3771,7 @@ are recorded as linked artifacts), see
 | [`validate`](_autosummary/nw.html.md#nw.validate)(target, \*[, checks, max_workers, ...])  | Run `checks` against `target` and report.                                                                                                                                                                                          |
 | [`all_stale`](_autosummary/nw.html.md#nw.all_stale)(project_root)                           | Every annotation that is currently stale, regardless of cause.                                                                                                                                                                     |
 | [`fresh_equivalents`](_autosummary/nw.html.md#nw.fresh_equivalents)(project_root, annotations, \*)  | For each of `annotations`, the existing node it would only duplicate.                                                                                                                                                              |
+| [`fresh_ids`](_autosummary/nw.html.md#nw.fresh_ids)(project_root)                           | The ids of every annotation in the project the snapshot walk verifies fresh (parentless ones included: they are never stale) — nw#222.                                                                                             |
 | [`freshness_pass`](_autosummary/nw.html.md#nw.freshness_pass)()                                  | Share one freshness walk across many [`fresh_equivalents()`](_autosummary/nw.html.md#nw.fresh_equivalents) lookups.                                                                                                                 |
 | [`stale_after`](_autosummary/nw.html.md#nw.stale_after)(project_root, changed_id)             | Return every annotation that `changed_id` actually invalidated.                                                                                                                                                                    |
 | [`stale_verdicts`](_autosummary/nw.html.md#nw.stale_verdicts)(project_root, changed_id)          | Classify every annotation downstream of `changed_id`.                                                                                                                                                                              |
@@ -6434,6 +6470,26 @@ write. Read-only: nothing is written.
 * **Return type:**
   [`tuple`](https://docs.python.org/3/builtins/stdtypes.html#tuple)[[`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[`Annotation`], [`...`](https://docs.python.org/3/builtins/constants.html#Ellipsis)]
 
+### nw.fresh_ids(project_root)
+
+The ids of every annotation in the project the snapshot walk verifies
+fresh (parentless ones included: they are never stale) — nw#222.
+
+Inside a [`freshness_pass()`](_autosummary/nw.html.md#nw.freshness_pass), answered from the pass’s held walk,
+taking it when none is held yet, so a host choosing among candidates
+(“the current episode”, “the freshest take”) shares the one walk its
+[`fresh_equivalents()`](_autosummary/nw.html.md#nw.fresh_equivalents) lookups use, and a write drops both. Outside a
+pass, one walk per call. The set is shared within the pass: do not rely on
+mutating it (it is a `frozenset`).
+
+Parentless rows are in it too (imports, and nw’s sidecars: verifying
+traces, unproduced-output records, the genre envelope), since nothing can
+make them stale: use it for membership (“is this candidate fresh?”), not
+as an inventory of fresh outputs.
+
+* **Return type:**
+  [`frozenset`](https://docs.python.org/3/builtins/stdtypes.html#frozenset)[[`UUID`](https://docs.python.org/3/library/uuid.html#uuid.UUID)]
+
 ### nw.freshness_pass()
 
 Share one freshness walk across many [`fresh_equivalents()`](_autosummary/nw.html.md#nw.fresh_equivalents) lookups.
@@ -7884,6 +7940,10 @@ file open makes `os.replace` / `os.unlink` of it fail with
 (`retry_on`, `attempts`, doubling from `backoff_s`: ~0.6 s in all by
 default). A read is milliseconds; the retries outlast it, and they cost
 nothing unless a write is actually refused.
+
+The write and the delete are `dol.atomic_write()` /
+`dol.atomic_delete()` with a `dol.atomic.Retry` (nw#213); files
+are created `0o600`, as the store’s records always were.
 
 ### *class* nw.jobs.DurationLearningMiddleware(, durations, index, lock, config=JobsConfig(n_min=3, sample_window_k=20, pct_ceil=99, overrun_factor=1.5, cache_hit_floor_s=0.5, dur_buckets_s=(4.0, 8.0, 12.0), prior_total_s={'image': 12.0, 'video': 90.0, 'audio': 15.0}, default_prior_total_s=30.0, stale_running_s=900.0, heartbeat_interval_s=20.0, heartbeat_stale_s=120.0, terminal_hook_attempts=3, terminal_hook_lease_s=300.0, approval_threshold_usd=1.0, index_retention_s=2592000.0, never_started_after_s=None, index_sweep_interval_s=3600.0, jobs_dirname='.nw/jobs'))
 
@@ -12102,7 +12162,7 @@ produce different URLs. The local file paths are byte-stable.
 
 # About this build
 
-This documentation was built on **2026-11-08 23:14 UTC** from commit <a href="https://github.com/reeleehq/nw/commit/66259809d4bbcfe9f1f95dd596c79f2df23ddbed"><code>6625980</code></a> on branch <code>main</code>, for **nw 0.0.132** (from <code>pyproject.toml</code>).
+This documentation was built on **2026-11-08 23:31 UTC** from commit <a href="https://github.com/reeleehq/nw/commit/32dec1a198b6d52d87fb8d92fdfb4a1fe5c57574"><code>32dec1a</code></a> on branch <code>main</code>, for **nw 0.0.133** (from <code>pyproject.toml</code>).
 
 #### NOTE
 Nothing suggests a mismatch: the tree was clean at the commit above, and the documented version is the one on PyPI.
@@ -12111,9 +12171,9 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 
 |                     |                                                                                                                                                    |
 |---------------------|----------------------------------------------------------------------------------------------------------------------------------------------------|
-| Commit              | <a href="https://github.com/reeleehq/nw/commit/66259809d4bbcfe9f1f95dd596c79f2df23ddbed"><code>66259809d4bbcfe9f1f95dd596c79f2df23ddbed</code></a> |
+| Commit              | <a href="https://github.com/reeleehq/nw/commit/32dec1a198b6d52d87fb8d92fdfb4a1fe5c57574"><code>32dec1a198b6d52d87fb8d92fdfb4a1fe5c57574</code></a> |
 | Branch              | <code>main</code>                                                                                                                                  |
-| Tags at this commit | <code>0.0.132</code>                                                                                                                               |
+| Tags at this commit | none                                                                                                                                               |
 | Working tree        | clean                                                                                                                                              |
 | Remote              | <code>https://github.com/reeleehq/nw</code>                                                                                                        |
 
@@ -12122,9 +12182,9 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 |              |                                                                                            |
 |--------------|--------------------------------------------------------------------------------------------|
 | Repository   | <code>reeleehq/nw</code>                                                                   |
-| Run          | <a href="https://github.com/reeleehq/nw/actions/runs/42532800341">42532800341</a>          |
+| Run          | <a href="https://github.com/reeleehq/nw/actions/runs/42534198144">42534198144</a>          |
 | Ref          | <code>refs/heads/main</code>                                                               |
-| Event commit | <code>cf6319b8b9ffdeff38bb4cb83c5cb81ec77eb934</code> (in the history of the built commit) |
+| Event commit | <code>0b0d96edaa3d7fa7f7b368524443bac844240a63</code> (in the history of the built commit) |
 
 ## Tools
 
@@ -12149,13 +12209,13 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 
 ## Package on PyPI
 
-Latest release: <a href="https://pypi.org/project/nw/0.0.132/">0.0.132</a>, the same as the documented version.
+Latest release: <a href="https://pypi.org/project/nw/0.0.133/">0.0.133</a>, the same as the documented version.
 
 ## Reproduce
 
 ```bash
 git clone https://github.com/reeleehq/nw && cd nw
-git checkout 66259809d4bbcfe9f1f95dd596c79f2df23ddbed
+git checkout 32dec1a198b6d52d87fb8d92fdfb4a1fe5c57574
 pip install "epythet==0.2.22"
 epythet quickstart . --ignore tests/ scrap/ examples/
 ```

@@ -91,6 +91,7 @@
       validate
       all_stale
       fresh_equivalents
+      fresh_ids
       freshness_pass
       stale_after
       stale_verdicts

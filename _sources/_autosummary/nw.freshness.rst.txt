@@ -18,12 +18,14 @@ nw.freshness
       annotation_parent_ids
       body_value
       fresh_equivalents
+      fresh_ids
       freshness_pass
       is_verifiable_digest_scheme
       reference_value
       stale_after
       stale_verdicts
       stale_verdicts_all
+      walk_count
    
    .. rubric:: Classes
 

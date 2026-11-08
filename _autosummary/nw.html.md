@@ -133,6 +133,7 @@ are recorded as linked artifacts), see
 | [`validate`](#nw.validate)(target, \*[, checks, max_workers, ...])  | Run `checks` against `target` and report.                                                                                                                                                                                          |
 | [`all_stale`](#nw.all_stale)(project_root)                           | Every annotation that is currently stale, regardless of cause.                                                                                                                                                                     |
 | [`fresh_equivalents`](#nw.fresh_equivalents)(project_root, annotations, \*)  | For each of `annotations`, the existing node it would only duplicate.                                                                                                                                                              |
+| [`fresh_ids`](#nw.fresh_ids)(project_root)                           | The ids of every annotation in the project the snapshot walk verifies fresh (parentless ones included: they are never stale) — nw#222.                                                                                             |
 | [`freshness_pass`](#nw.freshness_pass)()                                  | Share one freshness walk across many [`fresh_equivalents()`](#nw.fresh_equivalents) lookups.                                                                                                                 |
 | [`stale_after`](#nw.stale_after)(project_root, changed_id)             | Return every annotation that `changed_id` actually invalidated.                                                                                                                                                                    |
 | [`stale_verdicts`](#nw.stale_verdicts)(project_root, changed_id)          | Classify every annotation downstream of `changed_id`.                                                                                                                                                                              |
@@ -2830,6 +2831,26 @@ write. Read-only: nothing is written.
 
 * **Return type:**
   [`tuple`](https://docs.python.org/3/builtins/stdtypes.html#tuple)[[`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[`Annotation`], [`...`](https://docs.python.org/3/builtins/constants.html#Ellipsis)]
+
+### nw.fresh_ids(project_root)
+
+The ids of every annotation in the project the snapshot walk verifies
+fresh (parentless ones included: they are never stale) — nw#222.
+
+Inside a [`freshness_pass()`](#nw.freshness_pass), answered from the pass’s held walk,
+taking it when none is held yet, so a host choosing among candidates
+(“the current episode”, “the freshest take”) shares the one walk its
+[`fresh_equivalents()`](#nw.fresh_equivalents) lookups use, and a write drops both. Outside a
+pass, one walk per call. The set is shared within the pass: do not rely on
+mutating it (it is a `frozenset`).
+
+Parentless rows are in it too (imports, and nw’s sidecars: verifying
+traces, unproduced-output records, the genre envelope), since nothing can
+make them stale: use it for membership (“is this candidate fresh?”), not
+as an inventory of fresh outputs.
+
+* **Return type:**
+  [`frozenset`](https://docs.python.org/3/builtins/stdtypes.html#frozenset)[[`UUID`](https://docs.python.org/3/library/uuid.html#uuid.UUID)]
 
 ### nw.freshness_pass()
 

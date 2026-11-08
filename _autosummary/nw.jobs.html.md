@@ -154,6 +154,10 @@ file open makes `os.replace` / `os.unlink` of it fail with
 default). A read is milliseconds; the retries outlast it, and they cost
 nothing unless a write is actually refused.
 
+The write and the delete are `dol.atomic_write()` /
+`dol.atomic_delete()` with a `dol.atomic.Retry` (nw#213); files
+are created `0o600`, as the store’s records always were.
+
 ### *class* nw.jobs.DurationLearningMiddleware(, durations, index, lock, config=JobsConfig(n_min=3, sample_window_k=20, pct_ceil=99, overrun_factor=1.5, cache_hit_floor_s=0.5, dur_buckets_s=(4.0, 8.0, 12.0), prior_total_s={'image': 12.0, 'video': 90.0, 'audio': 15.0}, default_prior_total_s=30.0, stale_running_s=900.0, heartbeat_interval_s=20.0, heartbeat_stale_s=120.0, terminal_hook_attempts=3, terminal_hook_lease_s=300.0, approval_threshold_usd=1.0, index_retention_s=2592000.0, never_started_after_s=None, index_sweep_interval_s=3600.0, jobs_dirname='.nw/jobs'))
 
 Bases: `Middleware`

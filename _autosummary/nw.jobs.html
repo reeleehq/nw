@@ -472,6 +472,9 @@ file open makes <code class="docutils literal notranslate"><span class="pre">os.
 (<code class="docutils literal notranslate"><span class="pre">retry_on</span></code>, <code class="docutils literal notranslate"><span class="pre">attempts</span></code>, doubling from <code class="docutils literal notranslate"><span class="pre">backoff_s</span></code>: ~0.6 s in all by
 default). A read is milliseconds; the retries outlast it, and they cost
 nothing unless a write is actually refused.</p>
+<p>The write and the delete are <code class="xref py py-func docutils literal notranslate"><span class="pre">dol.atomic_write()</span></code> /
+<code class="xref py py-func docutils literal notranslate"><span class="pre">dol.atomic_delete()</span></code> with a <code class="xref py py-class docutils literal notranslate"><span class="pre">dol.atomic.Retry</span></code> (nw#213); files
+are created <code class="docutils literal notranslate"><span class="pre">0o600</span></code>, as the store’s records always were.</p>
 <dl class="field-list simple">
 </dl>
 </dd></dl>
@@ -1488,7 +1491,7 @@ cannot silently claim one name.</p>
     </div>
   </div>
 </footer>
-      <script src="../_static/documentation_options.js?v=9efdc3d6"></script>
+      <script src="../_static/documentation_options.js?v=3a8547cf"></script>
       <script src="../_static/doctools.js?v=fd6eb6e6"></script>
       <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
