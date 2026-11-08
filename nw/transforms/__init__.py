@@ -66,7 +66,7 @@ from __future__ import annotations
 
 import json
 import logging
-from dataclasses import asdict, dataclass, field, replace
+from dataclasses import dataclass, field, replace
 from pathlib import Path
 from collections.abc import Mapping
 from typing import Callable, Literal, Optional, Protocol, runtime_checkable
@@ -639,10 +639,13 @@ class BaseTransform:
                 instance_id=unit_instance_id,
                 call_index=i,
             )
+        cost = report_cost(report)
         return TransformResult(
             annotations=tuple(produced),
             artifacts=tuple(report.produced),
-            **asdict(report_cost(report)),
+            cost_usd_actual=cost.cost_usd_actual,
+            cache_hit_savings_usd=cost.cache_hit_savings_usd,
+            has_unknown_costs=cost.has_unknown_costs,
             failed=tuple(failed),
             blocked=tuple(blocked),
         )
@@ -1005,7 +1008,7 @@ def transform_catalog() -> list[dict]:
 
 
 # --- totalling several runs' costs (nw#189)
-from .costs import CostTotal, total_cost  # noqa: E402
+from .costs import CostTotal, report_cost, total_cost  # noqa: E402
 
 # --- import adapters so the built-in render-strategy Transforms self-register
 from . import _adapters as _adapters  # noqa: E402,F401
@@ -1061,6 +1064,7 @@ __all__ = [
     # totalling several runs' costs (nw#189)
     "CostTotal",
     "total_cost",
+    "report_cost",
     # artifact-tier lineage (nw#55)
     "AssetRefDeclarationError",
     "asset_fields",
