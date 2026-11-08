@@ -107,7 +107,7 @@ it. Layering: `lacing → nw → falaw.Plan → backends` — nothing above
 
 **Genre status** (`nw.Project.genre_status()`, nw#133) — the hook a genre overrides to say where a project stands (default `None`); hosts call `nw.genre_status_of(project)`, which returns a checked JSON dict or `None` (raises, NaN, over `max_bytes`, or naming the project root all read as `None`).
 
-**Cheap genre read** (`nw.project_genre(project)`, nw#223) — the `{genre, template, params}` envelope read from a document mirror (`.nw/genre_envelope` in `storage.docs`) written by `ProjectGraph.set_genre_envelope`, so a host lister classifies N projects without N graph opens. `Project.resolved_genre()` stays authoritative and backfills the mirror for older projects.
+**Cheap genre read** (`nw.project_genre(project)`, nw#223) — the `{genre, template, params}` envelope read from a document mirror (`.nw/genre_envelope.json` in `storage.docs`) written by `ProjectGraph.set_genre_envelope`, so a host lister classifies N projects without N graph opens. `Project.resolved_genre()` stays authoritative and keeps the mirror in step (backfills it for older projects, drops it when the graph has none); `rewrite_values` updates it too.
 
 **Plugin compatibility** (`nw/compat.py`, nw#164) — a plugin built against a newer nw calls `nw.require_fields(cls, fields, *, remedy=)` before it registers anything: it raises `nw.NwTooOldError` (an `ImportError`) naming nw, the class, each keyword the installed nw lacks and the remedy, instead of a bare `TypeError`. It asks the class's signature, never a version (an editable checkout's version is stale).
 

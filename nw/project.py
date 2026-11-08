@@ -69,6 +69,7 @@ from .bodies import (
     ShotBodyV1,
 )
 from .graph import (
+    GENRE_ENVELOPE_DOC,
     mirror_genre_envelope,
     ProjectGraph,
     descendants_of,
@@ -529,15 +530,21 @@ class Project:
         instead, which this call backfills for older projects.
         """
         body = self.graph.genre_envelope()
-        if body is None:
-            return None
-        # Backfill the cheap mirror (nw#223) for a project whose envelope was
-        # recorded before it existed. Best effort: a read never fails over it.
+        # Keep the cheap mirror (nw#223) in step with the authority: backfill
+        # it for a project whose envelope predates it, drop it when the graph
+        # holds none. Best effort: this read never fails over the mirror (a
+        # read-only or caller-owned docs mapping may refuse the write).
         try:
-            mirror_genre_envelope(self.storage, body)
-        except OSError:
-            _logger.debug("resolved_genre: could not mirror %s's envelope", self.root)
-        return body.as_envelope()
+            if body is None:
+                self.storage.docs.pop(GENRE_ENVELOPE_DOC, None)
+            else:
+                mirror_genre_envelope(self.storage, body)
+        except Exception:
+            _logger.debug(
+                "resolved_genre: could not sync %s's envelope mirror", self.root,
+                exc_info=True,
+            )
+        return None if body is None else body.as_envelope()
 
     def genre_status(self) -> Optional[dict]:
         """Where this project stands, in the genre's own terms. Override me.

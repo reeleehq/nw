@@ -134,7 +134,7 @@ class StoredUnproducedOutput:
 # ---------------------------------------------------------------------------
 
 
-GENRE_ENVELOPE_DOC = ".nw/genre_envelope"
+GENRE_ENVELOPE_DOC = ".nw/genre_envelope.json"
 """The document key mirroring a project's genre envelope (nw#223): what
 :func:`nw.project_genre` reads instead of opening the graph."""
 
@@ -147,7 +147,7 @@ def mirror_genre_envelope(storage: ProjectStorage, body: GenreEnvelopeBodyV1) ->
     try:
         if storage.docs[GENRE_ENVELOPE_DOC] == doc:
             return
-    except KeyError:
+    except Exception:  # absent, or a malformed / half-written mirror: rewrite it
         pass
     storage.docs[GENRE_ENVELOPE_DOC] = doc
 
@@ -430,7 +430,10 @@ class ProjectGraph:
         Also mirrored into the project's documents (:data:`GENRE_ENVELOPE_DOC`,
         after the graph write), so a host lister can classify a project with
         :func:`nw.project_genre` without opening its graph (nw#223). The graph
-        stays the authority.
+        stays the authority: two concurrent re-initializations can leave the
+        mirror one envelope behind (the write is not under a project lock),
+        and the next :meth:`nw.Project.resolved_genre` heals it. A mirror
+        write that fails is logged and leaves the graph write standing.
         """
         from lacing import Tier, TierStereotype
 
@@ -447,7 +450,13 @@ class ProjectGraph:
                 asset_id=self.asset_id,
                 was_attributed_to=was_attributed_to,
             )
-        mirror_genre_envelope(self.storage, body)
+        try:
+            mirror_genre_envelope(self.storage, body)
+        except Exception:
+            _logger.warning(
+                "set_genre_envelope: could not mirror %s's envelope", self.project_root,
+                exc_info=True,
+            )
         return ann_id
 
     def upsert_entity(
