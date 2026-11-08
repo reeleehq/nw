@@ -248,3 +248,47 @@ def test_documents_still_round_trip_nested_keys_and_delete(tmp_path):
     assert "characters/thor/card.json" in list(docs)
     del docs["characters/thor/card.json"]
     assert "characters/thor/card.json" not in docs
+
+
+def test_a_document_key_cannot_leave_the_root(tmp_path):
+    """The atomic write must keep dol's key guard: a key built from a caller's
+    name (``characters/../../x``) never lands outside the project."""
+    import pytest
+
+    from nw.storage import json_docs
+
+    root = tmp_path / "p"
+    root.mkdir()
+    docs = json_docs(root)
+    for key in ("../escape.json", "a/../../escape.json"):
+        with pytest.raises(KeyError):
+            docs[key] = {"x": 1}
+        with pytest.raises(KeyError):
+            docs[key]
+    assert not (tmp_path / "escape.json").exists()
+
+
+def test_a_document_read_outlasts_a_writer_swapping_it(tmp_path, monkeypatch):
+    """On Windows a read landing in os.replace's instant is refused; it is
+    retried, not reported as a missing document (nw#244)."""
+    import dol.atomic
+
+    from nw.storage import json_docs
+
+    docs = json_docs(tmp_path)
+    docs["project.json"] = {"title": "t"}
+    calls = []
+    real_open = open
+
+    def flaky_open(path, *a, **k):
+        if str(path).endswith("project.json") and not calls:
+            calls.append(path)
+            raise PermissionError("being replaced")
+        return real_open(path, *a, **k)
+
+    import nw.storage as storage_module
+
+    monkeypatch.setattr(storage_module, "DFLT_RETRY", dol.atomic.Retry(on=(PermissionError,), backoff_s=0))
+    monkeypatch.setattr("builtins.open", flaky_open)
+    assert docs["project.json"] == {"title": "t"}
+    assert calls

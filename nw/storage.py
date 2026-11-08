@@ -56,7 +56,7 @@ from typing import (
 )
 
 from dol import mk_dirs_if_missing, wrap_kvs
-from dol.atomic import atomic_write
+from dol.atomic import DFLT_RETRY, atomic_write
 from dol.filesys import FileBytesPersister, with_relative_paths
 from lacing import IntervalAnnotationStore
 from xdol import Registry
@@ -196,12 +196,33 @@ class _AtomicFiles(FileBytesPersister):
     ``os.replace``, retried on a Windows sharing violation): a reader sees the
     old document or the new one, never a truncated one (nw#244). dol's own
     write is a plain ``open(..., "wb")``, which a concurrent reader can catch
-    empty. A bridge until dol's ``Files`` takes a ``write=`` seam
-    (i2mint/dol, filed from nw#244)."""
+    empty. Reads retry the same Windows sharing violation, which dol's read
+    would report as a missing key. A bridge until dol's ``Files`` takes such
+    a seam (i2mint/dol, filed from nw#244).
+
+    Both overrides **must keep** ``self.validate_key(k)``: it is dol's guard
+    that a key (``"../x.json"``, built from a caller's name) stays under the
+    root, and it lives in the decorator these overrides replace.
+    """
+
+    def __getitem__(self, k):
+        self.validate_key(k)
+        if os.path.isdir(k):  # Windows reports opening a folder as PermissionError
+            raise KeyError(k)
+        try:
+            return DFLT_RETRY(_read_bytes, k)
+        except FileNotFoundError:
+            raise KeyError(k) from None
 
     def __setitem__(self, k, v):
+        self.validate_key(k)
         self._check_value_before_open(v)  # refuse a non-bytes value before any write
         atomic_write(k, v)
+
+
+def _read_bytes(path: str) -> bytes:
+    with open(path, "rb") as f:
+        return f.read()
 
 
 def json_docs(root: str | Path) -> MutableMapping[str, Any]:
