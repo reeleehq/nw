@@ -75,7 +75,7 @@ dependencies = [
     # was overwritten, so a just-cancelled job read back `cancelling` until its
     # worker ended instead of `cancelled` at once (nw#216, i2mint/au#28).
     "au>=0.1.11",
-    "dol>=0.3.100",  # dol.atomic.FileLock (jobs index, nw#148); Files(delete_func=)
+    "dol>=0.3.101",  # dol.atomic: FileLock (jobs index, nw#148), atomic_write/atomic_delete + Retry (nw#213); Files(delete_func=)
 ]
 
 [project.urls]
