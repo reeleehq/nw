@@ -57,7 +57,7 @@ it. Layering: `lacing → nw → falaw.Plan → backends` — nothing above
   candidate. `fan_out_execute` opens a `freshness_pass()`, so one walk
   serves every unit until a unit writes; the held walk is dropped at nw's
   write choke points (graph write-opens, `remove_annotations_with_traces`,
-  `rewrite_values`), never by callers (nw#209). A Transform declaring
+  `rewrite_values`), never by callers (nw#209). `nw.fresh_ids(project)` is the public read of that held walk (taking it when none is held; one walk per call outside a pass), and `nw.freshness.walk_count()` the supported counter for a host's one-walk guard (nw#222). A Transform declaring
   `reuse_fresh_outputs = True` (opt-in; `narration_to_sound_design.foley`
   does) has `BaseTransform.execute` return that node instead of writing a
   duplicate (still retiring the unproduced record its success settles), so
