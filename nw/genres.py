@@ -573,6 +573,31 @@ def initialize_genre(
     _persist_genre_envelope(project, genre=genre, template=template, params=params)
 
 
+def project_genre(project) -> Optional[dict]:
+    """The ``{genre, template, params}`` envelope ``project`` was created as,
+    read **without opening its graph** (nw#223); ``None`` when it has none.
+
+    ``project`` is a path, a storage or an ``nw.Project``. Reads the mirror
+    :meth:`nw.graph.ProjectGraph.set_genre_envelope` writes beside the graph,
+    so a host classifying N projects in a listing pays N small document reads,
+    not N graph opens (any of which can fail on a locked or corrupt graph).
+    :meth:`nw.Project.resolved_genre` stays the authoritative read, and
+    backfills the mirror for a project whose envelope predates it; until then
+    such a project reads ``None`` here. An unreadable or malformed mirror also
+    reads ``None``, never raises.
+    """
+    from .bodies import GenreEnvelopeBodyV1
+    from .graph import GENRE_ENVELOPE_DOC
+    from .storage import as_project_storage
+
+    try:
+        doc = as_project_storage(project).docs[GENRE_ENVELOPE_DOC]
+        body = GenreEnvelopeBodyV1.model_validate(doc)
+    except Exception:
+        return None
+    return body.as_envelope()
+
+
 def _persist_genre_envelope(
     project,
     *,

@@ -69,6 +69,7 @@ from .bodies import (
     ShotBodyV1,
 )
 from .graph import (
+    mirror_genre_envelope,
     ProjectGraph,
     descendants_of,
     iter_all_annotations,
@@ -522,15 +523,21 @@ class Project:
         the *effective* creation params without re-deriving them. ``None``
         for a project with no recorded genre (created before nw#32, or not
         through the genre machinery).
+
+        The authoritative read (it opens the graph); a host lister that only
+        classifies projects reads the mirror with :func:`nw.project_genre`
+        instead, which this call backfills for older projects.
         """
         body = self.graph.genre_envelope()
         if body is None:
             return None
-        return {
-            "genre": body.genre,
-            "template": body.template,
-            "params": dict(body.params),
-        }
+        # Backfill the cheap mirror (nw#223) for a project whose envelope was
+        # recorded before it existed. Best effort: a read never fails over it.
+        try:
+            mirror_genre_envelope(self.storage, body)
+        except OSError:
+            _logger.debug("resolved_genre: could not mirror %s's envelope", self.root)
+        return body.as_envelope()
 
     def genre_status(self) -> Optional[dict]:
         """Where this project stands, in the genre's own terms. Override me.
