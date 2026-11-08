@@ -15,11 +15,19 @@ rather than a shell pipeline.
 from __future__ import annotations
 
 import shutil
+from uuid import uuid4
 from pathlib import Path
 from typing import Callable, Iterable, Optional, TypeVar
 
 from .project import Project
-from .storage import PROJECT_FILE_NAME, FolderStorage, as_project_storage, is_project
+from .migrate import _MIGRATED_SENTINEL_NAME
+from .storage import (
+    PROJECT_FILE_NAME,
+    TENANT_KEY,
+    FolderStorage,
+    as_project_storage,
+    is_project,
+)
 from .schema import ProjectSummary
 
 
@@ -107,6 +115,8 @@ def clone_project(
                 target.unlink()
         target.mkdir()
 
+    _make_independent(src, dst)
+
     # Update title if requested (or fall back to the dst folder name).
     proj = Project(dst)
     proj.set_title(title if title is not None else dst.name)
@@ -117,6 +127,27 @@ def clone_project(
         reset=sorted(reset),
     )
     return proj.read_summary()
+
+
+def _make_independent(src: Path, dst: Path) -> None:
+    """Make the copy at ``dst`` its own project, not an alias of ``src`` (nw#251).
+
+    - **A fresh tenant id.** A shared (Postgres) graph backend keys a project's
+      graph on it (nw#109): a copied id would make the clone read and write the
+      source's rows, so resetting outputs would reset nothing. A source that
+      never minted one keeps none (its graph is keyed by root and title).
+    - **The migrated-to-graph sentinel survives a reset of** ``.nw``: without
+      it, opening a clone of a graph-native project would run the pre-graph
+      migration on it. A legacy (unmigrated) source still migrates on open.
+    """
+    docs = FolderStorage(dst).docs
+    doc = docs[PROJECT_FILE_NAME]
+    if doc.get(TENANT_KEY):
+        docs[PROJECT_FILE_NAME] = {**doc, TENANT_KEY: uuid4().hex}
+    sentinel = Path(".nw") / _MIGRATED_SENTINEL_NAME
+    if (src / sentinel).is_file() and not (dst / sentinel).exists():
+        (dst / sentinel).parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(src / sentinel, dst / sentinel)
 
 
 def apply_to_projects(
