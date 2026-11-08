@@ -3692,11 +3692,32 @@ def test_any_key_is_writable(tmp_path, key):
 
 @pytest.mark.skipif(os.name == "nt", reason="Windows caps the whole path, not the name")
 def test_the_longest_spelled_key_is_writable(tmp_path):
-    """Pins :data:`_MAX_STORE_KEY_LEN` to the store's real temp-file naming."""
+    """Every key :func:`_safe_key` leaves unhashed is writable. Since nw#213 the
+    write is dol's ``atomic_write``, whose temp name clips the key, so the only
+    limit left is the file name's own; ``_MAX_STORE_KEY_LEN`` stays below it
+    for key stability, not because a longer key would fail."""
     store = jobs.AtomicJsonFiles(tmp_path / "s")
     store["k" * jobs._MAX_STORE_KEY_LEN] = {"ok": True}
+    store["k" * jobs._MAX_NAME_BYTES] = {"ok": True}
     with pytest.raises(OSError):
-        store["k" * (jobs._MAX_STORE_KEY_LEN + 1)] = {"ok": True}
+        store["k" * (jobs._MAX_NAME_BYTES + 1)] = {"ok": True}
+    assert len(store) == 2 and not [p for p in (tmp_path / "s").iterdir() if p.name.startswith(".")]
+
+
+def test_records_are_owner_only(tmp_path):
+    """nw#213 kept mkstemp's 0o600 when the write moved to dol.atomic_write."""
+    if os.name == "nt":
+        pytest.skip("POSIX modes")
+    store = jobs.AtomicJsonFiles(tmp_path / "s")
+    store["k"] = {"v": 1}
+    assert ((tmp_path / "s" / "k").stat().st_mode & 0o777) == 0o600
+
+
+def test_a_bad_retry_configuration_is_refused_at_construction(tmp_path):
+    with pytest.raises(ValueError):
+        jobs.AtomicJsonFiles(tmp_path / "s", attempts=0)
+    with pytest.raises(TypeError):
+        jobs.AtomicJsonFiles(tmp_path / "s", retry_on=("not an exception",))
 
 
 def test_runs_order_by_time_not_by_string(project):

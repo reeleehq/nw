@@ -83,7 +83,6 @@ import numbers
 import os
 import reprlib
 import statistics
-import tempfile
 import threading
 import time
 import urllib.parse
@@ -105,7 +104,7 @@ from au import (
 )
 from au.base import ComputationBackend
 
-from dol.atomic import FileLock
+from dol.atomic import SHARING_VIOLATIONS, FileLock, Retry, atomic_delete, atomic_write
 from xdol import Registry
 
 from nw.paths import MAX_NAME_BYTES as _MAX_NAME_BYTES
@@ -1632,12 +1631,9 @@ def _finite_json(value: Any) -> Any:
     return value
 
 
-#: What an :class:`AtomicJsonFiles` write retries by default: Windows' sharing
-#: violation (a reader has the file open); nothing elsewhere, where the same
-#: error means a real permission problem.
-_SHARING_VIOLATIONS: tuple[type[BaseException], ...] = (
-    (PermissionError,) if os.name == "nt" else ()
-)
+_RECORD_PERMS = 0o600
+"""Mode of an :class:`AtomicJsonFiles` record: owner-only, as ``mkstemp``
+made them before the write moved to :func:`dol.atomic_write` (nw#213)."""
 
 
 class AtomicJsonFiles(MutableMapping):
@@ -1669,6 +1665,10 @@ class AtomicJsonFiles(MutableMapping):
     (``retry_on``, ``attempts``, doubling from ``backoff_s``: ~0.6 s in all by
     default). A read is milliseconds; the retries outlast it, and they cost
     nothing unless a write is actually refused.
+
+    The write and the delete are :func:`dol.atomic_write` /
+    :func:`dol.atomic_delete` with a :class:`dol.atomic.Retry` (nw#213); files
+    are created ``0o600``, as the store's records always were.
     """
 
     def __init__(
@@ -1681,19 +1681,12 @@ class AtomicJsonFiles(MutableMapping):
     ) -> None:
         self._rootdir = Path(rootdir)
         self._rootdir.mkdir(parents=True, exist_ok=True)
-        self._retry_on = _SHARING_VIOLATIONS if retry_on is None else retry_on
-        self._attempts = attempts
-        self._backoff_s = backoff_s
-
-    def _retrying(self, op, *args):
-        """``op(*args)``, retried on ``self._retry_on`` with doubling backoff."""
-        for attempt in range(self._attempts):
-            try:
-                return op(*args)
-            except self._retry_on:
-                if attempt == self._attempts - 1:
-                    raise
-                time.sleep(self._backoff_s * 2**attempt)
+        # Validated here (dol's Retry), not at the first contended write.
+        self._retry = Retry(
+            on=SHARING_VIOLATIONS if retry_on is None else tuple(retry_on),
+            attempts=attempts,
+            backoff_s=backoff_s,
+        )
 
     def _path(self, key: str) -> Path:
         # Keys here are filesystem-safe by construction (sha256 hex job ids,
@@ -1716,25 +1709,11 @@ class AtomicJsonFiles(MutableMapping):
             data = json.dumps(value, allow_nan=False)
         except ValueError:  # NaN/inf: JSON has none, so store them as null
             data = json.dumps(_finite_json(value), allow_nan=False)
-        data = data.encode("utf-8")
-        fd, tmp = tempfile.mkstemp(dir=self._rootdir, prefix=f".{key}.", suffix=".tmp")
-        try:
-            with os.fdopen(fd, "wb") as f:
-                f.write(data)
-        except BaseException:
-            with suppress(OSError):  # best-effort cleanup; the raise is the point
-                os.unlink(tmp)
-            raise
-        try:
-            self._retrying(os.replace, tmp, path)
-        except BaseException:
-            with suppress(OSError):  # no orphaned temp file when the swap fails
-                os.unlink(tmp)
-            raise
+        atomic_write(path, data.encode("utf-8"), perms=_RECORD_PERMS, retry=self._retry)
 
     def __delitem__(self, key: str) -> None:
         try:
-            self._retrying(os.unlink, self._path(key))
+            atomic_delete(self._path(key), retry=self._retry)
         except FileNotFoundError:
             raise KeyError(key) from None
 
@@ -3223,13 +3202,15 @@ def _durations_put(durations: MutableMapping, eta_key: str, samples: list) -> No
 
 
 _TEMP_RANDOM_LEN = 8
-"""Random characters ``tempfile.mkstemp`` puts in a name."""
+"""Random characters the store's temp names carried when this limit was set."""
 
 _MAX_STORE_KEY_LEN = (
     _MAX_NAME_BYTES - len(".") - len(".") - _TEMP_RANDOM_LEN - len(".tmp")
 )
-"""Longest key :class:`AtomicJsonFiles` can write: its temp file is
-``.<key>.<random>.tmp`` beside the target."""
+"""Longest key :func:`_safe_key` leaves unhashed. Set when the temp file was
+``.<key>.<random>.tmp``; :func:`dol.atomic_write` clips the name in its temp
+file, so the limit no longer binds, but it stays: moving it would move every
+key between the old and the new limit to a different file (nw#213)."""
 
 
 def _safe_key(key: str) -> str:
