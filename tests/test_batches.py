@@ -216,7 +216,7 @@ def test_cancel_wakes_a_waiting_batch(project):
     )
     def cancel_then_let_the_worker_exit():
         batches.cancel_batch(project, b.batch_id)
-        release.set()  # cancel is cooperative: the job reads cancelling until the worker exits
+        release.set()  # cancel is cooperative: the worker's stage stops at its next boundary
 
     threading.Timer(0.1, cancel_then_let_the_worker_exit).start()
     t0 = time.monotonic()

@@ -70,8 +70,11 @@ dependencies = [
     # The job facade (`nw.jobs`) is written in `au`. Required because the host
     # contract uses it (reelee and muvid enqueue through it) and `au` installs
     # nothing of its own; imported lazily because its package import is not
-    # free (nw#96).
-    "au>=0.1.1",
+    # free (nw#96). >=0.1.11 for compare-and-set RUNNING/outcome/CANCELLED
+    # writes: before it, a cancel landing between a worker's read and its write
+    # was overwritten, so a just-cancelled job read back `cancelling` until its
+    # worker ended instead of `cancelled` at once (nw#216, i2mint/au#28).
+    "au>=0.1.11",
     "dol>=0.3.100",  # dol.atomic.FileLock (jobs index, nw#148); Files(delete_func=)
 ]
 

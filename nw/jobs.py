@@ -39,8 +39,9 @@ Design decisions (from the ``nw.jobs``-on-``au`` design report,
 - **Cancel is boundary-grained and race-proof.** ``cancel_job`` flips the au
   record terminal *and* sets a durable should-cancel flag; the ``cancel_requested``
   flag is the authority for cancellation intent, so a job reads
-  ``cancelling`` → ``cancelled`` regardless of whether the still-running
-  ``ThreadBackend`` thread later clobbers the store with COMPLETED. The key
+  ``cancelling`` → ``cancelled`` even where the store's compare-and-set does
+  not span writers (au>=0.1.11 makes RUNNING, the outcome and CANCELLED
+  compare-and-set, so the thread no longer overwrites a cancel, nw#216). The key
   stays live until that thread has exited, in this process or any replica
   sharing the store: each run carries a ``run_token``, its heartbeat stamps
   only its own record, and ``worker_exited_at`` is written once the run's
@@ -1317,8 +1318,8 @@ def cancel_job(
     boundary) *and* flips the au record terminal at once via ``au.cancel_task``
     (which builds the handle **with the backend** so ``terminate`` is reached).
     The ``cancel_requested`` flag is authoritative, so the job reads
-    ``cancelling`` → ``cancelled`` even if the still-running thread later
-    overwrites the store with COMPLETED.
+    ``cancelling`` → ``cancelled`` even where the store's compare-and-set does
+    not span writers (au>=0.1.11, nw#216).
 
     **A job that has already finished is not cancelled — the call is a no-op**
     and returns the job unchanged. Because the flag is authoritative for
