@@ -2610,10 +2610,12 @@ def _maybe_reap(rt, record, au_result, config) -> ComputationResult:
             return current  # the worker finished after all
         # Under the lock, both writes: a relaunch happens only under it, so
         # FAILED can never land on a run that replaced the one reaped.
-        return _fail_locked(rt, job_id, REAPED_REASON)
+        return _fail_locked(rt, job_id, REAPED_REASON, started_at=current.started_at)
 
 
-def _fail_locked(rt, job_id, reason: str) -> ComputationResult:
+def _fail_locked(
+    rt, job_id, reason: str, *, started_at: datetime | None = None
+) -> ComputationResult:
     """End ``job_id``'s run as FAILED for ``reason`` (caller holds ``rt.lock``
     and has decided): the index's error first, then au's FAILED, the order a
     worker uses, so a reader that sees FAILED also sees the error."""
@@ -2625,11 +2627,14 @@ def _fail_locked(rt, job_id, reason: str) -> ComputationResult:
         error_kind=ERROR_KIND_CRASHED,
         **_cost_of_an_unfinished_run(_index_get_locked(rt, job_id)),
     )
+    # ``started_at``: the reaped RUNNING record's, so the start is not lost to
+    # this FAILED record's fresh ``created_at`` (nw#247).
     rt.au_store[job_id] = ComputationResult(
         None,
         ComputationStatus.FAILED,
         error=Exception(reason),
         terminal_reason=reason,
+        started_at=started_at,
     )
     return rt.au_store[job_id]
 
