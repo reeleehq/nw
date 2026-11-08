@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from nw.paths import MAX_NAME_BYTES, safe_path_segment
+from nw.paths import MAX_NAME_BYTES, is_kept, safe_path_segment
 
 HOSTILE = [
     "../../x",
@@ -45,10 +45,10 @@ def test_ids_that_slug_alike_do_not_share_a_file():
     assert len(names) == 4  # "a-b" is kept; the other three carry distinct digests
 
 
-def test_a_mapped_name_never_equals_a_kept_one():
-    mapped = safe_path_segment("../x")
-    assert "." in mapped
-    assert safe_path_segment(mapped) != mapped  # a kept id never contains "."
+@pytest.mark.parametrize("value", HOSTILE)
+def test_a_mapped_name_is_never_a_kept_one(value):
+    """So no kept id can ever name the file a hostile id was mapped to."""
+    assert not is_kept(safe_path_segment(value))
 
 
 def test_deterministic():

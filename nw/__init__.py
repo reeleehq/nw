@@ -234,7 +234,6 @@ from .workflow import (
 )
 
 __all__ = [
-    "safe_path_segment",
     "Deliverable",
     "Resolver",
     "Lister",
@@ -301,6 +300,7 @@ __all__ = [
     "rewrite_values",
     "require_fields",
     "NwTooOldError",
+    "safe_path_segment",
     "unmark_rewritten",
     "ProjectGraph",
     "ProjectStorage",

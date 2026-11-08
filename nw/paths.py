@@ -20,10 +20,12 @@ The mapping, and why each part is there:
   whatever the extension.
 
 Not handled: two kept ids differing only in case (``Panel1``, ``panel1``) share
-a file on a case-insensitive filesystem. Folding case would rename every
-existing mixed-case file, and the ids artful mints (``new_panel_id``) are lowercase.
+a file on a case-insensitive filesystem, so editing an id to ``P0A1`` beside
+``p0a1`` overwrites that file — inside the directory, never outside it. Folding
+case would rename every existing mixed-case file, and the ids artful mints
+(``new_panel_id``) are lowercase.
 
-Stdlib only, so any package can import it without paying for nw's graph.
+No dependency beyond the standard library.
 """
 
 from __future__ import annotations
@@ -31,13 +33,14 @@ from __future__ import annotations
 import hashlib
 import re
 
-__all__ = ["MAX_NAME_BYTES", "safe_path_segment"]
+__all__ = ["MAX_NAME_BYTES", "is_kept", "safe_path_segment"]
 
 MAX_NAME_BYTES = 255
 """The longest file name, in bytes, the filesystems nw runs on accept."""
 
 _DIGEST_LEN = 8
-"""Hex characters of the id's SHA-256 a mapped name carries."""
+"""Hex characters of the id's SHA-256 a mapped name carries. Part of every
+mapped file's identity: changing it renames those files, so it is not a knob."""
 
 _KEPT = re.compile(r"[A-Za-z0-9][A-Za-z0-9_-]*")
 """An id kept verbatim: ASCII letters, digits, ``_`` and ``-``, not led by a
@@ -47,12 +50,20 @@ _UNSAFE_RUN = re.compile(r"[^A-Za-z0-9_-]+")
 _WINDOWS_DEVICE = re.compile(r"(CON|PRN|AUX|NUL|COM[0-9]|LPT[0-9])", re.IGNORECASE)
 
 
+def is_kept(name: str) -> bool:
+    """Whether :func:`safe_path_segment` keeps ``name`` verbatim (its stem).
+
+    >>> is_kept("p0a1"), is_kept("x.9cdf6a50"), is_kept("nul")
+    (True, False, False)
+    """
+    return bool(_KEPT.fullmatch(name)) and not _WINDOWS_DEVICE.fullmatch(name)
+
+
 def safe_path_segment(
     value: str,
     *,
     suffix: str = "",
     max_bytes: int = MAX_NAME_BYTES,
-    digest_len: int = _DIGEST_LEN,
 ) -> str:
     """A single file name for ``value`` (plus ``suffix``) that is always a direct
     child of the directory it is joined to.
@@ -74,10 +85,9 @@ def safe_path_segment(
     if not isinstance(value, str):
         raise TypeError(f"safe_path_segment: value must be a str, got {type(value)}")
     room = max_bytes - len(suffix.encode("utf-8"))
-    if _KEPT.fullmatch(value) and not _WINDOWS_DEVICE.fullmatch(value):
-        if len(value) <= room:
-            return value + suffix
-    digest = hashlib.sha256(value.encode("utf-8")).hexdigest()[:digest_len]
+    if is_kept(value) and len(value) <= room:
+        return value + suffix
+    digest = hashlib.sha256(value.encode("utf-8")).hexdigest()[:_DIGEST_LEN]
     slug_room = room - len(".") - len(digest)
     if slug_room < 1:
         raise ValueError(

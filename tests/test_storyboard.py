@@ -321,7 +321,7 @@ def test_an_edited_panel_id_cannot_write_outside_storyboard(
 
     storyboard_dir = (proj.root / "storyboard").resolve()
     assert written and all(p.resolve().parent == storyboard_dir for p in written)
-    assert not (tmp_path.parent / "escape.png").exists()
+    assert not (tmp_path / "escape.png").exists()  # where a raw join lands
     by_id = {p.panel_id: p for p in updated.panels}
     (seed,) = [i for i in by_id[hostile].images if i.role == "seed"]
     assert (proj.root / seed.path).resolve().parent == storyboard_dir
