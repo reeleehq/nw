@@ -95,6 +95,7 @@ from .storage import (
     ProjectStorage,
     adopt_tenant_id,
     as_project_storage,
+    is_project,
     register_project_storage,
 )
 from .graph import (
@@ -308,6 +309,7 @@ __all__ = [
     "MappingStorage",
     "adopt_tenant_id",
     "as_project_storage",
+    "is_project",
     "register_project_storage",
     "StoredUnproducedOutput",
     "UNPRODUCED_OUTPUT_BODY_SCHEMA_URI",

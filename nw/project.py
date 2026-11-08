@@ -76,10 +76,12 @@ from .graph import (
 )
 from .bodies import GENRE_ENVELOPE_TIER, UNPRODUCED_OUTPUT_TIER, VERIFYING_TRACE_TIER
 from .storage import (
+    PROJECT_FILE_NAME as _PROJECT_FILE_NAME,
     TENANT_KEY,
     FolderStorage,
     ProjectStorage,
     as_project_storage,
+    is_project,
     project_lock,
 )
 from .migrate import (
@@ -170,9 +172,6 @@ class CharacterImage:
 # ---------------------------------------------------------------------------
 
 
-_PROJECT_FILE_NAME = "project.json"
-
-
 _logger = logging.getLogger(__name__)
 
 
@@ -259,6 +258,27 @@ def genre_status_of(
         )
         return None
     return status
+
+
+_CREATION_LOCK_PREFIX = "nw-project-create-"
+"""Name prefix of :func:`_creation_lock`'s lock files in the temp directory."""
+
+
+def _creation_lock(root: Path) -> AbstractContextManager:
+    """An exclusive lock, across processes on this host, on creating ``root``.
+
+    Lives in the system temp directory, keyed by a digest of the resolved root,
+    so taking it writes nothing in the folder being created (which
+    :meth:`Project.init` requires to be empty) or in the host's projects
+    directory. Advisory and best effort, as :func:`dol.atomic.file_lock` is.
+    """
+    import hashlib
+    import tempfile
+
+    from dol.atomic import file_lock
+
+    digest = hashlib.sha256(str(Path(root).resolve()).encode("utf-8")).hexdigest()
+    return file_lock(Path(tempfile.gettempdir()) / f"{_CREATION_LOCK_PREFIX}{digest[:32]}")
 
 
 class Project:
@@ -380,6 +400,38 @@ class Project:
         if song is not None:
             proj.set_song(song)
         return proj
+
+    @classmethod
+    def open_or_init(
+        cls,
+        root: str | Path,
+        *,
+        title: str = "",
+        storage: Optional[ProjectStorage] = None,
+    ) -> "Project":
+        """The project at ``root``: opened when it is one, else created (nw#217).
+
+        What a host keeping one project per production needs without naming
+        nw's marker file. ``storage`` is resolved once (``None``: a genre's
+        registered resolver, else nw's folder layout, as :class:`Project`
+        resolves it) and used for both the check and the create, so a genre's
+        layout is respected either way. ``title`` names a *new* project only;
+        an existing one keeps its own. A folder holding something that is not
+        a project is refused by :meth:`init` (``FileExistsError``), never
+        overwritten.
+
+        Two callers creating the same project at once both get it: the create
+        runs under a cross-process lock on this host (:func:`_creation_lock`),
+        and the loser finds the winner's project when it gets the lock. An
+        existing project is opened without taking the lock.
+        """
+        storage = storage if storage is not None else as_project_storage(root)
+        if is_project(storage):
+            return cls(root, storage=storage)
+        with _creation_lock(storage.root):
+            if is_project(storage):
+                return cls(root, storage=storage)
+            return cls.init(root, title=title, storage=storage)
 
     # -- properties --------------------------------------------------------
 

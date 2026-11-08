@@ -511,6 +511,24 @@ def register_project_storage(
     return resolver
 
 
+def is_project(project: "ProjectLike") -> bool:
+    """Whether ``project`` (a path, a storage, or an ``nw.Project``) holds an nw
+    project, without naming nw's marker document (nw#217).
+
+    A path is resolved like every other surface resolves one
+    (:func:`as_project_storage`), so a genre's own layout is respected. Cheap,
+    and never writes: a missing folder is simply not a project.
+
+    >>> import tempfile
+    >>> with tempfile.TemporaryDirectory() as d:
+    ...     before = is_project(d)
+    ...     FolderStorage(d).docs[PROJECT_FILE_NAME] = {"title": "t"}
+    ...     before, is_project(d)
+    (False, True)
+    """
+    return PROJECT_FILE_NAME in as_project_storage(project).docs
+
+
 def as_project_storage(project: Any) -> ProjectStorage:
     """The :class:`ProjectStorage` for a path, a storage, or an ``nw.Project``.
 
@@ -545,6 +563,7 @@ __all__ = [
     "adopt_tenant_id",
     "as_project_storage",
     "asset_id_of",
+    "is_project",
     "tenant_id_of",
     "TENANT_KEY",
     "json_docs",
