@@ -21,7 +21,7 @@ import os
 import subprocess
 import sys
 import textwrap
-from pathlib import Path
+from pathlib import Path, PurePath
 from types import ModuleType, SimpleNamespace
 from uuid import uuid4
 
@@ -625,6 +625,30 @@ def test_a_host_reads_the_text_from_the_project_through_narration_track(project)
     assert args["audio"]["path"] == "beats/mix.wav"
     assert reads == [episode.id]  # once per plan
     assert episode.id in skel.provenance.was_derived_from
+
+
+def test_narration_track_checks_what_the_stored_body_checks():
+    from nw.transforms.sound_design import NarrationTrack
+
+    assert NarrationTrack(["a"], "x/y.wav").audio_path == PurePath("x", "y.wav")
+    with pytest.raises(ValueError, match="no segments"):
+        NarrationTrack([], "y.wav")
+    with pytest.raises(ValueError, match="one start per segment"):
+        NarrationTrack(["a", "b"], "y.wav", segment_starts=[0.0])
+
+
+def test_a_disabled_design_never_reads_the_narration_track(project):
+    """A host overriding narration_track can rely on it running only when a
+    design is wanted (braidio's own guard around plan() becomes redundant)."""
+
+    class _Refusing(NarrationToSoundDesign):
+        name = "test.refusing_sound_design"
+
+        def narration_track(self, project, narration):  # pragma: no cover
+            raise AssertionError("read while disabled")
+
+    plan, skel = _Refusing().plan(project, _inputs(project, config={"enabled": False}))
+    assert plan.calls == () and skel == ()
 
 
 # ---------------------------------------------------------------------------

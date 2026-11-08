@@ -235,14 +235,28 @@ class NarrationTrack:
     """What foley needs from one narration: its spoken text, its audio, and
     where each sentence starts.
 
-    ``audio_path`` is relative to ``project.root`` (an absolute path also
-    works, but pins the plan and its cache key to this machine's layout).
-    ``segment_starts`` is ``None`` to let foley align the file.
+    ``audio_path`` is relative to ``project.root`` (a ``str`` is accepted and
+    made a ``PurePath``). ``segment_starts`` is ``None`` to let foley align the
+    file, else one start per segment. Checked at construction, as the stored
+    narration body is, so a host's mistake surfaces at plan time rather than
+    inside foley at execute time.
     """
 
     segments: list[str]
     audio_path: PurePath
     segment_starts: Optional[list[float]] = None
+
+    def __post_init__(self):
+        if not self.segments:
+            raise ValueError("NarrationTrack: no segments, nothing to design for")
+        if self.segment_starts is not None and len(self.segment_starts) != len(
+            self.segments
+        ):
+            raise ValueError(
+                f"NarrationTrack: {len(self.segment_starts)} segment_starts for "
+                f"{len(self.segments)} segments; give one start per segment"
+            )
+        object.__setattr__(self, "audio_path", PurePath(self.audio_path))
 
 
 class NarrationToSoundDesign(BaseTransform):
@@ -263,10 +277,11 @@ class NarrationToSoundDesign(BaseTransform):
     def narration_track(self, project, narration: Annotation) -> NarrationTrack:
         """Everything foley needs from ``narration``, read with the project.
 
-        The seam :meth:`plan` calls (nw#221). Override it when the text or its
-        timing lives elsewhere in the project, and compute it once here. The
-        default assembles the three finer seams below, which read only the
-        narration body.
+        The seam :meth:`plan` calls (nw#221), only once a sound design is
+        enabled. Override it when the text or its timing lives elsewhere in the
+        project, and compute it once here. The default assembles the three finer
+        seams below, which read only the narration body; an override of this
+        one means those three are no longer called.
         """
         return NarrationTrack(
             segments=self.narration_segments(narration),
@@ -317,7 +332,7 @@ class NarrationToSoundDesign(BaseTransform):
         if not config.enabled:
             return Plan(calls=()), ()
         track = self.narration_track(project, narration)
-        audio = PurePath(track.audio_path)
+        audio = track.audio_path
         sha = hash_file(Path(project.root) / audio)
         declared = (
             narration.body.get("artifact_id")
