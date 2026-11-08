@@ -50,6 +50,10 @@ _KEPT = re.compile(r"[A-Za-z0-9][A-Za-z0-9_-]*")
 """An id kept verbatim: ASCII letters, digits, ``_`` and ``-``, not led by a
 punctuation mark. No ``.``, which is what keeps mapped names disjoint."""
 
+_NOT_IN_A_SEGMENT = ("/", "\\", "\x00", ":")
+"""Characters a validated segment may not hold: separators, NUL, and ``:``
+(a Windows drive or stream prefix)."""
+
 _UNSAFE_RUN = re.compile(r"[^A-Za-z0-9_-]+")
 _WINDOWS_DEVICE = re.compile(r"(CON|PRN|AUX|NUL|COM[0-9]|LPT[0-9])", re.IGNORECASE)
 
@@ -108,8 +112,9 @@ def check_path_segment(
     value: str, *, what: str = "path segment", pattern: "re.Pattern | None" = None
 ) -> str:
     """``value``, refused unless it names a direct child of the directory it is
-    joined to: not empty, not ``.`` or ``..``, no ``/``, ``\\`` or NUL
-    (nw#227). Returns it unchanged.
+    joined to: not empty, not ``.`` or ``..``, no ``/``, ``\\``, NUL, or
+    ``:`` (on Windows ``D:x`` joins to another drive) (nw#227). Returns it
+    unchanged.
 
     ``pattern`` is a stricter policy a caller adds (``fullmatch``), e.g. a
     store whose names must be slugs. ``what`` names the value in the error.
@@ -124,8 +129,9 @@ def check_path_segment(
     if (
         not isinstance(value, str)
         or value in ("", ".", "..")
-        or any(c in value for c in ("/", "\\", "\x00"))
-        or (pattern is not None and not pattern.fullmatch(value))
+        or any(c in value for c in _NOT_IN_A_SEGMENT)
     ):
         raise ValueError(f"invalid {what}: {value!r} is not a single path segment")
+    if pattern is not None and not pattern.fullmatch(value):
+        raise ValueError(f"invalid {what}: {value!r} does not match {pattern.pattern!r}")
     return value

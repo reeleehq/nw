@@ -76,10 +76,11 @@ class StoreCatalogUnreadable(RuntimeError):
 
 def _segment(name: str, what: str) -> str:
     """``name`` as a tenant / class folder: :func:`nw.paths.check_path_segment`
-    with this store's stricter slug policy, never ``_nw`` or containing ``..``."""
+    with this store's stricter slug policy (which already refuses ``_nw``, the
+    meta folder, by requiring an alphanumeric first character), and no ``..``."""
     check_path_segment(name, what=what, pattern=_SEGMENT)
-    if name == _META_DIR or ".." in name:
-        raise ValueError(f"invalid {what}: {name!r} is reserved or not a safe segment")
+    if ".." in name:
+        raise ValueError(f"invalid {what}: {name!r} contains '..'")
     return name
 
 

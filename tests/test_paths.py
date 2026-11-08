@@ -78,7 +78,9 @@ import re  # noqa: E402
 from nw.paths import check_path_segment  # noqa: E402
 
 
-@pytest.mark.parametrize("bad", ["", ".", "..", "a/b", "../x", "a\\b", "x\x00y"])
+@pytest.mark.parametrize(
+    "bad", ["", ".", "..", "a/b", "../x", "a\\b", "x\x00y", "D:x", "a:b", "D:"]
+)
 def test_check_path_segment_refuses_anything_but_one_child(bad):
     with pytest.raises(ValueError, match="invalid name"):
         check_path_segment(bad, what="name")
@@ -92,7 +94,7 @@ def test_check_path_segment_returns_a_good_name_unchanged():
 def test_a_stricter_pattern_is_the_callers_policy():
     slug = re.compile(r"[a-z0-9-]+")
     assert check_path_segment("ok-1", pattern=slug) == "ok-1"
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="does not match"):
         check_path_segment("Not A Slug", pattern=slug)
 
 
@@ -110,5 +112,21 @@ def test_character_and_environment_names_cannot_leave_the_project(tmp_path):
     with pytest.raises(ValueError, match="environment name"):
         proj.add_environment("../escape")
     assert not (tmp_path / "escape").exists()
+    assert not (tmp_path / "p" / "escape").exists()
+    with pytest.raises(ValueError, match="shot id"):
+        proj.shot_dir("../x")
     proj.add_character("thor")  # an ordinary name still works
     assert (tmp_path / "p" / "characters" / "thor").is_dir()
+
+
+def test_a_shot_naming_an_unholdable_character_or_place_skips_it(tmp_path):
+    """An old spec naming ``a/b`` reads as missing, as the resolvers document,
+    rather than failing the render."""
+    import nw
+    from nw.schema import ShotSpec
+    from nw.workflow import _resolve_character_anchors, _resolve_environment_anchor
+
+    proj = nw.Project.init(tmp_path / "p")
+    shot = ShotSpec(id="s1", start_s=0, end_s=1, characters=("a/b",), environment="../x")
+    assert _resolve_character_anchors(proj, shot) == {}
+    assert _resolve_environment_anchor(proj, shot) is None

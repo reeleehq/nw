@@ -884,7 +884,8 @@ class Project:
     # -- shots / sections --------------------------------------------------
 
     def shot_dir(self, shot_id: str) -> Path:
-        return self.root / "shots" / shot_id
+        """``shots/<shot_id>``; the id must be one path segment (nw#227)."""
+        return self.root / "shots" / check_path_segment(shot_id, what="shot id")
 
     def upsert_shot(self, shot: ShotSpec) -> ShotSpec:
         self._docs[f"shots/{shot.id}/shot.json"] = json.loads(shot.model_dump_json())
