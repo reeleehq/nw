@@ -66,7 +66,7 @@ from __future__ import annotations
 
 import json
 import logging
-from dataclasses import dataclass, field, replace
+from dataclasses import asdict, dataclass, field, replace
 from pathlib import Path
 from collections.abc import Mapping
 from typing import Callable, Literal, Optional, Protocol, runtime_checkable
@@ -87,6 +87,7 @@ from nw.secrets import (
     using_secrets,
 )
 from nw.transforms._cache_mode import CacheModeConflict, resolve_cache_mode
+from nw.transforms.costs import report_cost
 from nw.transforms.fanout import (
     DFLT_GENERATE_WHEN,
     WORK_ITEM_NAMESPACE,
@@ -204,7 +205,7 @@ class TransformResult:
     cannot know whether the vendor billed it and inventing a number would be
     worse. Under ``"halt"`` the run aborted anyway; under ``"isolate"`` it
     continues, so a caller accumulating this across a fan-out with failures will
-    under-count. Read ``failed`` alongside it."""
+    under-count — which is why :attr:`has_unknown_costs` is then True (nw#214)."""
 
     cache_hit_savings_usd: float = 0.0
     """USD not spent because a call was served from cache.
@@ -214,9 +215,11 @@ class TransformResult:
     guessed would hit) to what actually hit."""
 
     has_unknown_costs: bool = False
-    """Whether any executed call had no price. Carried so ``$0.00`` stays
-    distinguishable from "we do not know", which is the distinction every cost
-    gate in the federation is required to read."""
+    """Whether :attr:`cost_usd_actual` is a lower bound: a call that may have
+    billed had no price, **or a call failed** (priced or not — the vendor may
+    have billed it, and falaw leaves it out of the sum; nw#214). Carried so
+    ``$0.00`` stays distinguishable from "we do not know", which is the
+    distinction every cost gate in the federation is required to read."""
 
     failed: tuple[FailedOutput, ...] = ()
     """Outputs whose own call failed. Empty unless ``on_failure="isolate"``."""
@@ -639,9 +642,7 @@ class BaseTransform:
         return TransformResult(
             annotations=tuple(produced),
             artifacts=tuple(report.produced),
-            cost_usd_actual=report.estimated_spend_usd,
-            cache_hit_savings_usd=report.cache_hit_savings_usd,
-            has_unknown_costs=report.has_unknown_costs,
+            **asdict(report_cost(report)),
             failed=tuple(failed),
             blocked=tuple(blocked),
         )

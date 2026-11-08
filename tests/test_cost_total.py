@@ -40,3 +40,49 @@ def test_totals_compose_and_a_generator_is_read_once():
 def test_a_cost_that_is_not_a_number_is_unknown_not_known():
     assert total_cost([_result(float("nan"))]).has_unknown_costs is True
     assert total_cost([_result(0.5, float("inf"))]).has_unknown_costs is True
+
+
+# --- one run's cost, off falaw's report (nw#214) ---------------------------
+
+from falaw import CallPlan  # noqa: E402
+from falaw.outcomes import CallOutcome, ExecutionReport  # noqa: E402
+
+from nw.transforms.costs import report_cost  # noqa: E402
+
+
+def _call(price):
+    return CallPlan(
+        tool="t", application="a", arguments={}, output_kind="image",
+        estimated_cost_usd=price,
+    )
+
+
+def _report(*outcomes):
+    return ExecutionReport(
+        outcomes=tuple(
+            CallOutcome(
+                index=i,
+                call=c,
+                status=s,
+                error=RuntimeError() if s == "failed" else None,
+                reason="upstream failed" if s == "blocked" else "",
+            )
+            for i, (c, s) in enumerate(outcomes)
+        )
+    )
+
+
+def test_a_failed_priced_call_makes_the_run_a_lower_bound():
+    """falaw leaves a failed priced call out of the sum without flagging it:
+    the vendor may have billed it, so the figure is a lower bound (nw#214)."""
+    report = _report((_call(0.04), "failed"))
+    assert report.has_unknown_costs is False  # falaw's flag alone would read exact
+    assert report_cost(report) == CostTotal(0.0, 0.0, True)
+
+
+def test_a_blocked_call_never_ran_and_leaves_the_figure_exact():
+    assert report_cost(_report((_call(0.04), "blocked"))).has_unknown_costs is False
+
+
+def test_an_unpriced_failed_call_is_unknown_as_falaw_says():
+    assert report_cost(_report((_call(None), "failed"))).has_unknown_costs is True

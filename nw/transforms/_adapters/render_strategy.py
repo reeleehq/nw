@@ -29,6 +29,7 @@ honest shape of wrapping pre-Transform code.
 from __future__ import annotations
 
 import uuid
+from dataclasses import asdict
 from collections.abc import Mapping
 from typing import Optional
 
@@ -46,6 +47,7 @@ from .. import (
     register_transform,
 )
 from .._cache_mode import resolve_cache_mode
+from ..costs import report_cost
 from ...secrets import as_secrets, using_secrets
 from .._provenance import derive_provenance
 from ...bodies import (
@@ -222,9 +224,7 @@ class RenderStrategyTransform(BaseTransform):
             return TransformResult(
                 annotations=(),
                 artifacts=tuple(report.produced),
-                cost_usd_actual=report.estimated_spend_usd,
-                cache_hit_savings_usd=report.cache_hit_savings_usd,
-                has_unknown_costs=report.has_unknown_costs,
+                **asdict(report_cost(report)),
                 failed=() if is_blocked else (unproduced,),
                 blocked=(unproduced,) if is_blocked else (),
             )
@@ -252,9 +252,7 @@ class RenderStrategyTransform(BaseTransform):
         return TransformResult(
             annotations=(completed,),
             artifacts=tuple(artifacts),
-            cost_usd_actual=report.estimated_spend_usd,
-            cache_hit_savings_usd=report.cache_hit_savings_usd,
-            has_unknown_costs=report.has_unknown_costs,
+            **asdict(report_cost(report)),
         )
 
 
