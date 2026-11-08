@@ -116,6 +116,7 @@ walk serves every lookup until something is written (nw#209).
 from __future__ import annotations
 
 import json
+import threading
 from collections.abc import Callable, Iterable, Iterator
 from contextlib import contextmanager
 from dataclasses import dataclass
@@ -265,6 +266,21 @@ def all_stale(project_root: "ProjectLike") -> list[Annotation]:
     return [v.annotation for v in stale_verdicts_all(project_root) if v.is_stale]
 
 
+class _WalkCounter:
+    """The process-wide count behind :func:`walk_count`."""
+
+    def __init__(self) -> None:
+        self.count = 0
+        self._lock = threading.Lock()
+
+    def bump(self) -> None:
+        with self._lock:
+            self.count += 1
+
+
+_walks = _WalkCounter()
+
+
 def _verdicts_for(
     annotations: list[Annotation],
     *,
@@ -280,6 +296,7 @@ def _verdicts_for(
     change); the whole-graph walk passes the derived set for both (a
     parentless parent has no verdict to take — it is never stale).
     """
+    _walks.bump()
     by_id: dict[UUID, Annotation] = {a.id: a for a in annotations}
     traces = _traces_by_target(annotations)
 
@@ -569,15 +586,14 @@ def fresh_equivalents(
     if not candidate_ids:
         return tuple(None for _ in annotations)
 
-    if held is None:
-        fresh = _fresh_among(project_root, candidate_ids)
-    else:
-        # One walk of every derived node, held until a write drops it: later
-        # lookups in the pass ask about other candidates, and a scoped walk
-        # would have to run again for each.
-        if "fresh" not in held:
-            held["fresh"] = _fresh_among(project_root, None)
-        fresh = held["fresh"]
+    # Inside a pass: one walk of every derived node, held until a write drops
+    # it (later lookups ask about other candidates, and a scoped walk would
+    # run again for each). Outside: a walk scoped to the candidates.
+    fresh = (
+        _fresh_among(project_root, candidate_ids)
+        if held is None
+        else fresh_ids(project_root)
+    )
 
     def _newest_fresh(cands: list[Annotation]) -> Optional[Annotation]:
         ordered = sorted(
@@ -587,6 +603,37 @@ def fresh_equivalents(
         return ordered[-1] if ordered else None
 
     return tuple(_newest_fresh(cands) for cands in candidates_per_input)
+
+
+def fresh_ids(project_root: "ProjectLike") -> frozenset[UUID]:
+    """The ids of every annotation in the project the snapshot walk verifies
+    fresh (parentless ones included: they are never stale) — nw#222.
+
+    Inside a :func:`freshness_pass`, answered from the pass's held walk,
+    taking it when none is held yet, so a host choosing among candidates
+    ("the current episode", "the freshest take") shares the one walk its
+    :func:`fresh_equivalents` lookups use, and a write drops both. Outside a
+    pass, one walk per call. The set is shared within the pass: do not rely on
+    mutating it (it is a ``frozenset``).
+    """
+    held = _freshness_pass.held(project_root)
+    if held is None:
+        return frozenset(_fresh_among(project_root, None))
+    if "fresh" not in held:
+        held["fresh"] = frozenset(_fresh_among(project_root, None))
+    return held["fresh"]
+
+
+def walk_count() -> int:
+    """How many freshness walks this process has run — a supported counter
+    for a host's "one walk per no-op re-run" guard (nw#222).
+
+    A walk is one classification of verdicts (what :func:`stale_verdicts`,
+    :func:`stale_verdicts_all`, :func:`fresh_ids` outside or first inside a
+    pass, and :func:`fresh_equivalents` without a held walk each run once).
+    Process-wide and monotonic: read it before and after, and compare.
+    """
+    return _walks.count
 
 
 def _fresh_among(project_root: "ProjectLike", ids: Optional[set[UUID]]) -> set[UUID]:

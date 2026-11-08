@@ -114,6 +114,50 @@ def test_a_fan_out_record_says_which_units_outputs_were_reused(tmp_path, fal):
         assert row["annotation_ids"] and row["reused_ids"] == sorted(row["annotation_ids"])
 
 
+# --- the public read of the held walk, and the walk counter (nw#222) ---------
+
+
+def test_fresh_ids_shares_the_passs_walk_with_fresh_equivalents(tmp_path, fal):
+    """A host choosing among candidates inside a pass pays no walk of its own:
+    ``fresh_ids`` answers from the walk the reuse lookups took (or takes it
+    for them), so a whole re-run is one walk."""
+    proj, shots = _project(tmp_path, sections=("a", "b"))
+    t = _FanReusing()
+    first = fan_out_execute(t, proj, _fan_out(t, proj, shots))
+
+    before = nw.freshness.walk_count()
+    with nw.freshness_pass():
+        fresh = nw.fresh_ids(proj)
+        fan_out_execute(t, proj, _fan_out(t, proj, shots))  # reuses: no write
+        assert nw.fresh_ids(proj) is fresh
+    assert nw.freshness.walk_count() - before == 1
+    assert set(_ids(first)) <= fresh
+    assert isinstance(fresh, frozenset)
+
+
+def test_fresh_ids_outside_a_pass_walks_every_call(tmp_path, fal):
+    proj, (shot,) = _project(tmp_path)
+    out = _Reusing().execute(proj, _plan(), (_skeleton(proj, (shot,)),))
+    before = nw.freshness.walk_count()
+    assert out.annotations[0].id in nw.fresh_ids(proj)
+    assert out.annotations[0].id in nw.fresh_ids(proj)
+    assert nw.freshness.walk_count() - before == 2
+
+
+def test_a_write_drops_the_fresh_ids_the_pass_held(tmp_path, fal):
+    """Fails if ``fresh_ids`` keeps answering from a walk taken before a write:
+    a parent edited mid-pass makes its derived node stale, and the held set
+    must not still call it fresh."""
+    proj, (shot,) = _project(tmp_path)
+    out = _Reusing().execute(proj, _plan(), (_skeleton(proj, (shot,)),))
+    with nw.freshness_pass():
+        assert out.annotations[0].id in nw.fresh_ids(proj)
+        proj.graph.upsert_section(
+            SectionBodyV1(section_id="s", label="edited"), interval=_iv(0, 4)
+        )
+        assert out.annotations[0].id not in nw.fresh_ids(proj)
+
+
 def test_a_write_inside_the_pass_makes_the_next_lookup_walk_again(tmp_path, fal):
     """Fails if a graph write does not drop the held walk: a parent rewritten
     in place mid-pass keeps its id, the held walk still says the old output is
