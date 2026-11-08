@@ -616,6 +616,35 @@ def test_stale_running_is_reaped(project):
     reaped = jobs.get_job(project, job_id, config=cfg)
     assert reaped.status == jobs.FAILED
     assert jobs.REAPED_REASON in (reaped.error or "")
+    assert reaped.cost.actual_is_lower_bound is None  # reported no spend: no claim
+
+
+def test_a_reaped_run_that_reported_spend_reads_as_a_lower_bound(project):
+    """nw#232: a worker killed mid-render after an exact-looking cost event
+    never reaches the terminal reconcile; the reaper must flag the figure."""
+    from datetime import datetime, timedelta, timezone
+    import au
+
+    cfg = JobsConfig(stale_running_s=0.0)
+    rt = jobs._runtime(project, cfg)
+    job_id = "orphan-that-billed"
+    old = (datetime.now(timezone.utc) - timedelta(seconds=120)).isoformat().replace(
+        "+00:00", "Z"
+    )
+    rt.index[job_id] = {
+        "job_id": job_id, "kind": "op", "label": "orphan", "idempotency_key": job_id,
+        "params": {}, "created_at": old, "started_at": old, "finished_at": None,
+        "eta_candidates": [], "output_kind": None, "expected_cache_hit": False,
+        "cached": False, "cancel_requested": False, "pct_floor": None, "progress": {},
+        "cost": {"actual_usd": 0.3, "actual_is_lower_bound": False},
+        "artifact_ref": None, "result": None, "error": None, "last_event_id": None,
+    }
+    rt.au_store[job_id] = au.ComputationResult(None, au.ComputationStatus.RUNNING)
+
+    reaped = jobs.get_job(project, job_id, config=cfg)
+    assert reaped.status == jobs.FAILED
+    assert reaped.cost.actual_usd == 0.3
+    assert reaped.cost.actual_is_lower_bound is True
 
 
 def test_live_worker_is_not_reaped(project):

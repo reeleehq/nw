@@ -250,7 +250,9 @@ class JobCost:
     """True when the run reported ``has_unknown_costs`` — some call that may
     have billed is not in :attr:`actual_usd` (it had no price, or it failed:
     falaw cannot know whether a failed call was billed, nw#214), so the figure
-    UNDER-states the spend.
+    UNDER-states the spend. Also True when the run ended without its final
+    figures (its render raised, or its worker died and was reaped) after
+    reporting a spend (nw#232).
 
     Its whole job is to keep a ``$0`` readable. Without it, ``actual_usd``
     conflates two answers a spend surface must never merge: "this run cost
@@ -2280,7 +2282,7 @@ def _bind_worker(
                             job_id,
                             error_kind=error_kind_of(e),
                             error_detail=error_detail_of(e, secrets=secrets),
-                            **_cost_after_a_raise(_index_get_locked(rt, job_id)),
+                            **_cost_of_an_unfinished_run(_index_get_locked(rt, job_id)),
                         )
                     # au persists the RENDERED exception text as the job's
                     # error; a provider echoing the key back would put it in
@@ -2487,12 +2489,13 @@ def _mirror_event_into_index(rt, job_id, ev) -> None:
         _index_update_locked(rt, job_id, **updates)
 
 
-def _cost_after_a_raise(record) -> dict:
-    """The ``cost`` update for a run whose render raised (nw#232): a spend it
-    already reported is a lower bound — the render may have billed more before
-    it raised, and :func:`_reconcile_terminal`, which would carry the final
-    figures, never runs. ``{}`` when nothing was reported: an absent
-    ``actual_usd`` already reads as unknown."""
+def _cost_of_an_unfinished_run(record) -> dict:
+    """The ``cost`` update for a run that ended without its final figures — its
+    render raised, or its worker died and was reaped (nw#232): a spend it
+    already reported is a lower bound, since it may have billed more first and
+    :func:`_reconcile_terminal`, which carries the final figures, never runs.
+    ``{}`` when nothing was reported: an absent ``actual_usd`` already reads
+    as unknown."""
     cost = dict((record or {}).get("cost") or {})
     if cost.get("actual_usd") is None:
         return {}
@@ -2611,6 +2614,7 @@ def _fail_locked(rt, job_id, reason: str) -> ComputationResult:
         finished_at=now_iso(),
         error=reason,
         error_kind=ERROR_KIND_CRASHED,
+        **_cost_of_an_unfinished_run(_index_get_locked(rt, job_id)),
     )
     rt.au_store[job_id] = ComputationResult(
         None,
