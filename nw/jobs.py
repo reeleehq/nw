@@ -2735,10 +2735,13 @@ def _project_job(rt, record, au_result, config) -> Job:
     started_at = record.get("started_at")
     # Invariant (defense in depth): a job observable as running/cancelling/terminal
     # always has a started_at. The primary stamp is `before_compute`; here we
-    # derive it from au's RUNNING-record `created_at` for any backend that might
-    # write RUNNING without the index having caught up.
-    if started_at is None and status != QUEUED and au_result.created_at:
-        started_at = _iso(au_result.created_at)
+    # derive it from au's record for any backend that might write RUNNING
+    # without the index having caught up. au's own `started_at` first: au
+    # builds a terminal record with a FRESH `created_at` (the completion time),
+    # so falling back to it reported the finish as the start (nw#247).
+    au_began = au_result.started_at or au_result.created_at
+    if started_at is None and status != QUEUED and au_began:
+        started_at = _iso(au_began)
     finished_at = record.get("finished_at")
     if finished_at is None and status in TERMINAL_STATUSES and au_result.completed_at:
         finished_at = _iso(au_result.completed_at)
