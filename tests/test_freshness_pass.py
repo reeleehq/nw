@@ -144,6 +144,15 @@ def test_fresh_ids_outside_a_pass_walks_every_call(tmp_path, fal):
     assert nw.freshness.walk_count() - before == 2
 
 
+def test_fresh_ids_holds_parentless_rows_and_every_walk_is_counted(tmp_path, fal):
+    proj, (shot,) = _project(tmp_path)
+    _Reusing().execute(proj, _plan(), (_skeleton(proj, (shot,)),))
+    assert shot in nw.fresh_ids(proj)  # an authored, parentless row
+    before = nw.freshness.walk_count()
+    nw.stale_verdicts_all(proj)
+    assert nw.freshness.walk_count() - before == 1
+
+
 def test_a_write_drops_the_fresh_ids_the_pass_held(tmp_path, fal):
     """Fails if ``fresh_ids`` keeps answering from a walk taken before a write:
     a parent edited mid-pass makes its derived node stale, and the held set

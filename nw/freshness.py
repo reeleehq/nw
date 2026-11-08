@@ -266,19 +266,15 @@ def all_stale(project_root: "ProjectLike") -> list[Annotation]:
     return [v.annotation for v in stale_verdicts_all(project_root) if v.is_stale]
 
 
-class _WalkCounter:
-    """The process-wide count behind :func:`walk_count`."""
-
-    def __init__(self) -> None:
-        self.count = 0
-        self._lock = threading.Lock()
-
-    def bump(self) -> None:
-        with self._lock:
-            self.count += 1
+_walks = 0
+"""The process-wide count behind :func:`walk_count`."""
+_walks_lock = threading.Lock()
 
 
-_walks = _WalkCounter()
+def _bump_walks() -> None:
+    global _walks
+    with _walks_lock:
+        _walks += 1
 
 
 def _verdicts_for(
@@ -296,7 +292,7 @@ def _verdicts_for(
     change); the whole-graph walk passes the derived set for both (a
     parentless parent has no verdict to take — it is never stale).
     """
-    _walks.bump()
+    _bump_walks()
     by_id: dict[UUID, Annotation] = {a.id: a for a in annotations}
     traces = _traces_by_target(annotations)
 
@@ -615,6 +611,11 @@ def fresh_ids(project_root: "ProjectLike") -> frozenset[UUID]:
     :func:`fresh_equivalents` lookups use, and a write drops both. Outside a
     pass, one walk per call. The set is shared within the pass: do not rely on
     mutating it (it is a ``frozenset``).
+
+    Parentless rows are in it too (imports, and nw's sidecars: verifying
+    traces, unproduced-output records, the genre envelope), since nothing can
+    make them stale: use it for membership ("is this candidate fresh?"), not
+    as an inventory of fresh outputs.
     """
     held = _freshness_pass.held(project_root)
     if held is None:
@@ -633,7 +634,7 @@ def walk_count() -> int:
     pass, and :func:`fresh_equivalents` without a held walk each run once).
     Process-wide and monotonic: read it before and after, and compare.
     """
-    return _walks.count
+    return _walks
 
 
 def _fresh_among(project_root: "ProjectLike", ids: Optional[set[UUID]]) -> set[UUID]:
