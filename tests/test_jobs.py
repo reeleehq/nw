@@ -3355,6 +3355,28 @@ def test_a_write_outlasts_a_reader_holding_the_file(tmp_path, monkeypatch):
     assert "k" not in store
 
 
+def test_a_read_outlasts_a_writer_replacing_the_file(tmp_path, monkeypatch):
+    """nw#225: on Windows a read landing while the job's worker os.replaces
+    the record is refused for that instant; the poll must not fail for it."""
+    from pathlib import Path
+
+    store = jobs.AtomicJsonFiles(tmp_path, retry_on=(PermissionError,), backoff_s=0)
+    store["k"] = {"v": 1}
+    monkeypatch.setattr(Path, "read_text", _flaky(Path.read_text, 2))
+    assert store["k"] == {"v": 1}
+    assert store.get("missing") is None  # absence is still KeyError, not retried
+
+
+def test_a_read_is_not_retried_where_the_error_is_real(tmp_path, monkeypatch):
+    from pathlib import Path
+
+    store = jobs.AtomicJsonFiles(tmp_path, retry_on=(), backoff_s=0)
+    store["k"] = {"v": 1}
+    monkeypatch.setattr(Path, "read_text", _flaky(Path.read_text, 1))
+    with pytest.raises(PermissionError):
+        store["k"]
+
+
 def test_a_write_that_stays_refused_raises_and_leaves_no_temp_file(tmp_path, monkeypatch):
     store = jobs.AtomicJsonFiles(
         tmp_path, retry_on=(PermissionError,), attempts=3, backoff_s=0

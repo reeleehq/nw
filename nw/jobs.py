@@ -1664,7 +1664,9 @@ class AtomicJsonFiles(MutableMapping):
     ``PermissionError`` until it closes, so a write retries those briefly
     (``retry_on``, ``attempts``, doubling from ``backoff_s``: ~0.6 s in all by
     default). A read is milliseconds; the retries outlast it, and they cost
-    nothing unless a write is actually refused.
+    nothing unless a write is actually refused. The collision also refuses
+    the *reader* for the instant of the swap, so a read retries the same way
+    (nw#225). Off Windows the default retries nothing, on either side.
 
     The write and the delete are :func:`dol.atomic_write` /
     :func:`dol.atomic_delete` with a :class:`dol.atomic.Retry` (nw#213); files
@@ -1697,8 +1699,11 @@ class AtomicJsonFiles(MutableMapping):
         return self._rootdir / key
 
     def __getitem__(self, key: str):
+        # The same retry as a write (nw#225): on Windows a read that lands while
+        # a writer's os.replace swaps the file is refused (PermissionError)
+        # for that instant, and the replace is over in well under the backoff.
         try:
-            text = self._path(key).read_text(encoding="utf-8")
+            text = self._retry(Path.read_text, self._path(key), "utf-8")
         except FileNotFoundError:
             raise KeyError(key) from None
         return json.loads(text)
