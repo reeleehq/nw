@@ -19,6 +19,7 @@ nw.storage
       adopt_tenant_id
       as_project_storage
       asset_id_of
+      is_project
       tenant_id_of
       json_docs
       open_graph_for_read

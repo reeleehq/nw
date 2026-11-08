@@ -142,6 +142,33 @@ Both surfaces stay in sync:
 * **Return type:**
   [`None`](https://docs.python.org/3/builtins/constants.html#None)
 
+#### *classmethod* open_or_init(root, , title='', storage=None)
+
+The project at `root`: opened when it is one, else created (nw#217).
+
+What a host keeping one project per production needs without naming
+nw’s marker file. `storage` is resolved once (`None`: a genre’s
+registered resolver, else nw’s folder layout, as [`Project`](#nw.project.Project)
+resolves it) and used for both the check and the create, so a genre’s
+layout is respected either way. `title` names a *new* project only;
+an existing one keeps its own. A folder holding something that is not
+a project is refused by [`init()`](#nw.project.Project.init) (`FileExistsError`), never
+overwritten.
+
+Two callers creating the same project at once both get it, on a host
+whose temp directory takes advisory locks: the create runs under a
+cross-process lock (`_creation_lock()`), and the loser finds the
+winner’s project when it gets the lock. Where locking is unavailable
+the create runs unlocked (logged at debug). An existing project is
+opened without taking the lock.
+
+The project is created at `storage.root`, the place the lock covers
+and the one [`Project`](#nw.project.Project) opens; with an explicit `storage`,
+`root` is only what resolved it.
+
+* **Return type:**
+  [`Project`](#nw.project.Project)
+
 #### read_spec()
 
 Read the project spec, synthesizing from the graph for graph-native fields.

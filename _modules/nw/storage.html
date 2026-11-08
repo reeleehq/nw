@@ -703,50 +703,72 @@ data-aria-dark="Switch to auto color mode">
 
 </span><span data-line="512">
 </span><span data-line="513">
+<div class="viewcode-block" id="is_project">
+<a class="viewcode-back" href="../../_autosummary/nw.storage.html#nw.is_project">[docs]</a>
+</span><span data-line="514"><span class="k">def</span><span class="w"> </span><span class="nf">is_project</span><span class="p">(</span><span class="n">project</span><span class="p">:</span> <span class="s2">"ProjectLike"</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+</span><span data-line="515"><span class="w">    </span><span class="sd">"""Whether ``project`` (a path, a storage, or an ``nw.Project``) holds an nw</span>
+</span><span data-line="516"><span class="sd">    project, without naming nw's marker document (nw#217).</span>
+</span><span data-line="517">
+</span><span data-line="518"><span class="sd">    A path is resolved like every other surface resolves one</span>
+</span><span data-line="519"><span class="sd">    (:func:`as_project_storage`), so a genre's own layout is respected. Cheap,</span>
+</span><span data-line="520"><span class="sd">    and never writes: a missing folder is simply not a project.</span>
+</span><span data-line="521">
+</span><span data-line="522"><span class="sd">    &gt;&gt;&gt; import tempfile</span>
+</span><span data-line="523"><span class="sd">    &gt;&gt;&gt; with tempfile.TemporaryDirectory() as d:</span>
+</span><span data-line="524"><span class="sd">    ...     before = is_project(d)</span>
+</span><span data-line="525"><span class="sd">    ...     FolderStorage(d).docs[PROJECT_FILE_NAME] = {"title": "t"}</span>
+</span><span data-line="526"><span class="sd">    ...     before, is_project(d)</span>
+</span><span data-line="527"><span class="sd">    (False, True)</span>
+</span><span data-line="528"><span class="sd">    """</span>
+</span><span data-line="529">    <span class="k">return</span> <span class="n">PROJECT_FILE_NAME</span> <span class="ow">in</span> <span class="n">as_project_storage</span><span class="p">(</span><span class="n">project</span><span class="p">)</span><span class="o">.</span><span class="n">docs</span></div>
+
+</span><span data-line="530">
+</span><span data-line="531">
 <div class="viewcode-block" id="as_project_storage">
 <a class="viewcode-back" href="../../_autosummary/nw.storage.html#nw.as_project_storage">[docs]</a>
-</span><span data-line="514"><span class="k">def</span><span class="w"> </span><span class="nf">as_project_storage</span><span class="p">(</span><span class="n">project</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ProjectStorage</span><span class="p">:</span>
-</span><span data-line="515"><span class="w">    </span><span class="sd">"""The :class:`ProjectStorage` for a path, a storage, or an ``nw.Project``.</span>
-</span><span data-line="516">
-</span><span data-line="517"><span class="sd">    A path goes to the first registered resolver that recognises it, else to</span>
-</span><span data-line="518"><span class="sd">    :class:`FolderStorage`.</span>
-</span><span data-line="519"><span class="sd">    """</span>
-</span><span data-line="520">    <span class="n">storage</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">project</span><span class="p">,</span> <span class="s2">"storage"</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
-</span><span data-line="521">    <span class="k">if</span> <span class="n">storage</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">project</span><span class="p">,</span> <span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="n">Path</span><span class="p">)):</span>
-</span><span data-line="522">        <span class="k">return</span> <span class="n">storage</span>
-</span><span data-line="523">    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">project</span><span class="p">,</span> <span class="n">ProjectStorage</span><span class="p">):</span>
-</span><span data-line="524">        <span class="k">return</span> <span class="n">project</span>
-</span><span data-line="525">    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">project</span><span class="p">,</span> <span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="n">Path</span><span class="p">)):</span>
-</span><span data-line="526">        <span class="n">root</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">project</span><span class="p">)</span><span class="o">.</span><span class="n">resolve</span><span class="p">()</span>
-</span><span data-line="527">        <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="n">project_storages</span><span class="p">):</span>
-</span><span data-line="528">            <span class="n">found</span> <span class="o">=</span> <span class="n">project_storages</span><span class="p">[</span><span class="n">name</span><span class="p">](</span><span class="n">root</span><span class="p">)</span>
-</span><span data-line="529">            <span class="k">if</span> <span class="n">found</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-</span><span data-line="530">                <span class="k">return</span> <span class="n">found</span>
-</span><span data-line="531">        <span class="k">return</span> <span class="n">FolderStorage</span><span class="p">(</span><span class="n">root</span><span class="p">)</span>
-</span><span data-line="532">    <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
-</span><span data-line="533">        <span class="sa">f</span><span class="s2">"expected a project path, a ProjectStorage or an nw.Project, "</span>
-</span><span data-line="534">        <span class="sa">f</span><span class="s2">"got </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">project</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">"</span>
-</span><span data-line="535">    <span class="p">)</span></div>
+</span><span data-line="532"><span class="k">def</span><span class="w"> </span><span class="nf">as_project_storage</span><span class="p">(</span><span class="n">project</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ProjectStorage</span><span class="p">:</span>
+</span><span data-line="533"><span class="w">    </span><span class="sd">"""The :class:`ProjectStorage` for a path, a storage, or an ``nw.Project``.</span>
+</span><span data-line="534">
+</span><span data-line="535"><span class="sd">    A path goes to the first registered resolver that recognises it, else to</span>
+</span><span data-line="536"><span class="sd">    :class:`FolderStorage`.</span>
+</span><span data-line="537"><span class="sd">    """</span>
+</span><span data-line="538">    <span class="n">storage</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">project</span><span class="p">,</span> <span class="s2">"storage"</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+</span><span data-line="539">    <span class="k">if</span> <span class="n">storage</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">project</span><span class="p">,</span> <span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="n">Path</span><span class="p">)):</span>
+</span><span data-line="540">        <span class="k">return</span> <span class="n">storage</span>
+</span><span data-line="541">    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">project</span><span class="p">,</span> <span class="n">ProjectStorage</span><span class="p">):</span>
+</span><span data-line="542">        <span class="k">return</span> <span class="n">project</span>
+</span><span data-line="543">    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">project</span><span class="p">,</span> <span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="n">Path</span><span class="p">)):</span>
+</span><span data-line="544">        <span class="n">root</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">project</span><span class="p">)</span><span class="o">.</span><span class="n">resolve</span><span class="p">()</span>
+</span><span data-line="545">        <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="n">project_storages</span><span class="p">):</span>
+</span><span data-line="546">            <span class="n">found</span> <span class="o">=</span> <span class="n">project_storages</span><span class="p">[</span><span class="n">name</span><span class="p">](</span><span class="n">root</span><span class="p">)</span>
+</span><span data-line="547">            <span class="k">if</span> <span class="n">found</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+</span><span data-line="548">                <span class="k">return</span> <span class="n">found</span>
+</span><span data-line="549">        <span class="k">return</span> <span class="n">FolderStorage</span><span class="p">(</span><span class="n">root</span><span class="p">)</span>
+</span><span data-line="550">    <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
+</span><span data-line="551">        <span class="sa">f</span><span class="s2">"expected a project path, a ProjectStorage or an nw.Project, "</span>
+</span><span data-line="552">        <span class="sa">f</span><span class="s2">"got </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">project</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">"</span>
+</span><span data-line="553">    <span class="p">)</span></div>
 
-</span><span data-line="536">
-</span><span data-line="537">
-</span><span data-line="538"><span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span>
-</span><span data-line="539">    <span class="s2">"DFLT_INIT_FOLDERS"</span><span class="p">,</span>
-</span><span data-line="540">    <span class="s2">"FolderStorage"</span><span class="p">,</span>
-</span><span data-line="541">    <span class="s2">"MappingStorage"</span><span class="p">,</span>
-</span><span data-line="542">    <span class="s2">"PROJECT_FILE_NAME"</span><span class="p">,</span>
-</span><span data-line="543">    <span class="s2">"ProjectLike"</span><span class="p">,</span>
-</span><span data-line="544">    <span class="s2">"ProjectStorage"</span><span class="p">,</span>
-</span><span data-line="545">    <span class="s2">"adopt_tenant_id"</span><span class="p">,</span>
-</span><span data-line="546">    <span class="s2">"as_project_storage"</span><span class="p">,</span>
-</span><span data-line="547">    <span class="s2">"asset_id_of"</span><span class="p">,</span>
-</span><span data-line="548">    <span class="s2">"tenant_id_of"</span><span class="p">,</span>
-</span><span data-line="549">    <span class="s2">"TENANT_KEY"</span><span class="p">,</span>
-</span><span data-line="550">    <span class="s2">"json_docs"</span><span class="p">,</span>
-</span><span data-line="551">    <span class="s2">"open_graph_for_read"</span><span class="p">,</span>
-</span><span data-line="552">    <span class="s2">"project_storages"</span><span class="p">,</span>
-</span><span data-line="553">    <span class="s2">"register_project_storage"</span><span class="p">,</span>
-</span><span data-line="554"><span class="p">]</span>
+</span><span data-line="554">
+</span><span data-line="555">
+</span><span data-line="556"><span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span>
+</span><span data-line="557">    <span class="s2">"DFLT_INIT_FOLDERS"</span><span class="p">,</span>
+</span><span data-line="558">    <span class="s2">"FolderStorage"</span><span class="p">,</span>
+</span><span data-line="559">    <span class="s2">"MappingStorage"</span><span class="p">,</span>
+</span><span data-line="560">    <span class="s2">"PROJECT_FILE_NAME"</span><span class="p">,</span>
+</span><span data-line="561">    <span class="s2">"ProjectLike"</span><span class="p">,</span>
+</span><span data-line="562">    <span class="s2">"ProjectStorage"</span><span class="p">,</span>
+</span><span data-line="563">    <span class="s2">"adopt_tenant_id"</span><span class="p">,</span>
+</span><span data-line="564">    <span class="s2">"as_project_storage"</span><span class="p">,</span>
+</span><span data-line="565">    <span class="s2">"asset_id_of"</span><span class="p">,</span>
+</span><span data-line="566">    <span class="s2">"is_project"</span><span class="p">,</span>
+</span><span data-line="567">    <span class="s2">"tenant_id_of"</span><span class="p">,</span>
+</span><span data-line="568">    <span class="s2">"TENANT_KEY"</span><span class="p">,</span>
+</span><span data-line="569">    <span class="s2">"json_docs"</span><span class="p">,</span>
+</span><span data-line="570">    <span class="s2">"open_graph_for_read"</span><span class="p">,</span>
+</span><span data-line="571">    <span class="s2">"project_storages"</span><span class="p">,</span>
+</span><span data-line="572">    <span class="s2">"register_project_storage"</span><span class="p">,</span>
+</span><span data-line="573"><span class="p">]</span>
 </span></pre></div>
         </article><button class="back-to-top" type="button">
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
@@ -774,7 +796,7 @@ data-aria-dark="Switch to auto color mode">
     </div>
   </div>
 </footer>
-      <script src="../../_static/documentation_options.js?v=0d7dcda5"></script>
+      <script src="../../_static/documentation_options.js?v=a90549bc"></script>
       <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
       <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>

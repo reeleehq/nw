@@ -1,4 +1,4 @@
-> built 2026-11-08 22:36 UTC from 2da051d (main) · nw 0.0.130. Details: build_info.json
+> built 2026-11-08 23:11 UTC from 790a8d2 (main) · nw 0.0.131. Details: build_info.json
 
 # index.html.md
 
@@ -3687,6 +3687,7 @@ are recorded as linked artifacts), see
 | [`unmark_rewritten`](_autosummary/nw.html.md#nw.unmark_rewritten)(project, marker)                 | Forget that `marker` ran, so the next [`rewrite_values()`](_autosummary/nw.html.md#nw.rewrite_values) with it scans again (a test simulating a project made before the rename).                                                  |
 | [`adopt_tenant_id`](_autosummary/nw.html.md#nw.adopt_tenant_id)(project, \*[, dry_run])           | Pin a legacy project's historical tenant into `project.json` (nw#112).                                                                                                                                                             |
 | [`as_project_storage`](_autosummary/nw.html.md#nw.as_project_storage)(project)                       | The [`ProjectStorage`](_autosummary/nw.html.md#nw.ProjectStorage) for a path, a storage, or an `nw.Project`.                                                                                                                     |
+| [`is_project`](_autosummary/nw.html.md#nw.is_project)(project)                               | Whether `project` (a path, a storage, or an `nw.Project`) holds an nw project, without naming nw's marker document (nw#217).                                                                                                       |
 | [`register_project_storage`](_autosummary/nw.html.md#nw.register_project_storage)(name, resolver)          | Register a resolver that recognises a genre's project folders.                                                                                                                                                                     |
 | [`annotations_at_tier`](_autosummary/nw.html.md#nw.annotations_at_tier)(project_root, tier)           | Return every annotation at the given tier across all of the project's stores.                                                                                                                                                      |
 | [`apply_to_projects`](_autosummary/nw.html.md#nw.apply_to_projects)(roots, fn, \*[, parallel])      | Apply `fn` to each project at `roots` and collect the results.                                                                                                                                                                     |
@@ -4789,6 +4790,33 @@ Both surfaces stay in sync:
 
 * **Return type:**
   [`None`](https://docs.python.org/3/builtins/constants.html#None)
+
+#### *classmethod* open_or_init(root, , title='', storage=None)
+
+The project at `root`: opened when it is one, else created (nw#217).
+
+What a host keeping one project per production needs without naming
+nw’s marker file. `storage` is resolved once (`None`: a genre’s
+registered resolver, else nw’s folder layout, as [`Project`](_autosummary/nw.html.md#nw.Project)
+resolves it) and used for both the check and the create, so a genre’s
+layout is respected either way. `title` names a *new* project only;
+an existing one keeps its own. A folder holding something that is not
+a project is refused by [`init()`](_autosummary/nw.html.md#nw.Project.init) (`FileExistsError`), never
+overwritten.
+
+Two callers creating the same project at once both get it, on a host
+whose temp directory takes advisory locks: the create runs under a
+cross-process lock (`_creation_lock()`), and the loser finds the
+winner’s project when it gets the lock. Where locking is unavailable
+the create runs unlocked (logged at debug). An existing project is
+opened without taking the lock.
+
+The project is created at `storage.root`, the place the lock covers
+and the one [`Project`](_autosummary/nw.html.md#nw.Project) opens; with an explicit `storage`,
+`root` is only what resolved it.
+
+* **Return type:**
+  [`Project`](_autosummary/nw.project.html.md#nw.project.Project)
 
 #### read_spec()
 
@@ -6589,6 +6617,27 @@ via [`nw.Project.resolved_genre()`](_autosummary/nw.html.md#nw.Project.resolved_
 ### nw.is_migrated(project_root)
 
 True iff this project has been migrated to the lacing graph.
+
+* **Return type:**
+  [`bool`](https://docs.python.org/3/builtins/functions.html#bool)
+
+### nw.is_project(project)
+
+Whether `project` (a path, a storage, or an `nw.Project`) holds an nw
+project, without naming nw’s marker document (nw#217).
+
+A path is resolved like every other surface resolves one
+([`as_project_storage()`](_autosummary/nw.html.md#nw.as_project_storage)), so a genre’s own layout is respected. Cheap,
+and never writes: a missing folder is simply not a project.
+
+```pycon
+>>> import tempfile
+>>> with tempfile.TemporaryDirectory() as d:
+...     before = is_project(d)
+...     FolderStorage(d).docs[PROJECT_FILE_NAME] = {"title": "t"}
+...     before, is_project(d)
+(False, True)
+```
 
 * **Return type:**
   [`bool`](https://docs.python.org/3/builtins/functions.html#bool)
@@ -9854,6 +9903,33 @@ Both surfaces stay in sync:
 * **Return type:**
   [`None`](https://docs.python.org/3/builtins/constants.html#None)
 
+#### *classmethod* open_or_init(root, , title='', storage=None)
+
+The project at `root`: opened when it is one, else created (nw#217).
+
+What a host keeping one project per production needs without naming
+nw’s marker file. `storage` is resolved once (`None`: a genre’s
+registered resolver, else nw’s folder layout, as [`Project`](_autosummary/nw.project.html.md#nw.project.Project)
+resolves it) and used for both the check and the create, so a genre’s
+layout is respected either way. `title` names a *new* project only;
+an existing one keeps its own. A folder holding something that is not
+a project is refused by [`init()`](_autosummary/nw.project.html.md#nw.project.Project.init) (`FileExistsError`), never
+overwritten.
+
+Two callers creating the same project at once both get it, on a host
+whose temp directory takes advisory locks: the create runs under a
+cross-process lock (`_creation_lock()`), and the loser finds the
+winner’s project when it gets the lock. Where locking is unavailable
+the create runs unlocked (logged at debug). An existing project is
+opened without taking the lock.
+
+The project is created at `storage.root`, the place the lock covers
+and the one [`Project`](_autosummary/nw.project.html.md#nw.project.Project) opens; with an explicit `storage`,
+`root` is only what resolved it.
+
+* **Return type:**
+  [`Project`](_autosummary/nw.project.html.md#nw.project.Project)
+
 #### read_spec()
 
 Read the project spec, synthesizing from the graph for graph-native fields.
@@ -11153,14 +11229,15 @@ True
 
 ### Functions
 
-| [`adopt_tenant_id`](_autosummary/nw.storage.html.md#nw.storage.adopt_tenant_id)(project, \*[, dry_run])   | Pin a legacy project's historical tenant into `project.json` (nw#112).                                         |
-|--------------------------------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------|
-| [`as_project_storage`](_autosummary/nw.storage.html.md#nw.storage.as_project_storage)(project)               | The [`ProjectStorage`](_autosummary/nw.storage.html.md#nw.storage.ProjectStorage) for a path, a storage, or an `nw.Project`. |
-| [`asset_id_of`](_autosummary/nw.storage.html.md#nw.storage.asset_id_of)(root, spec)                   | The asset id anchoring a project's annotations.                                                                |
-| [`tenant_id_of`](_autosummary/nw.storage.html.md#nw.storage.tenant_id_of)(root, spec)                  | The id a shared (Postgres) backend keys this project's graph on.                                               |
-| [`json_docs`](_autosummary/nw.storage.html.md#nw.storage.json_docs)(root)                           | The folder-backed store for a project's JSON documents.                                                        |
-| [`open_graph_for_read`](_autosummary/nw.storage.html.md#nw.storage.open_graph_for_read)(storage)              | Open `storage`'s graph for a read without writing; `None` if there is none.                                    |
-| [`register_project_storage`](_autosummary/nw.storage.html.md#nw.storage.register_project_storage)(name, resolver)  | Register a resolver that recognises a genre's project folders.                                                 |
+| [`adopt_tenant_id`](_autosummary/nw.storage.html.md#nw.storage.adopt_tenant_id)(project, \*[, dry_run])   | Pin a legacy project's historical tenant into `project.json` (nw#112).                                                       |
+|--------------------------------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------|
+| [`as_project_storage`](_autosummary/nw.storage.html.md#nw.storage.as_project_storage)(project)               | The [`ProjectStorage`](_autosummary/nw.storage.html.md#nw.storage.ProjectStorage) for a path, a storage, or an `nw.Project`.               |
+| [`asset_id_of`](_autosummary/nw.storage.html.md#nw.storage.asset_id_of)(root, spec)                   | The asset id anchoring a project's annotations.                                                                              |
+| [`is_project`](_autosummary/nw.storage.html.md#nw.storage.is_project)(project)                       | Whether `project` (a path, a storage, or an `nw.Project`) holds an nw project, without naming nw's marker document (nw#217). |
+| [`tenant_id_of`](_autosummary/nw.storage.html.md#nw.storage.tenant_id_of)(root, spec)                  | The id a shared (Postgres) backend keys this project's graph on.                                                             |
+| [`json_docs`](_autosummary/nw.storage.html.md#nw.storage.json_docs)(root)                           | The folder-backed store for a project's JSON documents.                                                                      |
+| [`open_graph_for_read`](_autosummary/nw.storage.html.md#nw.storage.open_graph_for_read)(storage)              | Open `storage`'s graph for a read without writing; `None` if there is none.                                                  |
+| [`register_project_storage`](_autosummary/nw.storage.html.md#nw.storage.register_project_storage)(name, resolver)  | Register a resolver that recognises a genre's project folders.                                                               |
 
 ### Classes
 
@@ -11288,6 +11365,27 @@ else a stable hash of the project’s resolved root and title.
 
 * **Return type:**
   [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
+
+### nw.storage.is_project(project)
+
+Whether `project` (a path, a storage, or an `nw.Project`) holds an nw
+project, without naming nw’s marker document (nw#217).
+
+A path is resolved like every other surface resolves one
+([`as_project_storage()`](_autosummary/nw.storage.html.md#nw.storage.as_project_storage)), so a genre’s own layout is respected. Cheap,
+and never writes: a missing folder is simply not a project.
+
+```pycon
+>>> import tempfile
+>>> with tempfile.TemporaryDirectory() as d:
+...     before = is_project(d)
+...     FolderStorage(d).docs[PROJECT_FILE_NAME] = {"title": "t"}
+...     before, is_project(d)
+(False, True)
+```
+
+* **Return type:**
+  [`bool`](https://docs.python.org/3/builtins/functions.html#bool)
 
 ### nw.storage.json_docs(root)
 
@@ -12004,20 +12102,18 @@ produce different URLs. The local file paths are byte-stable.
 
 # About this build
 
-This documentation was built on **2026-11-08 22:36 UTC** from commit <a href="https://github.com/reeleehq/nw/commit/2da051dd10e32a71ab4371b07b667c784be8c025"><code>2da051d</code></a> on branch <code>main</code>, for **nw 0.0.130** (from <code>pyproject.toml</code>).
+This documentation was built on **2026-11-08 23:11 UTC** from commit <a href="https://github.com/reeleehq/nw/commit/790a8d2ed70fb67d3faa9cbd8d1ae4dcdcc047f5"><code>790a8d2</code></a> on branch <code>main</code>, for **nw 0.0.131** (from <code>pyproject.toml</code>).
 
-#### WARNING
-The documentation and the package may be misaligned:
-
-- The documented version (0.0.130) is ahead of the latest release on PyPI (0.0.129): these docs describe unreleased code.
+#### NOTE
+Nothing suggests a mismatch: the tree was clean at the commit above, and the documented version is the one on PyPI.
 
 ## Source
 
 |                     |                                                                                                                                                    |
 |---------------------|----------------------------------------------------------------------------------------------------------------------------------------------------|
-| Commit              | <a href="https://github.com/reeleehq/nw/commit/2da051dd10e32a71ab4371b07b667c784be8c025"><code>2da051dd10e32a71ab4371b07b667c784be8c025</code></a> |
+| Commit              | <a href="https://github.com/reeleehq/nw/commit/790a8d2ed70fb67d3faa9cbd8d1ae4dcdcc047f5"><code>790a8d2ed70fb67d3faa9cbd8d1ae4dcdcc047f5</code></a> |
 | Branch              | <code>main</code>                                                                                                                                  |
-| Tags at this commit | <code>0.0.130</code>                                                                                                                               |
+| Tags at this commit | <code>0.0.131</code>                                                                                                                               |
 | Working tree        | clean                                                                                                                                              |
 | Remote              | <code>https://github.com/reeleehq/nw</code>                                                                                                        |
 
@@ -12026,9 +12122,9 @@ The documentation and the package may be misaligned:
 |              |                                                                                            |
 |--------------|--------------------------------------------------------------------------------------------|
 | Repository   | <code>reeleehq/nw</code>                                                                   |
-| Run          | <a href="https://github.com/reeleehq/nw/actions/runs/42530848681">42530848681</a>          |
+| Run          | <a href="https://github.com/reeleehq/nw/actions/runs/42532595531">42532595531</a>          |
 | Ref          | <code>refs/heads/main</code>                                                               |
-| Event commit | <code>bce6e23acc2c450dae20024812a7dac9b9aed18e</code> (in the history of the built commit) |
+| Event commit | <code>af43feac5e7794840abcda2c0ffb0aaf1491a62b</code> (in the history of the built commit) |
 
 ## Tools
 
@@ -12053,13 +12149,13 @@ The documentation and the package may be misaligned:
 
 ## Package on PyPI
 
-Latest release: <a href="https://pypi.org/project/nw/0.0.129/">0.0.129</a>, older than the documented version (0.0.130).
+Latest release: <a href="https://pypi.org/project/nw/0.0.131/">0.0.131</a>, the same as the documented version.
 
 ## Reproduce
 
 ```bash
 git clone https://github.com/reeleehq/nw && cd nw
-git checkout 2da051dd10e32a71ab4371b07b667c784be8c025
+git checkout 790a8d2ed70fb67d3faa9cbd8d1ae4dcdcc047f5
 pip install "epythet==0.2.22"
 epythet quickstart . --ignore tests/ scrap/ examples/
 ```

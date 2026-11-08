@@ -139,6 +139,7 @@ data-aria-dark="Switch to auto color mode">
 <li><a class="reference internal" href="#nw.project.Project.list_character_images"><code class="docutils literal notranslate"><span class="pre">Project.list_character_images()</span></code></a></li>
 <li><a class="reference internal" href="#nw.project.Project.lock"><code class="docutils literal notranslate"><span class="pre">Project.lock()</span></code></a></li>
 <li><a class="reference internal" href="#nw.project.Project.log_decision"><code class="docutils literal notranslate"><span class="pre">Project.log_decision()</span></code></a></li>
+<li><a class="reference internal" href="#nw.project.Project.open_or_init"><code class="docutils literal notranslate"><span class="pre">Project.open_or_init()</span></code></a></li>
 <li><a class="reference internal" href="#nw.project.Project.read_spec"><code class="docutils literal notranslate"><span class="pre">Project.read_spec()</span></code></a></li>
 <li><a class="reference internal" href="#nw.project.Project.read_summary"><code class="docutils literal notranslate"><span class="pre">Project.read_summary()</span></code></a></li>
 <li><a class="reference internal" href="#nw.project.Project.resolved_genre"><code class="docutils literal notranslate"><span class="pre">Project.resolved_genre()</span></code></a></li>
@@ -374,6 +375,34 @@ these in inspector / network views.</p></li>
 <dl class="field-list simple">
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><span class="highlight sphinx_autodoc_typehints-value"><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></a></span></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nw.project.Project.open_or_init">
+<span class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">open_or_init</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">root</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">title</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">storage</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/nw/project.html#Project.open_or_init"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nw.project.Project.open_or_init" title="Link to this definition">#</a></dt>
+<dd><p>The project at <code class="docutils literal notranslate"><span class="pre">root</span></code>: opened when it is one, else created (nw#217).</p>
+<p>What a host keeping one project per production needs without naming
+nw’s marker file. <code class="docutils literal notranslate"><span class="pre">storage</span></code> is resolved once (<code class="docutils literal notranslate"><span class="pre">None</span></code>: a genre’s
+registered resolver, else nw’s folder layout, as <a class="reference internal" href="#nw.project.Project" title="nw.project.Project"><code class="xref py py-class docutils literal notranslate"><span class="pre">Project</span></code></a>
+resolves it) and used for both the check and the create, so a genre’s
+layout is respected either way. <code class="docutils literal notranslate"><span class="pre">title</span></code> names a <em>new</em> project only;
+an existing one keeps its own. A folder holding something that is not
+a project is refused by <a class="reference internal" href="#nw.project.Project.init" title="nw.project.Project.init"><code class="xref py py-meth docutils literal notranslate"><span class="pre">init()</span></code></a> (<code class="docutils literal notranslate"><span class="pre">FileExistsError</span></code>), never
+overwritten.</p>
+<p>Two callers creating the same project at once both get it, on a host
+whose temp directory takes advisory locks: the create runs under a
+cross-process lock (<code class="xref py py-func docutils literal notranslate"><span class="pre">_creation_lock()</span></code>), and the loser finds the
+winner’s project when it gets the lock. Where locking is unavailable
+the create runs unlocked (logged at debug). An existing project is
+opened without taking the lock.</p>
+<p>The project is created at <code class="docutils literal notranslate"><span class="pre">storage.root</span></code>, the place the lock covers
+and the one <a class="reference internal" href="#nw.project.Project" title="nw.project.Project"><code class="xref py py-class docutils literal notranslate"><span class="pre">Project</span></code></a> opens; with an explicit <code class="docutils literal notranslate"><span class="pre">storage</span></code>,
+<code class="docutils literal notranslate"><span class="pre">root</span></code> is only what resolved it.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="#nw.project.Project" title="nw.project.Project"><code class="xref py py-class docutils literal notranslate"><span class="pre">Project</span></code></a></span></p>
 </dd>
 </dl>
 </dd></dl>
@@ -617,7 +646,7 @@ not a path detector; the contract is still the hook author’s to keep.</p>
     </div>
   </div>
 </footer>
-      <script src="../_static/documentation_options.js?v=0d7dcda5"></script>
+      <script src="../_static/documentation_options.js?v=a90549bc"></script>
       <script src="../_static/doctools.js?v=fd6eb6e6"></script>
       <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script src="../_static/clipboard.min.js?v=a7894cd8"></script>

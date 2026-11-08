@@ -42,6 +42,7 @@
       unmark_rewritten
       adopt_tenant_id
       as_project_storage
+      is_project
       register_project_storage
       annotations_at_tier
       apply_to_projects

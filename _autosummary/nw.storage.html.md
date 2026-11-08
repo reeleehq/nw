@@ -48,14 +48,15 @@ True
 
 ### Functions
 
-| [`adopt_tenant_id`](#nw.storage.adopt_tenant_id)(project, \*[, dry_run])   | Pin a legacy project's historical tenant into `project.json` (nw#112).                                         |
-|--------------------------------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------|
-| [`as_project_storage`](#nw.storage.as_project_storage)(project)               | The [`ProjectStorage`](#nw.storage.ProjectStorage) for a path, a storage, or an `nw.Project`. |
-| [`asset_id_of`](#nw.storage.asset_id_of)(root, spec)                   | The asset id anchoring a project's annotations.                                                                |
-| [`tenant_id_of`](#nw.storage.tenant_id_of)(root, spec)                  | The id a shared (Postgres) backend keys this project's graph on.                                               |
-| [`json_docs`](#nw.storage.json_docs)(root)                           | The folder-backed store for a project's JSON documents.                                                        |
-| [`open_graph_for_read`](#nw.storage.open_graph_for_read)(storage)              | Open `storage`'s graph for a read without writing; `None` if there is none.                                    |
-| [`register_project_storage`](#nw.storage.register_project_storage)(name, resolver)  | Register a resolver that recognises a genre's project folders.                                                 |
+| [`adopt_tenant_id`](#nw.storage.adopt_tenant_id)(project, \*[, dry_run])   | Pin a legacy project's historical tenant into `project.json` (nw#112).                                                       |
+|--------------------------------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------|
+| [`as_project_storage`](#nw.storage.as_project_storage)(project)               | The [`ProjectStorage`](#nw.storage.ProjectStorage) for a path, a storage, or an `nw.Project`.               |
+| [`asset_id_of`](#nw.storage.asset_id_of)(root, spec)                   | The asset id anchoring a project's annotations.                                                                              |
+| [`is_project`](#nw.storage.is_project)(project)                       | Whether `project` (a path, a storage, or an `nw.Project`) holds an nw project, without naming nw's marker document (nw#217). |
+| [`tenant_id_of`](#nw.storage.tenant_id_of)(root, spec)                  | The id a shared (Postgres) backend keys this project's graph on.                                                             |
+| [`json_docs`](#nw.storage.json_docs)(root)                           | The folder-backed store for a project's JSON documents.                                                                      |
+| [`open_graph_for_read`](#nw.storage.open_graph_for_read)(storage)              | Open `storage`'s graph for a read without writing; `None` if there is none.                                                  |
+| [`register_project_storage`](#nw.storage.register_project_storage)(name, resolver)  | Register a resolver that recognises a genre's project folders.                                                               |
 
 ### Classes
 
@@ -183,6 +184,27 @@ else a stable hash of the project’s resolved root and title.
 
 * **Return type:**
   [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
+
+### nw.storage.is_project(project)
+
+Whether `project` (a path, a storage, or an `nw.Project`) holds an nw
+project, without naming nw’s marker document (nw#217).
+
+A path is resolved like every other surface resolves one
+([`as_project_storage()`](#nw.storage.as_project_storage)), so a genre’s own layout is respected. Cheap,
+and never writes: a missing folder is simply not a project.
+
+```pycon
+>>> import tempfile
+>>> with tempfile.TemporaryDirectory() as d:
+...     before = is_project(d)
+...     FolderStorage(d).docs[PROJECT_FILE_NAME] = {"title": "t"}
+...     before, is_project(d)
+(False, True)
+```
+
+* **Return type:**
+  [`bool`](https://docs.python.org/3/builtins/functions.html#bool)
 
 ### nw.storage.json_docs(root)
 

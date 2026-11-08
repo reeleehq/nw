@@ -84,6 +84,7 @@ are recorded as linked artifacts), see
 | [`unmark_rewritten`](#nw.unmark_rewritten)(project, marker)                 | Forget that `marker` ran, so the next [`rewrite_values()`](#nw.rewrite_values) with it scans again (a test simulating a project made before the rename).                                                  |
 | [`adopt_tenant_id`](#nw.adopt_tenant_id)(project, \*[, dry_run])           | Pin a legacy project's historical tenant into `project.json` (nw#112).                                                                                                                                                             |
 | [`as_project_storage`](#nw.as_project_storage)(project)                       | The [`ProjectStorage`](#nw.ProjectStorage) for a path, a storage, or an `nw.Project`.                                                                                                                     |
+| [`is_project`](#nw.is_project)(project)                               | Whether `project` (a path, a storage, or an `nw.Project`) holds an nw project, without naming nw's marker document (nw#217).                                                                                                       |
 | [`register_project_storage`](#nw.register_project_storage)(name, resolver)          | Register a resolver that recognises a genre's project folders.                                                                                                                                                                     |
 | [`annotations_at_tier`](#nw.annotations_at_tier)(project_root, tier)           | Return every annotation at the given tier across all of the project's stores.                                                                                                                                                      |
 | [`apply_to_projects`](#nw.apply_to_projects)(roots, fn, \*[, parallel])      | Apply `fn` to each project at `roots` and collect the results.                                                                                                                                                                     |
@@ -1186,6 +1187,33 @@ Both surfaces stay in sync:
 
 * **Return type:**
   [`None`](https://docs.python.org/3/builtins/constants.html#None)
+
+#### *classmethod* open_or_init(root, , title='', storage=None)
+
+The project at `root`: opened when it is one, else created (nw#217).
+
+What a host keeping one project per production needs without naming
+nw’s marker file. `storage` is resolved once (`None`: a genre’s
+registered resolver, else nw’s folder layout, as [`Project`](#nw.Project)
+resolves it) and used for both the check and the create, so a genre’s
+layout is respected either way. `title` names a *new* project only;
+an existing one keeps its own. A folder holding something that is not
+a project is refused by [`init()`](#nw.Project.init) (`FileExistsError`), never
+overwritten.
+
+Two callers creating the same project at once both get it, on a host
+whose temp directory takes advisory locks: the create runs under a
+cross-process lock (`_creation_lock()`), and the loser finds the
+winner’s project when it gets the lock. Where locking is unavailable
+the create runs unlocked (logged at debug). An existing project is
+opened without taking the lock.
+
+The project is created at `storage.root`, the place the lock covers
+and the one [`Project`](#nw.Project) opens; with an explicit `storage`,
+`root` is only what resolved it.
+
+* **Return type:**
+  [`Project`](nw.project.html.md#nw.project.Project)
 
 #### read_spec()
 
@@ -2986,6 +3014,27 @@ via [`nw.Project.resolved_genre()`](#nw.Project.resolved_genre).
 ### nw.is_migrated(project_root)
 
 True iff this project has been migrated to the lacing graph.
+
+* **Return type:**
+  [`bool`](https://docs.python.org/3/builtins/functions.html#bool)
+
+### nw.is_project(project)
+
+Whether `project` (a path, a storage, or an `nw.Project`) holds an nw
+project, without naming nw’s marker document (nw#217).
+
+A path is resolved like every other surface resolves one
+([`as_project_storage()`](#nw.as_project_storage)), so a genre’s own layout is respected. Cheap,
+and never writes: a missing folder is simply not a project.
+
+```pycon
+>>> import tempfile
+>>> with tempfile.TemporaryDirectory() as d:
+...     before = is_project(d)
+...     FolderStorage(d).docs[PROJECT_FILE_NAME] = {"title": "t"}
+...     before, is_project(d)
+(False, True)
+```
 
 * **Return type:**
   [`bool`](https://docs.python.org/3/builtins/functions.html#bool)
