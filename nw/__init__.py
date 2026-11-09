@@ -88,7 +88,13 @@ from .pricing import (
 from .project import CharacterImage, Project, genre_status_of
 from .compat import NwTooOldError, require_fields
 from .paths import safe_path_segment
-from .rewrite import is_rewritten, mark_rewritten, rewrite_values, unmark_rewritten
+from .rewrite import (
+    is_rewritten,
+    mark_rewritten,
+    rewrite_values,
+    unmark_rewritten,
+    upgrade_superseded_traces,
+)
 from .storage import (
     FolderStorage,
     MappingStorage,
@@ -306,6 +312,7 @@ __all__ = [
     "NwTooOldError",
     "safe_path_segment",
     "unmark_rewritten",
+    "upgrade_superseded_traces",
     "ProjectGraph",
     "ProjectStorage",
     "FolderStorage",
