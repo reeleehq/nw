@@ -243,3 +243,45 @@ def test_works_on_a_mapping_storage(tmp_path):
     assert all_stale(storage) == []
     nw.unmark_rewritten(storage, "m")
     assert not nw.is_rewritten(storage, "m")
+
+
+# --- the shared re-record step (nw#273) --------------------------------------
+
+
+def _trace_for(proj, ann_id):
+    (trace,) = [t for t in _traces(proj) if t.body.get("for_annotation_id") == str(ann_id)]
+    return trace
+
+
+def test_a_restamp_keeps_the_traces_scheme_and_the_dependent_fresh(proj):
+    """A value rewritten under a trace recorded on an older scheme is re-stamped
+    under that same scheme, never relabelled with today's (which would claim
+    one scheme while holding another's digest)."""
+    from lacing.digest import VALUE_DIGEST_SCHEMES
+
+    from tests.test_freshness import _as_recorded_under
+
+    src = _source(proj)
+    child = _derived(proj, [src.id], body={"shot_id": "c"})
+    _as_recorded_under(proj, child, VALUE_DIGEST_SCHEMES[0])
+    assert rewrite_values(proj, _rename) == 1
+    assert _trace_for(proj, child.id).body["digest_scheme"] == VALUE_DIGEST_SCHEMES[0]
+    assert all_stale(proj.root) == []
+
+
+def test_a_restamp_carries_only_the_parents_id_over(proj):
+    """A field a newer nw added to an entry refines the OLD digest: re-recorded
+    entries keep only ``annotation_id`` plus what nw records today."""
+    src = _source(proj)
+    child = _derived(proj, [src.id], body={"shot_id": "c"})
+    trace = _trace_for(proj, child.id)
+    body = dict(trace.body)
+    body["upstream"] = [{**e, "refines_old_digest": "x"} for e in body["upstream"]]
+    with nw.open_project_stores(proj.root) as stores:
+        for store in stores:
+            if any(a.id == trace.id for a in store.all()):
+                store.update(trace.model_copy(update={"body": body}))
+    assert rewrite_values(proj, _rename) == 1
+    (entry,) = _trace_for(proj, child.id).body["upstream"]
+    assert "refines_old_digest" not in entry
+    assert all_stale(proj.root) == []

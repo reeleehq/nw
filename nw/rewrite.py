@@ -189,8 +189,7 @@ def _upgraded_upstream(body: Mapping, by_id: Mapping[UUID, Any], today_of=None):
             upstream.append({"annotation_id": entry["annotation_id"], **today})
             continue
         reentered = _reentered(
-            entry, recorded_scheme=scheme, vouches_for=parent, recorded_from=parent,
-            scheme=VALUE_DIGEST_SCHEME, today=today,
+            entry, vouches_for=parent, recorded_scheme=scheme, today=lambda: today
         )
         if reentered is None:
             return None  # already stale: not ours to freshen
@@ -338,23 +337,20 @@ def _rewrite_stores(storage, fn: Callable[[Any], Any], where) -> int:
 def _reentered(
     entry: Mapping,
     *,
-    recorded_scheme: str,
     vouches_for: Any,
-    recorded_from: Any,
-    scheme: str,
-    today: Mapping | None = None,
+    recorded_scheme: str,
+    today: Callable[[], dict],
 ) -> dict | None:
-    """``entry`` re-recorded from ``recorded_from`` under ``scheme`` — if its
-    digest, read under ``recorded_scheme`` and its recorded exclusions, still
-    vouches for ``vouches_for``'s value; ``None`` when it does not (the trace is
-    stale there, and no one may freshen it). The one vouch-then-re-record step
-    of :func:`rewrite_values` (value moved: vouch for the old body, record the
-    new) and :func:`upgrade_superseded_traces` (scheme moved: vouch for and
-    record the same parent), nw#273.
+    """``entry`` re-recorded as ``today()`` — if its digest, read under
+    ``recorded_scheme`` and its recorded exclusions, still vouches for
+    ``vouches_for``'s value; ``None`` when it does not (the trace is stale
+    there, and no one may freshen it). The one vouch-then-re-record step of
+    :func:`rewrite_values` (vouch for the old body, record the new one) and
+    :func:`upgrade_superseded_traces` (vouch for and record the same parent
+    under today's scheme), nw#273. ``today`` is called only after a vouch.
 
     Only the parent's id carries over: a field a newer nw added refines the OLD
-    digest, not this one. ``today`` is ``upstream_entry(recorded_from,
-    scheme=scheme)`` when the caller has it already.
+    digest, not this one.
     """
     if not digest_vouches(
         vouches_for,
@@ -363,9 +359,7 @@ def _reentered(
         excluded=recorded_exclusions(entry),
     ):
         return None
-    if today is None:
-        today = upstream_entry(recorded_from, scheme=scheme)
-    return {"annotation_id": entry["annotation_id"], **today}
+    return {"annotation_id": entry["annotation_id"], **today()}
 
 
 def _restamped_trace(ann: Any, plan: Mapping[UUID, tuple[Any, Any]]) -> Any:
@@ -384,8 +378,8 @@ def _restamped_trace(ann: Any, plan: Mapping[UUID, tuple[Any, Any]]) -> Any:
             # one recorded before a Derived marker or under fewer of them
             # (nw#179, nw#180); it is re-recorded with today's exclusions.
             reentered = _reentered(
-                entry, recorded_scheme=scheme, vouches_for=old, recorded_from=new,
-                scheme=scheme,
+                entry, vouches_for=old, recorded_scheme=scheme,
+                today=lambda: upstream_entry(new, scheme=scheme),
             )
             if reentered is not None:
                 entry, moved = reentered, True
