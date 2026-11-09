@@ -170,6 +170,7 @@
    freshness
    inspect
    checks
+   atomic_io
    batches
    bodies
    compat

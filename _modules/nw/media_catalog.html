@@ -66,6 +66,7 @@ data-aria-dark="Switch to auto color mode">
 <li class="toctree-l3"><a class="reference internal" href="../../_autosummary/nw.freshness.html">nw.freshness</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../_autosummary/nw.inspect.html">nw.inspect</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../_autosummary/nw.checks.html">nw.checks</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../_autosummary/nw.atomic_io.html">nw.atomic_io</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../_autosummary/nw.batches.html">nw.batches</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../_autosummary/nw.bodies.html">nw.bodies</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../../_autosummary/nw.bodies.character_ref.html">nw.bodies.character_ref</a></li>
@@ -223,14 +224,14 @@ data-aria-dark="Switch to auto color mode">
 </span><span data-line="60"><span class="kn">import</span><span class="w"> </span><span class="nn">errno</span>
 </span><span data-line="61"><span class="kn">import</span><span class="w"> </span><span class="nn">json</span>
 </span><span data-line="62"><span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
-</span><span data-line="63"><span class="kn">import</span><span class="w"> </span><span class="nn">shutil</span>
-</span><span data-line="64"><span class="kn">import</span><span class="w"> </span><span class="nn">time</span>
-</span><span data-line="65"><span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">KW_ONLY</span><span class="p">,</span> <span class="n">dataclass</span><span class="p">,</span> <span class="n">field</span>
-</span><span data-line="66"><span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
-</span><span data-line="67"><span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">TYPE_CHECKING</span><span class="p">,</span> <span class="n">Iterator</span><span class="p">,</span> <span class="n">Mapping</span><span class="p">,</span> <span class="n">Optional</span>
-</span><span data-line="68">
-</span><span data-line="69"><span class="c1"># Content addressing has one home, the shared store (nw#194): the id check</span>
-</span><span data-line="70"><span class="c1"># every reader applies before an id becomes a path, and the digest itself.</span>
+</span><span data-line="63"><span class="kn">import</span><span class="w"> </span><span class="nn">time</span>
+</span><span data-line="64"><span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">KW_ONLY</span><span class="p">,</span> <span class="n">dataclass</span><span class="p">,</span> <span class="n">field</span>
+</span><span data-line="65"><span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+</span><span data-line="66"><span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">TYPE_CHECKING</span><span class="p">,</span> <span class="n">Iterator</span><span class="p">,</span> <span class="n">Mapping</span><span class="p">,</span> <span class="n">Optional</span>
+</span><span data-line="67">
+</span><span data-line="68"><span class="c1"># Content addressing has one home, the shared store (nw#194): the id check</span>
+</span><span data-line="69"><span class="c1"># every reader applies before an id becomes a path, and the digest itself.</span>
+</span><span data-line="70"><span class="kn">from</span><span class="w"> </span><span class="nn">.atomic_io</span><span class="w"> </span><span class="kn">import</span> <span class="n">copy_file_atomic</span><span class="p">,</span> <span class="n">read_text_retrying</span><span class="p">,</span> <span class="n">write_text_atomic</span>
 </span><span data-line="71"><span class="kn">from</span><span class="w"> </span><span class="nn">.media_store</span><span class="w"> </span><span class="kn">import</span> <span class="n">hash_file</span><span class="p">,</span> <span class="n">is_content_digest</span>
 </span><span data-line="72">
 </span><span data-line="73"><span class="k">if</span> <span class="n">TYPE_CHECKING</span><span class="p">:</span>
@@ -548,7 +549,7 @@ data-aria-dark="Switch to auto color mode">
 </span><span data-line="351">    <span class="k">def</span><span class="w"> </span><span class="nf">iter_rows</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Iterator</span><span class="p">[</span><span class="nb">dict</span><span class="p">]:</span>
 </span><span data-line="352"><span class="w">        </span><span class="sd">"""Every row, parsed, in id order. For tests and diagnostics."""</span>
 </span><span data-line="353">        <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">rows_dir</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="s2">"*.json"</span><span class="p">)):</span>
-</span><span data-line="354">            <span class="k">yield</span> <span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">read_text</span><span class="p">(</span><span class="n">encoding</span><span class="o">=</span><span class="s2">"utf-8"</span><span class="p">))</span></div>
+</span><span data-line="354">            <span class="k">yield</span> <span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">read_text_retrying</span><span class="p">(</span><span class="n">p</span><span class="p">))</span></div>
 
 </span><span data-line="355">
 <div class="viewcode-block" id="HostArtifactCatalog.register">
@@ -620,7 +621,7 @@ data-aria-dark="Switch to auto color mode">
 </span><span data-line="420">            <span class="k">return</span> <span class="n">aid</span>
 </span><span data-line="421">        <span class="c1"># Atomic: the host indexes every row, and a half-written one would fail</span>
 </span><span data-line="422">        <span class="c1"># its whole catalog, not this artifact.</span>
-</span><span data-line="423">        <span class="n">_atomic_write_text</span><span class="p">(</span><span class="n">row_path</span><span class="p">,</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">row</span><span class="p">,</span> <span class="n">indent</span><span class="o">=</span><span class="mi">2</span><span class="p">))</span>
+</span><span data-line="423">        <span class="n">write_text_atomic</span><span class="p">(</span><span class="n">row_path</span><span class="p">,</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">row</span><span class="p">,</span> <span class="n">indent</span><span class="o">=</span><span class="mi">2</span><span class="p">))</span>
 </span><span data-line="424">        <span class="n">report</span><span class="o">.</span><span class="n">rows_written</span> <span class="o">+=</span> <span class="mi">1</span>
 </span><span data-line="425">        <span class="k">return</span> <span class="n">aid</span></div>
 
@@ -673,108 +674,94 @@ data-aria-dark="Switch to auto color mode">
 </span><span data-line="472">            <span class="c1"># Copy beside the blob, then rename into place: a copy that fails</span>
 </span><span data-line="473">            <span class="c1"># half-way must never leave a short file under a digest, because</span>
 </span><span data-line="474">            <span class="c1"># every later run trusts whatever is there.</span>
-</span><span data-line="475">            <span class="n">tmp</span> <span class="o">=</span> <span class="n">_tmp_sibling</span><span class="p">(</span><span class="n">blob</span><span class="p">)</span>
-</span><span data-line="476">            <span class="k">try</span><span class="p">:</span>
-</span><span data-line="477">                <span class="n">shutil</span><span class="o">.</span><span class="n">copy2</span><span class="p">(</span><span class="n">src</span><span class="p">,</span> <span class="n">tmp</span><span class="p">)</span>
-</span><span data-line="478">                <span class="n">os</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="n">tmp</span><span class="p">,</span> <span class="n">blob</span><span class="p">)</span>
-</span><span data-line="479">            <span class="k">finally</span><span class="p">:</span>
-</span><span data-line="480">                <span class="n">tmp</span><span class="o">.</span><span class="n">unlink</span><span class="p">(</span><span class="n">missing_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-</span><span data-line="481">            <span class="n">report</span><span class="o">.</span><span class="n">blobs_copied</span> <span class="o">+=</span> <span class="mi">1</span>
-</span><span data-line="482">            <span class="n">report</span><span class="o">.</span><span class="n">bytes_copied</span> <span class="o">+=</span> <span class="n">blob</span><span class="o">.</span><span class="n">stat</span><span class="p">()</span><span class="o">.</span><span class="n">st_size</span>
-</span><span data-line="483">            <span class="n">report</span><span class="o">.</span><span class="n">cross_device</span> <span class="o">=</span> <span class="kc">True</span>
-</span><span data-line="484">            <span class="k">return</span>
-</span><span data-line="485">        <span class="n">report</span><span class="o">.</span><span class="n">blobs_linked</span> <span class="o">+=</span> <span class="mi">1</span>
-</span><span data-line="486">
-</span><span data-line="487">    <span class="nd">@staticmethod</span>
-</span><span data-line="488">    <span class="k">def</span><span class="w"> </span><span class="nf">_confirm_blob</span><span class="p">(</span><span class="n">blob</span><span class="p">:</span> <span class="n">Path</span><span class="p">,</span> <span class="n">src</span><span class="p">:</span> <span class="n">Path</span><span class="p">,</span> <span class="n">aid</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-</span><span data-line="489"><span class="w">        </span><span class="sd">"""Refuse a stored blob that cannot be ``src``'s bytes (a cheap size check).</span>
-</span><span data-line="490">
-</span><span data-line="491"><span class="sd">        A blob is trusted by its name; a size mismatch means that trust is broken</span>
-</span><span data-line="492"><span class="sd">        (an interrupted write from an older writer, a hand edit), and serving it</span>
-</span><span data-line="493"><span class="sd">        would answer 200 with the wrong bytes under a live id.</span>
-</span><span data-line="494"><span class="sd">        """</span>
-</span><span data-line="495">        <span class="k">if</span> <span class="n">blob</span><span class="o">.</span><span class="n">stat</span><span class="p">()</span><span class="o">.</span><span class="n">st_size</span> <span class="o">!=</span> <span class="n">src</span><span class="o">.</span><span class="n">stat</span><span class="p">()</span><span class="o">.</span><span class="n">st_size</span><span class="p">:</span>
-</span><span data-line="496">            <span class="k">raise</span> <span class="n">CorruptBlob</span><span class="p">(</span>
-</span><span data-line="497">                <span class="sa">f</span><span class="s2">"blobs/</span><span class="si">{</span><span class="n">aid</span><span class="si">}</span><span class="s2"> is </span><span class="si">{</span><span class="n">blob</span><span class="o">.</span><span class="n">stat</span><span class="p">()</span><span class="o">.</span><span class="n">st_size</span><span class="si">}</span><span class="s2"> bytes but </span><span class="si">{</span><span class="n">src</span><span class="si">}</span><span class="s2"> is "</span>
-</span><span data-line="498">                <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">src</span><span class="o">.</span><span class="n">stat</span><span class="p">()</span><span class="o">.</span><span class="n">st_size</span><span class="si">}</span><span class="s2">: the stored blob does not hold the bytes its "</span>
-</span><span data-line="499">                <span class="s2">"name claims. Remove it and register again."</span>
-</span><span data-line="500">            <span class="p">)</span></div>
+</span><span data-line="475">            <span class="n">copy_file_atomic</span><span class="p">(</span><span class="n">src</span><span class="p">,</span> <span class="n">blob</span><span class="p">)</span>  <span class="c1"># unique O_EXCL temp; retried (nw#260)</span>
+</span><span data-line="476">            <span class="n">report</span><span class="o">.</span><span class="n">blobs_copied</span> <span class="o">+=</span> <span class="mi">1</span>
+</span><span data-line="477">            <span class="n">report</span><span class="o">.</span><span class="n">bytes_copied</span> <span class="o">+=</span> <span class="n">blob</span><span class="o">.</span><span class="n">stat</span><span class="p">()</span><span class="o">.</span><span class="n">st_size</span>
+</span><span data-line="478">            <span class="n">report</span><span class="o">.</span><span class="n">cross_device</span> <span class="o">=</span> <span class="kc">True</span>
+</span><span data-line="479">            <span class="k">return</span>
+</span><span data-line="480">        <span class="n">report</span><span class="o">.</span><span class="n">blobs_linked</span> <span class="o">+=</span> <span class="mi">1</span>
+</span><span data-line="481">
+</span><span data-line="482">    <span class="nd">@staticmethod</span>
+</span><span data-line="483">    <span class="k">def</span><span class="w"> </span><span class="nf">_confirm_blob</span><span class="p">(</span><span class="n">blob</span><span class="p">:</span> <span class="n">Path</span><span class="p">,</span> <span class="n">src</span><span class="p">:</span> <span class="n">Path</span><span class="p">,</span> <span class="n">aid</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+</span><span data-line="484"><span class="w">        </span><span class="sd">"""Refuse a stored blob that cannot be ``src``'s bytes (a cheap size check).</span>
+</span><span data-line="485">
+</span><span data-line="486"><span class="sd">        A blob is trusted by its name; a size mismatch means that trust is broken</span>
+</span><span data-line="487"><span class="sd">        (an interrupted write from an older writer, a hand edit), and serving it</span>
+</span><span data-line="488"><span class="sd">        would answer 200 with the wrong bytes under a live id.</span>
+</span><span data-line="489"><span class="sd">        """</span>
+</span><span data-line="490">        <span class="k">if</span> <span class="n">blob</span><span class="o">.</span><span class="n">stat</span><span class="p">()</span><span class="o">.</span><span class="n">st_size</span> <span class="o">!=</span> <span class="n">src</span><span class="o">.</span><span class="n">stat</span><span class="p">()</span><span class="o">.</span><span class="n">st_size</span><span class="p">:</span>
+</span><span data-line="491">            <span class="k">raise</span> <span class="n">CorruptBlob</span><span class="p">(</span>
+</span><span data-line="492">                <span class="sa">f</span><span class="s2">"blobs/</span><span class="si">{</span><span class="n">aid</span><span class="si">}</span><span class="s2"> is </span><span class="si">{</span><span class="n">blob</span><span class="o">.</span><span class="n">stat</span><span class="p">()</span><span class="o">.</span><span class="n">st_size</span><span class="si">}</span><span class="s2"> bytes but </span><span class="si">{</span><span class="n">src</span><span class="si">}</span><span class="s2"> is "</span>
+</span><span data-line="493">                <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">src</span><span class="o">.</span><span class="n">stat</span><span class="p">()</span><span class="o">.</span><span class="n">st_size</span><span class="si">}</span><span class="s2">: the stored blob does not hold the bytes its "</span>
+</span><span data-line="494">                <span class="s2">"name claims. Remove it and register again."</span>
+</span><span data-line="495">            <span class="p">)</span></div>
 
-</span><span data-line="501">
-</span><span data-line="502">
-</span><span data-line="503"><span class="k">def</span><span class="w"> </span><span class="nf">_check_digest</span><span class="p">(</span><span class="n">aid</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-</span><span data-line="504">    <span class="k">if</span> <span class="ow">not</span> <span class="n">is_content_digest</span><span class="p">(</span><span class="n">aid</span><span class="p">):</span>
-</span><span data-line="505">        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-</span><span data-line="506">            <span class="sa">f</span><span class="s2">"artifact_id </span><span class="si">{</span><span class="n">aid</span><span class="si">!r}</span><span class="s2"> is not a 64-character lowercase hex digest. "</span>
-</span><span data-line="507">            <span class="s2">"The catalog is content-addressed and the host validates the same "</span>
-</span><span data-line="508">            <span class="s2">"shape, so a row written under any other id is accepted here and "</span>
-</span><span data-line="509">            <span class="s2">"refused there."</span>
-</span><span data-line="510">        <span class="p">)</span>
-</span><span data-line="511">
-</span><span data-line="512">
-</span><span data-line="513"><span class="k">def</span><span class="w"> </span><span class="nf">_tmp_sibling</span><span class="p">(</span><span class="n">path</span><span class="p">:</span> <span class="n">Path</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Path</span><span class="p">:</span>
-</span><span data-line="514">    <span class="k">return</span> <span class="n">path</span><span class="o">.</span><span class="n">with_name</span><span class="p">(</span><span class="sa">f</span><span class="s2">".</span><span class="si">{</span><span class="n">path</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">.</span><span class="si">{</span><span class="n">os</span><span class="o">.</span><span class="n">getpid</span><span class="p">()</span><span class="si">}</span><span class="s2">.</span><span class="si">{</span><span class="n">time</span><span class="o">.</span><span class="n">monotonic_ns</span><span class="p">()</span><span class="si">}</span><span class="s2">.tmp"</span><span class="p">)</span>
-</span><span data-line="515">
-</span><span data-line="516">
-</span><span data-line="517"><span class="k">def</span><span class="w"> </span><span class="nf">_atomic_write_text</span><span class="p">(</span><span class="n">path</span><span class="p">:</span> <span class="n">Path</span><span class="p">,</span> <span class="n">text</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-</span><span data-line="518">    <span class="n">tmp</span> <span class="o">=</span> <span class="n">_tmp_sibling</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
-</span><span data-line="519">    <span class="k">try</span><span class="p">:</span>
-</span><span data-line="520">        <span class="n">tmp</span><span class="o">.</span><span class="n">write_text</span><span class="p">(</span><span class="n">text</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s2">"utf-8"</span><span class="p">)</span>
-</span><span data-line="521">        <span class="n">os</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="n">tmp</span><span class="p">,</span> <span class="n">path</span><span class="p">)</span>
-</span><span data-line="522">    <span class="k">finally</span><span class="p">:</span>
-</span><span data-line="523">        <span class="n">tmp</span><span class="o">.</span><span class="n">unlink</span><span class="p">(</span><span class="n">missing_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-</span><span data-line="524">
+</span><span data-line="496">
+</span><span data-line="497">
+</span><span data-line="498"><span class="k">def</span><span class="w"> </span><span class="nf">_check_digest</span><span class="p">(</span><span class="n">aid</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+</span><span data-line="499">    <span class="k">if</span> <span class="ow">not</span> <span class="n">is_content_digest</span><span class="p">(</span><span class="n">aid</span><span class="p">):</span>
+</span><span data-line="500">        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+</span><span data-line="501">            <span class="sa">f</span><span class="s2">"artifact_id </span><span class="si">{</span><span class="n">aid</span><span class="si">!r}</span><span class="s2"> is not a 64-character lowercase hex digest. "</span>
+</span><span data-line="502">            <span class="s2">"The catalog is content-addressed and the host validates the same "</span>
+</span><span data-line="503">            <span class="s2">"shape, so a row written under any other id is accepted here and "</span>
+</span><span data-line="504">            <span class="s2">"refused there."</span>
+</span><span data-line="505">        <span class="p">)</span>
+</span><span data-line="506">
+</span><span data-line="507">
+</span><span data-line="508"><span class="k">def</span><span class="w"> </span><span class="nf">_read</span><span class="p">(</span><span class="n">path</span><span class="p">:</span> <span class="n">Path</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">dict</span><span class="p">]:</span>
+</span><span data-line="509"><span class="w">    </span><span class="sd">"""``path``'s row, or ``None`` when there is none or it is not JSON (a row</span>
+</span><span data-line="510"><span class="sd">    worth rewriting). A read refused even after retries **raises**: on Windows</span>
+</span><span data-line="511"><span class="sd">    a sharing violation must not read as "no row" and get the row rewritten</span>
+</span><span data-line="512"><span class="sd">    (nw#260)."""</span>
+</span><span data-line="513">    <span class="k">try</span><span class="p">:</span>
+</span><span data-line="514">        <span class="k">return</span> <span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">read_text_retrying</span><span class="p">(</span><span class="n">path</span><span class="p">))</span>
+</span><span data-line="515">    <span class="k">except</span> <span class="p">(</span><span class="ne">FileNotFoundError</span><span class="p">,</span> <span class="ne">ValueError</span><span class="p">):</span>
+</span><span data-line="516">        <span class="k">return</span> <span class="kc">None</span>
+</span><span data-line="517">
+</span><span data-line="518">
+</span><span data-line="519"><span class="k">def</span><span class="w"> </span><span class="nf">_same_but_for_stamp</span><span class="p">(</span><span class="n">a</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">dict</span><span class="p">],</span> <span class="n">b</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+</span><span data-line="520"><span class="w">    </span><span class="sd">"""Two rows equal, ignoring when they were registered.</span>
+</span><span data-line="521">
+</span><span data-line="522"><span class="sd">    ``generated_at`` is when an artifact was FIRST registered, so a re-registration</span>
+</span><span data-line="523"><span class="sd">    must not move it — and comparing it would make every re-import rewrite every</span>
+</span><span data-line="524"><span class="sd">    row.</span>
 </span><span data-line="525">
-</span><span data-line="526"><span class="k">def</span><span class="w"> </span><span class="nf">_read</span><span class="p">(</span><span class="n">path</span><span class="p">:</span> <span class="n">Path</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">dict</span><span class="p">]:</span>
-</span><span data-line="527">    <span class="k">try</span><span class="p">:</span>
-</span><span data-line="528">        <span class="k">return</span> <span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">path</span><span class="o">.</span><span class="n">read_text</span><span class="p">(</span><span class="n">encoding</span><span class="o">=</span><span class="s2">"utf-8"</span><span class="p">))</span>
-</span><span data-line="529">    <span class="k">except</span> <span class="p">(</span><span class="ne">OSError</span><span class="p">,</span> <span class="ne">ValueError</span><span class="p">):</span>
-</span><span data-line="530">        <span class="k">return</span> <span class="kc">None</span>
-</span><span data-line="531">
-</span><span data-line="532">
-</span><span data-line="533"><span class="k">def</span><span class="w"> </span><span class="nf">_same_but_for_stamp</span><span class="p">(</span><span class="n">a</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">dict</span><span class="p">],</span> <span class="n">b</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
-</span><span data-line="534"><span class="w">    </span><span class="sd">"""Two rows equal, ignoring when they were registered.</span>
-</span><span data-line="535">
-</span><span data-line="536"><span class="sd">    ``generated_at`` is when an artifact was FIRST registered, so a re-registration</span>
-</span><span data-line="537"><span class="sd">    must not move it — and comparing it would make every re-import rewrite every</span>
-</span><span data-line="538"><span class="sd">    row.</span>
-</span><span data-line="539">
-</span><span data-line="540"><span class="sd">    &gt;&gt;&gt; row = catalog_row("ab" * 32, kind="image", generated_at="2026-01-01T00:00:00Z")</span>
-</span><span data-line="541"><span class="sd">    &gt;&gt;&gt; later = catalog_row("ab" * 32, kind="image", generated_at="2027-06-06T12:00:00Z")</span>
-</span><span data-line="542"><span class="sd">    &gt;&gt;&gt; _same_but_for_stamp(row, later)</span>
-</span><span data-line="543"><span class="sd">    True</span>
-</span><span data-line="544"><span class="sd">    &gt;&gt;&gt; _same_but_for_stamp(row, catalog_row("cd" * 32, kind="image",</span>
-</span><span data-line="545"><span class="sd">    ...     generated_at="2026-01-01T00:00:00Z"))</span>
-</span><span data-line="546"><span class="sd">    False</span>
-</span><span data-line="547"><span class="sd">    &gt;&gt;&gt; _same_but_for_stamp(None, row)</span>
-</span><span data-line="548"><span class="sd">    False</span>
-</span><span data-line="549"><span class="sd">    """</span>
-</span><span data-line="550">
-</span><span data-line="551">    <span class="k">def</span><span class="w"> </span><span class="nf">_strip</span><span class="p">(</span><span class="n">row</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
-</span><span data-line="552">        <span class="n">out</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">row</span><span class="p">)</span>
-</span><span data-line="553">        <span class="n">prov</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">out</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"provenance"</span><span class="p">)</span> <span class="ow">or</span> <span class="p">{})</span>
-</span><span data-line="554">        <span class="n">prov</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">"generated_at"</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
-</span><span data-line="555">        <span class="n">out</span><span class="p">[</span><span class="s2">"provenance"</span><span class="p">]</span> <span class="o">=</span> <span class="n">prov</span>
-</span><span data-line="556">        <span class="k">return</span> <span class="n">out</span>
-</span><span data-line="557">
-</span><span data-line="558">    <span class="k">return</span> <span class="n">a</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">_strip</span><span class="p">(</span><span class="n">a</span><span class="p">)</span> <span class="o">==</span> <span class="n">_strip</span><span class="p">(</span><span class="n">b</span><span class="p">)</span>
-</span><span data-line="559">
-</span><span data-line="560">
-</span><span data-line="561"><span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span>
-</span><span data-line="562">    <span class="s2">"BACKEND_ENV_KEY"</span><span class="p">,</span>
-</span><span data-line="563">    <span class="s2">"BYTES_ROUTE"</span><span class="p">,</span>
-</span><span data-line="564">    <span class="s2">"CATALOG_KINDS"</span><span class="p">,</span>
-</span><span data-line="565">    <span class="s2">"DELIVERY_CATALOG_SUBPATH"</span><span class="p">,</span>
-</span><span data-line="566">    <span class="s2">"CatalogBackendMismatch"</span><span class="p">,</span>
-</span><span data-line="567">    <span class="s2">"CatalogReport"</span><span class="p">,</span>
-</span><span data-line="568">    <span class="s2">"CatalogRow"</span><span class="p">,</span>
-</span><span data-line="569">    <span class="s2">"CorruptBlob"</span><span class="p">,</span>
-</span><span data-line="570">    <span class="s2">"CrossDeviceCatalog"</span><span class="p">,</span>
-</span><span data-line="571">    <span class="s2">"HostArtifactCatalog"</span><span class="p">,</span>
-</span><span data-line="572">    <span class="s2">"assert_local_backend"</span><span class="p">,</span>
-</span><span data-line="573">    <span class="s2">"catalog_row"</span><span class="p">,</span>
-</span><span data-line="574">    <span class="s2">"hash_file"</span><span class="p">,</span>
-</span><span data-line="575"><span class="p">]</span>
+</span><span data-line="526"><span class="sd">    &gt;&gt;&gt; row = catalog_row("ab" * 32, kind="image", generated_at="2026-01-01T00:00:00Z")</span>
+</span><span data-line="527"><span class="sd">    &gt;&gt;&gt; later = catalog_row("ab" * 32, kind="image", generated_at="2027-06-06T12:00:00Z")</span>
+</span><span data-line="528"><span class="sd">    &gt;&gt;&gt; _same_but_for_stamp(row, later)</span>
+</span><span data-line="529"><span class="sd">    True</span>
+</span><span data-line="530"><span class="sd">    &gt;&gt;&gt; _same_but_for_stamp(row, catalog_row("cd" * 32, kind="image",</span>
+</span><span data-line="531"><span class="sd">    ...     generated_at="2026-01-01T00:00:00Z"))</span>
+</span><span data-line="532"><span class="sd">    False</span>
+</span><span data-line="533"><span class="sd">    &gt;&gt;&gt; _same_but_for_stamp(None, row)</span>
+</span><span data-line="534"><span class="sd">    False</span>
+</span><span data-line="535"><span class="sd">    """</span>
+</span><span data-line="536">
+</span><span data-line="537">    <span class="k">def</span><span class="w"> </span><span class="nf">_strip</span><span class="p">(</span><span class="n">row</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+</span><span data-line="538">        <span class="n">out</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">row</span><span class="p">)</span>
+</span><span data-line="539">        <span class="n">prov</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">out</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"provenance"</span><span class="p">)</span> <span class="ow">or</span> <span class="p">{})</span>
+</span><span data-line="540">        <span class="n">prov</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">"generated_at"</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+</span><span data-line="541">        <span class="n">out</span><span class="p">[</span><span class="s2">"provenance"</span><span class="p">]</span> <span class="o">=</span> <span class="n">prov</span>
+</span><span data-line="542">        <span class="k">return</span> <span class="n">out</span>
+</span><span data-line="543">
+</span><span data-line="544">    <span class="k">return</span> <span class="n">a</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">_strip</span><span class="p">(</span><span class="n">a</span><span class="p">)</span> <span class="o">==</span> <span class="n">_strip</span><span class="p">(</span><span class="n">b</span><span class="p">)</span>
+</span><span data-line="545">
+</span><span data-line="546">
+</span><span data-line="547"><span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span>
+</span><span data-line="548">    <span class="s2">"BACKEND_ENV_KEY"</span><span class="p">,</span>
+</span><span data-line="549">    <span class="s2">"BYTES_ROUTE"</span><span class="p">,</span>
+</span><span data-line="550">    <span class="s2">"CATALOG_KINDS"</span><span class="p">,</span>
+</span><span data-line="551">    <span class="s2">"DELIVERY_CATALOG_SUBPATH"</span><span class="p">,</span>
+</span><span data-line="552">    <span class="s2">"CatalogBackendMismatch"</span><span class="p">,</span>
+</span><span data-line="553">    <span class="s2">"CatalogReport"</span><span class="p">,</span>
+</span><span data-line="554">    <span class="s2">"CatalogRow"</span><span class="p">,</span>
+</span><span data-line="555">    <span class="s2">"CorruptBlob"</span><span class="p">,</span>
+</span><span data-line="556">    <span class="s2">"CrossDeviceCatalog"</span><span class="p">,</span>
+</span><span data-line="557">    <span class="s2">"HostArtifactCatalog"</span><span class="p">,</span>
+</span><span data-line="558">    <span class="s2">"assert_local_backend"</span><span class="p">,</span>
+</span><span data-line="559">    <span class="s2">"catalog_row"</span><span class="p">,</span>
+</span><span data-line="560">    <span class="s2">"hash_file"</span><span class="p">,</span>
+</span><span data-line="561"><span class="p">]</span>
 </span></pre></div>
         </article><button class="back-to-top" type="button">
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
@@ -802,7 +789,7 @@ data-aria-dark="Switch to auto color mode">
     </div>
   </div>
 </footer>
-      <script src="../../_static/documentation_options.js?v=23ea6af5"></script>
+      <script src="../../_static/documentation_options.js?v=cbf0c937"></script>
       <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
       <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>

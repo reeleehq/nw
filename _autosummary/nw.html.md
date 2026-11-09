@@ -4062,6 +4062,7 @@ True
 |----------------------------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------|
 | [`inspect`](nw.inspect.html.md#module-nw.inspect)                         | QA helpers — typed reports about rendered shots.                                                                                |
 | [`checks`](nw.checks.html.md#module-nw.checks)                           | The checks nw itself ships — a small, honest default menu.                                                                      |
+| [`atomic_io`](nw.atomic_io.html.md#module-nw.atomic_io)                     | Small-file IO that a concurrent reader can never catch half-done (nw#243, nw#260).                                              |
 | [`batches`](nw.batches.html.md#module-nw.batches)                         | nw.batches — many jobs, one handle: submit / status / wait / output / cancel.                                                   |
 | [`bodies`](nw.bodies.html.md#module-nw.bodies)                           | Body schemas for nw's project-graph annotations.                                                                                |
 | [`compat`](nw.compat.html.md#module-nw.compat)                           | What a plugin built against a newer nw checks before it registers (nw#164).                                                     |

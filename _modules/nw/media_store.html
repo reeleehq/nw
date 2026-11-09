@@ -66,6 +66,7 @@ data-aria-dark="Switch to auto color mode">
 <li class="toctree-l3"><a class="reference internal" href="../../_autosummary/nw.freshness.html">nw.freshness</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../_autosummary/nw.inspect.html">nw.inspect</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../_autosummary/nw.checks.html">nw.checks</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../_autosummary/nw.atomic_io.html">nw.atomic_io</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../_autosummary/nw.batches.html">nw.batches</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../_autosummary/nw.bodies.html">nw.bodies</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../../_autosummary/nw.bodies.character_ref.html">nw.bodies.character_ref</a></li>
@@ -206,367 +207,347 @@ data-aria-dark="Switch to auto color mode">
 </span><span data-line="43"><span class="kn">import</span><span class="w"> </span><span class="nn">json</span>
 </span><span data-line="44"><span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
 </span><span data-line="45"><span class="kn">import</span><span class="w"> </span><span class="nn">re</span>
-</span><span data-line="46"><span class="kn">import</span><span class="w"> </span><span class="nn">shutil</span>
-</span><span data-line="47"><span class="kn">import</span><span class="w"> </span><span class="nn">time</span>
-</span><span data-line="48"><span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">KW_ONLY</span><span class="p">,</span> <span class="n">dataclass</span><span class="p">,</span> <span class="n">field</span>
-</span><span data-line="49"><span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
-</span><span data-line="50"><span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Optional</span>
-</span><span data-line="51">
-</span><span data-line="52"><span class="kn">from</span><span class="w"> </span><span class="nn">dol.atomic</span><span class="w"> </span><span class="kn">import</span> <span class="n">DFLT_RETRY</span><span class="p">,</span> <span class="n">atomic_write</span>
+</span><span data-line="46"><span class="kn">import</span><span class="w"> </span><span class="nn">time</span>
+</span><span data-line="47"><span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">KW_ONLY</span><span class="p">,</span> <span class="n">dataclass</span><span class="p">,</span> <span class="n">field</span>
+</span><span data-line="48"><span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+</span><span data-line="49"><span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Optional</span>
+</span><span data-line="50">
+</span><span data-line="51"><span class="kn">from</span><span class="w"> </span><span class="nn">nw.atomic_io</span><span class="w"> </span><span class="kn">import</span> <span class="n">copy_file_atomic</span><span class="p">,</span> <span class="n">read_text_retrying</span><span class="p">,</span> <span class="n">write_text_atomic</span>
+</span><span data-line="52"><span class="kn">from</span><span class="w"> </span><span class="nn">nw.paths</span><span class="w"> </span><span class="kn">import</span> <span class="n">check_path_segment</span>
 </span><span data-line="53">
-</span><span data-line="54"><span class="kn">from</span><span class="w"> </span><span class="nn">nw.paths</span><span class="w"> </span><span class="kn">import</span> <span class="n">check_path_segment</span>
-</span><span data-line="55">
-</span><span data-line="56"><span class="c1">#: The store's data home, under nw's (not any genre's).</span>
-</span><span data-line="57"><span class="n">DEFAULT_STORE_ROOT</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="s2">"~/.local/share/nw/media"</span><span class="p">)</span>
-</span><span data-line="58"><span class="n">DEFAULT_TENANT</span> <span class="o">=</span> <span class="s2">"local"</span>
-</span><span data-line="59"><span class="n">DEFAULT_LIFECYCLE_CLASS</span> <span class="o">=</span> <span class="s2">"project"</span>
-</span><span data-line="60"><span class="c1">#: Seconds a blob must stay unreferenced, across two sweeps, before it is removed.</span>
-</span><span data-line="61"><span class="n">DEFAULT_GRACE_S</span> <span class="o">=</span> <span class="mi">7</span> <span class="o">*</span> <span class="mi">24</span> <span class="o">*</span> <span class="mf">3600.0</span>
-</span><span data-line="62">
-</span><span data-line="63"><span class="c1">#: The host's ``content_hash`` validator, mirrored: 64 lowercase hex characters and</span>
-</span><span data-line="64"><span class="c1">#: nothing else. Always ``fullmatch`` (:func:`is_content_digest`): ``$`` also</span>
-</span><span data-line="65"><span class="c1">#: matches before a trailing newline.</span>
-</span><span data-line="66"><span class="n">_IS_DIGEST</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s2">"[0-9a-f]</span><span class="si">{64}</span><span class="s2">"</span><span class="p">)</span>
-</span><span data-line="67"><span class="n">_HASH_CHUNK</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">&lt;&lt;</span> <span class="mi">20</span>
-</span><span data-line="68"><span class="c1">#: Tenant / class names are path segments: no separators, no dots-only, no reserved.</span>
-</span><span data-line="69"><span class="n">_SEGMENT</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s2">"[A-Za-z0-9][A-Za-z0-9_.-]*"</span><span class="p">)</span>
-</span><span data-line="70"><span class="n">_SENTINEL</span> <span class="o">=</span> <span class="s2">".nw-store-catalog"</span>
-</span><span data-line="71"><span class="n">_META_DIR</span> <span class="o">=</span> <span class="s2">"_nw"</span>  <span class="c1"># per-tenant bookkeeping, beside the lifecycle-class dirs</span>
-</span><span data-line="72"><span class="n">_LINK_REFUSALS</span> <span class="o">=</span> <span class="p">(</span><span class="n">errno</span><span class="o">.</span><span class="n">EXDEV</span><span class="p">,</span> <span class="n">errno</span><span class="o">.</span><span class="n">EMLINK</span><span class="p">,</span> <span class="n">errno</span><span class="o">.</span><span class="n">EPERM</span><span class="p">)</span>
-</span><span data-line="73">
-</span><span data-line="74">
+</span><span data-line="54"><span class="c1">#: The store's data home, under nw's (not any genre's).</span>
+</span><span data-line="55"><span class="n">DEFAULT_STORE_ROOT</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="s2">"~/.local/share/nw/media"</span><span class="p">)</span>
+</span><span data-line="56"><span class="n">DEFAULT_TENANT</span> <span class="o">=</span> <span class="s2">"local"</span>
+</span><span data-line="57"><span class="n">DEFAULT_LIFECYCLE_CLASS</span> <span class="o">=</span> <span class="s2">"project"</span>
+</span><span data-line="58"><span class="c1">#: Seconds a blob must stay unreferenced, across two sweeps, before it is removed.</span>
+</span><span data-line="59"><span class="n">DEFAULT_GRACE_S</span> <span class="o">=</span> <span class="mi">7</span> <span class="o">*</span> <span class="mi">24</span> <span class="o">*</span> <span class="mf">3600.0</span>
+</span><span data-line="60">
+</span><span data-line="61"><span class="c1">#: The host's ``content_hash`` validator, mirrored: 64 lowercase hex characters and</span>
+</span><span data-line="62"><span class="c1">#: nothing else. Always ``fullmatch`` (:func:`is_content_digest`): ``$`` also</span>
+</span><span data-line="63"><span class="c1">#: matches before a trailing newline.</span>
+</span><span data-line="64"><span class="n">_IS_DIGEST</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s2">"[0-9a-f]</span><span class="si">{64}</span><span class="s2">"</span><span class="p">)</span>
+</span><span data-line="65"><span class="n">_HASH_CHUNK</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">&lt;&lt;</span> <span class="mi">20</span>
+</span><span data-line="66"><span class="c1">#: Tenant / class names are path segments: no separators, no dots-only, no reserved.</span>
+</span><span data-line="67"><span class="n">_SEGMENT</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s2">"[A-Za-z0-9][A-Za-z0-9_.-]*"</span><span class="p">)</span>
+</span><span data-line="68"><span class="n">_SENTINEL</span> <span class="o">=</span> <span class="s2">".nw-store-catalog"</span>
+</span><span data-line="69"><span class="n">_META_DIR</span> <span class="o">=</span> <span class="s2">"_nw"</span>  <span class="c1"># per-tenant bookkeeping, beside the lifecycle-class dirs</span>
+</span><span data-line="70"><span class="n">_LINK_REFUSALS</span> <span class="o">=</span> <span class="p">(</span><span class="n">errno</span><span class="o">.</span><span class="n">EXDEV</span><span class="p">,</span> <span class="n">errno</span><span class="o">.</span><span class="n">EMLINK</span><span class="p">,</span> <span class="n">errno</span><span class="o">.</span><span class="n">EPERM</span><span class="p">)</span>
+</span><span data-line="71">
+</span><span data-line="72">
 <div class="viewcode-block" id="StoreCatalogUnreadable">
 <a class="viewcode-back" href="../../_autosummary/nw.media_store.html#nw.media_catalog.StoreCatalogUnreadable">[docs]</a>
-</span><span data-line="75"><span class="k">class</span><span class="w"> </span><span class="nc">StoreCatalogUnreadable</span><span class="p">(</span><span class="ne">RuntimeError</span><span class="p">):</span>
-</span><span data-line="76"><span class="w">    </span><span class="sd">"""A registered catalog cannot be read, so a sweep cannot know what it holds."""</span></div>
+</span><span data-line="73"><span class="k">class</span><span class="w"> </span><span class="nc">StoreCatalogUnreadable</span><span class="p">(</span><span class="ne">RuntimeError</span><span class="p">):</span>
+</span><span data-line="74"><span class="w">    </span><span class="sd">"""A registered catalog cannot be read, so a sweep cannot know what it holds."""</span></div>
 
-</span><span data-line="77">
-</span><span data-line="78">
-</span><span data-line="79"><span class="k">def</span><span class="w"> </span><span class="nf">_segment</span><span class="p">(</span><span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">what</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
-</span><span data-line="80"><span class="w">    </span><span class="sd">"""``name`` as a tenant / class folder: :func:`nw.paths.check_path_segment`</span>
-</span><span data-line="81"><span class="sd">    with this store's stricter slug policy (which already refuses ``_nw``, the</span>
-</span><span data-line="82"><span class="sd">    meta folder, by requiring an alphanumeric first character), and no ``..``."""</span>
-</span><span data-line="83">    <span class="n">check_path_segment</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">what</span><span class="o">=</span><span class="n">what</span><span class="p">,</span> <span class="n">pattern</span><span class="o">=</span><span class="n">_SEGMENT</span><span class="p">)</span>
-</span><span data-line="84">    <span class="k">if</span> <span class="s2">".."</span> <span class="ow">in</span> <span class="n">name</span><span class="p">:</span>
-</span><span data-line="85">        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"invalid </span><span class="si">{</span><span class="n">what</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">name</span><span class="si">!r}</span><span class="s2"> contains '..'"</span><span class="p">)</span>
-</span><span data-line="86">    <span class="k">return</span> <span class="n">name</span>
-</span><span data-line="87">
-</span><span data-line="88">
+</span><span data-line="75">
+</span><span data-line="76">
+</span><span data-line="77"><span class="k">def</span><span class="w"> </span><span class="nf">_segment</span><span class="p">(</span><span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">what</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+</span><span data-line="78"><span class="w">    </span><span class="sd">"""``name`` as a tenant / class folder: :func:`nw.paths.check_path_segment`</span>
+</span><span data-line="79"><span class="sd">    with this store's stricter slug policy (which already refuses ``_nw``, the</span>
+</span><span data-line="80"><span class="sd">    meta folder, by requiring an alphanumeric first character), and no ``..``."""</span>
+</span><span data-line="81">    <span class="n">check_path_segment</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">what</span><span class="o">=</span><span class="n">what</span><span class="p">,</span> <span class="n">pattern</span><span class="o">=</span><span class="n">_SEGMENT</span><span class="p">)</span>
+</span><span data-line="82">    <span class="k">if</span> <span class="s2">".."</span> <span class="ow">in</span> <span class="n">name</span><span class="p">:</span>
+</span><span data-line="83">        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"invalid </span><span class="si">{</span><span class="n">what</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">name</span><span class="si">!r}</span><span class="s2"> contains '..'"</span><span class="p">)</span>
+</span><span data-line="84">    <span class="k">return</span> <span class="n">name</span>
+</span><span data-line="85">
+</span><span data-line="86">
 <div class="viewcode-block" id="is_content_digest">
 <a class="viewcode-back" href="../../_autosummary/nw.media_store.html#nw.media_catalog.is_content_digest">[docs]</a>
-</span><span data-line="89"><span class="k">def</span><span class="w"> </span><span class="nf">is_content_digest</span><span class="p">(</span><span class="n">artifact_id</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
-</span><span data-line="90"><span class="w">    </span><span class="sd">"""Whether ``artifact_id`` is a content id: exactly 64 lowercase hex</span>
-</span><span data-line="91"><span class="sd">    characters, the SHA-256 of the bytes. The one check every reader applies</span>
-</span><span data-line="92"><span class="sd">    before an id becomes a file path (nw#194), so ``../x``, ``/etc/passwd``, a</span>
-</span><span data-line="93"><span class="sd">    prefix match or a trailing newline never reach the filesystem.</span>
-</span><span data-line="94">
-</span><span data-line="95"><span class="sd">    &gt;&gt;&gt; is_content_digest("ab" * 32), is_content_digest("../" + "a" * 64)</span>
-</span><span data-line="96"><span class="sd">    (True, False)</span>
-</span><span data-line="97"><span class="sd">    &gt;&gt;&gt; is_content_digest("a" * 64 + "\\n"), is_content_digest(None)</span>
-</span><span data-line="98"><span class="sd">    (False, False)</span>
-</span><span data-line="99"><span class="sd">    """</span>
-</span><span data-line="100">    <span class="k">return</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">artifact_id</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">bool</span><span class="p">(</span><span class="n">_IS_DIGEST</span><span class="o">.</span><span class="n">fullmatch</span><span class="p">(</span><span class="n">artifact_id</span><span class="p">))</span></div>
+</span><span data-line="87"><span class="k">def</span><span class="w"> </span><span class="nf">is_content_digest</span><span class="p">(</span><span class="n">artifact_id</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+</span><span data-line="88"><span class="w">    </span><span class="sd">"""Whether ``artifact_id`` is a content id: exactly 64 lowercase hex</span>
+</span><span data-line="89"><span class="sd">    characters, the SHA-256 of the bytes. The one check every reader applies</span>
+</span><span data-line="90"><span class="sd">    before an id becomes a file path (nw#194), so ``../x``, ``/etc/passwd``, a</span>
+</span><span data-line="91"><span class="sd">    prefix match or a trailing newline never reach the filesystem.</span>
+</span><span data-line="92">
+</span><span data-line="93"><span class="sd">    &gt;&gt;&gt; is_content_digest("ab" * 32), is_content_digest("../" + "a" * 64)</span>
+</span><span data-line="94"><span class="sd">    (True, False)</span>
+</span><span data-line="95"><span class="sd">    &gt;&gt;&gt; is_content_digest("a" * 64 + "\\n"), is_content_digest(None)</span>
+</span><span data-line="96"><span class="sd">    (False, False)</span>
+</span><span data-line="97"><span class="sd">    """</span>
+</span><span data-line="98">    <span class="k">return</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">artifact_id</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">bool</span><span class="p">(</span><span class="n">_IS_DIGEST</span><span class="o">.</span><span class="n">fullmatch</span><span class="p">(</span><span class="n">artifact_id</span><span class="p">))</span></div>
 
-</span><span data-line="101">
-</span><span data-line="102">
+</span><span data-line="99">
+</span><span data-line="100">
 <div class="viewcode-block" id="hash_file">
 <a class="viewcode-back" href="../../_autosummary/nw.media_store.html#nw.media_catalog.hash_file">[docs]</a>
-</span><span data-line="103"><span class="k">def</span><span class="w"> </span><span class="nf">hash_file</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">chunk_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">_HASH_CHUNK</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
-</span><span data-line="104"><span class="w">    </span><span class="sd">"""SHA-256 of a file's bytes, read in chunks: the content id of that file.</span>
-</span><span data-line="105">
-</span><span data-line="106"><span class="sd">    The same digest lacing computes for an ``asset_id`` (pinned by a test), kept</span>
-</span><span data-line="107"><span class="sd">    here so the writers can be reasoned about without the graph layer.</span>
-</span><span data-line="108">
-</span><span data-line="109"><span class="sd">    &gt;&gt;&gt; import tempfile, pathlib</span>
-</span><span data-line="110"><span class="sd">    &gt;&gt;&gt; with tempfile.TemporaryDirectory() as d:</span>
-</span><span data-line="111"><span class="sd">    ...     p = pathlib.Path(d, "x"); _ = p.write_bytes(b"abc")</span>
-</span><span data-line="112"><span class="sd">    ...     hash_file(p)</span>
-</span><span data-line="113"><span class="sd">    'ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad'</span>
-</span><span data-line="114"><span class="sd">    """</span>
-</span><span data-line="115">    <span class="n">h</span> <span class="o">=</span> <span class="n">hashlib</span><span class="o">.</span><span class="n">sha256</span><span class="p">()</span>
-</span><span data-line="116">    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="s2">"rb"</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
-</span><span data-line="117">        <span class="k">while</span> <span class="n">chunk</span> <span class="o">:=</span> <span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">chunk_size</span><span class="p">):</span>
-</span><span data-line="118">            <span class="n">h</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">chunk</span><span class="p">)</span>
-</span><span data-line="119">    <span class="k">return</span> <span class="n">h</span><span class="o">.</span><span class="n">hexdigest</span><span class="p">()</span></div>
+</span><span data-line="101"><span class="k">def</span><span class="w"> </span><span class="nf">hash_file</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">chunk_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">_HASH_CHUNK</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+</span><span data-line="102"><span class="w">    </span><span class="sd">"""SHA-256 of a file's bytes, read in chunks: the content id of that file.</span>
+</span><span data-line="103">
+</span><span data-line="104"><span class="sd">    The same digest lacing computes for an ``asset_id`` (pinned by a test), kept</span>
+</span><span data-line="105"><span class="sd">    here so the writers can be reasoned about without the graph layer.</span>
+</span><span data-line="106">
+</span><span data-line="107"><span class="sd">    &gt;&gt;&gt; import tempfile, pathlib</span>
+</span><span data-line="108"><span class="sd">    &gt;&gt;&gt; with tempfile.TemporaryDirectory() as d:</span>
+</span><span data-line="109"><span class="sd">    ...     p = pathlib.Path(d, "x"); _ = p.write_bytes(b"abc")</span>
+</span><span data-line="110"><span class="sd">    ...     hash_file(p)</span>
+</span><span data-line="111"><span class="sd">    'ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad'</span>
+</span><span data-line="112"><span class="sd">    """</span>
+</span><span data-line="113">    <span class="n">h</span> <span class="o">=</span> <span class="n">hashlib</span><span class="o">.</span><span class="n">sha256</span><span class="p">()</span>
+</span><span data-line="114">    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="s2">"rb"</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+</span><span data-line="115">        <span class="k">while</span> <span class="n">chunk</span> <span class="o">:=</span> <span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">chunk_size</span><span class="p">):</span>
+</span><span data-line="116">            <span class="n">h</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">chunk</span><span class="p">)</span>
+</span><span data-line="117">    <span class="k">return</span> <span class="n">h</span><span class="o">.</span><span class="n">hexdigest</span><span class="p">()</span></div>
 
-</span><span data-line="120">
-</span><span data-line="121">
-</span><span data-line="122"><span class="k">def</span><span class="w"> </span><span class="nf">_atomic_write</span><span class="p">(</span><span class="n">path</span><span class="p">:</span> <span class="n">Path</span><span class="p">,</span> <span class="n">text</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-</span><span data-line="123"><span class="w">    </span><span class="sd">"""``text`` to ``path`` by :func:`dol.atomic_write`: temp file, then an</span>
-</span><span data-line="124"><span class="sd">    ``os.replace`` retried on a Windows sharing violation (nw#243)."""</span>
-</span><span data-line="125">    <span class="n">path</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">parents</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-</span><span data-line="126">    <span class="n">atomic_write</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">text</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s2">"utf-8"</span><span class="p">),</span> <span class="n">retry</span><span class="o">=</span><span class="n">DFLT_RETRY</span><span class="p">)</span>
-</span><span data-line="127">
-</span><span data-line="128">
-</span><span data-line="129"><span class="k">def</span><span class="w"> </span><span class="nf">_read_text</span><span class="p">(</span><span class="n">path</span><span class="p">:</span> <span class="n">Path</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
-</span><span data-line="130"><span class="w">    </span><span class="sd">"""``path``'s text, retried like a write: on Windows a read landing while a</span>
-</span><span data-line="131"><span class="sd">    writer swaps the file is refused for that instant (nw#243)."""</span>
-</span><span data-line="132">    <span class="k">return</span> <span class="n">DFLT_RETRY</span><span class="p">(</span><span class="n">Path</span><span class="o">.</span><span class="n">read_text</span><span class="p">,</span> <span class="n">path</span><span class="p">,</span> <span class="s2">"utf-8"</span><span class="p">)</span>
-</span><span data-line="133">
-</span><span data-line="134">
+</span><span data-line="118">
+</span><span data-line="119">
 <div class="viewcode-block" id="SweepReport">
 <a class="viewcode-back" href="../../_autosummary/nw.media_store.html#nw.media_catalog.SweepReport">[docs]</a>
-</span><span data-line="135"><span class="nd">@dataclass</span>
-</span><span data-line="136"><span class="k">class</span><span class="w"> </span><span class="nc">SweepReport</span><span class="p">:</span>
-</span><span data-line="137"><span class="w">    </span><span class="sd">"""What a sweep saw and (if applied) did."""</span>
-</span><span data-line="138">
-</span><span data-line="139">    <span class="n">applied</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
-</span><span data-line="140">    <span class="n">live</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span>
-</span><span data-line="141">    <span class="n">marked</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="nb">list</span><span class="p">)</span>
-</span><span data-line="142">    <span class="n">still_in_grace</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="nb">list</span><span class="p">)</span>
-</span><span data-line="143">    <span class="n">removed</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="nb">list</span><span class="p">)</span>
-</span><span data-line="144">    <span class="n">unmarked</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="nb">list</span><span class="p">)</span></div>
+</span><span data-line="120"><span class="nd">@dataclass</span>
+</span><span data-line="121"><span class="k">class</span><span class="w"> </span><span class="nc">SweepReport</span><span class="p">:</span>
+</span><span data-line="122"><span class="w">    </span><span class="sd">"""What a sweep saw and (if applied) did."""</span>
+</span><span data-line="123">
+</span><span data-line="124">    <span class="n">applied</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
+</span><span data-line="125">    <span class="n">live</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span>
+</span><span data-line="126">    <span class="n">marked</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="nb">list</span><span class="p">)</span>
+</span><span data-line="127">    <span class="n">still_in_grace</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="nb">list</span><span class="p">)</span>
+</span><span data-line="128">    <span class="n">removed</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="nb">list</span><span class="p">)</span>
+</span><span data-line="129">    <span class="n">unmarked</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="nb">list</span><span class="p">)</span></div>
 
-</span><span data-line="145">
-</span><span data-line="146">
+</span><span data-line="130">
+</span><span data-line="131">
 <div class="viewcode-block" id="SharedMediaStore">
 <a class="viewcode-back" href="../../_autosummary/nw.media_store.html#nw.media_catalog.SharedMediaStore">[docs]</a>
-</span><span data-line="147"><span class="nd">@dataclass</span><span class="p">(</span><span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-</span><span data-line="148"><span class="k">class</span><span class="w"> </span><span class="nc">SharedMediaStore</span><span class="p">:</span>
-</span><span data-line="149"><span class="w">    </span><span class="sd">"""The blob store at ``root`` for one ``tenant`` and ``lifecycle_class``."""</span>
-</span><span data-line="150">
-</span><span data-line="151">    <span class="n">root</span><span class="p">:</span> <span class="n">Path</span> <span class="o">=</span> <span class="n">DEFAULT_STORE_ROOT</span>
-</span><span data-line="152">    <span class="n">_</span><span class="p">:</span> <span class="n">KW_ONLY</span>
-</span><span data-line="153">    <span class="n">tenant</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">DEFAULT_TENANT</span>
-</span><span data-line="154">    <span class="n">lifecycle_class</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">DEFAULT_LIFECYCLE_CLASS</span>
-</span><span data-line="155">    <span class="n">allow_cross_device_copy</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
+</span><span data-line="132"><span class="nd">@dataclass</span><span class="p">(</span><span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</span><span data-line="133"><span class="k">class</span><span class="w"> </span><span class="nc">SharedMediaStore</span><span class="p">:</span>
+</span><span data-line="134"><span class="w">    </span><span class="sd">"""The blob store at ``root`` for one ``tenant`` and ``lifecycle_class``."""</span>
+</span><span data-line="135">
+</span><span data-line="136">    <span class="n">root</span><span class="p">:</span> <span class="n">Path</span> <span class="o">=</span> <span class="n">DEFAULT_STORE_ROOT</span>
+</span><span data-line="137">    <span class="n">_</span><span class="p">:</span> <span class="n">KW_ONLY</span>
+</span><span data-line="138">    <span class="n">tenant</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">DEFAULT_TENANT</span>
+</span><span data-line="139">    <span class="n">lifecycle_class</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">DEFAULT_LIFECYCLE_CLASS</span>
+</span><span data-line="140">    <span class="n">allow_cross_device_copy</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
+</span><span data-line="141">
+</span><span data-line="142">    <span class="k">def</span><span class="w"> </span><span class="nf">__post_init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+</span><span data-line="143">        <span class="nb">object</span><span class="o">.</span><span class="fm">__setattr__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">"root"</span><span class="p">,</span> <span class="n">Path</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">root</span><span class="p">)</span><span class="o">.</span><span class="n">expanduser</span><span class="p">())</span>
+</span><span data-line="144">        <span class="n">_segment</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">tenant</span><span class="p">,</span> <span class="s2">"tenant"</span><span class="p">)</span>
+</span><span data-line="145">        <span class="n">_segment</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">lifecycle_class</span><span class="p">,</span> <span class="s2">"lifecycle_class"</span><span class="p">)</span>
+</span><span data-line="146">
+</span><span data-line="147">    <span class="c1"># -- layout ---------------------------------------------------------------</span>
+</span><span data-line="148">
+</span><span data-line="149">    <span class="nd">@property</span>
+</span><span data-line="150">    <span class="k">def</span><span class="w"> </span><span class="nf">blobs_dir</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Path</span><span class="p">:</span>
+</span><span data-line="151">        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">root</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">tenant</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">lifecycle_class</span>
+</span><span data-line="152">
+</span><span data-line="153">    <span class="nd">@property</span>
+</span><span data-line="154">    <span class="k">def</span><span class="w"> </span><span class="nf">_meta</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Path</span><span class="p">:</span>
+</span><span data-line="155">        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">root</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">tenant</span> <span class="o">/</span> <span class="n">_META_DIR</span>
 </span><span data-line="156">
-</span><span data-line="157">    <span class="k">def</span><span class="w"> </span><span class="nf">__post_init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-</span><span data-line="158">        <span class="nb">object</span><span class="o">.</span><span class="fm">__setattr__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">"root"</span><span class="p">,</span> <span class="n">Path</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">root</span><span class="p">)</span><span class="o">.</span><span class="n">expanduser</span><span class="p">())</span>
-</span><span data-line="159">        <span class="n">_segment</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">tenant</span><span class="p">,</span> <span class="s2">"tenant"</span><span class="p">)</span>
-</span><span data-line="160">        <span class="n">_segment</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">lifecycle_class</span><span class="p">,</span> <span class="s2">"lifecycle_class"</span><span class="p">)</span>
-</span><span data-line="161">
-</span><span data-line="162">    <span class="c1"># -- layout ---------------------------------------------------------------</span>
-</span><span data-line="163">
-</span><span data-line="164">    <span class="nd">@property</span>
-</span><span data-line="165">    <span class="k">def</span><span class="w"> </span><span class="nf">blobs_dir</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Path</span><span class="p">:</span>
-</span><span data-line="166">        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">root</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">tenant</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">lifecycle_class</span>
-</span><span data-line="167">
-</span><span data-line="168">    <span class="nd">@property</span>
-</span><span data-line="169">    <span class="k">def</span><span class="w"> </span><span class="nf">_meta</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Path</span><span class="p">:</span>
-</span><span data-line="170">        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">root</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">tenant</span> <span class="o">/</span> <span class="n">_META_DIR</span>
-</span><span data-line="171">
-</span><span data-line="172">    <span class="nd">@property</span>
-</span><span data-line="173">    <span class="k">def</span><span class="w"> </span><span class="nf">_catalogs_dir</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Path</span><span class="p">:</span>
-</span><span data-line="174">        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_meta</span> <span class="o">/</span> <span class="s2">"catalogs"</span>
-</span><span data-line="175">
-</span><span data-line="176">    <span class="nd">@property</span>
-</span><span data-line="177">    <span class="k">def</span><span class="w"> </span><span class="nf">_marks_dir</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Path</span><span class="p">:</span>
-</span><span data-line="178">        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_meta</span> <span class="o">/</span> <span class="s2">"gc-marks"</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">lifecycle_class</span>
-</span><span data-line="179">
+</span><span data-line="157">    <span class="nd">@property</span>
+</span><span data-line="158">    <span class="k">def</span><span class="w"> </span><span class="nf">_catalogs_dir</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Path</span><span class="p">:</span>
+</span><span data-line="159">        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_meta</span> <span class="o">/</span> <span class="s2">"catalogs"</span>
+</span><span data-line="160">
+</span><span data-line="161">    <span class="nd">@property</span>
+</span><span data-line="162">    <span class="k">def</span><span class="w"> </span><span class="nf">_marks_dir</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Path</span><span class="p">:</span>
+</span><span data-line="163">        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_meta</span> <span class="o">/</span> <span class="s2">"gc-marks"</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">lifecycle_class</span>
+</span><span data-line="164">
 <div class="viewcode-block" id="SharedMediaStore.blob_path">
 <a class="viewcode-back" href="../../_autosummary/nw.media_store.html#nw.media_catalog.SharedMediaStore.blob_path">[docs]</a>
-</span><span data-line="180">    <span class="k">def</span><span class="w"> </span><span class="nf">blob_path</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">artifact_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Path</span><span class="p">]:</span>
-</span><span data-line="181"><span class="w">        </span><span class="sd">"""Where ``artifact_id``'s bytes are, or ``None`` if not stored."""</span>
-</span><span data-line="182">        <span class="k">if</span> <span class="ow">not</span> <span class="n">is_content_digest</span><span class="p">(</span><span class="n">artifact_id</span><span class="p">):</span>
-</span><span data-line="183">            <span class="k">return</span> <span class="kc">None</span>
-</span><span data-line="184">        <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">blobs_dir</span> <span class="o">/</span> <span class="n">artifact_id</span>
-</span><span data-line="185">        <span class="k">return</span> <span class="n">p</span> <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">is_file</span><span class="p">()</span> <span class="k">else</span> <span class="kc">None</span></div>
+</span><span data-line="165">    <span class="k">def</span><span class="w"> </span><span class="nf">blob_path</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">artifact_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Path</span><span class="p">]:</span>
+</span><span data-line="166"><span class="w">        </span><span class="sd">"""Where ``artifact_id``'s bytes are, or ``None`` if not stored."""</span>
+</span><span data-line="167">        <span class="k">if</span> <span class="ow">not</span> <span class="n">is_content_digest</span><span class="p">(</span><span class="n">artifact_id</span><span class="p">):</span>
+</span><span data-line="168">            <span class="k">return</span> <span class="kc">None</span>
+</span><span data-line="169">        <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">blobs_dir</span> <span class="o">/</span> <span class="n">artifact_id</span>
+</span><span data-line="170">        <span class="k">return</span> <span class="n">p</span> <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">is_file</span><span class="p">()</span> <span class="k">else</span> <span class="kc">None</span></div>
 
-</span><span data-line="186">
-</span><span data-line="187">    <span class="k">def</span><span class="w"> </span><span class="nf">has</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">artifact_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
-</span><span data-line="188">        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">blob_path</span><span class="p">(</span><span class="n">artifact_id</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
-</span><span data-line="189">
-</span><span data-line="190">    <span class="c1"># -- writing --------------------------------------------------------------</span>
-</span><span data-line="191">
+</span><span data-line="171">
+</span><span data-line="172">    <span class="k">def</span><span class="w"> </span><span class="nf">has</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">artifact_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+</span><span data-line="173">        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">blob_path</span><span class="p">(</span><span class="n">artifact_id</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+</span><span data-line="174">
+</span><span data-line="175">    <span class="c1"># -- writing --------------------------------------------------------------</span>
+</span><span data-line="176">
 <div class="viewcode-block" id="SharedMediaStore.put">
 <a class="viewcode-back" href="../../_autosummary/nw.media_store.html#nw.media_catalog.SharedMediaStore.put">[docs]</a>
-</span><span data-line="192">    <span class="k">def</span><span class="w"> </span><span class="nf">put</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">path</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">artifact_id</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
-</span><span data-line="193"><span class="w">        </span><span class="sd">"""Store ``path``'s bytes; return the digest. Idempotent.</span>
-</span><span data-line="194">
-</span><span data-line="195"><span class="sd">        Hardlinks when it can (the media is already on this filesystem), refuses</span>
-</span><span data-line="196"><span class="sd">        a cross-device store unless ``allow_cross_device_copy``. A blob already</span>
-</span><span data-line="197"><span class="sd">        there is size-checked, not re-hashed.</span>
-</span><span data-line="198"><span class="sd">        """</span>
-</span><span data-line="199">        <span class="n">src</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
-</span><span data-line="200">        <span class="n">aid</span> <span class="o">=</span> <span class="n">artifact_id</span> <span class="k">if</span> <span class="n">artifact_id</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">hash_file</span><span class="p">(</span><span class="n">src</span><span class="p">)</span>
-</span><span data-line="201">        <span class="k">if</span> <span class="ow">not</span> <span class="n">is_content_digest</span><span class="p">(</span><span class="n">aid</span><span class="p">):</span>
-</span><span data-line="202">            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-</span><span data-line="203">                <span class="sa">f</span><span class="s2">"artifact_id </span><span class="si">{</span><span class="n">aid</span><span class="si">!r}</span><span class="s2"> is not a 64-char lowercase hex digest"</span>
-</span><span data-line="204">            <span class="p">)</span>
-</span><span data-line="205">        <span class="n">blob</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">blobs_dir</span> <span class="o">/</span> <span class="n">aid</span>
-</span><span data-line="206">        <span class="bp">self</span><span class="o">.</span><span class="n">blobs_dir</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">parents</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-</span><span data-line="207">        <span class="k">if</span> <span class="n">blob</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
-</span><span data-line="208">            <span class="k">if</span> <span class="n">blob</span><span class="o">.</span><span class="n">stat</span><span class="p">()</span><span class="o">.</span><span class="n">st_size</span> <span class="o">!=</span> <span class="n">src</span><span class="o">.</span><span class="n">stat</span><span class="p">()</span><span class="o">.</span><span class="n">st_size</span><span class="p">:</span>
-</span><span data-line="209">                <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span>
-</span><span data-line="210">                    <span class="sa">f</span><span class="s2">"store blob </span><span class="si">{</span><span class="n">aid</span><span class="si">}</span><span class="s2"> is </span><span class="si">{</span><span class="n">blob</span><span class="o">.</span><span class="n">stat</span><span class="p">()</span><span class="o">.</span><span class="n">st_size</span><span class="si">}</span><span class="s2"> bytes but </span><span class="si">{</span><span class="n">src</span><span class="si">}</span><span class="s2"> is "</span>
-</span><span data-line="211">                    <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">src</span><span class="o">.</span><span class="n">stat</span><span class="p">()</span><span class="o">.</span><span class="n">st_size</span><span class="si">}</span><span class="s2">: remove the blob and put again."</span>
-</span><span data-line="212">                <span class="p">)</span>
-</span><span data-line="213">            <span class="bp">self</span><span class="o">.</span><span class="n">clear_mark</span><span class="p">(</span><span class="n">aid</span><span class="p">)</span>
-</span><span data-line="214">            <span class="k">return</span> <span class="n">aid</span>
-</span><span data-line="215">        <span class="k">try</span><span class="p">:</span>
-</span><span data-line="216">            <span class="n">os</span><span class="o">.</span><span class="n">link</span><span class="p">(</span><span class="n">src</span><span class="p">,</span> <span class="n">blob</span><span class="p">)</span>
-</span><span data-line="217">        <span class="k">except</span> <span class="ne">FileExistsError</span><span class="p">:</span>
-</span><span data-line="218">            <span class="k">pass</span>
-</span><span data-line="219">        <span class="k">except</span> <span class="ne">OSError</span> <span class="k">as</span> <span class="n">exc</span><span class="p">:</span>
-</span><span data-line="220">            <span class="k">if</span> <span class="n">exc</span><span class="o">.</span><span class="n">errno</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">_LINK_REFUSALS</span><span class="p">:</span>
-</span><span data-line="221">                <span class="k">raise</span>
-</span><span data-line="222">            <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">allow_cross_device_copy</span><span class="p">:</span>
-</span><span data-line="223">                <span class="k">raise</span> <span class="ne">OSError</span><span class="p">(</span>
-</span><span data-line="224">                    <span class="n">exc</span><span class="o">.</span><span class="n">errno</span><span class="p">,</span>
-</span><span data-line="225">                    <span class="sa">f</span><span class="s2">"cannot hardlink </span><span class="si">{</span><span class="n">src</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2"> into the shared store at "</span>
-</span><span data-line="226">                    <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">blobs_dir</span><span class="si">}</span><span class="s2">: another filesystem. Keep the store on the "</span>
-</span><span data-line="227">                    <span class="s2">"media's filesystem or pass allow_cross_device_copy=True."</span><span class="p">,</span>
-</span><span data-line="228">                <span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">exc</span>
-</span><span data-line="229">            <span class="n">tmp</span> <span class="o">=</span> <span class="n">blob</span><span class="o">.</span><span class="n">with_name</span><span class="p">(</span><span class="sa">f</span><span class="s2">".</span><span class="si">{</span><span class="n">aid</span><span class="si">}</span><span class="s2">.</span><span class="si">{</span><span class="n">os</span><span class="o">.</span><span class="n">getpid</span><span class="p">()</span><span class="si">}</span><span class="s2">.tmp"</span><span class="p">)</span>
-</span><span data-line="230">            <span class="k">try</span><span class="p">:</span>
-</span><span data-line="231">                <span class="n">shutil</span><span class="o">.</span><span class="n">copy2</span><span class="p">(</span><span class="n">src</span><span class="p">,</span> <span class="n">tmp</span><span class="p">)</span>
-</span><span data-line="232">                <span class="n">DFLT_RETRY</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">replace</span><span class="p">,</span> <span class="n">tmp</span><span class="p">,</span> <span class="n">blob</span><span class="p">)</span>  <span class="c1"># a reader may hold the blob (nw#243)</span>
-</span><span data-line="233">            <span class="k">finally</span><span class="p">:</span>
-</span><span data-line="234">                <span class="n">tmp</span><span class="o">.</span><span class="n">unlink</span><span class="p">(</span><span class="n">missing_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-</span><span data-line="235">        <span class="bp">self</span><span class="o">.</span><span class="n">clear_mark</span><span class="p">(</span><span class="n">aid</span><span class="p">)</span>
-</span><span data-line="236">        <span class="k">if</span> <span class="ow">not</span> <span class="n">blob</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>  <span class="c1"># a concurrent sweep removed it just before the clear</span>
-</span><span data-line="237">            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="n">src</span><span class="p">,</span> <span class="n">artifact_id</span><span class="o">=</span><span class="n">aid</span><span class="p">)</span>
-</span><span data-line="238">        <span class="k">return</span> <span class="n">aid</span></div>
+</span><span data-line="177">    <span class="k">def</span><span class="w"> </span><span class="nf">put</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">path</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">artifact_id</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+</span><span data-line="178"><span class="w">        </span><span class="sd">"""Store ``path``'s bytes; return the digest. Idempotent.</span>
+</span><span data-line="179">
+</span><span data-line="180"><span class="sd">        Hardlinks when it can (the media is already on this filesystem), refuses</span>
+</span><span data-line="181"><span class="sd">        a cross-device store unless ``allow_cross_device_copy``. A blob already</span>
+</span><span data-line="182"><span class="sd">        there is size-checked, not re-hashed.</span>
+</span><span data-line="183"><span class="sd">        """</span>
+</span><span data-line="184">        <span class="n">src</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+</span><span data-line="185">        <span class="n">aid</span> <span class="o">=</span> <span class="n">artifact_id</span> <span class="k">if</span> <span class="n">artifact_id</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">hash_file</span><span class="p">(</span><span class="n">src</span><span class="p">)</span>
+</span><span data-line="186">        <span class="k">if</span> <span class="ow">not</span> <span class="n">is_content_digest</span><span class="p">(</span><span class="n">aid</span><span class="p">):</span>
+</span><span data-line="187">            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+</span><span data-line="188">                <span class="sa">f</span><span class="s2">"artifact_id </span><span class="si">{</span><span class="n">aid</span><span class="si">!r}</span><span class="s2"> is not a 64-char lowercase hex digest"</span>
+</span><span data-line="189">            <span class="p">)</span>
+</span><span data-line="190">        <span class="n">blob</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">blobs_dir</span> <span class="o">/</span> <span class="n">aid</span>
+</span><span data-line="191">        <span class="bp">self</span><span class="o">.</span><span class="n">blobs_dir</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">parents</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</span><span data-line="192">        <span class="k">if</span> <span class="n">blob</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+</span><span data-line="193">            <span class="k">if</span> <span class="n">blob</span><span class="o">.</span><span class="n">stat</span><span class="p">()</span><span class="o">.</span><span class="n">st_size</span> <span class="o">!=</span> <span class="n">src</span><span class="o">.</span><span class="n">stat</span><span class="p">()</span><span class="o">.</span><span class="n">st_size</span><span class="p">:</span>
+</span><span data-line="194">                <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span>
+</span><span data-line="195">                    <span class="sa">f</span><span class="s2">"store blob </span><span class="si">{</span><span class="n">aid</span><span class="si">}</span><span class="s2"> is </span><span class="si">{</span><span class="n">blob</span><span class="o">.</span><span class="n">stat</span><span class="p">()</span><span class="o">.</span><span class="n">st_size</span><span class="si">}</span><span class="s2"> bytes but </span><span class="si">{</span><span class="n">src</span><span class="si">}</span><span class="s2"> is "</span>
+</span><span data-line="196">                    <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">src</span><span class="o">.</span><span class="n">stat</span><span class="p">()</span><span class="o">.</span><span class="n">st_size</span><span class="si">}</span><span class="s2">: remove the blob and put again."</span>
+</span><span data-line="197">                <span class="p">)</span>
+</span><span data-line="198">            <span class="bp">self</span><span class="o">.</span><span class="n">clear_mark</span><span class="p">(</span><span class="n">aid</span><span class="p">)</span>
+</span><span data-line="199">            <span class="k">return</span> <span class="n">aid</span>
+</span><span data-line="200">        <span class="k">try</span><span class="p">:</span>
+</span><span data-line="201">            <span class="n">os</span><span class="o">.</span><span class="n">link</span><span class="p">(</span><span class="n">src</span><span class="p">,</span> <span class="n">blob</span><span class="p">)</span>
+</span><span data-line="202">        <span class="k">except</span> <span class="ne">FileExistsError</span><span class="p">:</span>
+</span><span data-line="203">            <span class="k">pass</span>
+</span><span data-line="204">        <span class="k">except</span> <span class="ne">OSError</span> <span class="k">as</span> <span class="n">exc</span><span class="p">:</span>
+</span><span data-line="205">            <span class="k">if</span> <span class="n">exc</span><span class="o">.</span><span class="n">errno</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">_LINK_REFUSALS</span><span class="p">:</span>
+</span><span data-line="206">                <span class="k">raise</span>
+</span><span data-line="207">            <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">allow_cross_device_copy</span><span class="p">:</span>
+</span><span data-line="208">                <span class="k">raise</span> <span class="ne">OSError</span><span class="p">(</span>
+</span><span data-line="209">                    <span class="n">exc</span><span class="o">.</span><span class="n">errno</span><span class="p">,</span>
+</span><span data-line="210">                    <span class="sa">f</span><span class="s2">"cannot hardlink </span><span class="si">{</span><span class="n">src</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2"> into the shared store at "</span>
+</span><span data-line="211">                    <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">blobs_dir</span><span class="si">}</span><span class="s2">: another filesystem. Keep the store on the "</span>
+</span><span data-line="212">                    <span class="s2">"media's filesystem or pass allow_cross_device_copy=True."</span><span class="p">,</span>
+</span><span data-line="213">                <span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">exc</span>
+</span><span data-line="214">            <span class="n">copy_file_atomic</span><span class="p">(</span><span class="n">src</span><span class="p">,</span> <span class="n">blob</span><span class="p">)</span>  <span class="c1"># unique O_EXCL temp; retried (nw#260)</span>
+</span><span data-line="215">        <span class="bp">self</span><span class="o">.</span><span class="n">clear_mark</span><span class="p">(</span><span class="n">aid</span><span class="p">)</span>
+</span><span data-line="216">        <span class="k">if</span> <span class="ow">not</span> <span class="n">blob</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>  <span class="c1"># a concurrent sweep removed it just before the clear</span>
+</span><span data-line="217">            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="n">src</span><span class="p">,</span> <span class="n">artifact_id</span><span class="o">=</span><span class="n">aid</span><span class="p">)</span>
+</span><span data-line="218">        <span class="k">return</span> <span class="n">aid</span></div>
 
-</span><span data-line="239">
-</span><span data-line="240">    <span class="c1"># -- catalog registry (what GC marks from) --------------------------------</span>
-</span><span data-line="241">
+</span><span data-line="219">
+</span><span data-line="220">    <span class="c1"># -- catalog registry (what GC marks from) --------------------------------</span>
+</span><span data-line="221">
 <div class="viewcode-block" id="SharedMediaStore.register_catalog">
 <a class="viewcode-back" href="../../_autosummary/nw.media_store.html#nw.media_catalog.SharedMediaStore.register_catalog">[docs]</a>
-</span><span data-line="242">    <span class="k">def</span><span class="w"> </span><span class="nf">register_catalog</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">rows_dir</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-</span><span data-line="243"><span class="w">        </span><span class="sd">"""Record that the catalog whose rows live in ``rows_dir`` references this store."""</span>
-</span><span data-line="244">        <span class="n">rows_dir</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">rows_dir</span><span class="p">)</span><span class="o">.</span><span class="n">resolve</span><span class="p">()</span>
-</span><span data-line="245">        <span class="n">rows_dir</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">parents</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-</span><span data-line="246">        <span class="c1"># A sentinel, so an emptied-and-recreated or unmounted rows dir is told</span>
-</span><span data-line="247">        <span class="c1"># apart from one that really holds no rows (see ``references``).</span>
-</span><span data-line="248">        <span class="p">(</span><span class="n">rows_dir</span> <span class="o">/</span> <span class="n">_SENTINEL</span><span class="p">)</span><span class="o">.</span><span class="n">touch</span><span class="p">()</span>
-</span><span data-line="249">        <span class="n">key</span> <span class="o">=</span> <span class="n">hashlib</span><span class="o">.</span><span class="n">sha256</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">rows_dir</span><span class="p">)</span><span class="o">.</span><span class="n">encode</span><span class="p">())</span><span class="o">.</span><span class="n">hexdigest</span><span class="p">()[:</span><span class="mi">24</span><span class="p">]</span>
-</span><span data-line="250">        <span class="n">_atomic_write</span><span class="p">(</span>
-</span><span data-line="251">            <span class="bp">self</span><span class="o">.</span><span class="n">_catalogs_dir</span> <span class="o">/</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s2">.json"</span><span class="p">,</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">({</span><span class="s2">"rows_dir"</span><span class="p">:</span> <span class="nb">str</span><span class="p">(</span><span class="n">rows_dir</span><span class="p">)})</span>
-</span><span data-line="252">        <span class="p">)</span></div>
+</span><span data-line="222">    <span class="k">def</span><span class="w"> </span><span class="nf">register_catalog</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">rows_dir</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+</span><span data-line="223"><span class="w">        </span><span class="sd">"""Record that the catalog whose rows live in ``rows_dir`` references this store."""</span>
+</span><span data-line="224">        <span class="n">rows_dir</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">rows_dir</span><span class="p">)</span><span class="o">.</span><span class="n">resolve</span><span class="p">()</span>
+</span><span data-line="225">        <span class="n">rows_dir</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">parents</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</span><span data-line="226">        <span class="c1"># A sentinel, so an emptied-and-recreated or unmounted rows dir is told</span>
+</span><span data-line="227">        <span class="c1"># apart from one that really holds no rows (see ``references``).</span>
+</span><span data-line="228">        <span class="p">(</span><span class="n">rows_dir</span> <span class="o">/</span> <span class="n">_SENTINEL</span><span class="p">)</span><span class="o">.</span><span class="n">touch</span><span class="p">()</span>
+</span><span data-line="229">        <span class="n">key</span> <span class="o">=</span> <span class="n">hashlib</span><span class="o">.</span><span class="n">sha256</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">rows_dir</span><span class="p">)</span><span class="o">.</span><span class="n">encode</span><span class="p">())</span><span class="o">.</span><span class="n">hexdigest</span><span class="p">()[:</span><span class="mi">24</span><span class="p">]</span>
+</span><span data-line="230">        <span class="n">write_text_atomic</span><span class="p">(</span>
+</span><span data-line="231">            <span class="bp">self</span><span class="o">.</span><span class="n">_catalogs_dir</span> <span class="o">/</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s2">.json"</span><span class="p">,</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">({</span><span class="s2">"rows_dir"</span><span class="p">:</span> <span class="nb">str</span><span class="p">(</span><span class="n">rows_dir</span><span class="p">)})</span>
+</span><span data-line="232">        <span class="p">)</span></div>
 
-</span><span data-line="253">
+</span><span data-line="233">
 <div class="viewcode-block" id="SharedMediaStore.unregister_catalog">
 <a class="viewcode-back" href="../../_autosummary/nw.media_store.html#nw.media_catalog.SharedMediaStore.unregister_catalog">[docs]</a>
-</span><span data-line="254">    <span class="k">def</span><span class="w"> </span><span class="nf">unregister_catalog</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">rows_dir</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
-</span><span data-line="255"><span class="w">        </span><span class="sd">"""Retire a catalog (e.g. its project was deleted). Its blobs become sweepable."""</span>
-</span><span data-line="256">        <span class="n">rows_dir</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">rows_dir</span><span class="p">)</span><span class="o">.</span><span class="n">resolve</span><span class="p">()</span>
-</span><span data-line="257">        <span class="n">key</span> <span class="o">=</span> <span class="n">hashlib</span><span class="o">.</span><span class="n">sha256</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">rows_dir</span><span class="p">)</span><span class="o">.</span><span class="n">encode</span><span class="p">())</span><span class="o">.</span><span class="n">hexdigest</span><span class="p">()[:</span><span class="mi">24</span><span class="p">]</span>
-</span><span data-line="258">        <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_catalogs_dir</span> <span class="o">/</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s2">.json"</span>
-</span><span data-line="259">        <span class="n">existed</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">exists</span><span class="p">()</span>
-</span><span data-line="260">        <span class="n">p</span><span class="o">.</span><span class="n">unlink</span><span class="p">(</span><span class="n">missing_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-</span><span data-line="261">        <span class="k">return</span> <span class="n">existed</span></div>
+</span><span data-line="234">    <span class="k">def</span><span class="w"> </span><span class="nf">unregister_catalog</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">rows_dir</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+</span><span data-line="235"><span class="w">        </span><span class="sd">"""Retire a catalog (e.g. its project was deleted). Its blobs become sweepable."""</span>
+</span><span data-line="236">        <span class="n">rows_dir</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">rows_dir</span><span class="p">)</span><span class="o">.</span><span class="n">resolve</span><span class="p">()</span>
+</span><span data-line="237">        <span class="n">key</span> <span class="o">=</span> <span class="n">hashlib</span><span class="o">.</span><span class="n">sha256</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">rows_dir</span><span class="p">)</span><span class="o">.</span><span class="n">encode</span><span class="p">())</span><span class="o">.</span><span class="n">hexdigest</span><span class="p">()[:</span><span class="mi">24</span><span class="p">]</span>
+</span><span data-line="238">        <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_catalogs_dir</span> <span class="o">/</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s2">.json"</span>
+</span><span data-line="239">        <span class="n">existed</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">exists</span><span class="p">()</span>
+</span><span data-line="240">        <span class="n">p</span><span class="o">.</span><span class="n">unlink</span><span class="p">(</span><span class="n">missing_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</span><span data-line="241">        <span class="k">return</span> <span class="n">existed</span></div>
 
-</span><span data-line="262">
-</span><span data-line="263">    <span class="k">def</span><span class="w"> </span><span class="nf">registered_catalogs</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="n">Path</span><span class="p">]:</span>
-</span><span data-line="264">        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_catalogs_dir</span><span class="o">.</span><span class="n">is_dir</span><span class="p">():</span>
-</span><span data-line="265">            <span class="k">return</span> <span class="p">[]</span>
-</span><span data-line="266">        <span class="n">out</span> <span class="o">=</span> <span class="p">[]</span>
-</span><span data-line="267">        <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_catalogs_dir</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="s2">"*.json"</span><span class="p">)):</span>
-</span><span data-line="268">            <span class="n">out</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">Path</span><span class="p">(</span><span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">_read_text</span><span class="p">(</span><span class="n">p</span><span class="p">))[</span><span class="s2">"rows_dir"</span><span class="p">]))</span>
-</span><span data-line="269">        <span class="k">return</span> <span class="n">out</span>
-</span><span data-line="270">
+</span><span data-line="242">
+</span><span data-line="243">    <span class="k">def</span><span class="w"> </span><span class="nf">registered_catalogs</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="n">Path</span><span class="p">]:</span>
+</span><span data-line="244">        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_catalogs_dir</span><span class="o">.</span><span class="n">is_dir</span><span class="p">():</span>
+</span><span data-line="245">            <span class="k">return</span> <span class="p">[]</span>
+</span><span data-line="246">        <span class="n">out</span> <span class="o">=</span> <span class="p">[]</span>
+</span><span data-line="247">        <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_catalogs_dir</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="s2">"*.json"</span><span class="p">)):</span>
+</span><span data-line="248">            <span class="n">out</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">Path</span><span class="p">(</span><span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">read_text_retrying</span><span class="p">(</span><span class="n">p</span><span class="p">))[</span><span class="s2">"rows_dir"</span><span class="p">]))</span>
+</span><span data-line="249">        <span class="k">return</span> <span class="n">out</span>
+</span><span data-line="250">
 <div class="viewcode-block" id="SharedMediaStore.references">
 <a class="viewcode-back" href="../../_autosummary/nw.media_store.html#nw.media_catalog.SharedMediaStore.references">[docs]</a>
-</span><span data-line="271">    <span class="k">def</span><span class="w"> </span><span class="nf">references</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">]:</span>
-</span><span data-line="272"><span class="w">        </span><span class="sd">"""``{sha256: live rows naming it}`` across every registered catalog."""</span>
-</span><span data-line="273">        <span class="n">counts</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
-</span><span data-line="274">        <span class="k">for</span> <span class="n">rows_dir</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">registered_catalogs</span><span class="p">():</span>
-</span><span data-line="275">            <span class="k">try</span><span class="p">:</span>
-</span><span data-line="276">                <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="n">rows_dir</span> <span class="o">/</span> <span class="n">_SENTINEL</span><span class="p">)</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
-</span><span data-line="277">                    <span class="k">raise</span> <span class="ne">FileNotFoundError</span><span class="p">(</span><span class="n">_SENTINEL</span><span class="p">)</span>
-</span><span data-line="278">                <span class="n">names</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">listdir</span><span class="p">(</span><span class="n">rows_dir</span><span class="p">)</span>  <span class="c1"># raises on permission, unlike glob</span>
-</span><span data-line="279">            <span class="k">except</span> <span class="ne">OSError</span> <span class="k">as</span> <span class="n">exc</span><span class="p">:</span>
-</span><span data-line="280">                <span class="k">raise</span> <span class="n">StoreCatalogUnreadable</span><span class="p">(</span>
-</span><span data-line="281">                    <span class="sa">f</span><span class="s2">"registered catalog </span><span class="si">{</span><span class="n">rows_dir</span><span class="si">}</span><span class="s2"> is missing, unreadable or was "</span>
-</span><span data-line="282">                    <span class="sa">f</span><span class="s2">"recreated empty (</span><span class="si">{</span><span class="n">exc</span><span class="si">}</span><span class="s2">); a sweep cannot tell what it "</span>
-</span><span data-line="283">                    <span class="s2">"references. Restore it or unregister_catalog() it."</span>
-</span><span data-line="284">                <span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">exc</span>
-</span><span data-line="285">            <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">names</span><span class="p">:</span>
-</span><span data-line="286">                <span class="n">stem</span><span class="p">,</span> <span class="n">ext</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">splitext</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
-</span><span data-line="287">                <span class="k">if</span> <span class="n">ext</span> <span class="o">==</span> <span class="s2">".json"</span> <span class="ow">and</span> <span class="n">is_content_digest</span><span class="p">(</span><span class="n">stem</span><span class="p">):</span>
-</span><span data-line="288">                    <span class="n">counts</span><span class="p">[</span><span class="n">stem</span><span class="p">]</span> <span class="o">=</span> <span class="n">counts</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">stem</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span>
-</span><span data-line="289">        <span class="k">return</span> <span class="n">counts</span></div>
+</span><span data-line="251">    <span class="k">def</span><span class="w"> </span><span class="nf">references</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">]:</span>
+</span><span data-line="252"><span class="w">        </span><span class="sd">"""``{sha256: live rows naming it}`` across every registered catalog."""</span>
+</span><span data-line="253">        <span class="n">counts</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+</span><span data-line="254">        <span class="k">for</span> <span class="n">rows_dir</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">registered_catalogs</span><span class="p">():</span>
+</span><span data-line="255">            <span class="k">try</span><span class="p">:</span>
+</span><span data-line="256">                <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="n">rows_dir</span> <span class="o">/</span> <span class="n">_SENTINEL</span><span class="p">)</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+</span><span data-line="257">                    <span class="k">raise</span> <span class="ne">FileNotFoundError</span><span class="p">(</span><span class="n">_SENTINEL</span><span class="p">)</span>
+</span><span data-line="258">                <span class="n">names</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">listdir</span><span class="p">(</span><span class="n">rows_dir</span><span class="p">)</span>  <span class="c1"># raises on permission, unlike glob</span>
+</span><span data-line="259">            <span class="k">except</span> <span class="ne">OSError</span> <span class="k">as</span> <span class="n">exc</span><span class="p">:</span>
+</span><span data-line="260">                <span class="k">raise</span> <span class="n">StoreCatalogUnreadable</span><span class="p">(</span>
+</span><span data-line="261">                    <span class="sa">f</span><span class="s2">"registered catalog </span><span class="si">{</span><span class="n">rows_dir</span><span class="si">}</span><span class="s2"> is missing, unreadable or was "</span>
+</span><span data-line="262">                    <span class="sa">f</span><span class="s2">"recreated empty (</span><span class="si">{</span><span class="n">exc</span><span class="si">}</span><span class="s2">); a sweep cannot tell what it "</span>
+</span><span data-line="263">                    <span class="s2">"references. Restore it or unregister_catalog() it."</span>
+</span><span data-line="264">                <span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">exc</span>
+</span><span data-line="265">            <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">names</span><span class="p">:</span>
+</span><span data-line="266">                <span class="n">stem</span><span class="p">,</span> <span class="n">ext</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">splitext</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+</span><span data-line="267">                <span class="k">if</span> <span class="n">ext</span> <span class="o">==</span> <span class="s2">".json"</span> <span class="ow">and</span> <span class="n">is_content_digest</span><span class="p">(</span><span class="n">stem</span><span class="p">):</span>
+</span><span data-line="268">                    <span class="n">counts</span><span class="p">[</span><span class="n">stem</span><span class="p">]</span> <span class="o">=</span> <span class="n">counts</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">stem</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span>
+</span><span data-line="269">        <span class="k">return</span> <span class="n">counts</span></div>
 
-</span><span data-line="290">
-</span><span data-line="291">    <span class="c1"># -- GC -------------------------------------------------------------------</span>
-</span><span data-line="292">
+</span><span data-line="270">
+</span><span data-line="271">    <span class="c1"># -- GC -------------------------------------------------------------------</span>
+</span><span data-line="272">
 <div class="viewcode-block" id="SharedMediaStore.sweep">
 <a class="viewcode-back" href="../../_autosummary/nw.media_store.html#nw.media_catalog.SharedMediaStore.sweep">[docs]</a>
-</span><span data-line="293">    <span class="k">def</span><span class="w"> </span><span class="nf">sweep</span><span class="p">(</span>
-</span><span data-line="294">        <span class="bp">self</span><span class="p">,</span>
-</span><span data-line="295">        <span class="o">*</span><span class="p">,</span>
-</span><span data-line="296">        <span class="n">apply</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
-</span><span data-line="297">        <span class="n">grace_s</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">DEFAULT_GRACE_S</span><span class="p">,</span>
-</span><span data-line="298">        <span class="n">now</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-</span><span data-line="299">    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">SweepReport</span><span class="p">:</span>
-</span><span data-line="300"><span class="w">        </span><span class="sd">"""Mark unreferenced blobs; remove those unreferenced for ``grace_s``.</span>
-</span><span data-line="301">
-</span><span data-line="302"><span class="sd">        Dry run unless ``apply``. See the module docstring for the guarantees.</span>
-</span><span data-line="303"><span class="sd">        """</span>
-</span><span data-line="304">        <span class="n">now</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="k">if</span> <span class="n">now</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">now</span>
-</span><span data-line="305">        <span class="n">refs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">references</span><span class="p">()</span>  <span class="c1"># raises before anything is touched</span>
-</span><span data-line="306">        <span class="n">rep</span> <span class="o">=</span> <span class="n">SweepReport</span><span class="p">(</span><span class="n">applied</span><span class="o">=</span><span class="n">apply</span><span class="p">)</span>
-</span><span data-line="307">        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">blobs_dir</span><span class="o">.</span><span class="n">is_dir</span><span class="p">():</span>
-</span><span data-line="308">            <span class="k">return</span> <span class="n">rep</span>
-</span><span data-line="309">        <span class="k">for</span> <span class="n">blob</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">blobs_dir</span><span class="o">.</span><span class="n">iterdir</span><span class="p">()):</span>
-</span><span data-line="310">            <span class="n">aid</span> <span class="o">=</span> <span class="n">blob</span><span class="o">.</span><span class="n">name</span>
-</span><span data-line="311">            <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="n">blob</span><span class="o">.</span><span class="n">is_file</span><span class="p">()</span> <span class="ow">and</span> <span class="n">is_content_digest</span><span class="p">(</span><span class="n">aid</span><span class="p">)):</span>
-</span><span data-line="312">                <span class="k">continue</span>
-</span><span data-line="313">            <span class="n">mark</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_marks_dir</span> <span class="o">/</span> <span class="n">aid</span>
-</span><span data-line="314">            <span class="k">if</span> <span class="n">refs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">aid</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
-</span><span data-line="315">                <span class="n">rep</span><span class="o">.</span><span class="n">live</span> <span class="o">+=</span> <span class="mi">1</span>
-</span><span data-line="316">                <span class="k">if</span> <span class="n">mark</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
-</span><span data-line="317">                    <span class="n">rep</span><span class="o">.</span><span class="n">unmarked</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">aid</span><span class="p">)</span>
-</span><span data-line="318">                    <span class="k">if</span> <span class="n">apply</span><span class="p">:</span>
-</span><span data-line="319">                        <span class="n">mark</span><span class="o">.</span><span class="n">unlink</span><span class="p">(</span><span class="n">missing_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-</span><span data-line="320">                <span class="k">continue</span>
-</span><span data-line="321">            <span class="n">since</span> <span class="o">=</span> <span class="kc">None</span>
-</span><span data-line="322">            <span class="k">try</span><span class="p">:</span>
-</span><span data-line="323">                <span class="n">since</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">_read_text</span><span class="p">(</span><span class="n">mark</span><span class="p">))</span>
-</span><span data-line="324">            <span class="k">except</span> <span class="p">(</span><span class="ne">OSError</span><span class="p">,</span> <span class="ne">ValueError</span><span class="p">):</span>
-</span><span data-line="325">                <span class="k">pass</span>
-</span><span data-line="326">            <span class="k">if</span> <span class="n">since</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-</span><span data-line="327">                <span class="n">rep</span><span class="o">.</span><span class="n">marked</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">aid</span><span class="p">)</span>
-</span><span data-line="328">                <span class="k">if</span> <span class="n">apply</span><span class="p">:</span>
-</span><span data-line="329">                    <span class="n">_atomic_write</span><span class="p">(</span><span class="n">mark</span><span class="p">,</span> <span class="nb">repr</span><span class="p">(</span><span class="n">now</span><span class="p">))</span>
-</span><span data-line="330">            <span class="k">elif</span> <span class="n">now</span> <span class="o">-</span> <span class="n">since</span> <span class="o">&gt;=</span> <span class="n">grace_s</span><span class="p">:</span>
-</span><span data-line="331">                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_referenced_now</span><span class="p">(</span><span class="n">aid</span><span class="p">):</span>  <span class="c1"># a row appeared since the snapshot</span>
-</span><span data-line="332">                    <span class="n">rep</span><span class="o">.</span><span class="n">unmarked</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">aid</span><span class="p">)</span>
-</span><span data-line="333">                    <span class="k">if</span> <span class="n">apply</span><span class="p">:</span>
-</span><span data-line="334">                        <span class="n">mark</span><span class="o">.</span><span class="n">unlink</span><span class="p">(</span><span class="n">missing_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-</span><span data-line="335">                    <span class="k">continue</span>
-</span><span data-line="336">                <span class="n">rep</span><span class="o">.</span><span class="n">removed</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">aid</span><span class="p">)</span>
-</span><span data-line="337">                <span class="k">if</span> <span class="n">apply</span><span class="p">:</span>
-</span><span data-line="338">                    <span class="n">blob</span><span class="o">.</span><span class="n">unlink</span><span class="p">(</span><span class="n">missing_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-</span><span data-line="339">                    <span class="n">mark</span><span class="o">.</span><span class="n">unlink</span><span class="p">(</span><span class="n">missing_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-</span><span data-line="340">            <span class="k">else</span><span class="p">:</span>
-</span><span data-line="341">                <span class="n">rep</span><span class="o">.</span><span class="n">still_in_grace</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">aid</span><span class="p">)</span>
-</span><span data-line="342">        <span class="k">return</span> <span class="n">rep</span></div>
+</span><span data-line="273">    <span class="k">def</span><span class="w"> </span><span class="nf">sweep</span><span class="p">(</span>
+</span><span data-line="274">        <span class="bp">self</span><span class="p">,</span>
+</span><span data-line="275">        <span class="o">*</span><span class="p">,</span>
+</span><span data-line="276">        <span class="n">apply</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+</span><span data-line="277">        <span class="n">grace_s</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">DEFAULT_GRACE_S</span><span class="p">,</span>
+</span><span data-line="278">        <span class="n">now</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span data-line="279">    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">SweepReport</span><span class="p">:</span>
+</span><span data-line="280"><span class="w">        </span><span class="sd">"""Mark unreferenced blobs; remove those unreferenced for ``grace_s``.</span>
+</span><span data-line="281">
+</span><span data-line="282"><span class="sd">        Dry run unless ``apply``. See the module docstring for the guarantees.</span>
+</span><span data-line="283"><span class="sd">        """</span>
+</span><span data-line="284">        <span class="n">now</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="k">if</span> <span class="n">now</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">now</span>
+</span><span data-line="285">        <span class="n">refs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">references</span><span class="p">()</span>  <span class="c1"># raises before anything is touched</span>
+</span><span data-line="286">        <span class="n">rep</span> <span class="o">=</span> <span class="n">SweepReport</span><span class="p">(</span><span class="n">applied</span><span class="o">=</span><span class="n">apply</span><span class="p">)</span>
+</span><span data-line="287">        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">blobs_dir</span><span class="o">.</span><span class="n">is_dir</span><span class="p">():</span>
+</span><span data-line="288">            <span class="k">return</span> <span class="n">rep</span>
+</span><span data-line="289">        <span class="k">for</span> <span class="n">blob</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">blobs_dir</span><span class="o">.</span><span class="n">iterdir</span><span class="p">()):</span>
+</span><span data-line="290">            <span class="n">aid</span> <span class="o">=</span> <span class="n">blob</span><span class="o">.</span><span class="n">name</span>
+</span><span data-line="291">            <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="n">blob</span><span class="o">.</span><span class="n">is_file</span><span class="p">()</span> <span class="ow">and</span> <span class="n">is_content_digest</span><span class="p">(</span><span class="n">aid</span><span class="p">)):</span>
+</span><span data-line="292">                <span class="k">continue</span>
+</span><span data-line="293">            <span class="n">mark</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_marks_dir</span> <span class="o">/</span> <span class="n">aid</span>
+</span><span data-line="294">            <span class="k">if</span> <span class="n">refs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">aid</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+</span><span data-line="295">                <span class="n">rep</span><span class="o">.</span><span class="n">live</span> <span class="o">+=</span> <span class="mi">1</span>
+</span><span data-line="296">                <span class="k">if</span> <span class="n">mark</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+</span><span data-line="297">                    <span class="n">rep</span><span class="o">.</span><span class="n">unmarked</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">aid</span><span class="p">)</span>
+</span><span data-line="298">                    <span class="k">if</span> <span class="n">apply</span><span class="p">:</span>
+</span><span data-line="299">                        <span class="n">mark</span><span class="o">.</span><span class="n">unlink</span><span class="p">(</span><span class="n">missing_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</span><span data-line="300">                <span class="k">continue</span>
+</span><span data-line="301">            <span class="n">since</span> <span class="o">=</span> <span class="kc">None</span>
+</span><span data-line="302">            <span class="k">try</span><span class="p">:</span>
+</span><span data-line="303">                <span class="n">since</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">read_text_retrying</span><span class="p">(</span><span class="n">mark</span><span class="p">))</span>
+</span><span data-line="304">            <span class="k">except</span> <span class="p">(</span><span class="ne">OSError</span><span class="p">,</span> <span class="ne">ValueError</span><span class="p">):</span>
+</span><span data-line="305">                <span class="k">pass</span>
+</span><span data-line="306">            <span class="k">if</span> <span class="n">since</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+</span><span data-line="307">                <span class="n">rep</span><span class="o">.</span><span class="n">marked</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">aid</span><span class="p">)</span>
+</span><span data-line="308">                <span class="k">if</span> <span class="n">apply</span><span class="p">:</span>
+</span><span data-line="309">                    <span class="n">write_text_atomic</span><span class="p">(</span><span class="n">mark</span><span class="p">,</span> <span class="nb">repr</span><span class="p">(</span><span class="n">now</span><span class="p">))</span>
+</span><span data-line="310">            <span class="k">elif</span> <span class="n">now</span> <span class="o">-</span> <span class="n">since</span> <span class="o">&gt;=</span> <span class="n">grace_s</span><span class="p">:</span>
+</span><span data-line="311">                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_referenced_now</span><span class="p">(</span><span class="n">aid</span><span class="p">):</span>  <span class="c1"># a row appeared since the snapshot</span>
+</span><span data-line="312">                    <span class="n">rep</span><span class="o">.</span><span class="n">unmarked</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">aid</span><span class="p">)</span>
+</span><span data-line="313">                    <span class="k">if</span> <span class="n">apply</span><span class="p">:</span>
+</span><span data-line="314">                        <span class="n">mark</span><span class="o">.</span><span class="n">unlink</span><span class="p">(</span><span class="n">missing_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</span><span data-line="315">                    <span class="k">continue</span>
+</span><span data-line="316">                <span class="n">rep</span><span class="o">.</span><span class="n">removed</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">aid</span><span class="p">)</span>
+</span><span data-line="317">                <span class="k">if</span> <span class="n">apply</span><span class="p">:</span>
+</span><span data-line="318">                    <span class="n">blob</span><span class="o">.</span><span class="n">unlink</span><span class="p">(</span><span class="n">missing_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</span><span data-line="319">                    <span class="n">mark</span><span class="o">.</span><span class="n">unlink</span><span class="p">(</span><span class="n">missing_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</span><span data-line="320">            <span class="k">else</span><span class="p">:</span>
+</span><span data-line="321">                <span class="n">rep</span><span class="o">.</span><span class="n">still_in_grace</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">aid</span><span class="p">)</span>
+</span><span data-line="322">        <span class="k">return</span> <span class="n">rep</span></div>
 
-</span><span data-line="343">
-</span><span data-line="344">    <span class="k">def</span><span class="w"> </span><span class="nf">_referenced_now</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">aid</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
-</span><span data-line="345">        <span class="k">return</span> <span class="nb">any</span><span class="p">(</span>
-</span><span data-line="346">            <span class="p">(</span><span class="n">rows_dir</span> <span class="o">/</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">aid</span><span class="si">}</span><span class="s2">.json"</span><span class="p">)</span><span class="o">.</span><span class="n">exists</span><span class="p">()</span>
-</span><span data-line="347">            <span class="k">for</span> <span class="n">rows_dir</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">registered_catalogs</span><span class="p">()</span>
-</span><span data-line="348">        <span class="p">)</span>
-</span><span data-line="349">
+</span><span data-line="323">
+</span><span data-line="324">    <span class="k">def</span><span class="w"> </span><span class="nf">_referenced_now</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">aid</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+</span><span data-line="325">        <span class="k">return</span> <span class="nb">any</span><span class="p">(</span>
+</span><span data-line="326">            <span class="p">(</span><span class="n">rows_dir</span> <span class="o">/</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">aid</span><span class="si">}</span><span class="s2">.json"</span><span class="p">)</span><span class="o">.</span><span class="n">exists</span><span class="p">()</span>
+</span><span data-line="327">            <span class="k">for</span> <span class="n">rows_dir</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">registered_catalogs</span><span class="p">()</span>
+</span><span data-line="328">        <span class="p">)</span>
+</span><span data-line="329">
 <div class="viewcode-block" id="SharedMediaStore.clear_mark">
 <a class="viewcode-back" href="../../_autosummary/nw.media_store.html#nw.media_catalog.SharedMediaStore.clear_mark">[docs]</a>
-</span><span data-line="350">    <span class="k">def</span><span class="w"> </span><span class="nf">clear_mark</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">aid</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-</span><span data-line="351"><span class="w">        </span><span class="sd">"""Forget that ``aid`` was unreferenced (a host just used it).</span>
-</span><span data-line="352">
-</span><span data-line="353"><span class="sd">        ``aid`` must be a content digest: a host calls this, and a raw id like</span>
-</span><span data-line="354"><span class="sd">        ``../../x`` would otherwise delete a file outside the store (nw#253)."""</span>
-</span><span data-line="355">        <span class="k">if</span> <span class="ow">not</span> <span class="n">is_content_digest</span><span class="p">(</span><span class="n">aid</span><span class="p">):</span>
-</span><span data-line="356">            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"clear_mark: </span><span class="si">{</span><span class="n">aid</span><span class="si">!r}</span><span class="s2"> is not a content digest"</span><span class="p">)</span>
-</span><span data-line="357">        <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_marks_dir</span> <span class="o">/</span> <span class="n">aid</span><span class="p">)</span><span class="o">.</span><span class="n">unlink</span><span class="p">(</span><span class="n">missing_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span></div>
+</span><span data-line="330">    <span class="k">def</span><span class="w"> </span><span class="nf">clear_mark</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">aid</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+</span><span data-line="331"><span class="w">        </span><span class="sd">"""Forget that ``aid`` was unreferenced (a host just used it).</span>
+</span><span data-line="332">
+</span><span data-line="333"><span class="sd">        ``aid`` must be a content digest: a host calls this, and a raw id like</span>
+</span><span data-line="334"><span class="sd">        ``../../x`` would otherwise delete a file outside the store (nw#253)."""</span>
+</span><span data-line="335">        <span class="k">if</span> <span class="ow">not</span> <span class="n">is_content_digest</span><span class="p">(</span><span class="n">aid</span><span class="p">):</span>
+</span><span data-line="336">            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"clear_mark: </span><span class="si">{</span><span class="n">aid</span><span class="si">!r}</span><span class="s2"> is not a content digest"</span><span class="p">)</span>
+</span><span data-line="337">        <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_marks_dir</span> <span class="o">/</span> <span class="n">aid</span><span class="p">)</span><span class="o">.</span><span class="n">unlink</span><span class="p">(</span><span class="n">missing_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span></div>
 </div>
 
-</span><span data-line="358">
-</span><span data-line="359">
-</span><span data-line="360"><span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span>
-</span><span data-line="361">    <span class="s2">"DEFAULT_GRACE_S"</span><span class="p">,</span>
-</span><span data-line="362">    <span class="s2">"DEFAULT_LIFECYCLE_CLASS"</span><span class="p">,</span>
-</span><span data-line="363">    <span class="s2">"DEFAULT_STORE_ROOT"</span><span class="p">,</span>
-</span><span data-line="364">    <span class="s2">"DEFAULT_TENANT"</span><span class="p">,</span>
-</span><span data-line="365">    <span class="s2">"SharedMediaStore"</span><span class="p">,</span>
-</span><span data-line="366">    <span class="s2">"StoreCatalogUnreadable"</span><span class="p">,</span>
-</span><span data-line="367">    <span class="s2">"SweepReport"</span><span class="p">,</span>
-</span><span data-line="368">    <span class="s2">"hash_file"</span><span class="p">,</span>
-</span><span data-line="369">    <span class="s2">"is_content_digest"</span><span class="p">,</span>
-</span><span data-line="370"><span class="p">]</span>
+</span><span data-line="338">
+</span><span data-line="339">
+</span><span data-line="340"><span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span>
+</span><span data-line="341">    <span class="s2">"DEFAULT_GRACE_S"</span><span class="p">,</span>
+</span><span data-line="342">    <span class="s2">"DEFAULT_LIFECYCLE_CLASS"</span><span class="p">,</span>
+</span><span data-line="343">    <span class="s2">"DEFAULT_STORE_ROOT"</span><span class="p">,</span>
+</span><span data-line="344">    <span class="s2">"DEFAULT_TENANT"</span><span class="p">,</span>
+</span><span data-line="345">    <span class="s2">"SharedMediaStore"</span><span class="p">,</span>
+</span><span data-line="346">    <span class="s2">"StoreCatalogUnreadable"</span><span class="p">,</span>
+</span><span data-line="347">    <span class="s2">"SweepReport"</span><span class="p">,</span>
+</span><span data-line="348">    <span class="s2">"hash_file"</span><span class="p">,</span>
+</span><span data-line="349">    <span class="s2">"is_content_digest"</span><span class="p">,</span>
+</span><span data-line="350"><span class="p">]</span>
 </span></pre></div>
         </article><button class="back-to-top" type="button">
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
@@ -594,7 +575,7 @@ data-aria-dark="Switch to auto color mode">
     </div>
   </div>
 </footer>
-      <script src="../../_static/documentation_options.js?v=23ea6af5"></script>
+      <script src="../../_static/documentation_options.js?v=cbf0c937"></script>
       <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
       <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>

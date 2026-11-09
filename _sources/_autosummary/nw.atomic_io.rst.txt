@@ -1,0 +1,15 @@
+nw.atomic\_io
+=============
+
+.. automodule:: nw.atomic_io
+
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+   
+      copy_file_atomic
+      read_text_retrying
+      replace_retrying
+      write_text_atomic
+   

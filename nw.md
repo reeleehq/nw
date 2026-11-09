@@ -1,4 +1,4 @@
-> built 2026-11-09 00:36 UTC from 5fbae76 (main) · nw 0.0.147. Details: build_info.json
+> built 2026-11-09 00:38 UTC from 4221323 (main) · nw 0.0.148. Details: build_info.json
 
 # index.html.md
 
@@ -689,6 +689,69 @@ Optional system tools: `ffmpeg` / `ffprobe` for audio slicing and QA reports.
 Apache-2.0 — see [LICENSE]().
 
 <p class="epythet-aggregates">This documentation as a single file: <a href="nw.md">nw.md</a> (Markdown, for agents).</p>
+
+
+# _autosummary/nw.atomic_io.html.md
+
+# nw.atomic_io
+
+Small-file IO that a concurrent reader can never catch half-done (nw#243, nw#260).
+
+nw’s stores (the shared media store’s registry, the host media catalog’s rows)
+keep small JSON/text files that a writer replaces while readers poll them.
+Three helpers, all through `dol.atomic`:
+
+- [`write_text_atomic()`](_autosummary/nw.atomic_io.html.md#nw.atomic_io.write_text_atomic): temp file, then `os.replace`, so a reader sees
+  the old text or the new, never a truncated file;
+- [`copy_file_atomic()`](_autosummary/nw.atomic_io.html.md#nw.atomic_io.copy_file_atomic): a whole file copied into place the same way (a
+  blob copied across filesystems), on dol’s uniquely named `O_EXCL` temp, so
+  two copies of one blob at once never share a temp file;
+- [`replace_retrying()`](_autosummary/nw.atomic_io.html.md#nw.atomic_io.replace_retrying): `os.replace` alone;
+- [`read_text_retrying()`](_autosummary/nw.atomic_io.html.md#nw.atomic_io.read_text_retrying): a read.
+
+Each retries a Windows sharing violation (a reader or writer holding the file
+for an instant), the policy `retry=` (keyword-only; default
+`dol.atomic.DFLT_RETRY`, which retries nothing off Windows, where the
+same error means a real permission problem). A missing file is never retried.
+Stdlib and dol only, so any module can use it.
+
+### Functions
+
+| [`copy_file_atomic`](_autosummary/nw.atomic_io.html.md#nw.atomic_io.copy_file_atomic)(src, dst, \*[, retry, ...])   | Copy `src` to `dst` atomically: a copy that fails half-way never leaves a short `dst`, and a reader holding `dst` is outlasted.   |
+|-------------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------|
+| [`read_text_retrying`](_autosummary/nw.atomic_io.html.md#nw.atomic_io.read_text_retrying)(path, \*[, retry])          | `path`'s UTF-8 text, retried on a sharing violation.                                                                              |
+| [`replace_retrying`](_autosummary/nw.atomic_io.html.md#nw.atomic_io.replace_retrying)(src, dst, \*[, retry])        | `os.replace(src, dst)`, retried on a sharing violation.                                                                           |
+| [`write_text_atomic`](_autosummary/nw.atomic_io.html.md#nw.atomic_io.write_text_atomic)(path, text, \*[, retry])     | `text` (UTF-8) to `path` atomically; parent folders are created.                                                                  |
+
+### nw.atomic_io.copy_file_atomic(src, dst, , retry=None, chunk_bytes=1048576)
+
+Copy `src` to `dst` atomically: a copy that fails half-way never
+leaves a short `dst`, and a reader holding `dst` is outlasted. Times and
+mode are copied after (best effort), as `shutil.copy2` would.
+
+* **Return type:**
+  [`None`](https://docs.python.org/3/builtins/constants.html#None)
+
+### nw.atomic_io.read_text_retrying(path, , retry=None)
+
+`path`’s UTF-8 text, retried on a sharing violation.
+
+* **Return type:**
+  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
+
+### nw.atomic_io.replace_retrying(src, dst, , retry=None)
+
+`os.replace(src, dst)`, retried on a sharing violation.
+
+* **Return type:**
+  [`None`](https://docs.python.org/3/builtins/constants.html#None)
+
+### nw.atomic_io.write_text_atomic(path, text, , retry=None)
+
+`text` (UTF-8) to `path` atomically; parent folders are created.
+
+* **Return type:**
+  [`None`](https://docs.python.org/3/builtins/constants.html#None)
 
 
 # _autosummary/nw.batches.html.md
@@ -7747,6 +7810,7 @@ True
 |----------------------------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------|
 | [`inspect`](_autosummary/nw.inspect.html.md#module-nw.inspect)                         | QA helpers — typed reports about rendered shots.                                                                                |
 | [`checks`](_autosummary/nw.checks.html.md#module-nw.checks)                           | The checks nw itself ships — a small, honest default menu.                                                                      |
+| [`atomic_io`](_autosummary/nw.atomic_io.html.md#module-nw.atomic_io)                     | Small-file IO that a concurrent reader can never catch half-done (nw#243, nw#260).                                              |
 | [`batches`](_autosummary/nw.batches.html.md#module-nw.batches)                         | nw.batches — many jobs, one handle: submit / status / wait / output / cancel.                                                   |
 | [`bodies`](_autosummary/nw.bodies.html.md#module-nw.bodies)                           | Body schemas for nw's project-graph annotations.                                                                                |
 | [`compat`](_autosummary/nw.compat.html.md#module-nw.compat)                           | What a plugin built against a newer nw checks before it registers (nw#164).                                                     |
@@ -12340,20 +12404,18 @@ produce different URLs. The local file paths are byte-stable.
 
 # About this build
 
-This documentation was built on **2026-11-09 00:36 UTC** from commit <a href="https://github.com/reeleehq/nw/commit/5fbae76a25aa0dbd21fe2ef1f35005f62ac9e1cf"><code>5fbae76</code></a> on branch <code>main</code>, for **nw 0.0.147** (from <code>pyproject.toml</code>).
+This documentation was built on **2026-11-09 00:38 UTC** from commit <a href="https://github.com/reeleehq/nw/commit/4221323920cece385581a3ab1ddedd8b21ea1f7c"><code>4221323</code></a> on branch <code>main</code>, for **nw 0.0.148** (from <code>pyproject.toml</code>).
 
-#### WARNING
-The documentation and the package may be misaligned:
-
-- The documented version (0.0.147) is ahead of the latest release on PyPI (0.0.146): these docs describe unreleased code.
+#### NOTE
+Nothing suggests a mismatch: the tree was clean at the commit above, and the documented version is the one on PyPI.
 
 ## Source
 
 |                     |                                                                                                                                                    |
 |---------------------|----------------------------------------------------------------------------------------------------------------------------------------------------|
-| Commit              | <a href="https://github.com/reeleehq/nw/commit/5fbae76a25aa0dbd21fe2ef1f35005f62ac9e1cf"><code>5fbae76a25aa0dbd21fe2ef1f35005f62ac9e1cf</code></a> |
+| Commit              | <a href="https://github.com/reeleehq/nw/commit/4221323920cece385581a3ab1ddedd8b21ea1f7c"><code>4221323920cece385581a3ab1ddedd8b21ea1f7c</code></a> |
 | Branch              | <code>main</code>                                                                                                                                  |
-| Tags at this commit | <code>0.0.147</code>                                                                                                                               |
+| Tags at this commit | <code>0.0.148</code>                                                                                                                               |
 | Working tree        | clean                                                                                                                                              |
 | Remote              | <code>https://github.com/reeleehq/nw</code>                                                                                                        |
 
@@ -12362,9 +12424,9 @@ The documentation and the package may be misaligned:
 |              |                                                                                            |
 |--------------|--------------------------------------------------------------------------------------------|
 | Repository   | <code>reeleehq/nw</code>                                                                   |
-| Run          | <a href="https://github.com/reeleehq/nw/actions/runs/42540619025">42540619025</a>          |
+| Run          | <a href="https://github.com/reeleehq/nw/actions/runs/42541039816">42541039816</a>          |
 | Ref          | <code>refs/heads/main</code>                                                               |
-| Event commit | <code>d7c2563927289c629f6cfe38f0f04f425d45dd44</code> (in the history of the built commit) |
+| Event commit | <code>749f9f681795139be6d054e35d1d1ac4df1e6e42</code> (in the history of the built commit) |
 
 ## Tools
 
@@ -12389,13 +12451,13 @@ The documentation and the package may be misaligned:
 
 ## Package on PyPI
 
-Latest release: <a href="https://pypi.org/project/nw/0.0.146/">0.0.146</a>, older than the documented version (0.0.147).
+Latest release: <a href="https://pypi.org/project/nw/0.0.148/">0.0.148</a>, the same as the documented version.
 
 ## Reproduce
 
 ```bash
 git clone https://github.com/reeleehq/nw && cd nw
-git checkout 5fbae76a25aa0dbd21fe2ef1f35005f62ac9e1cf
+git checkout 4221323920cece385581a3ab1ddedd8b21ea1f7c
 pip install "epythet==0.2.22"
 epythet quickstart . --ignore tests/ scrap/ examples/
 ```
