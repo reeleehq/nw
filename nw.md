@@ -1,4 +1,4 @@
-> built 2026-11-09 00:32 UTC from 3a2e114 (main) · nw 0.0.143. Details: build_info.json
+> built 2026-11-09 00:33 UTC from b6a14a0 (main) · nw 0.0.144. Details: build_info.json
 
 # index.html.md
 
@@ -12324,7 +12324,7 @@ produce different URLs. The local file paths are byte-stable.
 
 # About this build
 
-This documentation was built on **2026-11-09 00:32 UTC** from commit <a href="https://github.com/reeleehq/nw/commit/3a2e1147caa76e15c546a6322cb7fee8be1d7057"><code>3a2e114</code></a> on branch <code>main</code>, for **nw 0.0.143** (from <code>pyproject.toml</code>).
+This documentation was built on **2026-11-09 00:33 UTC** from commit <a href="https://github.com/reeleehq/nw/commit/b6a14a06271cf3df6305644ebdc5bb39bb14d42c"><code>b6a14a0</code></a> on branch <code>main</code>, for **nw 0.0.144** (from <code>pyproject.toml</code>).
 
 #### NOTE
 Nothing suggests a mismatch: the tree was clean at the commit above, and the documented version is the one on PyPI.
@@ -12333,9 +12333,9 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 
 |                     |                                                                                                                                                    |
 |---------------------|----------------------------------------------------------------------------------------------------------------------------------------------------|
-| Commit              | <a href="https://github.com/reeleehq/nw/commit/3a2e1147caa76e15c546a6322cb7fee8be1d7057"><code>3a2e1147caa76e15c546a6322cb7fee8be1d7057</code></a> |
+| Commit              | <a href="https://github.com/reeleehq/nw/commit/b6a14a06271cf3df6305644ebdc5bb39bb14d42c"><code>b6a14a06271cf3df6305644ebdc5bb39bb14d42c</code></a> |
 | Branch              | <code>main</code>                                                                                                                                  |
-| Tags at this commit | <code>0.0.143</code>                                                                                                                               |
+| Tags at this commit | <code>0.0.144</code>                                                                                                                               |
 | Working tree        | clean                                                                                                                                              |
 | Remote              | <code>https://github.com/reeleehq/nw</code>                                                                                                        |
 
@@ -12344,9 +12344,9 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 |              |                                                                                            |
 |--------------|--------------------------------------------------------------------------------------------|
 | Repository   | <code>reeleehq/nw</code>                                                                   |
-| Run          | <a href="https://github.com/reeleehq/nw/actions/runs/42539231483">42539231483</a>          |
+| Run          | <a href="https://github.com/reeleehq/nw/actions/runs/42539245216">42539245216</a>          |
 | Ref          | <code>refs/heads/main</code>                                                               |
-| Event commit | <code>6894274b96680db392556e17149fcde23f1d6d81</code> (in the history of the built commit) |
+| Event commit | <code>c5cd3570a304fe4541e1f804888f30061e0b2dbf</code> (in the history of the built commit) |
 
 ## Tools
 
@@ -12371,13 +12371,13 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 
 ## Package on PyPI
 
-Latest release: <a href="https://pypi.org/project/nw/0.0.143/">0.0.143</a>, the same as the documented version.
+Latest release: <a href="https://pypi.org/project/nw/0.0.144/">0.0.144</a>, the same as the documented version.
 
 ## Reproduce
 
 ```bash
 git clone https://github.com/reeleehq/nw && cd nw
-git checkout 3a2e1147caa76e15c546a6322cb7fee8be1d7057
+git checkout b6a14a06271cf3df6305644ebdc5bb39bb14d42c
 pip install "epythet==0.2.22"
 epythet quickstart . --ignore tests/ scrap/ examples/
 ```
