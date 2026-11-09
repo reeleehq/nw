@@ -149,3 +149,39 @@ def test_row_added_after_snapshot_blocks_removal(tmp_path, monkeypatch):
     row.write_text(saved)
     rep = store.sweep(apply=True, grace_s=10, now=100.0)
     assert rep.removed == [] and store.has(aid)
+
+
+# --- Windows sharing violations are retried (nw#243) -------------------------
+
+
+def test_catalog_reads_and_writes_outlast_a_brief_sharing_violation(tmp_path, monkeypatch):
+    """On Windows a read or replace landing while another handle has the file
+    open is refused for that instant; registry reads/writes retry it."""
+    import os
+    from pathlib import Path
+
+    import dol.atomic
+
+    import nw.media_store as ms
+
+    retry = dol.atomic.Retry(on=(PermissionError,), backoff_s=0)
+    monkeypatch.setattr(ms, "DFLT_RETRY", retry)  # Windows' policy, on any OS
+
+    def flaky(real):
+        calls = []
+
+        def op(*a, **k):
+            calls.append(a)
+            if len(calls) == 1:
+                raise PermissionError("in use")
+            return real(*a, **k)
+
+        return op
+
+    store = ms.SharedMediaStore(tmp_path / "store")
+    rows = tmp_path / "rows"
+    rows.mkdir()
+    monkeypatch.setattr(os, "replace", flaky(os.replace))
+    store.register_catalog(rows)  # the write's replace is refused once
+    monkeypatch.setattr(Path, "read_text", flaky(Path.read_text))
+    assert store.registered_catalogs() == [rows.resolve()]
