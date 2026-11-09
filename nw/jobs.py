@@ -2436,7 +2436,9 @@ def _record_raise(rt, job_id, error, *, run_token, secrets=None) -> None:
 
 def _is_run(record, run_token) -> bool:
     """Whether ``record`` exists and is run ``run_token``'s (``None``: any run)."""
-    return record is not None and (run_token is None or record.get("run_token") == run_token)
+    return record is not None and (
+        run_token is None or record.get("run_token") == run_token
+    )
 
 
 def _mirror_event_into_index(rt, job_id, ev, *, run_token=None) -> None:
