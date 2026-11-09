@@ -19,6 +19,11 @@ from nw import (
 )
 
 
+# The seeded project has a character, so cloning it warns (nw#258); the tests
+# that are not about that warning do not need to hear it.
+pytestmark = pytest.mark.filterwarnings("ignore::nw.experiment.CloneDropsGraphEntities")
+
+
 def _seed_project(root: Path, *, title: str) -> Project:
     proj = Project.init(root, title=title)
     proj.add_character("thor", description="narrator")
@@ -218,3 +223,26 @@ def test_a_clone_of_a_legacy_project_with_a_song_gets_its_own_tenant(tmp_path):
     clone_project(src, tmp_path / "dst")
     assert FolderStorage(tmp_path / "dst").docs["project.json"][TENANT_KEY]
     assert project_tenant_id(tmp_path / "dst") != project_tenant_id(src)
+
+
+def test_a_graph_native_clone_warns_of_the_entities_it_leaves_behind(tmp_path):
+    """nw#258 (until a clone carries them): a preserved characters/ folder whose
+    refs live only in the source's graph is copied without them; say so."""
+    import warnings
+
+    from nw.experiment import CloneDropsGraphEntities
+
+    src = tmp_path / "src"
+    _seed_project(src, title="Original")  # adds character "thor"
+    with pytest.warns(CloneDropsGraphEntities, match="character-ref"):
+        clone_project(src, tmp_path / "dst")
+
+    with warnings.catch_warnings():  # made an error, it refuses before any work
+        warnings.simplefilter("error", CloneDropsGraphEntities)
+        with pytest.raises(CloneDropsGraphEntities):
+            clone_project(src, tmp_path / "refused")
+    assert not (tmp_path / "refused").exists()
+
+    with warnings.catch_warnings():
+        warnings.simplefilter("error", CloneDropsGraphEntities)
+        clone_project(src, tmp_path / "dst2", preserve=("song",))  # nothing implied
