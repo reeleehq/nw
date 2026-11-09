@@ -15,15 +15,26 @@ rather than a shell pipeline.
 from __future__ import annotations
 
 import shutil
+from uuid import uuid4
 from pathlib import Path
 from typing import Callable, Iterable, Optional, TypeVar
 
 from .project import Project
-from .storage import PROJECT_FILE_NAME, FolderStorage, as_project_storage, is_project
+from .migrate import is_migrated
+from .storage import (
+    PROJECT_FILE_NAME,
+    TENANT_KEY,
+    FolderStorage,
+    as_project_storage,
+    is_project,
+)
 from .schema import ProjectSummary
 
 
 T = TypeVar("T")
+
+_MIGRATED_DOC = ".nw/migrated_to_graph"
+"""The document key of the migrated-to-graph sentinel, as ``Project.init`` writes it."""
 
 
 # Subtrees that make sense to preserve when cloning — copying these from src
@@ -107,6 +118,8 @@ def clone_project(
                 target.unlink()
         target.mkdir()
 
+    _make_independent(src, dst)
+
     # Update title if requested (or fall back to the dst folder name).
     proj = Project(dst)
     proj.set_title(title if title is not None else dst.name)
@@ -117,6 +130,24 @@ def clone_project(
         reset=sorted(reset),
     )
     return proj.read_summary()
+
+
+def _make_independent(src: Path, dst: Path) -> None:
+    """Make the copy at ``dst`` its own project, not an alias of ``src`` (nw#251).
+
+    - **Always a fresh tenant id.** A shared (Postgres) graph backend keys a
+      project's graph on it (nw#109), and a project without one falls back to
+      its song's hash, which a preserved ``song/`` would share: either way the
+      clone would read and write the source's rows. The clone never carries
+      the source's graph, so nothing is lost; SQLite never reads the tenant.
+    - **The migrated-to-graph sentinel survives a reset of** ``.nw``: without
+      it, opening a clone of a graph-native project would run the pre-graph
+      migration on it. A legacy (unmigrated) source still migrates on open.
+    """
+    src_docs, dst_docs = FolderStorage(src).docs, FolderStorage(dst).docs
+    dst_docs[PROJECT_FILE_NAME] = {**dst_docs[PROJECT_FILE_NAME], TENANT_KEY: uuid4().hex}
+    if is_migrated(src) and not is_migrated(dst):
+        dst_docs[_MIGRATED_DOC] = src_docs[_MIGRATED_DOC]
 
 
 def apply_to_projects(

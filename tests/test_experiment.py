@@ -175,3 +175,46 @@ def test_clone_refuses_a_genre_storage_project_by_name(tmp_path):
             clone_project(root, tmp_path / "dst")
     finally:
         del project_storages["test_clone"]
+
+
+def test_a_clone_is_its_own_tenant_and_is_not_re_migrated(tmp_path, monkeypatch):
+    """nw#251: a copied tenant id would share the source's rows on a shared
+    graph backend; a dropped sentinel would re-run the pre-graph migration."""
+    import nw.project as project_module
+    from nw.storage import TENANT_KEY, FolderStorage
+
+    src = tmp_path / "src"
+    _seed_project(src, title="Original")
+    src_tenant = FolderStorage(src).docs["project.json"][TENANT_KEY]
+
+    migrations = []
+    real = project_module.migrate_to_graph
+    monkeypatch.setattr(
+        project_module, "migrate_to_graph", lambda root, **k: migrations.append(root) or real(root, **k)
+    )
+    clone_project(src, tmp_path / "dst")
+    dst_tenant = FolderStorage(tmp_path / "dst").docs["project.json"][TENANT_KEY]
+    assert dst_tenant and dst_tenant != src_tenant
+    assert migrations == []
+    assert (tmp_path / "dst" / ".nw" / "migrated_to_graph").is_file()
+    assert FolderStorage(src).docs["project.json"][TENANT_KEY] == src_tenant  # source untouched
+
+
+def test_a_clone_of_a_legacy_project_with_a_song_gets_its_own_tenant(tmp_path):
+    """A project without a minted tenant falls back to its song's hash, which a
+    preserved song/ shares: the clone must still not alias the source."""
+    import json
+
+    from nw.migrate import project_tenant_id
+    from nw.storage import TENANT_KEY, FolderStorage
+
+    src = tmp_path / "legacy"
+    (src / "song").mkdir(parents=True)
+    (src / "song" / "song.wav").write_bytes(b"RIFF-legacy")
+    (src / "project.json").write_text(json.dumps({
+        "schema_version": 1, "title": "legacy",
+        "song": {"audio_path": "song/song.wav", "duration_s": 1.0},
+    }))
+    clone_project(src, tmp_path / "dst")
+    assert FolderStorage(tmp_path / "dst").docs["project.json"][TENANT_KEY]
+    assert project_tenant_id(tmp_path / "dst") != project_tenant_id(src)
