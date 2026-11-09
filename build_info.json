@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "built_at": "2026-11-09T00:18:26Z",
+  "built_at": "2026-11-09T00:21:42Z",
   "package": {
     "name": "nw",
     "version": "0.0.139",
@@ -23,12 +23,12 @@
   "ci": {
     "provider": "github",
     "repository": "reeleehq/nw",
-    "sha": "699b969f66939e6925ac1322a7515543db7876d4",
+    "sha": "f40f30e904d71f47d91f2d974ca7f85082bf070e",
     "sha_in_history": true,
     "ref": "refs/heads/main",
     "ref_name": "main",
-    "run_id": "42537010386",
-    "run_url": "https://github.com/reeleehq/nw/actions/runs/42537010386",
+    "run_id": "42537474485",
+    "run_url": "https://github.com/reeleehq/nw/actions/runs/42537474485",
     "server_url": "https://github.com"
   },
   "tools": {
