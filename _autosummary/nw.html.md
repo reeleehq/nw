@@ -60,6 +60,7 @@ are recorded as linked artifacts), see
 | [`recommend_genre`](#nw.recommend_genre)(kind)                             | The slug of the genre whose `intake_kinds` contains `kind` (first in slug order), or `None` when `kind` is falsy / unmatched.                                                                                                      |
 | [`resolve_defaults`](#nw.resolve_defaults)(genre[, template])               | Resolve a genre (+ optional template) to the params for a new project.                                                                                                                                                             |
 | [`register_genre_resolver`](#nw.register_genre_resolver)(slug, resolver)           | Register a resolver for a genre slug; returns it for inline use.                                                                                                                                                                   |
+| [`project_genre`](#nw.project_genre)(project)                            | The `{genre, template, params}` envelope `project` was created as, read **without opening its graph** (nw#223); `None` when it has none.                                                                                           |
 | [`resolve_genre`](#nw.resolve_genre)(genre[, template])                  | Resolve a genre (+ optional template) to the standard creation envelope.                                                                                                                                                           |
 | [`register_genre_initializer`](#nw.register_genre_initializer)(slug, initializer)     | Register an initializer for a genre slug; returns it for inline use.                                                                                                                                                               |
 | [`initialize_genre`](#nw.initialize_genre)(genre, project, \*[, ...])       | Seed a freshly-created `project` for `genre` (+ optional `template`).                                                                                                                                                              |
@@ -1151,7 +1152,8 @@ Create a new project on disk and return the [`Project`](#nw.Project) facade.
   * **storage** ([`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[[`ProjectStorage`](nw.storage.html.md#nw.storage.ProjectStorage)]) – Where the project’s documents and annotation stores
     live ([`nw.storage`](nw.storage.html.md#module-nw.storage)). `None` is nw’s own folder layout.
     A non-folder storage may share `root` with the app that owns
-    it, so its folder only has to be free of an nw project.
+    it, so its folder only has to be free of an nw project. Its
+    `root` must be `root` (`ValueError` otherwise).
 * **Return type:**
   [`Project`](nw.project.html.md#nw.project.Project)
 
@@ -1246,6 +1248,10 @@ persists at creation (nw#32) — same shape as
 the *effective* creation params without re-deriving them. `None`
 for a project with no recorded genre (created before nw#32, or not
 through the genre machinery).
+
+The authoritative read (it opens the graph); a host lister that only
+classifies projects reads the mirror with [`nw.project_genre()`](#nw.project_genre)
+instead, which this call backfills for older projects.
 
 * **Return type:**
   [`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[[`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)]
@@ -1498,6 +1504,14 @@ Singleton per project (nw#32): the tier is the identity, so
 re-initializing replaces the recorded envelope in place — the
 annotation id is stable across replacements, like every entity
 upsert. A no-op write (same envelope) writes nothing.
+
+Also mirrored into the project’s documents (`GENRE_ENVELOPE_DOC`,
+after the graph write), so a host lister can classify a project with
+[`nw.project_genre()`](#nw.project_genre) without opening its graph (nw#223). The graph
+stays the authority: two concurrent re-initializations can leave the
+mirror one envelope behind (the write is not under a project lock),
+and the next [`nw.Project.resolved_genre()`](#nw.Project.resolved_genre) heals it. A mirror
+write that fails is logged and leaves the graph write standing.
 
 * **Return type:**
   [`UUID`](https://docs.python.org/3/library/uuid.html#uuid.UUID)
@@ -3263,6 +3277,23 @@ produce different URLs. The local file paths are byte-stable.
 * **Returns:**
   A [`ShotPreparation`](#nw.ShotPreparation) with local paths (and URLs if `upload`)
   ready to plan.
+
+### nw.project_genre(project)
+
+The `{genre, template, params}` envelope `project` was created as,
+read **without opening its graph** (nw#223); `None` when it has none.
+
+`project` is a path, a storage or an `nw.Project`. Reads the mirror
+[`nw.graph.ProjectGraph.set_genre_envelope()`](nw.graph.html.md#nw.graph.ProjectGraph.set_genre_envelope) writes beside the graph,
+so a host classifying N projects in a listing pays N small document reads,
+not N graph opens (any of which can fail on a locked or corrupt graph).
+[`nw.Project.resolved_genre()`](#nw.Project.resolved_genre) stays the authoritative read, and
+backfills the mirror for a project whose envelope predates it; until then
+such a project reads `None` here. An unreadable or malformed mirror also
+reads `None`, never raises.
+
+* **Return type:**
+  [`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[[`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)]
 
 ### nw.quote_from_cost_records(records, \*, pricers={'llm_rates': Pricer(quote=<function \_quote_from_llm_rates>, table='falaw/data/llm_rates.json', version=<functools._lru_cache_wrapper object>), 'model_catalogue': Pricer(quote = <function \_quote_from_catalogue>, table='falaw/data/models.json', version=<functools._lru_cache_wrapper object>)})
 

@@ -224,11 +224,23 @@ data-aria-dark="Switch to auto color mode">
 </span><span data-line="60">            <span class="s2">"The *resolved* creation params — template + defaults merged. "</span>
 </span><span data-line="61">            <span class="s2">"Opaque to nw; the genre's owning app interprets them."</span>
 </span><span data-line="62">        <span class="p">),</span>
-</span><span data-line="63">    <span class="p">)</span></div>
-
+</span><span data-line="63">    <span class="p">)</span>
 </span><span data-line="64">
-</span><span data-line="65">
-</span><span data-line="66"><span class="n">register_body_schema</span><span class="p">(</span><span class="n">GENRE_ENVELOPE_BODY_SCHEMA_URI</span><span class="p">,</span> <span class="n">GenreEnvelopeBodyV1</span><span class="p">)</span>
+<div class="viewcode-block" id="GenreEnvelopeBodyV1.as_envelope">
+<a class="viewcode-back" href="../../../_autosummary/nw.bodies.genre_envelope.html#nw.bodies.GenreEnvelopeBodyV1.as_envelope">[docs]</a>
+</span><span data-line="65">    <span class="k">def</span><span class="w"> </span><span class="nf">as_envelope</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+</span><span data-line="66"><span class="w">        </span><span class="sd">"""The plain ``{genre, template, params}`` dict</span>
+</span><span data-line="67"><span class="sd">        :func:`nw.genres.resolve_genre` returns (``params`` a fresh dict)."""</span>
+</span><span data-line="68">        <span class="k">return</span> <span class="p">{</span>
+</span><span data-line="69">            <span class="s2">"genre"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">genre</span><span class="p">,</span>
+</span><span data-line="70">            <span class="s2">"template"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">template</span><span class="p">,</span>
+</span><span data-line="71">            <span class="s2">"params"</span><span class="p">:</span> <span class="nb">dict</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">),</span>
+</span><span data-line="72">        <span class="p">}</span></div>
+</div>
+
+</span><span data-line="73">
+</span><span data-line="74">
+</span><span data-line="75"><span class="n">register_body_schema</span><span class="p">(</span><span class="n">GENRE_ENVELOPE_BODY_SCHEMA_URI</span><span class="p">,</span> <span class="n">GenreEnvelopeBodyV1</span><span class="p">)</span>
 </span></pre></div>
         </article><button class="back-to-top" type="button">
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
@@ -256,7 +268,7 @@ data-aria-dark="Switch to auto color mode">
     </div>
   </div>
 </footer>
-      <script src="../../../_static/documentation_options.js?v=3a8547cf"></script>
+      <script src="../../../_static/documentation_options.js?v=5574531b"></script>
       <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
       <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>

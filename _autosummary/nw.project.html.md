@@ -104,7 +104,8 @@ Create a new project on disk and return the [`Project`](#nw.project.Project) fac
   * **storage** ([`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[[`ProjectStorage`](nw.storage.html.md#nw.storage.ProjectStorage)]) – Where the project’s documents and annotation stores
     live ([`nw.storage`](nw.storage.html.md#module-nw.storage)). `None` is nw’s own folder layout.
     A non-folder storage may share `root` with the app that owns
-    it, so its folder only has to be free of an nw project.
+    it, so its folder only has to be free of an nw project. Its
+    `root` must be `root` (`ValueError` otherwise).
 * **Return type:**
   [`Project`](#nw.project.Project)
 
@@ -199,6 +200,10 @@ persists at creation (nw#32) — same shape as
 the *effective* creation params without re-deriving them. `None`
 for a project with no recorded genre (created before nw#32, or not
 through the genre machinery).
+
+The authoritative read (it opens the graph); a host lister that only
+classifies projects reads the mirror with [`nw.project_genre()`](nw.html.md#nw.project_genre)
+instead, which this call backfills for older projects.
 
 * **Return type:**
   [`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[[`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)]

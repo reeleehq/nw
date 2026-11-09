@@ -18,6 +18,7 @@
       recommend_genre
       resolve_defaults
       register_genre_resolver
+      project_genre
       resolve_genre
       register_genre_initializer
       initialize_genre

@@ -42,6 +42,14 @@ Body of the (singleton) genre-envelope annotation.
 Field-for-field the `nw.genres.resolve_genre()` envelope, so the
 persisted record and the creation-time contract can never drift apart.
 
+#### as_envelope()
+
+The plain `{genre, template, params}` dict
+`nw.genres.resolve_genre()` returns (`params` a fresh dict).
+
+* **Return type:**
+  [`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)
+
 #### model_config *: [ClassVar](https://docs.python.org/3/library/typing.html#typing.ClassVar)[ConfigDict]* *= {'extra': 'forbid', 'frozen': True}*
 
 Configuration for the model, should be a dictionary conforming to [`ConfigDict`][pydantic.config.ConfigDict].

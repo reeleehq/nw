@@ -1,4 +1,4 @@
-> built 2026-11-08 23:31 UTC from 32dec1a (main) · nw 0.0.133. Details: build_info.json
+> built 2026-11-09 00:02 UTC from 34c0350 (main) · nw 0.0.135. Details: build_info.json
 
 # index.html.md
 
@@ -1041,6 +1041,14 @@ Body of the (singleton) genre-envelope annotation.
 Field-for-field the `nw.genres.resolve_genre()` envelope, so the
 persisted record and the creation-time contract can never drift apart.
 
+#### as_envelope()
+
+The plain `{genre, template, params}` dict
+`nw.genres.resolve_genre()` returns (`params` a fresh dict).
+
+* **Return type:**
+  [`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)
+
 #### model_config *: [ClassVar](https://docs.python.org/3/library/typing.html#typing.ClassVar)[ConfigDict]* *= {'extra': 'forbid', 'frozen': True}*
 
 Configuration for the model, should be a dictionary conforming to [`ConfigDict`][pydantic.config.ConfigDict].
@@ -1144,6 +1152,14 @@ Body of the (singleton) genre-envelope annotation.
 
 Field-for-field the `nw.genres.resolve_genre()` envelope, so the
 persisted record and the creation-time contract can never drift apart.
+
+#### as_envelope()
+
+The plain `{genre, template, params}` dict
+`nw.genres.resolve_genre()` returns (`params` a fresh dict).
+
+* **Return type:**
+  [`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)
 
 #### model_config *: [ClassVar](https://docs.python.org/3/library/typing.html#typing.ClassVar)[ConfigDict]* *= {'extra': 'forbid', 'frozen': True}*
 
@@ -3013,18 +3029,24 @@ The freshness query that compares content — `nw.stale_after` — lives in
 [`nw.freshness`](_autosummary/nw.freshness.html.md#module-nw.freshness); this module is where its input, the verifying trace, is
 written (see [`ProjectGraph.add_annotation()`](_autosummary/nw.graph.html.md#nw.graph.ProjectGraph.add_annotation)).
 
+### Module Attributes
+
+| [`GENRE_ENVELOPE_DOC`](_autosummary/nw.graph.html.md#nw.graph.GENRE_ENVELOPE_DOC)   | what [`nw.project_genre()`](_autosummary/nw.html.md#nw.project_genre) reads instead of opening the graph.   |
+|-----------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------|
+
 ### Functions
 
-| [`all_project_stores`](_autosummary/nw.graph.html.md#nw.graph.all_project_stores)(project_root)                  | Return the **existing** lacing-store file paths under a project.              |
-|----------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------|
-| [`annotations_at_tier`](_autosummary/nw.graph.html.md#nw.graph.annotations_at_tier)(project_root, tier)           | Return every annotation at the given tier across all of the project's stores. |
-| [`backfill_traces`](_autosummary/nw.graph.html.md#nw.graph.backfill_traces)(project_root, \*[, execute])      | Bless a pre-trace project so the verifying-trace rule can read it (nw#58).    |
-| [`collect_orphan_traces`](_autosummary/nw.graph.html.md#nw.graph.collect_orphan_traces)(project_root)               | Drop verifying traces whose target annotation no longer exists.               |
-| [`derived_from`](_autosummary/nw.graph.html.md#nw.graph.derived_from)(project_root, annotation_id)         | Return the annotations this one was directly derived from.                    |
-| [`descendants_of`](_autosummary/nw.graph.html.md#nw.graph.descendants_of)(project_root, ancestor_id)         | Return every annotation whose provenance chain leads back to `ancestor_id`.   |
-| [`iter_all_annotations`](_autosummary/nw.graph.html.md#nw.graph.iter_all_annotations)(project_root)                | Walk every annotation in every store under a project (any backend).           |
-| [`open_project_stores`](_autosummary/nw.graph.html.md#nw.graph.open_project_stores)(project_root)                 | Yield an iterator of open stores, one per scope, honouring the backend.       |
-| [`remove_annotations_with_traces`](_autosummary/nw.graph.html.md#nw.graph.remove_annotations_with_traces)(store, ...[, ...]) | Remove annotations from `store`, plus every trace in it naming them.          |
+| [`all_project_stores`](_autosummary/nw.graph.html.md#nw.graph.all_project_stores)(project_root)                  | Return the **existing** lacing-store file paths under a project.                                                                                                                        |
+|----------------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| [`annotations_at_tier`](_autosummary/nw.graph.html.md#nw.graph.annotations_at_tier)(project_root, tier)           | Return every annotation at the given tier across all of the project's stores.                                                                                                           |
+| [`backfill_traces`](_autosummary/nw.graph.html.md#nw.graph.backfill_traces)(project_root, \*[, execute])      | Bless a pre-trace project so the verifying-trace rule can read it (nw#58).                                                                                                              |
+| [`collect_orphan_traces`](_autosummary/nw.graph.html.md#nw.graph.collect_orphan_traces)(project_root)               | Drop verifying traces whose target annotation no longer exists.                                                                                                                         |
+| [`derived_from`](_autosummary/nw.graph.html.md#nw.graph.derived_from)(project_root, annotation_id)         | Return the annotations this one was directly derived from.                                                                                                                              |
+| [`descendants_of`](_autosummary/nw.graph.html.md#nw.graph.descendants_of)(project_root, ancestor_id)         | Return every annotation whose provenance chain leads back to `ancestor_id`.                                                                                                             |
+| [`iter_all_annotations`](_autosummary/nw.graph.html.md#nw.graph.iter_all_annotations)(project_root)                | Walk every annotation in every store under a project (any backend).                                                                                                                     |
+| [`mirror_genre_envelope`](_autosummary/nw.graph.html.md#nw.graph.mirror_genre_envelope)(storage, body)              | Write `body` to `storage`'s [`GENRE_ENVELOPE_DOC`](_autosummary/nw.graph.html.md#nw.graph.GENRE_ENVELOPE_DOC) unless it already holds exactly that (so a repeated read-side backfill writes nothing). |
+| [`open_project_stores`](_autosummary/nw.graph.html.md#nw.graph.open_project_stores)(project_root)                 | Yield an iterator of open stores, one per scope, honouring the backend.                                                                                                                 |
+| [`remove_annotations_with_traces`](_autosummary/nw.graph.html.md#nw.graph.remove_annotations_with_traces)(store, ...[, ...]) | Remove annotations from `store`, plus every trace in it naming them.                                                                                                                    |
 
 ### Classes
 
@@ -3036,6 +3058,14 @@ written (see [`ProjectGraph.add_annotation()`](_autosummary/nw.graph.html.md#nw.
 | [`StoredSection`](_autosummary/nw.graph.html.md#nw.graph.StoredSection)(annotation_id, interval, body) |                                                                  |
 | [`StoredShot`](_autosummary/nw.graph.html.md#nw.graph.StoredShot)(annotation_id, interval, body)    |                                                                  |
 | [`StoredUnproducedOutput`](_autosummary/nw.graph.html.md#nw.graph.StoredUnproducedOutput)(annotation_id, body)  |                                                                  |
+
+### nw.graph.GENRE_ENVELOPE_DOC *= '.nw/genre_envelope.json'*
+
+what
+[`nw.project_genre()`](_autosummary/nw.html.md#nw.project_genre) reads instead of opening the graph.
+
+* **Type:**
+  The document key mirroring a project’s genre envelope (nw#223)
 
 ### *class* nw.graph.ProjectGraph(project)
 
@@ -3178,6 +3208,14 @@ Singleton per project (nw#32): the tier is the identity, so
 re-initializing replaces the recorded envelope in place — the
 annotation id is stable across replacements, like every entity
 upsert. A no-op write (same envelope) writes nothing.
+
+Also mirrored into the project’s documents ([`GENRE_ENVELOPE_DOC`](_autosummary/nw.graph.html.md#nw.graph.GENRE_ENVELOPE_DOC),
+after the graph write), so a host lister can classify a project with
+[`nw.project_genre()`](_autosummary/nw.html.md#nw.project_genre) without opening its graph (nw#223). The graph
+stays the authority: two concurrent re-initializations can leave the
+mirror one envelope behind (the write is not under a project lock),
+and the next [`nw.Project.resolved_genre()`](_autosummary/nw.html.md#nw.Project.resolved_genre) heals it. A mirror
+write that fails is logged and leaves the graph write standing.
 
 * **Return type:**
   [`UUID`](https://docs.python.org/3/library/uuid.html#uuid.UUID)
@@ -3445,6 +3483,15 @@ Walk every annotation in every store under a project (any backend).
 * **Return type:**
   [`Iterator`](https://docs.python.org/3/library/typing.html#typing.Iterator)[`Annotation`]
 
+### nw.graph.mirror_genre_envelope(storage, body)
+
+Write `body` to `storage`’s [`GENRE_ENVELOPE_DOC`](_autosummary/nw.graph.html.md#nw.graph.GENRE_ENVELOPE_DOC) unless it
+already holds exactly that (so a repeated read-side backfill writes
+nothing).
+
+* **Return type:**
+  [`None`](https://docs.python.org/3/builtins/constants.html#None)
+
 ### nw.graph.open_project_stores(project_root)
 
 Yield an iterator of open stores, one per scope, honouring the backend.
@@ -3698,6 +3745,7 @@ are recorded as linked artifacts), see
 | [`recommend_genre`](_autosummary/nw.html.md#nw.recommend_genre)(kind)                             | The slug of the genre whose `intake_kinds` contains `kind` (first in slug order), or `None` when `kind` is falsy / unmatched.                                                                                                      |
 | [`resolve_defaults`](_autosummary/nw.html.md#nw.resolve_defaults)(genre[, template])               | Resolve a genre (+ optional template) to the params for a new project.                                                                                                                                                             |
 | [`register_genre_resolver`](_autosummary/nw.html.md#nw.register_genre_resolver)(slug, resolver)           | Register a resolver for a genre slug; returns it for inline use.                                                                                                                                                                   |
+| [`project_genre`](_autosummary/nw.html.md#nw.project_genre)(project)                            | The `{genre, template, params}` envelope `project` was created as, read **without opening its graph** (nw#223); `None` when it has none.                                                                                           |
 | [`resolve_genre`](_autosummary/nw.html.md#nw.resolve_genre)(genre[, template])                  | Resolve a genre (+ optional template) to the standard creation envelope.                                                                                                                                                           |
 | [`register_genre_initializer`](_autosummary/nw.html.md#nw.register_genre_initializer)(slug, initializer)     | Register an initializer for a genre slug; returns it for inline use.                                                                                                                                                               |
 | [`initialize_genre`](_autosummary/nw.html.md#nw.initialize_genre)(genre, project, \*[, ...])       | Seed a freshly-created `project` for `genre` (+ optional `template`).                                                                                                                                                              |
@@ -4789,7 +4837,8 @@ Create a new project on disk and return the [`Project`](_autosummary/nw.html.md#
   * **storage** ([`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[[`ProjectStorage`](_autosummary/nw.storage.html.md#nw.storage.ProjectStorage)]) – Where the project’s documents and annotation stores
     live ([`nw.storage`](_autosummary/nw.storage.html.md#module-nw.storage)). `None` is nw’s own folder layout.
     A non-folder storage may share `root` with the app that owns
-    it, so its folder only has to be free of an nw project.
+    it, so its folder only has to be free of an nw project. Its
+    `root` must be `root` (`ValueError` otherwise).
 * **Return type:**
   [`Project`](_autosummary/nw.project.html.md#nw.project.Project)
 
@@ -4884,6 +4933,10 @@ persists at creation (nw#32) — same shape as
 the *effective* creation params without re-deriving them. `None`
 for a project with no recorded genre (created before nw#32, or not
 through the genre machinery).
+
+The authoritative read (it opens the graph); a host lister that only
+classifies projects reads the mirror with [`nw.project_genre()`](_autosummary/nw.html.md#nw.project_genre)
+instead, which this call backfills for older projects.
 
 * **Return type:**
   [`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[[`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)]
@@ -5136,6 +5189,14 @@ Singleton per project (nw#32): the tier is the identity, so
 re-initializing replaces the recorded envelope in place — the
 annotation id is stable across replacements, like every entity
 upsert. A no-op write (same envelope) writes nothing.
+
+Also mirrored into the project’s documents (`GENRE_ENVELOPE_DOC`,
+after the graph write), so a host lister can classify a project with
+[`nw.project_genre()`](_autosummary/nw.html.md#nw.project_genre) without opening its graph (nw#223). The graph
+stays the authority: two concurrent re-initializations can leave the
+mirror one envelope behind (the write is not under a project lock),
+and the next [`nw.Project.resolved_genre()`](_autosummary/nw.html.md#nw.Project.resolved_genre) heals it. A mirror
+write that fails is logged and leaves the graph write standing.
 
 * **Return type:**
   [`UUID`](https://docs.python.org/3/library/uuid.html#uuid.UUID)
@@ -6902,6 +6963,23 @@ produce different URLs. The local file paths are byte-stable.
   A [`ShotPreparation`](_autosummary/nw.html.md#nw.ShotPreparation) with local paths (and URLs if `upload`)
   ready to plan.
 
+### nw.project_genre(project)
+
+The `{genre, template, params}` envelope `project` was created as,
+read **without opening its graph** (nw#223); `None` when it has none.
+
+`project` is a path, a storage or an `nw.Project`. Reads the mirror
+[`nw.graph.ProjectGraph.set_genre_envelope()`](_autosummary/nw.graph.html.md#nw.graph.ProjectGraph.set_genre_envelope) writes beside the graph,
+so a host classifying N projects in a listing pays N small document reads,
+not N graph opens (any of which can fail on a locked or corrupt graph).
+[`nw.Project.resolved_genre()`](_autosummary/nw.html.md#nw.Project.resolved_genre) stays the authoritative read, and
+backfills the mirror for a project whose envelope predates it; until then
+such a project reads `None` here. An unreadable or malformed mirror also
+reads `None`, never raises.
+
+* **Return type:**
+  [`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[[`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)]
+
 ### nw.quote_from_cost_records(records, \*, pricers={'llm_rates': Pricer(quote=<function \_quote_from_llm_rates>, table='falaw/data/llm_rates.json', version=<functools._lru_cache_wrapper object>), 'model_catalogue': Pricer(quote = <function \_quote_from_catalogue>, table='falaw/data/models.json', version=<functools._lru_cache_wrapper object>)})
 
 Today’s price for the calls stored in a decision payload.
@@ -7939,7 +8017,11 @@ file open makes `os.replace` / `os.unlink` of it fail with
 `PermissionError` until it closes, so a write retries those briefly
 (`retry_on`, `attempts`, doubling from `backoff_s`: ~0.6 s in all by
 default). A read is milliseconds; the retries outlast it, and they cost
-nothing unless a write is actually refused.
+nothing unless a write is actually refused. The collision also refuses
+the *reader* for the instant of the swap, so a read retries the same way
+(nw#225). Off Windows the default retries nothing, on either side. A file
+that stays refused (a real access problem) raises after the ~0.6 s of
+retries, per read.
 
 The write and the delete are `dol.atomic_write()` /
 `dol.atomic_delete()` with a `dol.atomic.Retry` (nw#213); files
@@ -8159,7 +8241,9 @@ Bases: [`object`](https://docs.python.org/3/builtins/functions.html#object)
 True when the run reported `has_unknown_costs` — some call that may
 have billed is not in `actual_usd` (it had no price, or it failed:
 falaw cannot know whether a failed call was billed, nw#214), so the figure
-UNDER-states the spend.
+UNDER-states the spend. Also True when the run ended without its final
+figures (its render raised, or its worker died and was reaped) after
+reporting a spend (nw#232).
 
 Its whole job is to keep a `$0` readable. Without it, `actual_usd`
 conflates two answers a spend surface must never merge: “this run cost
@@ -9925,7 +10009,8 @@ Create a new project on disk and return the [`Project`](_autosummary/nw.project.
   * **storage** ([`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[[`ProjectStorage`](_autosummary/nw.storage.html.md#nw.storage.ProjectStorage)]) – Where the project’s documents and annotation stores
     live ([`nw.storage`](_autosummary/nw.storage.html.md#module-nw.storage)). `None` is nw’s own folder layout.
     A non-folder storage may share `root` with the app that owns
-    it, so its folder only has to be free of an nw project.
+    it, so its folder only has to be free of an nw project. Its
+    `root` must be `root` (`ValueError` otherwise).
 * **Return type:**
   [`Project`](_autosummary/nw.project.html.md#nw.project.Project)
 
@@ -10020,6 +10105,10 @@ persists at creation (nw#32) — same shape as
 the *effective* creation params without re-deriving them. `None`
 for a project with no recorded genre (created before nw#32, or not
 through the genre machinery).
+
+The authoritative read (it opens the graph); a host lister that only
+classifies projects reads the mirror with [`nw.project_genre()`](_autosummary/nw.html.md#nw.project_genre)
+instead, which this call backfills for older projects.
 
 * **Return type:**
   [`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[[`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)]
@@ -12162,7 +12251,7 @@ produce different URLs. The local file paths are byte-stable.
 
 # About this build
 
-This documentation was built on **2026-11-08 23:31 UTC** from commit <a href="https://github.com/reeleehq/nw/commit/32dec1a198b6d52d87fb8d92fdfb4a1fe5c57574"><code>32dec1a</code></a> on branch <code>main</code>, for **nw 0.0.133** (from <code>pyproject.toml</code>).
+This documentation was built on **2026-11-09 00:02 UTC** from commit <a href="https://github.com/reeleehq/nw/commit/34c03506d305b570f0e81ebae15b0b2487e97438"><code>34c0350</code></a> on branch <code>main</code>, for **nw 0.0.135** (from <code>pyproject.toml</code>).
 
 #### NOTE
 Nothing suggests a mismatch: the tree was clean at the commit above, and the documented version is the one on PyPI.
@@ -12171,9 +12260,9 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 
 |                     |                                                                                                                                                    |
 |---------------------|----------------------------------------------------------------------------------------------------------------------------------------------------|
-| Commit              | <a href="https://github.com/reeleehq/nw/commit/32dec1a198b6d52d87fb8d92fdfb4a1fe5c57574"><code>32dec1a198b6d52d87fb8d92fdfb4a1fe5c57574</code></a> |
+| Commit              | <a href="https://github.com/reeleehq/nw/commit/34c03506d305b570f0e81ebae15b0b2487e97438"><code>34c03506d305b570f0e81ebae15b0b2487e97438</code></a> |
 | Branch              | <code>main</code>                                                                                                                                  |
-| Tags at this commit | none                                                                                                                                               |
+| Tags at this commit | <code>0.0.135</code>                                                                                                                               |
 | Working tree        | clean                                                                                                                                              |
 | Remote              | <code>https://github.com/reeleehq/nw</code>                                                                                                        |
 
@@ -12182,9 +12271,9 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 |              |                                                                                            |
 |--------------|--------------------------------------------------------------------------------------------|
 | Repository   | <code>reeleehq/nw</code>                                                                   |
-| Run          | <a href="https://github.com/reeleehq/nw/actions/runs/42534198144">42534198144</a>          |
+| Run          | <a href="https://github.com/reeleehq/nw/actions/runs/42535131135">42535131135</a>          |
 | Ref          | <code>refs/heads/main</code>                                                               |
-| Event commit | <code>0b0d96edaa3d7fa7f7b368524443bac844240a63</code> (in the history of the built commit) |
+| Event commit | <code>32dec1a198b6d52d87fb8d92fdfb4a1fe5c57574</code> (in the history of the built commit) |
 
 ## Tools
 
@@ -12209,13 +12298,13 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 
 ## Package on PyPI
 
-Latest release: <a href="https://pypi.org/project/nw/0.0.133/">0.0.133</a>, the same as the documented version.
+Latest release: <a href="https://pypi.org/project/nw/0.0.135/">0.0.135</a>, the same as the documented version.
 
 ## Reproduce
 
 ```bash
 git clone https://github.com/reeleehq/nw && cd nw
-git checkout 32dec1a198b6d52d87fb8d92fdfb4a1fe5c57574
+git checkout 34c03506d305b570f0e81ebae15b0b2487e97438
 pip install "epythet==0.2.22"
 epythet quickstart . --ignore tests/ scrap/ examples/
 ```

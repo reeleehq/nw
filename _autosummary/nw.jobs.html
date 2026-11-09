@@ -471,7 +471,11 @@ file open makes <code class="docutils literal notranslate"><span class="pre">os.
 <code class="docutils literal notranslate"><span class="pre">PermissionError</span></code> until it closes, so a write retries those briefly
 (<code class="docutils literal notranslate"><span class="pre">retry_on</span></code>, <code class="docutils literal notranslate"><span class="pre">attempts</span></code>, doubling from <code class="docutils literal notranslate"><span class="pre">backoff_s</span></code>: ~0.6 s in all by
 default). A read is milliseconds; the retries outlast it, and they cost
-nothing unless a write is actually refused.</p>
+nothing unless a write is actually refused. The collision also refuses
+the <em>reader</em> for the instant of the swap, so a read retries the same way
+(nw#225). Off Windows the default retries nothing, on either side. A file
+that stays refused (a real access problem) raises after the ~0.6 s of
+retries, per read.</p>
 <p>The write and the delete are <code class="xref py py-func docutils literal notranslate"><span class="pre">dol.atomic_write()</span></code> /
 <code class="xref py py-func docutils literal notranslate"><span class="pre">dol.atomic_delete()</span></code> with a <code class="xref py py-class docutils literal notranslate"><span class="pre">dol.atomic.Retry</span></code> (nw#213); files
 are created <code class="docutils literal notranslate"><span class="pre">0o600</span></code>, as the store’s records always were.</p>
@@ -757,7 +761,9 @@ it as this so au records the job FAILED instead of leaving it RUNNING forever.</
 <dd><p>True when the run reported <code class="docutils literal notranslate"><span class="pre">has_unknown_costs</span></code> — some call that may
 have billed is not in <code class="xref py py-attr docutils literal notranslate"><span class="pre">actual_usd</span></code> (it had no price, or it failed:
 falaw cannot know whether a failed call was billed, nw#214), so the figure
-UNDER-states the spend.</p>
+UNDER-states the spend. Also True when the run ended without its final
+figures (its render raised, or its worker died and was reaped) after
+reporting a spend (nw#232).</p>
 <p>Its whole job is to keep a <code class="docutils literal notranslate"><span class="pre">$0</span></code> readable. Without it, <code class="docutils literal notranslate"><span class="pre">actual_usd</span></code>
 conflates two answers a spend surface must never merge: “this run cost
 nothing” (a cache hit — a known zero) and “we do not know what this run
@@ -1491,7 +1497,7 @@ cannot silently claim one name.</p>
     </div>
   </div>
 </footer>
-      <script src="../_static/documentation_options.js?v=3a8547cf"></script>
+      <script src="../_static/documentation_options.js?v=5574531b"></script>
       <script src="../_static/doctools.js?v=fd6eb6e6"></script>
       <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script src="../_static/clipboard.min.js?v=a7894cd8"></script>

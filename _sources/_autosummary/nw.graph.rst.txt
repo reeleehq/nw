@@ -4,6 +4,12 @@ nw.graph
 .. automodule:: nw.graph
 
    
+   .. rubric:: Module Attributes
+
+   .. autosummary::
+   
+      GENRE_ENVELOPE_DOC
+   
    .. rubric:: Functions
 
    .. autosummary::
@@ -15,6 +21,7 @@ nw.graph
       derived_from
       descendants_of
       iter_all_annotations
+      mirror_genre_envelope
       open_project_stores
       remove_annotations_with_traces
    

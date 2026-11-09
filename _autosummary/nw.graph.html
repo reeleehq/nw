@@ -130,6 +130,7 @@ data-aria-dark="Switch to auto color mode">
       <i class="i-lucide close"></i>
     </button>
     <div class="sy-scrollbar sy-rside-inner px-6 xl:top-16 xl:sticky xl:pl-0 pt-6 pb-4"><div class="localtoc"><h3>On this page</h3><ul>
+<li><a class="reference internal" href="#nw.graph.GENRE_ENVELOPE_DOC"><code class="docutils literal notranslate"><span class="pre">GENRE_ENVELOPE_DOC</span></code></a></li>
 <li><a class="reference internal" href="#nw.graph.ProjectGraph"><code class="docutils literal notranslate"><span class="pre">ProjectGraph</span></code></a><ul>
 <li><a class="reference internal" href="#nw.graph.ProjectGraph.add_annotation"><code class="docutils literal notranslate"><span class="pre">ProjectGraph.add_annotation()</span></code></a></li>
 <li><a class="reference internal" href="#nw.graph.ProjectGraph.add_unproduced_output"><code class="docutils literal notranslate"><span class="pre">ProjectGraph.add_unproduced_output()</span></code></a></li>
@@ -160,6 +161,7 @@ data-aria-dark="Switch to auto color mode">
 <li><a class="reference internal" href="#nw.graph.derived_from"><code class="docutils literal notranslate"><span class="pre">derived_from()</span></code></a></li>
 <li><a class="reference internal" href="#nw.graph.descendants_of"><code class="docutils literal notranslate"><span class="pre">descendants_of()</span></code></a></li>
 <li><a class="reference internal" href="#nw.graph.iter_all_annotations"><code class="docutils literal notranslate"><span class="pre">iter_all_annotations()</span></code></a></li>
+<li><a class="reference internal" href="#nw.graph.mirror_genre_envelope"><code class="docutils literal notranslate"><span class="pre">mirror_genre_envelope()</span></code></a></li>
 <li><a class="reference internal" href="#nw.graph.open_project_stores"><code class="docutils literal notranslate"><span class="pre">open_project_stores()</span></code></a></li>
 <li><a class="reference internal" href="#nw.graph.remove_annotations_with_traces"><code class="docutils literal notranslate"><span class="pre">remove_annotations_with_traces()</span></code></a></li>
 </ul>
@@ -225,6 +227,16 @@ executable lines are skipped rather than exercised):</p>
 The freshness query that compares content — <code class="docutils literal notranslate"><span class="pre">nw.stale_after</span></code> — lives in
 <a class="reference internal" href="nw.freshness.html#module-nw.freshness" title="nw.freshness"><code class="xref py py-mod docutils literal notranslate"><span class="pre">nw.freshness</span></code></a>; this module is where its input, the verifying trace, is
 written (see <a class="reference internal" href="#nw.graph.ProjectGraph.add_annotation" title="nw.graph.ProjectGraph.add_annotation"><code class="xref py py-meth docutils literal notranslate"><span class="pre">ProjectGraph.add_annotation()</span></code></a>).</p>
+<p class="rubric">Module Attributes</p>
+<div class="table-wrapper autosummary longtable docutils container">
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#nw.graph.GENRE_ENVELOPE_DOC" title="nw.graph.GENRE_ENVELOPE_DOC"><code class="xref py py-obj docutils literal notranslate"><span class="pre">GENRE_ENVELOPE_DOC</span></code></a></p></td>
+<td><p>what <a class="reference internal" href="nw.html#nw.project_genre" title="nw.project_genre"><code class="xref py py-func docutils literal notranslate"><span class="pre">nw.project_genre()</span></code></a> reads instead of opening the graph.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
 <p class="rubric">Functions</p>
 <div class="table-wrapper autosummary longtable docutils container">
 <table class="autosummary longtable docutils align-default">
@@ -250,10 +262,13 @@ written (see <a class="reference internal" href="#nw.graph.ProjectGraph.add_anno
 <tr class="row-odd"><td><p><a class="reference internal" href="#nw.graph.iter_all_annotations" title="nw.graph.iter_all_annotations"><code class="xref py py-obj docutils literal notranslate"><span class="pre">iter_all_annotations</span></code></a>(project_root)</p></td>
 <td><p>Walk every annotation in every store under a project (any backend).</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#nw.graph.open_project_stores" title="nw.graph.open_project_stores"><code class="xref py py-obj docutils literal notranslate"><span class="pre">open_project_stores</span></code></a>(project_root)</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#nw.graph.mirror_genre_envelope" title="nw.graph.mirror_genre_envelope"><code class="xref py py-obj docutils literal notranslate"><span class="pre">mirror_genre_envelope</span></code></a>(storage, body)</p></td>
+<td><p>Write <code class="docutils literal notranslate"><span class="pre">body</span></code> to <code class="docutils literal notranslate"><span class="pre">storage</span></code>'s <a class="reference internal" href="#nw.graph.GENRE_ENVELOPE_DOC" title="nw.graph.GENRE_ENVELOPE_DOC"><code class="xref py py-data docutils literal notranslate"><span class="pre">GENRE_ENVELOPE_DOC</span></code></a> unless it already holds exactly that (so a repeated read-side backfill writes nothing).</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#nw.graph.open_project_stores" title="nw.graph.open_project_stores"><code class="xref py py-obj docutils literal notranslate"><span class="pre">open_project_stores</span></code></a>(project_root)</p></td>
 <td><p>Yield an iterator of open stores, one per scope, honouring the backend.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#nw.graph.remove_annotations_with_traces" title="nw.graph.remove_annotations_with_traces"><code class="xref py py-obj docutils literal notranslate"><span class="pre">remove_annotations_with_traces</span></code></a>(store, ...[, ...])</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#nw.graph.remove_annotations_with_traces" title="nw.graph.remove_annotations_with_traces"><code class="xref py py-obj docutils literal notranslate"><span class="pre">remove_annotations_with_traces</span></code></a>(store, ...[, ...])</p></td>
 <td><p>Remove annotations from <code class="docutils literal notranslate"><span class="pre">store</span></code>, plus every trace in it naming them.</p></td>
 </tr>
 </tbody>
@@ -287,6 +302,18 @@ written (see <a class="reference internal" href="#nw.graph.ProjectGraph.add_anno
 </tbody>
 </table>
 </div>
+<dl class="py data">
+<dt class="sig sig-object py" id="nw.graph.GENRE_ENVELOPE_DOC">
+<span class="sig-prename descclassname"><span class="pre">nw.graph.</span></span><span class="sig-name descname"><span class="pre">GENRE_ENVELOPE_DOC</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'.nw/genre_envelope.json'</span></span><a class="headerlink" href="#nw.graph.GENRE_ENVELOPE_DOC" title="Link to this definition">#</a></dt>
+<dd><p>what
+<a class="reference internal" href="nw.html#nw.project_genre" title="nw.project_genre"><code class="xref py py-func docutils literal notranslate"><span class="pre">nw.project_genre()</span></code></a> reads instead of opening the graph.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The document key mirroring a project’s genre envelope (nw#223)</p>
+</dd>
+</dl>
+</dd></dl>
+
 <dl class="py class">
 <dt class="sig sig-object py" id="nw.graph.ProjectGraph">
 <span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">nw.graph.</span></span><span class="sig-name descname"><span class="pre">ProjectGraph</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">project</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/nw/graph.html#ProjectGraph"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nw.graph.ProjectGraph" title="Link to this definition">#</a></dt>
@@ -440,6 +467,13 @@ removed either way).</p>
 re-initializing replaces the recorded envelope in place — the
 annotation id is stable across replacements, like every entity
 upsert. A no-op write (same envelope) writes nothing.</p>
+<p>Also mirrored into the project’s documents (<a class="reference internal" href="#nw.graph.GENRE_ENVELOPE_DOC" title="nw.graph.GENRE_ENVELOPE_DOC"><code class="xref py py-data docutils literal notranslate"><span class="pre">GENRE_ENVELOPE_DOC</span></code></a>,
+after the graph write), so a host lister can classify a project with
+<a class="reference internal" href="nw.html#nw.project_genre" title="nw.project_genre"><code class="xref py py-func docutils literal notranslate"><span class="pre">nw.project_genre()</span></code></a> without opening its graph (nw#223). The graph
+stays the authority: two concurrent re-initializations can leave the
+mirror one envelope behind (the write is not under a project lock),
+and the next <a class="reference internal" href="nw.html#nw.Project.resolved_genre" title="nw.Project.resolved_genre"><code class="xref py py-meth docutils literal notranslate"><span class="pre">nw.Project.resolved_genre()</span></code></a> heals it. A mirror
+write that fails is logged and leaves the graph write standing.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/uuid.html#uuid.UUID" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">UUID</span></code></a></span></p>
@@ -774,6 +808,19 @@ consumer’s output (nw#39).</p>
 </dd></dl>
 
 <dl class="py function">
+<dt class="sig sig-object py" id="nw.graph.mirror_genre_envelope">
+<span class="sig-prename descclassname"><span class="pre">nw.graph.</span></span><span class="sig-name descname"><span class="pre">mirror_genre_envelope</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">storage</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">body</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/nw/graph.html#mirror_genre_envelope"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nw.graph.mirror_genre_envelope" title="Link to this definition">#</a></dt>
+<dd><p>Write <code class="docutils literal notranslate"><span class="pre">body</span></code> to <code class="docutils literal notranslate"><span class="pre">storage</span></code>’s <a class="reference internal" href="#nw.graph.GENRE_ENVELOPE_DOC" title="nw.graph.GENRE_ENVELOPE_DOC"><code class="xref py py-data docutils literal notranslate"><span class="pre">GENRE_ENVELOPE_DOC</span></code></a> unless it
+already holds exactly that (so a repeated read-side backfill writes
+nothing).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><span class="highlight sphinx_autodoc_typehints-value"><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></a></span></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
 <dt class="sig sig-object py" id="nw.graph.open_project_stores">
 <span class="sig-prename descclassname"><span class="pre">nw.graph.</span></span><span class="sig-name descname"><span class="pre">open_project_stores</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">project_root</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/nw/graph.html#open_project_stores"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nw.graph.open_project_stores" title="Link to this definition">#</a></dt>
 <dd><p>Yield an iterator of open stores, one per scope, honouring the backend.</p>
@@ -863,7 +910,7 @@ removals are not reported: they are bookkeeping, not content.</p>
     </div>
   </div>
 </footer>
-      <script src="../_static/documentation_options.js?v=3a8547cf"></script>
+      <script src="../_static/documentation_options.js?v=5574531b"></script>
       <script src="../_static/doctools.js?v=fd6eb6e6"></script>
       <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script src="../_static/clipboard.min.js?v=a7894cd8"></script>

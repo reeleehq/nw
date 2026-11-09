@@ -132,6 +132,7 @@ data-aria-dark="Switch to auto color mode">
     <div class="sy-scrollbar sy-rside-inner px-6 xl:top-16 xl:sticky xl:pl-0 pt-6 pb-4"><div class="localtoc"><h3>On this page</h3><ul>
 <li><a class="reference internal" href="#why-an-annotation-rather-than-a-projectspec-field">Why an annotation rather than a <code class="docutils literal notranslate"><span class="pre">ProjectSpec</span></code> field</a></li>
 <li><a class="reference internal" href="#nw.bodies.genre_envelope.GenreEnvelopeBodyV1"><code class="docutils literal notranslate"><span class="pre">GenreEnvelopeBodyV1</span></code></a><ul>
+<li><a class="reference internal" href="#nw.bodies.genre_envelope.GenreEnvelopeBodyV1.as_envelope"><code class="docutils literal notranslate"><span class="pre">GenreEnvelopeBodyV1.as_envelope()</span></code></a></li>
 <li><a class="reference internal" href="#nw.bodies.genre_envelope.GenreEnvelopeBodyV1.model_config"><code class="docutils literal notranslate"><span class="pre">GenreEnvelopeBodyV1.model_config</span></code></a></li>
 </ul>
 </li>
@@ -222,6 +223,18 @@ and defaults merged — and stays opaque to the substrate, exactly as in
 persisted record and the creation-time contract can never drift apart.</p>
 <dl class="field-list simple">
 </dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="nw.bodies.genre_envelope.GenreEnvelopeBodyV1.as_envelope">
+<span class="sig-name descname"><span class="pre">as_envelope</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/nw/bodies/genre_envelope.html#GenreEnvelopeBodyV1.as_envelope"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nw.bodies.genre_envelope.GenreEnvelopeBodyV1.as_envelope" title="Link to this definition">#</a></dt>
+<dd><p>The plain <code class="docutils literal notranslate"><span class="pre">{genre,</span> <span class="pre">template,</span> <span class="pre">params}</span></code> dict
+<code class="xref py py-func docutils literal notranslate"><span class="pre">nw.genres.resolve_genre()</span></code> returns (<code class="docutils literal notranslate"><span class="pre">params</span></code> a fresh dict).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#dict" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></a></span></p>
+</dd>
+</dl>
+</dd></dl>
+
 <dl class="py attribute">
 <dt class="sig sig-object py" id="nw.bodies.genre_envelope.GenreEnvelopeBodyV1.model_config">
 <span class="sig-name descname"><span class="pre">model_config</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.ClassVar" title="(in Python v3.15)"><span class="pre">ClassVar</span></a><span class="p"><span class="pre">[</span></span><span class="pre">ConfigDict</span><span class="p"><span class="pre">]</span></span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">{'extra':</span> <span class="pre">'forbid',</span> <span class="pre">'frozen':</span> <span class="pre">True}</span></span><a class="headerlink" href="#nw.bodies.genre_envelope.GenreEnvelopeBodyV1.model_config" title="Link to this definition">#</a></dt>
@@ -272,7 +285,7 @@ persisted record and the creation-time contract can never drift apart.</p>
     </div>
   </div>
 </footer>
-      <script src="../_static/documentation_options.js?v=3a8547cf"></script>
+      <script src="../_static/documentation_options.js?v=5574531b"></script>
       <script src="../_static/doctools.js?v=fd6eb6e6"></script>
       <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script src="../_static/clipboard.min.js?v=a7894cd8"></script>

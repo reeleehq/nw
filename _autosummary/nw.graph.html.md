@@ -28,18 +28,24 @@ The freshness query that compares content — `nw.stale_after` — lives in
 [`nw.freshness`](nw.freshness.html.md#module-nw.freshness); this module is where its input, the verifying trace, is
 written (see [`ProjectGraph.add_annotation()`](#nw.graph.ProjectGraph.add_annotation)).
 
+### Module Attributes
+
+| [`GENRE_ENVELOPE_DOC`](#nw.graph.GENRE_ENVELOPE_DOC)   | what [`nw.project_genre()`](nw.html.md#nw.project_genre) reads instead of opening the graph.   |
+|-----------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------|
+
 ### Functions
 
-| [`all_project_stores`](#nw.graph.all_project_stores)(project_root)                  | Return the **existing** lacing-store file paths under a project.              |
-|----------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------|
-| [`annotations_at_tier`](#nw.graph.annotations_at_tier)(project_root, tier)           | Return every annotation at the given tier across all of the project's stores. |
-| [`backfill_traces`](#nw.graph.backfill_traces)(project_root, \*[, execute])      | Bless a pre-trace project so the verifying-trace rule can read it (nw#58).    |
-| [`collect_orphan_traces`](#nw.graph.collect_orphan_traces)(project_root)               | Drop verifying traces whose target annotation no longer exists.               |
-| [`derived_from`](#nw.graph.derived_from)(project_root, annotation_id)         | Return the annotations this one was directly derived from.                    |
-| [`descendants_of`](#nw.graph.descendants_of)(project_root, ancestor_id)         | Return every annotation whose provenance chain leads back to `ancestor_id`.   |
-| [`iter_all_annotations`](#nw.graph.iter_all_annotations)(project_root)                | Walk every annotation in every store under a project (any backend).           |
-| [`open_project_stores`](#nw.graph.open_project_stores)(project_root)                 | Yield an iterator of open stores, one per scope, honouring the backend.       |
-| [`remove_annotations_with_traces`](#nw.graph.remove_annotations_with_traces)(store, ...[, ...]) | Remove annotations from `store`, plus every trace in it naming them.          |
+| [`all_project_stores`](#nw.graph.all_project_stores)(project_root)                  | Return the **existing** lacing-store file paths under a project.                                                                                                                        |
+|----------------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| [`annotations_at_tier`](#nw.graph.annotations_at_tier)(project_root, tier)           | Return every annotation at the given tier across all of the project's stores.                                                                                                           |
+| [`backfill_traces`](#nw.graph.backfill_traces)(project_root, \*[, execute])      | Bless a pre-trace project so the verifying-trace rule can read it (nw#58).                                                                                                              |
+| [`collect_orphan_traces`](#nw.graph.collect_orphan_traces)(project_root)               | Drop verifying traces whose target annotation no longer exists.                                                                                                                         |
+| [`derived_from`](#nw.graph.derived_from)(project_root, annotation_id)         | Return the annotations this one was directly derived from.                                                                                                                              |
+| [`descendants_of`](#nw.graph.descendants_of)(project_root, ancestor_id)         | Return every annotation whose provenance chain leads back to `ancestor_id`.                                                                                                             |
+| [`iter_all_annotations`](#nw.graph.iter_all_annotations)(project_root)                | Walk every annotation in every store under a project (any backend).                                                                                                                     |
+| [`mirror_genre_envelope`](#nw.graph.mirror_genre_envelope)(storage, body)              | Write `body` to `storage`'s [`GENRE_ENVELOPE_DOC`](#nw.graph.GENRE_ENVELOPE_DOC) unless it already holds exactly that (so a repeated read-side backfill writes nothing). |
+| [`open_project_stores`](#nw.graph.open_project_stores)(project_root)                 | Yield an iterator of open stores, one per scope, honouring the backend.                                                                                                                 |
+| [`remove_annotations_with_traces`](#nw.graph.remove_annotations_with_traces)(store, ...[, ...]) | Remove annotations from `store`, plus every trace in it naming them.                                                                                                                    |
 
 ### Classes
 
@@ -51,6 +57,14 @@ written (see [`ProjectGraph.add_annotation()`](#nw.graph.ProjectGraph.add_annota
 | [`StoredSection`](#nw.graph.StoredSection)(annotation_id, interval, body) |                                                                  |
 | [`StoredShot`](#nw.graph.StoredShot)(annotation_id, interval, body)    |                                                                  |
 | [`StoredUnproducedOutput`](#nw.graph.StoredUnproducedOutput)(annotation_id, body)  |                                                                  |
+
+### nw.graph.GENRE_ENVELOPE_DOC *= '.nw/genre_envelope.json'*
+
+what
+[`nw.project_genre()`](nw.html.md#nw.project_genre) reads instead of opening the graph.
+
+* **Type:**
+  The document key mirroring a project’s genre envelope (nw#223)
 
 ### *class* nw.graph.ProjectGraph(project)
 
@@ -193,6 +207,14 @@ Singleton per project (nw#32): the tier is the identity, so
 re-initializing replaces the recorded envelope in place — the
 annotation id is stable across replacements, like every entity
 upsert. A no-op write (same envelope) writes nothing.
+
+Also mirrored into the project’s documents ([`GENRE_ENVELOPE_DOC`](#nw.graph.GENRE_ENVELOPE_DOC),
+after the graph write), so a host lister can classify a project with
+[`nw.project_genre()`](nw.html.md#nw.project_genre) without opening its graph (nw#223). The graph
+stays the authority: two concurrent re-initializations can leave the
+mirror one envelope behind (the write is not under a project lock),
+and the next [`nw.Project.resolved_genre()`](nw.html.md#nw.Project.resolved_genre) heals it. A mirror
+write that fails is logged and leaves the graph write standing.
 
 * **Return type:**
   [`UUID`](https://docs.python.org/3/library/uuid.html#uuid.UUID)
@@ -459,6 +481,15 @@ Walk every annotation in every store under a project (any backend).
 
 * **Return type:**
   [`Iterator`](https://docs.python.org/3/library/typing.html#typing.Iterator)[`Annotation`]
+
+### nw.graph.mirror_genre_envelope(storage, body)
+
+Write `body` to `storage`’s [`GENRE_ENVELOPE_DOC`](#nw.graph.GENRE_ENVELOPE_DOC) unless it
+already holds exactly that (so a repeated read-side backfill writes
+nothing).
+
+* **Return type:**
+  [`None`](https://docs.python.org/3/builtins/constants.html#None)
 
 ### nw.graph.open_project_stores(project_root)
 

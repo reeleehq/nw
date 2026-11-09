@@ -152,7 +152,11 @@ file open makes `os.replace` / `os.unlink` of it fail with
 `PermissionError` until it closes, so a write retries those briefly
 (`retry_on`, `attempts`, doubling from `backoff_s`: ~0.6 s in all by
 default). A read is milliseconds; the retries outlast it, and they cost
-nothing unless a write is actually refused.
+nothing unless a write is actually refused. The collision also refuses
+the *reader* for the instant of the swap, so a read retries the same way
+(nw#225). Off Windows the default retries nothing, on either side. A file
+that stays refused (a real access problem) raises after the ~0.6 s of
+retries, per read.
 
 The write and the delete are `dol.atomic_write()` /
 `dol.atomic_delete()` with a `dol.atomic.Retry` (nw#213); files
@@ -372,7 +376,9 @@ Bases: [`object`](https://docs.python.org/3/builtins/functions.html#object)
 True when the run reported `has_unknown_costs` — some call that may
 have billed is not in `actual_usd` (it had no price, or it failed:
 falaw cannot know whether a failed call was billed, nw#214), so the figure
-UNDER-states the spend.
+UNDER-states the spend. Also True when the run ended without its final
+figures (its render raised, or its worker died and was reaped) after
+reporting a spend (nw#232).
 
 Its whole job is to keep a `$0` readable. Without it, `actual_usd`
 conflates two answers a spend surface must never merge: “this run cost

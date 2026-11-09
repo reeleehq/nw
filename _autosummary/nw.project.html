@@ -325,7 +325,8 @@ is <em>copied</em> into <code class="docutils literal notranslate"><span class="
 <li><p><strong>storage</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.15)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code></a>[<a class="reference internal" href="nw.storage.html#nw.storage.ProjectStorage" title="nw.storage.ProjectStorage"><code class="xref py py-class docutils literal notranslate"><span class="pre">ProjectStorage</span></code></a>]</span>) – Where the project’s documents and annotation stores
 live (<a class="reference internal" href="nw.storage.html#module-nw.storage" title="nw.storage"><code class="xref py py-mod docutils literal notranslate"><span class="pre">nw.storage</span></code></a>). <code class="docutils literal notranslate"><span class="pre">None</span></code> is nw’s own folder layout.
 A non-folder storage may share <code class="docutils literal notranslate"><span class="pre">root</span></code> with the app that owns
-it, so its folder only has to be free of an nw project.</p></li>
+it, so its folder only has to be free of an nw project. Its
+<code class="docutils literal notranslate"><span class="pre">root</span></code> must be <code class="docutils literal notranslate"><span class="pre">root</span></code> (<code class="docutils literal notranslate"><span class="pre">ValueError</span></code> otherwise).</p></li>
 </ul>
 </dd>
 <dt class="field-even">Return type<span class="colon">:</span></dt>
@@ -444,6 +445,9 @@ persists at creation (nw#32) — same shape as
 the <em>effective</em> creation params without re-deriving them. <code class="docutils literal notranslate"><span class="pre">None</span></code>
 for a project with no recorded genre (created before nw#32, or not
 through the genre machinery).</p>
+<p>The authoritative read (it opens the graph); a host lister that only
+classifies projects reads the mirror with <a class="reference internal" href="nw.html#nw.project_genre" title="nw.project_genre"><code class="xref py py-func docutils literal notranslate"><span class="pre">nw.project_genre()</span></code></a>
+instead, which this call backfills for older projects.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.15)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code></a>[<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#dict" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></a>]</span></p>
@@ -646,7 +650,7 @@ not a path detector; the contract is still the hook author’s to keep.</p>
     </div>
   </div>
 </footer>
-      <script src="../_static/documentation_options.js?v=3a8547cf"></script>
+      <script src="../_static/documentation_options.js?v=5574531b"></script>
       <script src="../_static/doctools.js?v=fd6eb6e6"></script>
       <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
