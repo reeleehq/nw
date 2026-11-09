@@ -11,6 +11,7 @@ nw.rewrite
       MARKER_PREFIX
       LOCK_NAME
       MARKER_PATTERN
+      TRACE_UPGRADE_MARKER
    
    .. rubric:: Functions
 
@@ -21,4 +22,5 @@ nw.rewrite
       mark_rewritten
       rewrite_values
       unmark_rewritten
+      upgrade_superseded_traces
    

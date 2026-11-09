@@ -11,3 +11,4 @@ nw.testing
    :recursive:
 
    postgres
+   transforms

@@ -41,6 +41,7 @@
       require_fields
       safe_path_segment
       unmark_rewritten
+      upgrade_superseded_traces
       adopt_tenant_id
       as_project_storage
       is_project

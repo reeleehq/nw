@@ -1,4 +1,4 @@
-> built 2026-11-09 00:53 UTC from f806501 (main) · nw 0.0.151. Details: build_info.json
+> built 2026-11-09 01:06 UTC from 871d3e3 (main) · nw 0.0.152. Details: build_info.json
 
 # index.html.md
 
@@ -3879,6 +3879,7 @@ are recorded as linked artifacts), see
 | [`require_fields`](_autosummary/nw.html.md#nw.require_fields)(cls, fields, \*[, remedy])         | Raise [`NwTooOldError`](_autosummary/nw.html.md#nw.NwTooOldError) unless `cls` accepts every keyword in `fields` (names, or a mapping whose keys are the names).                                                                |
 | [`safe_path_segment`](_autosummary/nw.html.md#nw.safe_path_segment)(value, \*[, suffix, max_bytes]) | A single file name for `value` (plus `suffix`) that is always a direct child of the directory it is joined to.                                                                                                                     |
 | [`unmark_rewritten`](_autosummary/nw.html.md#nw.unmark_rewritten)(project, marker)                 | Forget that `marker` ran, so the next [`rewrite_values()`](_autosummary/nw.html.md#nw.rewrite_values) with it scans again (a test simulating a project made before the rename).                                                  |
+| [`upgrade_superseded_traces`](_autosummary/nw.html.md#nw.upgrade_superseded_traces)(project, \*[, marker])  | Re-record every verifying trace that is on a superseded digest scheme, or whose entries are not what nw records today, **while it still vouches** for its parents' current values; return how many traces moved (nw#226).          |
 | [`adopt_tenant_id`](_autosummary/nw.html.md#nw.adopt_tenant_id)(project, \*[, dry_run])           | Pin a legacy project's historical tenant into `project.json` (nw#112).                                                                                                                                                             |
 | [`as_project_storage`](_autosummary/nw.html.md#nw.as_project_storage)(project)                       | The [`ProjectStorage`](_autosummary/nw.html.md#nw.ProjectStorage) for a path, a storage, or an `nw.Project`.                                                                                                                     |
 | [`is_project`](_autosummary/nw.html.md#nw.is_project)(project)                               | Whether `project` (a path, a storage, or an `nw.Project`) holds an nw project, without naming nw's marker document (nw#217).                                                                                                       |
@@ -7785,6 +7786,32 @@ were no calls to diff. Read [`PlanQuote.reason`](_autosummary/nw.html.md#nw.Plan
 * **Return type:**
   [`PlanQuote`](_autosummary/nw.pricing.html.md#nw.pricing.PlanQuote)
 
+### nw.upgrade_superseded_traces(project, , marker='traces-on-current-digest-scheme')
+
+Re-record every verifying trace that is on a superseded digest scheme, or
+whose entries are not what nw records today, **while it still vouches** for
+its parents’ current values; return how many traces moved (nw#226).
+
+Per trace: an entry equal to [`upstream_entry()`](_autosummary/nw.bodies.verifying_trace.html.md#nw.bodies.verifying_trace.upstream_entry)
+today (digest and `excluded_paths` together) is kept; one whose recorded
+digest still describes the parent
+([`digest_vouches()`](_autosummary/nw.bodies.verifying_trace.html.md#nw.bodies.verifying_trace.digest_vouches) under the entry’s scheme
+and exclusions) is re-recorded as `upstream_entry` records it; any other
+entry means the trace is already stale, and it is left alone (never
+blessed). So a fresh dependent stays fresh and a stale one stays stale.
+
+Why: a trace recorded under an old scheme digests the whole body, so a later
+fill of a `Derived` field (a panel image’s `asset_id`) reads as an
+upstream change, and each host repaired that per write (reelee’s
+`_upgrade_traces`). Run once per project, it never meets the fill.
+
+Idempotent; with `marker` (the default) it runs at most once per project,
+under the same lock and marker discipline as [`rewrite_values()`](_autosummary/nw.html.md#nw.rewrite_values);
+`marker=None` runs every time.
+
+* **Return type:**
+  [`int`](https://docs.python.org/3/builtins/functions.html#int)
+
 ### nw.using_secrets(secrets)
 
 Bind the secrets nw itself knows how to use, for the duration of a block.
@@ -10754,19 +10781,21 @@ kept, because a rename is not a change of look.
 
 ### Module Attributes
 
-| [`MARKER_PREFIX`](_autosummary/nw.rewrite.html.md#nw.rewrite.MARKER_PREFIX)   | Key prefix, in `storage.docs`, of the success markers (`<prefix><name>.json`).              |
-|------------------------------------------------------------------|---------------------------------------------------------------------------------------------|
-| [`LOCK_NAME`](_autosummary/nw.rewrite.html.md#nw.rewrite.LOCK_NAME)       | The one `project_lock()` every rewrite takes.                                               |
-| [`MARKER_PATTERN`](_autosummary/nw.rewrite.html.md#nw.rewrite.MARKER_PATTERN)  | a slug, so it cannot escape [`MARKER_PREFIX`](_autosummary/nw.rewrite.html.md#nw.rewrite.MARKER_PREFIX). |
+| [`MARKER_PREFIX`](_autosummary/nw.rewrite.html.md#nw.rewrite.MARKER_PREFIX)        | Key prefix, in `storage.docs`, of the success markers (`<prefix><name>.json`).                                                                                                                |
+|-----------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| [`LOCK_NAME`](_autosummary/nw.rewrite.html.md#nw.rewrite.LOCK_NAME)            | The one `project_lock()` every rewrite takes.                                                                                                                                                 |
+| [`MARKER_PATTERN`](_autosummary/nw.rewrite.html.md#nw.rewrite.MARKER_PATTERN)       | a slug, so it cannot escape [`MARKER_PREFIX`](_autosummary/nw.rewrite.html.md#nw.rewrite.MARKER_PREFIX).                                                                                                   |
+| [`TRACE_UPGRADE_MARKER`](_autosummary/nw.rewrite.html.md#nw.rewrite.TRACE_UPGRADE_MARKER) | The marker [`upgrade_superseded_traces()`](_autosummary/nw.rewrite.html.md#nw.rewrite.upgrade_superseded_traces) records once a project's traces are all on today's digest scheme (bump it if the scheme moves again). |
 
 ### Functions
 
-| [`is_rewritten`](_autosummary/nw.rewrite.html.md#nw.rewrite.is_rewritten)(project, marker)                    | Whether the rewrite named `marker` has completed on this project.                                                                                                                 |
-|---------------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| [`is_value_row`](_autosummary/nw.rewrite.html.md#nw.rewrite.is_value_row)(ann)                                | The default `where`: every annotation except nw's verifying traces.                                                                                                               |
-| [`mark_rewritten`](_autosummary/nw.rewrite.html.md#nw.rewrite.mark_rewritten)(project, marker)                  | Record `marker` as done without scanning: for a project created already in today's vocabulary, so opening it never pays for the scan.                                             |
-| [`rewrite_values`](_autosummary/nw.rewrite.html.md#nw.rewrite.rewrite_values)(project, fn, \*[, marker, where]) | Apply `fn(body) -> body` to every stored annotation body; return how many changed.                                                                                                |
-| [`unmark_rewritten`](_autosummary/nw.rewrite.html.md#nw.rewrite.unmark_rewritten)(project, marker)                | Forget that `marker` ran, so the next [`rewrite_values()`](_autosummary/nw.rewrite.html.md#nw.rewrite.rewrite_values) with it scans again (a test simulating a project made before the rename). |
+| [`is_rewritten`](_autosummary/nw.rewrite.html.md#nw.rewrite.is_rewritten)(project, marker)                    | Whether the rewrite named `marker` has completed on this project.                                                                                                                                                         |
+|---------------------------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| [`is_value_row`](_autosummary/nw.rewrite.html.md#nw.rewrite.is_value_row)(ann)                                | The default `where`: every annotation except nw's verifying traces.                                                                                                                                                       |
+| [`mark_rewritten`](_autosummary/nw.rewrite.html.md#nw.rewrite.mark_rewritten)(project, marker)                  | Record `marker` as done without scanning: for a project created already in today's vocabulary, so opening it never pays for the scan.                                                                                     |
+| [`rewrite_values`](_autosummary/nw.rewrite.html.md#nw.rewrite.rewrite_values)(project, fn, \*[, marker, where]) | Apply `fn(body) -> body` to every stored annotation body; return how many changed.                                                                                                                                        |
+| [`unmark_rewritten`](_autosummary/nw.rewrite.html.md#nw.rewrite.unmark_rewritten)(project, marker)                | Forget that `marker` ran, so the next [`rewrite_values()`](_autosummary/nw.rewrite.html.md#nw.rewrite.rewrite_values) with it scans again (a test simulating a project made before the rename).                                         |
+| [`upgrade_superseded_traces`](_autosummary/nw.rewrite.html.md#nw.rewrite.upgrade_superseded_traces)(project, \*[, marker]) | Re-record every verifying trace that is on a superseded digest scheme, or whose entries are not what nw records today, **while it still vouches** for its parents' current values; return how many traces moved (nw#226). |
 
 ### nw.rewrite.LOCK_NAME *= 'rewrite-values'*
 
@@ -10784,6 +10813,11 @@ a slug, so it cannot escape [`MARKER_PREFIX`](_autosummary/nw.rewrite.html.md#nw
 ### nw.rewrite.MARKER_PREFIX *= '.nw/rewrites/'*
 
 Key prefix, in `storage.docs`, of the success markers (`<prefix><name>.json`).
+
+### nw.rewrite.TRACE_UPGRADE_MARKER *= 'traces-on-current-digest-scheme'*
+
+The marker [`upgrade_superseded_traces()`](_autosummary/nw.rewrite.html.md#nw.rewrite.upgrade_superseded_traces) records once a project’s traces
+are all on today’s digest scheme (bump it if the scheme moves again).
 
 ### nw.rewrite.is_rewritten(project, marker)
 
@@ -10847,6 +10881,32 @@ removal; its value is never read, so a corrupt marker can be cleared too.
 
 * **Return type:**
   [`None`](https://docs.python.org/3/builtins/constants.html#None)
+
+### nw.rewrite.upgrade_superseded_traces(project, , marker='traces-on-current-digest-scheme')
+
+Re-record every verifying trace that is on a superseded digest scheme, or
+whose entries are not what nw records today, **while it still vouches** for
+its parents’ current values; return how many traces moved (nw#226).
+
+Per trace: an entry equal to [`upstream_entry()`](_autosummary/nw.bodies.verifying_trace.html.md#nw.bodies.verifying_trace.upstream_entry)
+today (digest and `excluded_paths` together) is kept; one whose recorded
+digest still describes the parent
+([`digest_vouches()`](_autosummary/nw.bodies.verifying_trace.html.md#nw.bodies.verifying_trace.digest_vouches) under the entry’s scheme
+and exclusions) is re-recorded as `upstream_entry` records it; any other
+entry means the trace is already stale, and it is left alone (never
+blessed). So a fresh dependent stays fresh and a stale one stays stale.
+
+Why: a trace recorded under an old scheme digests the whole body, so a later
+fill of a `Derived` field (a panel image’s `asset_id`) reads as an
+upstream change, and each host repaired that per write (reelee’s
+`_upgrade_traces`). Run once per project, it never meets the fill.
+
+Idempotent; with `marker` (the default) it runs at most once per project,
+under the same lock and marker discipline as [`rewrite_values()`](_autosummary/nw.rewrite.html.md#nw.rewrite.rewrite_values);
+`marker=None` runs every time.
+
+* **Return type:**
+  [`int`](https://docs.python.org/3/builtins/functions.html#int)
 
 
 # _autosummary/nw.schema.html.md
@@ -11809,12 +11869,95 @@ graph it already has stays readable.
 Test helpers nw ships for its consumers (hosts, genres, plugins).
 
 Nothing here is imported by `import nw`; a consumer imports the module it
-needs from its own tests or conftest. Each module may need test-only
+needs from its own tests or conftest: `nw.testing.postgres` (a per-test
+Postgres graph backend) and [`nw.testing.transforms`](_autosummary/nw.testing.transforms.html.md#module-nw.testing.transforms) (does a Transform’s
+result say truthfully what it wrote). Each module may need test-only
 dependencies (`pytest`, and for `nw.testing.postgres` the
 `pytest-postgresql` / `psycopg` pair plus a Postgres binary), and skips
 cleanly where they are missing.
 
 ### Modules
+
+| [`transforms`](_autosummary/nw.testing.transforms.html.md#module-nw.testing.transforms)   | Conformance check: a Transform's result says truthfully what it wrote (nw#234).   |
+|--------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------|
+
+
+# _autosummary/nw.testing.transforms.html.md
+
+# nw.testing.transforms
+
+Conformance check: a Transform’s result says truthfully what it wrote (nw#234).
+
+`nw.transforms.TransformResult.reused_ids` is an **obligation** on an
+overriding `execute`: report every returned node it did not write in this
+call (nw#215). nw cannot check that at runtime (overrides legitimately mint
+ids), but a Transform author’s test can:
+
+```default
+from nw.testing.transforms import recording_writes
+
+with recording_writes(project) as writes:
+    result = my_transform.execute(project, plan, skeleton)
+writes.check(result)  # AssertionError naming every misreported row
+```
+
+A row counts as **written in the call** when its id is new, its content changed
+(body, generation stamp or tier: an in-place entity upsert counts), or a
+verifying trace naming it was recorded during the call (a derived node
+re-written unchanged; nw’s `add_annotation` records one per write, under a
+fresh id). What counts is fixed when the `with` block exits.
+[`WriteRecord.check()`](_autosummary/nw.testing.transforms.html.md#nw.testing.transforms.WriteRecord.check) asserts every `result.written` row was, and every
+`result.reused_ids` row was not. Run it over a host’s registered Transforms,
+the way nw pins every `execute` signature.
+
+### Functions
+
+| [`recording_writes`](_autosummary/nw.testing.transforms.html.md#nw.testing.transforms.recording_writes)(project)   | Snapshot `project` now and, on exit, what the block wrote; [`WriteRecord.check()`](_autosummary/nw.testing.transforms.html.md#nw.testing.transforms.WriteRecord.check) a result made inside.   |
+|------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------|
+
+### Classes
+
+| [`WriteRecord`](_autosummary/nw.testing.transforms.html.md#nw.testing.transforms.WriteRecord)(project, before[, \_written])   | What [`recording_writes()`](_autosummary/nw.testing.transforms.html.md#nw.testing.transforms.recording_writes) saw: the project on entry and, once the block has exited, what was written inside it.   |
+|----------------------------------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+
+### *class* nw.testing.transforms.WriteRecord(project, before, \_written=None)
+
+Bases: [`object`](https://docs.python.org/3/builtins/functions.html#object)
+
+What [`recording_writes()`](_autosummary/nw.testing.transforms.html.md#nw.testing.transforms.recording_writes) saw: the project on entry and, once the
+block has exited, what was written inside it.
+
+#### check(result, , require_traces=True)
+
+Raise `AssertionError` unless `result.written` / `result.reused_ids`
+tell the truth (a real raise, so `python -O` cannot skip it).
+
+`require_traces` (default `True`) also flags a written **derived**
+row (one with `was_derived_from` parents) that got no verifying trace
+in the block: written by a raw `store.add`, or by `add_annotation`
+with a parent it could not resolve or digest, it reads stale forever
+(nw#271). Only rows the result reports are scanned; a derived row
+written but not reported is out of this check’s reach.
+
+* **Return type:**
+  [`None`](https://docs.python.org/3/builtins/constants.html#None)
+
+#### written_in_call()
+
+Ids written inside the block: new, changed (body, stamp or tier), or
+re-written unchanged (a fresh verifying trace names them). Fixed when the
+block exits; computed live while still inside it.
+
+* **Return type:**
+  [`frozenset`](https://docs.python.org/3/builtins/stdtypes.html#frozenset)[[`UUID`](https://docs.python.org/3/library/uuid.html#uuid.UUID)]
+
+### nw.testing.transforms.recording_writes(project)
+
+Snapshot `project` now and, on exit, what the block wrote;
+[`WriteRecord.check()`](_autosummary/nw.testing.transforms.html.md#nw.testing.transforms.WriteRecord.check) a result made inside.
+
+* **Return type:**
+  [`Iterator`](https://docs.python.org/3/library/typing.html#typing.Iterator)[[`WriteRecord`](_autosummary/nw.testing.transforms.html.md#nw.testing.transforms.WriteRecord)]
 
 
 # _autosummary/nw.transforms.html.md
@@ -12452,7 +12595,7 @@ produce different URLs. The local file paths are byte-stable.
 
 # About this build
 
-This documentation was built on **2026-11-09 00:53 UTC** from commit <a href="https://github.com/reeleehq/nw/commit/f8065010e9574b6ed8cf6ea587e8864dbc755417"><code>f806501</code></a> on branch <code>main</code>, for **nw 0.0.151** (from <code>pyproject.toml</code>).
+This documentation was built on **2026-11-09 01:06 UTC** from commit <a href="https://github.com/reeleehq/nw/commit/871d3e3eff4a019cfae6e69a07df845d712d6fea"><code>871d3e3</code></a> on branch <code>main</code>, for **nw 0.0.152** (from <code>pyproject.toml</code>).
 
 #### NOTE
 Nothing suggests a mismatch: the tree was clean at the commit above, and the documented version is the one on PyPI.
@@ -12461,9 +12604,9 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 
 |                     |                                                                                                                                                    |
 |---------------------|----------------------------------------------------------------------------------------------------------------------------------------------------|
-| Commit              | <a href="https://github.com/reeleehq/nw/commit/f8065010e9574b6ed8cf6ea587e8864dbc755417"><code>f8065010e9574b6ed8cf6ea587e8864dbc755417</code></a> |
+| Commit              | <a href="https://github.com/reeleehq/nw/commit/871d3e3eff4a019cfae6e69a07df845d712d6fea"><code>871d3e3eff4a019cfae6e69a07df845d712d6fea</code></a> |
 | Branch              | <code>main</code>                                                                                                                                  |
-| Tags at this commit | <code>0.0.151</code>                                                                                                                               |
+| Tags at this commit | <code>0.0.152</code>                                                                                                                               |
 | Working tree        | clean                                                                                                                                              |
 | Remote              | <code>https://github.com/reeleehq/nw</code>                                                                                                        |
 
@@ -12472,9 +12615,9 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 |              |                                                                                            |
 |--------------|--------------------------------------------------------------------------------------------|
 | Repository   | <code>reeleehq/nw</code>                                                                   |
-| Run          | <a href="https://github.com/reeleehq/nw/actions/runs/42542362283">42542362283</a>          |
+| Run          | <a href="https://github.com/reeleehq/nw/actions/runs/42543469104">42543469104</a>          |
 | Ref          | <code>refs/heads/main</code>                                                               |
-| Event commit | <code>d732001cfac58ee736acfed5e6b2c1e0edf5b4ea</code> (in the history of the built commit) |
+| Event commit | <code>f6ce14e7e5c4ab260f5d26e4c12b61398e55d8ac</code> (in the history of the built commit) |
 
 ## Tools
 
@@ -12499,13 +12642,13 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 
 ## Package on PyPI
 
-Latest release: <a href="https://pypi.org/project/nw/0.0.151/">0.0.151</a>, the same as the documented version.
+Latest release: <a href="https://pypi.org/project/nw/0.0.152/">0.0.152</a>, the same as the documented version.
 
 ## Reproduce
 
 ```bash
 git clone https://github.com/reeleehq/nw && cd nw
-git checkout f8065010e9574b6ed8cf6ea587e8864dbc755417
+git checkout 871d3e3eff4a019cfae6e69a07df845d712d6fea
 pip install "epythet==0.2.22"
 epythet quickstart . --ignore tests/ scrap/ examples/
 ```

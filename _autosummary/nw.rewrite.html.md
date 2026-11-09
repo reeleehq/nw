@@ -42,19 +42,21 @@ kept, because a rename is not a change of look.
 
 ### Module Attributes
 
-| [`MARKER_PREFIX`](#nw.rewrite.MARKER_PREFIX)   | Key prefix, in `storage.docs`, of the success markers (`<prefix><name>.json`).              |
-|------------------------------------------------------------------|---------------------------------------------------------------------------------------------|
-| [`LOCK_NAME`](#nw.rewrite.LOCK_NAME)       | The one `project_lock()` every rewrite takes.                                               |
-| [`MARKER_PATTERN`](#nw.rewrite.MARKER_PATTERN)  | a slug, so it cannot escape [`MARKER_PREFIX`](#nw.rewrite.MARKER_PREFIX). |
+| [`MARKER_PREFIX`](#nw.rewrite.MARKER_PREFIX)        | Key prefix, in `storage.docs`, of the success markers (`<prefix><name>.json`).                                                                                                                |
+|-----------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| [`LOCK_NAME`](#nw.rewrite.LOCK_NAME)            | The one `project_lock()` every rewrite takes.                                                                                                                                                 |
+| [`MARKER_PATTERN`](#nw.rewrite.MARKER_PATTERN)       | a slug, so it cannot escape [`MARKER_PREFIX`](#nw.rewrite.MARKER_PREFIX).                                                                                                   |
+| [`TRACE_UPGRADE_MARKER`](#nw.rewrite.TRACE_UPGRADE_MARKER) | The marker [`upgrade_superseded_traces()`](#nw.rewrite.upgrade_superseded_traces) records once a project's traces are all on today's digest scheme (bump it if the scheme moves again). |
 
 ### Functions
 
-| [`is_rewritten`](#nw.rewrite.is_rewritten)(project, marker)                    | Whether the rewrite named `marker` has completed on this project.                                                                                                                 |
-|---------------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| [`is_value_row`](#nw.rewrite.is_value_row)(ann)                                | The default `where`: every annotation except nw's verifying traces.                                                                                                               |
-| [`mark_rewritten`](#nw.rewrite.mark_rewritten)(project, marker)                  | Record `marker` as done without scanning: for a project created already in today's vocabulary, so opening it never pays for the scan.                                             |
-| [`rewrite_values`](#nw.rewrite.rewrite_values)(project, fn, \*[, marker, where]) | Apply `fn(body) -> body` to every stored annotation body; return how many changed.                                                                                                |
-| [`unmark_rewritten`](#nw.rewrite.unmark_rewritten)(project, marker)                | Forget that `marker` ran, so the next [`rewrite_values()`](#nw.rewrite.rewrite_values) with it scans again (a test simulating a project made before the rename). |
+| [`is_rewritten`](#nw.rewrite.is_rewritten)(project, marker)                    | Whether the rewrite named `marker` has completed on this project.                                                                                                                                                         |
+|---------------------------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| [`is_value_row`](#nw.rewrite.is_value_row)(ann)                                | The default `where`: every annotation except nw's verifying traces.                                                                                                                                                       |
+| [`mark_rewritten`](#nw.rewrite.mark_rewritten)(project, marker)                  | Record `marker` as done without scanning: for a project created already in today's vocabulary, so opening it never pays for the scan.                                                                                     |
+| [`rewrite_values`](#nw.rewrite.rewrite_values)(project, fn, \*[, marker, where]) | Apply `fn(body) -> body` to every stored annotation body; return how many changed.                                                                                                                                        |
+| [`unmark_rewritten`](#nw.rewrite.unmark_rewritten)(project, marker)                | Forget that `marker` ran, so the next [`rewrite_values()`](#nw.rewrite.rewrite_values) with it scans again (a test simulating a project made before the rename).                                         |
+| [`upgrade_superseded_traces`](#nw.rewrite.upgrade_superseded_traces)(project, \*[, marker]) | Re-record every verifying trace that is on a superseded digest scheme, or whose entries are not what nw records today, **while it still vouches** for its parents' current values; return how many traces moved (nw#226). |
 
 ### nw.rewrite.LOCK_NAME *= 'rewrite-values'*
 
@@ -72,6 +74,11 @@ a slug, so it cannot escape [`MARKER_PREFIX`](#nw.rewrite.MARKER_PREFIX).
 ### nw.rewrite.MARKER_PREFIX *= '.nw/rewrites/'*
 
 Key prefix, in `storage.docs`, of the success markers (`<prefix><name>.json`).
+
+### nw.rewrite.TRACE_UPGRADE_MARKER *= 'traces-on-current-digest-scheme'*
+
+The marker [`upgrade_superseded_traces()`](#nw.rewrite.upgrade_superseded_traces) records once a project’s traces
+are all on today’s digest scheme (bump it if the scheme moves again).
 
 ### nw.rewrite.is_rewritten(project, marker)
 
@@ -135,3 +142,29 @@ removal; its value is never read, so a corrupt marker can be cleared too.
 
 * **Return type:**
   [`None`](https://docs.python.org/3/builtins/constants.html#None)
+
+### nw.rewrite.upgrade_superseded_traces(project, , marker='traces-on-current-digest-scheme')
+
+Re-record every verifying trace that is on a superseded digest scheme, or
+whose entries are not what nw records today, **while it still vouches** for
+its parents’ current values; return how many traces moved (nw#226).
+
+Per trace: an entry equal to [`upstream_entry()`](nw.bodies.verifying_trace.html.md#nw.bodies.verifying_trace.upstream_entry)
+today (digest and `excluded_paths` together) is kept; one whose recorded
+digest still describes the parent
+([`digest_vouches()`](nw.bodies.verifying_trace.html.md#nw.bodies.verifying_trace.digest_vouches) under the entry’s scheme
+and exclusions) is re-recorded as `upstream_entry` records it; any other
+entry means the trace is already stale, and it is left alone (never
+blessed). So a fresh dependent stays fresh and a stale one stays stale.
+
+Why: a trace recorded under an old scheme digests the whole body, so a later
+fill of a `Derived` field (a panel image’s `asset_id`) reads as an
+upstream change, and each host repaired that per write (reelee’s
+`_upgrade_traces`). Run once per project, it never meets the fill.
+
+Idempotent; with `marker` (the default) it runs at most once per project,
+under the same lock and marker discipline as [`rewrite_values()`](#nw.rewrite.rewrite_values);
+`marker=None` runs every time.
+
+* **Return type:**
+  [`int`](https://docs.python.org/3/builtins/functions.html#int)

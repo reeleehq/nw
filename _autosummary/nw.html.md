@@ -83,6 +83,7 @@ are recorded as linked artifacts), see
 | [`require_fields`](#nw.require_fields)(cls, fields, \*[, remedy])         | Raise [`NwTooOldError`](#nw.NwTooOldError) unless `cls` accepts every keyword in `fields` (names, or a mapping whose keys are the names).                                                                |
 | [`safe_path_segment`](#nw.safe_path_segment)(value, \*[, suffix, max_bytes]) | A single file name for `value` (plus `suffix`) that is always a direct child of the directory it is joined to.                                                                                                                     |
 | [`unmark_rewritten`](#nw.unmark_rewritten)(project, marker)                 | Forget that `marker` ran, so the next [`rewrite_values()`](#nw.rewrite_values) with it scans again (a test simulating a project made before the rename).                                                  |
+| [`upgrade_superseded_traces`](#nw.upgrade_superseded_traces)(project, \*[, marker])  | Re-record every verifying trace that is on a superseded digest scheme, or whose entries are not what nw records today, **while it still vouches** for its parents' current values; return how many traces moved (nw#226).          |
 | [`adopt_tenant_id`](#nw.adopt_tenant_id)(project, \*[, dry_run])           | Pin a legacy project's historical tenant into `project.json` (nw#112).                                                                                                                                                             |
 | [`as_project_storage`](#nw.as_project_storage)(project)                       | The [`ProjectStorage`](#nw.ProjectStorage) for a path, a storage, or an `nw.Project`.                                                                                                                     |
 | [`is_project`](#nw.is_project)(project)                               | Whether `project` (a path, a storage, or an `nw.Project`) holds an nw project, without naming nw's marker document (nw#217).                                                                                                       |
@@ -3988,6 +3989,32 @@ were no calls to diff. Read [`PlanQuote.reason`](#nw.PlanQuote.reason) for what 
 
 * **Return type:**
   [`PlanQuote`](nw.pricing.html.md#nw.pricing.PlanQuote)
+
+### nw.upgrade_superseded_traces(project, , marker='traces-on-current-digest-scheme')
+
+Re-record every verifying trace that is on a superseded digest scheme, or
+whose entries are not what nw records today, **while it still vouches** for
+its parents’ current values; return how many traces moved (nw#226).
+
+Per trace: an entry equal to [`upstream_entry()`](nw.bodies.verifying_trace.html.md#nw.bodies.verifying_trace.upstream_entry)
+today (digest and `excluded_paths` together) is kept; one whose recorded
+digest still describes the parent
+([`digest_vouches()`](nw.bodies.verifying_trace.html.md#nw.bodies.verifying_trace.digest_vouches) under the entry’s scheme
+and exclusions) is re-recorded as `upstream_entry` records it; any other
+entry means the trace is already stale, and it is left alone (never
+blessed). So a fresh dependent stays fresh and a stale one stays stale.
+
+Why: a trace recorded under an old scheme digests the whole body, so a later
+fill of a `Derived` field (a panel image’s `asset_id`) reads as an
+upstream change, and each host repaired that per write (reelee’s
+`_upgrade_traces`). Run once per project, it never meets the fill.
+
+Idempotent; with `marker` (the default) it runs at most once per project,
+under the same lock and marker discipline as [`rewrite_values()`](#nw.rewrite_values);
+`marker=None` runs every time.
+
+* **Return type:**
+  [`int`](https://docs.python.org/3/builtins/functions.html#int)
 
 ### nw.using_secrets(secrets)
 

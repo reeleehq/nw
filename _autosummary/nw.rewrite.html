@@ -111,7 +111,10 @@ data-aria-dark="Switch to auto color mode">
 <li class="toctree-l3"><a class="reference internal" href="nw.secrets.html">nw.secrets</a></li>
 <li class="toctree-l3"><a class="reference internal" href="nw.stages.html">nw.stages</a></li>
 <li class="toctree-l3"><a class="reference internal" href="nw.storage.html">nw.storage</a></li>
-<li class="toctree-l3"><a class="reference internal" href="nw.testing.html">nw.testing</a></li>
+<li class="toctree-l3"><a class="reference internal" href="nw.testing.html">nw.testing</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="nw.testing.transforms.html">nw.testing.transforms</a></li>
+</ul>
+</li>
 <li class="toctree-l3"><a class="reference internal" href="nw.transforms.html">nw.transforms</a></li>
 <li class="toctree-l3"><a class="reference internal" href="nw.validation.html">nw.validation</a></li>
 <li class="toctree-l3"><a class="reference internal" href="nw.workflow.html">nw.workflow</a></li>
@@ -135,11 +138,13 @@ data-aria-dark="Switch to auto color mode">
 <li><a class="reference internal" href="#nw.rewrite.LOCK_NAME"><code class="docutils literal notranslate"><span class="pre">LOCK_NAME</span></code></a></li>
 <li><a class="reference internal" href="#nw.rewrite.MARKER_PATTERN"><code class="docutils literal notranslate"><span class="pre">MARKER_PATTERN</span></code></a></li>
 <li><a class="reference internal" href="#nw.rewrite.MARKER_PREFIX"><code class="docutils literal notranslate"><span class="pre">MARKER_PREFIX</span></code></a></li>
+<li><a class="reference internal" href="#nw.rewrite.TRACE_UPGRADE_MARKER"><code class="docutils literal notranslate"><span class="pre">TRACE_UPGRADE_MARKER</span></code></a></li>
 <li><a class="reference internal" href="#nw.rewrite.is_rewritten"><code class="docutils literal notranslate"><span class="pre">is_rewritten()</span></code></a></li>
 <li><a class="reference internal" href="#nw.rewrite.is_value_row"><code class="docutils literal notranslate"><span class="pre">is_value_row()</span></code></a></li>
 <li><a class="reference internal" href="#nw.rewrite.mark_rewritten"><code class="docutils literal notranslate"><span class="pre">mark_rewritten()</span></code></a></li>
 <li><a class="reference internal" href="#nw.rewrite.rewrite_values"><code class="docutils literal notranslate"><span class="pre">rewrite_values()</span></code></a></li>
 <li><a class="reference internal" href="#nw.rewrite.unmark_rewritten"><code class="docutils literal notranslate"><span class="pre">unmark_rewritten()</span></code></a></li>
+<li><a class="reference internal" href="#nw.rewrite.upgrade_superseded_traces"><code class="docutils literal notranslate"><span class="pre">upgrade_superseded_traces()</span></code></a></li>
 </ul>
 </div><div id="ethical-ad-placement" data-ea-publisher="readthedocs"></div></div>
   </aside>
@@ -223,6 +228,9 @@ kept, because a rename is not a change of look.</p>
 <tr class="row-odd"><td><p><a class="reference internal" href="#nw.rewrite.MARKER_PATTERN" title="nw.rewrite.MARKER_PATTERN"><code class="xref py py-obj docutils literal notranslate"><span class="pre">MARKER_PATTERN</span></code></a></p></td>
 <td><p>a slug, so it cannot escape <a class="reference internal" href="#nw.rewrite.MARKER_PREFIX" title="nw.rewrite.MARKER_PREFIX"><code class="xref py py-data docutils literal notranslate"><span class="pre">MARKER_PREFIX</span></code></a>.</p></td>
 </tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#nw.rewrite.TRACE_UPGRADE_MARKER" title="nw.rewrite.TRACE_UPGRADE_MARKER"><code class="xref py py-obj docutils literal notranslate"><span class="pre">TRACE_UPGRADE_MARKER</span></code></a></p></td>
+<td><p>The marker <a class="reference internal" href="#nw.rewrite.upgrade_superseded_traces" title="nw.rewrite.upgrade_superseded_traces"><code class="xref py py-func docutils literal notranslate"><span class="pre">upgrade_superseded_traces()</span></code></a> records once a project's traces are all on today's digest scheme (bump it if the scheme moves again).</p></td>
+</tr>
 </tbody>
 </table>
 </div>
@@ -244,6 +252,9 @@ kept, because a rename is not a change of look.</p>
 </tr>
 <tr class="row-odd"><td><p><a class="reference internal" href="#nw.rewrite.unmark_rewritten" title="nw.rewrite.unmark_rewritten"><code class="xref py py-obj docutils literal notranslate"><span class="pre">unmark_rewritten</span></code></a>(project, marker)</p></td>
 <td><p>Forget that <code class="docutils literal notranslate"><span class="pre">marker</span></code> ran, so the next <a class="reference internal" href="#nw.rewrite.rewrite_values" title="nw.rewrite.rewrite_values"><code class="xref py py-func docutils literal notranslate"><span class="pre">rewrite_values()</span></code></a> with it scans again (a test simulating a project made before the rename).</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#nw.rewrite.upgrade_superseded_traces" title="nw.rewrite.upgrade_superseded_traces"><code class="xref py py-obj docutils literal notranslate"><span class="pre">upgrade_superseded_traces</span></code></a>(project, *[, marker])</p></td>
+<td><p>Re-record every verifying trace that is on a superseded digest scheme, or whose entries are not what nw records today, <strong>while it still vouches</strong> for its parents' current values; return how many traces moved (nw#226).</p></td>
 </tr>
 </tbody>
 </table>
@@ -271,6 +282,13 @@ invalidate the other’s digests.</p>
 <dt class="sig sig-object py" id="nw.rewrite.MARKER_PREFIX">
 <span class="sig-prename descclassname"><span class="pre">nw.rewrite.</span></span><span class="sig-name descname"><span class="pre">MARKER_PREFIX</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'.nw/rewrites/'</span></span><a class="headerlink" href="#nw.rewrite.MARKER_PREFIX" title="Link to this definition">#</a></dt>
 <dd><p>Key prefix, in <code class="docutils literal notranslate"><span class="pre">storage.docs</span></code>, of the success markers (<code class="docutils literal notranslate"><span class="pre">&lt;prefix&gt;&lt;name&gt;.json</span></code>).</p>
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="nw.rewrite.TRACE_UPGRADE_MARKER">
+<span class="sig-prename descclassname"><span class="pre">nw.rewrite.</span></span><span class="sig-name descname"><span class="pre">TRACE_UPGRADE_MARKER</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'traces-on-current-digest-scheme'</span></span><a class="headerlink" href="#nw.rewrite.TRACE_UPGRADE_MARKER" title="Link to this definition">#</a></dt>
+<dd><p>The marker <a class="reference internal" href="#nw.rewrite.upgrade_superseded_traces" title="nw.rewrite.upgrade_superseded_traces"><code class="xref py py-func docutils literal notranslate"><span class="pre">upgrade_superseded_traces()</span></code></a> records once a project’s traces
+are all on today’s digest scheme (bump it if the scheme moves again).</p>
 </dd></dl>
 
 <dl class="py function">
@@ -351,6 +369,33 @@ removal; its value is never read, so a corrupt marker can be cleared too.</p>
 </dl>
 </dd></dl>
 
+<dl class="py function">
+<dt class="sig sig-object py" id="nw.rewrite.upgrade_superseded_traces">
+<span class="sig-prename descclassname"><span class="pre">nw.rewrite.</span></span><span class="sig-name descname"><span class="pre">upgrade_superseded_traces</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">project</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">marker</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'traces-on-current-digest-scheme'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/nw/rewrite.html#upgrade_superseded_traces"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nw.rewrite.upgrade_superseded_traces" title="Link to this definition">#</a></dt>
+<dd><p>Re-record every verifying trace that is on a superseded digest scheme, or
+whose entries are not what nw records today, <strong>while it still vouches</strong> for
+its parents’ current values; return how many traces moved (nw#226).</p>
+<p>Per trace: an entry equal to <a class="reference internal" href="nw.bodies.verifying_trace.html#nw.bodies.verifying_trace.upstream_entry" title="nw.bodies.verifying_trace.upstream_entry"><code class="xref py py-func docutils literal notranslate"><span class="pre">upstream_entry()</span></code></a>
+today (digest and <code class="docutils literal notranslate"><span class="pre">excluded_paths</span></code> together) is kept; one whose recorded
+digest still describes the parent
+(<a class="reference internal" href="nw.bodies.verifying_trace.html#nw.bodies.verifying_trace.digest_vouches" title="nw.bodies.verifying_trace.digest_vouches"><code class="xref py py-func docutils literal notranslate"><span class="pre">digest_vouches()</span></code></a> under the entry’s scheme
+and exclusions) is re-recorded as <code class="docutils literal notranslate"><span class="pre">upstream_entry</span></code> records it; any other
+entry means the trace is already stale, and it is left alone (never
+blessed). So a fresh dependent stays fresh and a stale one stays stale.</p>
+<p>Why: a trace recorded under an old scheme digests the whole body, so a later
+fill of a <code class="docutils literal notranslate"><span class="pre">Derived</span></code> field (a panel image’s <code class="docutils literal notranslate"><span class="pre">asset_id</span></code>) reads as an
+upstream change, and each host repaired that per write (reelee’s
+<code class="docutils literal notranslate"><span class="pre">_upgrade_traces</span></code>). Run once per project, it never meets the fill.</p>
+<p>Idempotent; with <code class="docutils literal notranslate"><span class="pre">marker</span></code> (the default) it runs at most once per project,
+under the same lock and marker discipline as <a class="reference internal" href="#nw.rewrite.rewrite_values" title="nw.rewrite.rewrite_values"><code class="xref py py-func docutils literal notranslate"><span class="pre">rewrite_values()</span></code></a>;
+<code class="docutils literal notranslate"><span class="pre">marker=None</span></code> runs every time.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></a></span></p>
+</dd>
+</dl>
+</dd></dl>
+
 </section>
 
         </article><button class="back-to-top" type="button">
@@ -393,7 +438,7 @@ removal; its value is never read, so a corrupt marker can be cleared too.</p>
     </div>
   </div>
 </footer>
-      <script src="../_static/documentation_options.js?v=28d4ae65"></script>
+      <script src="../_static/documentation_options.js?v=1f2c240f"></script>
       <script src="../_static/doctools.js?v=fd6eb6e6"></script>
       <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
