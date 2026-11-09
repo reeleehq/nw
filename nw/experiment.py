@@ -20,7 +20,7 @@ from pathlib import Path
 from typing import Callable, Iterable, Optional, TypeVar
 
 from .project import Project
-from .migrate import _MIGRATED_SENTINEL_NAME
+from .migrate import is_migrated
 from .storage import (
     PROJECT_FILE_NAME,
     TENANT_KEY,
@@ -32,6 +32,9 @@ from .schema import ProjectSummary
 
 
 T = TypeVar("T")
+
+_MIGRATED_DOC = ".nw/migrated_to_graph"
+"""The document key of the migrated-to-graph sentinel, as ``Project.init`` writes it."""
 
 
 # Subtrees that make sense to preserve when cloning — copying these from src
@@ -132,22 +135,19 @@ def clone_project(
 def _make_independent(src: Path, dst: Path) -> None:
     """Make the copy at ``dst`` its own project, not an alias of ``src`` (nw#251).
 
-    - **A fresh tenant id.** A shared (Postgres) graph backend keys a project's
-      graph on it (nw#109): a copied id would make the clone read and write the
-      source's rows, so resetting outputs would reset nothing. A source that
-      never minted one keeps none (its graph is keyed by root and title).
+    - **Always a fresh tenant id.** A shared (Postgres) graph backend keys a
+      project's graph on it (nw#109), and a project without one falls back to
+      its song's hash, which a preserved ``song/`` would share: either way the
+      clone would read and write the source's rows. The clone never carries
+      the source's graph, so nothing is lost; SQLite never reads the tenant.
     - **The migrated-to-graph sentinel survives a reset of** ``.nw``: without
       it, opening a clone of a graph-native project would run the pre-graph
       migration on it. A legacy (unmigrated) source still migrates on open.
     """
-    docs = FolderStorage(dst).docs
-    doc = docs[PROJECT_FILE_NAME]
-    if doc.get(TENANT_KEY):
-        docs[PROJECT_FILE_NAME] = {**doc, TENANT_KEY: uuid4().hex}
-    sentinel = Path(".nw") / _MIGRATED_SENTINEL_NAME
-    if (src / sentinel).is_file() and not (dst / sentinel).exists():
-        (dst / sentinel).parent.mkdir(parents=True, exist_ok=True)
-        shutil.copy2(src / sentinel, dst / sentinel)
+    src_docs, dst_docs = FolderStorage(src).docs, FolderStorage(dst).docs
+    dst_docs[PROJECT_FILE_NAME] = {**dst_docs[PROJECT_FILE_NAME], TENANT_KEY: uuid4().hex}
+    if is_migrated(src) and not is_migrated(dst):
+        dst_docs[_MIGRATED_DOC] = src_docs[_MIGRATED_DOC]
 
 
 def apply_to_projects(
