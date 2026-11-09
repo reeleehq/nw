@@ -223,12 +223,17 @@ def _upgrade_traces(storage) -> int:
                     upstream = _upgraded_upstream(ann.body, by_id, today_of)
                     if upstream is None:
                         continue
-                    body = {**ann.body, "digest_scheme": VALUE_DIGEST_SCHEME, "upstream": upstream}
+                    body = {
+                        **ann.body,
+                        "digest_scheme": VALUE_DIGEST_SCHEME,
+                        "upstream": upstream,
+                    }
                     store.update(ann.model_copy(update={"body": body}))
                     moved += 1
                 except Exception:
                     _logger.warning(
-                        "upgrade_superseded_traces: left trace %s as it is", ann.id,
+                        "upgrade_superseded_traces: left trace %s as it is",
+                        ann.id,
                         exc_info=True,
                     )
     return moved
