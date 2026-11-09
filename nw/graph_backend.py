@@ -84,7 +84,9 @@ GraphBackend = str  # "sqlite" | "postgres" at the boundary; str for forgiveness
 #: never calls it.
 AssetIdLike = Union[str, Callable[[], str]]
 _SQLITE = "sqlite"
-_POSTGRES = "postgres"
+POSTGRES_BACKEND = "postgres"
+"""The ``NW_GRAPH_BACKEND`` value selecting Postgres (public for test harnesses, nw#242)."""
+_POSTGRES = POSTGRES_BACKEND
 
 # The scope names. These are the logical stores a project owns; they map 1:1 to
 # the per-scope SQLite filenames in the legacy layout (see scope_name_for_db).
