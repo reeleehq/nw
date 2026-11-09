@@ -80,3 +80,22 @@ def test_writes_after_the_block_do_not_count(tmp_path, fal):
     result = _Reusing().execute(proj, _plan(), (_skeleton(proj, (shot,)),))
     with pytest.raises(AssertionError, match="reported written, not written"):
         writes.check(result)
+
+
+def test_require_traces_flags_a_derived_row_written_behind_add_annotation(tmp_path, fal):
+    """nw#271: a raw store.add leaves no trace; such a row reads stale forever."""
+    import nw
+
+    proj, (shot,) = _project(tmp_path)
+    with recording_writes(proj) as writes:
+        honest = _Reusing().execute(proj, _plan(), (_skeleton(proj, (shot,)),))
+    writes.check(honest, require_traces=True)
+
+    raw = _skeleton(proj, (shot,), shot_id="raw")
+    with recording_writes(proj) as writes:
+        with proj.storage.open_stores() as stores:
+            next(iter(stores)).add(raw)
+    lying = replace(honest, annotations=(raw,), reused_ids=frozenset())
+    writes.check(lying)  # written, truthfully
+    with pytest.raises(AssertionError, match="without a verifying trace"):
+        writes.check(lying, require_traces=True)
