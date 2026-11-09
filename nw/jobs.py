@@ -88,7 +88,7 @@ import time
 import urllib.parse
 from collections.abc import Callable, Iterator, Mapping, MutableMapping
 from contextlib import AbstractContextManager, nullcontext, suppress
-from dataclasses import dataclass, field, asdict
+from dataclasses import dataclass, field, asdict, replace
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, TYPE_CHECKING
@@ -2481,6 +2481,11 @@ def _mirror_event_into_index(rt, job_id, ev) -> None:
         # figure arrives alone and reads as exact.
         if fields.get("has_unknown_costs") is not None:
             cost["actual_is_lower_bound"] = fields["has_unknown_costs"]
+        # A late event from a run that already ended unfinished (its render
+        # raised: `error_kind` is set) cannot make its figure exact again
+        # (nw#249).
+        if record.get("error_kind") is not None:
+            cost.update(_cost_of_an_unfinished_run({"cost": cost}).get("cost", {}))
 
         updates["progress"] = progress
         updates["cost"] = cost
@@ -2756,6 +2761,17 @@ def _project_job(rt, record, au_result, config) -> Job:
 
     progress = _progress_from(record)
     cost = _cost_from(record)
+    if (
+        status == CANCELLED
+        and cost.actual_usd is not None
+        and record.get("worker_exited_at") is None
+        and not _heartbeat_is_fresh(record, config)
+    ):
+        # Cancelled, and its worker is gone without ever reporting its end (it
+        # died after the cancel): the spend it reported is a lower bound, as
+        # for a reaped run, which the reaper never sees because au already
+        # reads CANCELLED (nw#249). Read-side only: the record is not rewritten.
+        cost = replace(cost, actual_is_lower_bound=True)
 
     # Liveness, but only where the question means anything: a terminal job's
     # worker is *supposed* to be silent, and reporting that as lost contact
