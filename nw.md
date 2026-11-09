@@ -1,4 +1,4 @@
-> built 2026-11-09 00:24 UTC from bbc8443 (main) · nw 0.0.141. Details: build_info.json
+> built 2026-11-09 00:26 UTC from bbc8443 (main) · nw 0.0.141. Details: build_info.json
 
 # index.html.md
 
@@ -12321,12 +12321,10 @@ produce different URLs. The local file paths are byte-stable.
 
 # About this build
 
-This documentation was built on **2026-11-09 00:24 UTC** from commit <a href="https://github.com/reeleehq/nw/commit/bbc8443853a814823b2158873f0782d9aa3a6d06"><code>bbc8443</code></a> on branch <code>main</code>, for **nw 0.0.141** (from <code>pyproject.toml</code>).
+This documentation was built on **2026-11-09 00:26 UTC** from commit <a href="https://github.com/reeleehq/nw/commit/bbc8443853a814823b2158873f0782d9aa3a6d06"><code>bbc8443</code></a> on branch <code>main</code>, for **nw 0.0.141** (from <code>pyproject.toml</code>).
 
-#### WARNING
-The documentation and the package may be misaligned:
-
-- The documented version (0.0.141) is ahead of the latest release on PyPI (0.0.139): these docs describe unreleased code.
+#### NOTE
+Nothing suggests a mismatch: the tree was clean at the commit above, and the documented version is the one on PyPI.
 
 ## Source
 
@@ -12343,9 +12341,9 @@ The documentation and the package may be misaligned:
 |              |                                                                                            |
 |--------------|--------------------------------------------------------------------------------------------|
 | Repository   | <code>reeleehq/nw</code>                                                                   |
-| Run          | <a href="https://github.com/reeleehq/nw/actions/runs/42538114724">42538114724</a>          |
+| Run          | <a href="https://github.com/reeleehq/nw/actions/runs/42538373788">42538373788</a>          |
 | Ref          | <code>refs/heads/main</code>                                                               |
-| Event commit | <code>ec8845f422dfec4302638437ce9da005ad33a78c</code> (in the history of the built commit) |
+| Event commit | <code>ffee2b7729d2c858974b00258d89a3be6d2979be</code> (in the history of the built commit) |
 
 ## Tools
 
@@ -12370,7 +12368,7 @@ The documentation and the package may be misaligned:
 
 ## Package on PyPI
 
-Latest release: <a href="https://pypi.org/project/nw/0.0.139/">0.0.139</a>, older than the documented version (0.0.141).
+Latest release: <a href="https://pypi.org/project/nw/0.0.141/">0.0.141</a>, the same as the documented version.
 
 ## Reproduce
 
