@@ -3897,3 +3897,46 @@ def test_a_naive_au_timestamp_is_local_time_not_utc():
         else:
             os.environ["TZ"] = before
         time.tzset()
+
+
+@pytest.mark.skipif(not hasattr(__import__("time"), "tzset"), reason="needs time.tzset")
+def test_a_run_written_in_another_time_zone_is_read_at_the_right_instant(project):
+    """nw#255: with au>=0.1.18 a stamp carries its writer's UTC offset, so a
+    replica in another time zone reads the same instant (before, it read the
+    writer's local clock as its own and was off by the difference)."""
+    import time
+    from datetime import datetime, timezone
+
+    import au
+
+    rt = jobs._runtime(project)
+    job_id = "cross-tz"
+    began = datetime(2026, 1, 1, 12, 0, 0, tzinfo=timezone.utc)
+    created = "2026-01-01T11:59:00Z"
+    rt.index[job_id] = {
+        "job_id": job_id, "kind": "op", "label": "x", "idempotency_key": job_id,
+        "params": {}, "created_at": created, "started_at": None, "finished_at": None,
+        "eta_candidates": [], "output_kind": None, "expected_cache_hit": False,
+        "cached": False, "cancel_requested": False, "pct_floor": None, "progress": {},
+        "cost": {}, "artifact_ref": None, "result": None, "error": None,
+        "last_event_id": None, "worker_exited_at": created,
+    }
+    before = os.environ.get("TZ")
+    try:
+        os.environ["TZ"] = "JST-9"  # the writer
+        time.tzset()
+        # au stamps its own times naive local (`datetime.now()`), as here
+        writer_local = began.astimezone().replace(tzinfo=None)
+        rt.au_store[job_id] = au.ComputationResult(
+            {"ok": True}, au.ComputationStatus.COMPLETED, started_at=writer_local
+        )
+        os.environ["TZ"] = "EST+5"  # the reader, on another host
+        time.tzset()
+        job = jobs.get_job(project, job_id)
+        assert jobs._parse_iso(job.started_at) == began
+    finally:
+        if before is None:
+            os.environ.pop("TZ", None)
+        else:
+            os.environ["TZ"] = before
+        time.tzset()

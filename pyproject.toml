@@ -74,7 +74,10 @@ dependencies = [
     # writes: before it, a cancel landing between a worker's read and its write
     # was overwritten, so a just-cancelled job read back `cancelling` until its
     # worker ended instead of `cancelled` at once (nw#216, i2mint/au#28).
-    "au>=0.1.11",
+    # >=0.1.18: stamps carry the writer's UTC offset (i2mint/au#39), so a run
+    # written on a host in another time zone, or in the repeated DST hour, is
+    # read at the right instant (nw#255).
+    "au>=0.1.18",
     "dol>=0.3.101",  # dol.atomic: FileLock (jobs index, nw#148), atomic_write/atomic_delete + Retry (nw#213); Files(delete_func=)
 ]
 
