@@ -145,7 +145,10 @@ def _make_independent(src: Path, dst: Path) -> None:
       migration on it. A legacy (unmigrated) source still migrates on open.
     """
     src_docs, dst_docs = FolderStorage(src).docs, FolderStorage(dst).docs
-    dst_docs[PROJECT_FILE_NAME] = {**dst_docs[PROJECT_FILE_NAME], TENANT_KEY: uuid4().hex}
+    dst_docs[PROJECT_FILE_NAME] = {
+        **dst_docs[PROJECT_FILE_NAME],
+        TENANT_KEY: uuid4().hex,
+    }
     if is_migrated(src) and not is_migrated(dst):
         dst_docs[_MIGRATED_DOC] = src_docs[_MIGRATED_DOC]
 
