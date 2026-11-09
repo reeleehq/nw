@@ -647,6 +647,62 @@ def test_a_reaped_run_that_reported_spend_reads_as_a_lower_bound(project):
     assert reaped.cost.actual_is_lower_bound is True
 
 
+def test_a_terminal_job_without_an_indexed_start_reports_aus_start(project):
+    """nw#247: au writes a terminal record with a fresh ``created_at`` (the
+    completion time) and the run's ``started_at``; the fallback must read the
+    latter, or the finish is reported as the start."""
+    from datetime import datetime, timedelta, timezone
+    import au
+
+    rt = jobs._runtime(project)
+    job_id = "terminal-no-start"
+    began = datetime.now() - timedelta(seconds=90)  # naive local, as au stamps
+    created = jobs._iso(began - timedelta(seconds=5))
+    rt.index[job_id] = {
+        "job_id": job_id, "kind": "op", "label": "x", "idempotency_key": job_id,
+        "params": {}, "created_at": created, "started_at": None, "finished_at": None,
+        "eta_candidates": [], "output_kind": None, "expected_cache_hit": False,
+        "cached": False, "cancel_requested": False, "pct_floor": None, "progress": {},
+        "cost": {}, "artifact_ref": None, "result": None, "error": None,
+        "last_event_id": None, "worker_exited_at": created,
+    }
+    rt.au_store[job_id] = au.ComputationResult(
+        {"ok": True}, au.ComputationStatus.COMPLETED, started_at=began
+    )
+    job = jobs.get_job(project, job_id)
+    assert job.status == jobs.SUCCEEDED
+    assert jobs._parse_iso(job.started_at) == began.astimezone(timezone.utc)  # #229
+    assert 4 <= job.queue_wait_s <= 6  # created -> began, not created -> completion
+
+
+def test_a_reaped_run_keeps_its_au_start(project):
+    """nw#247: the reaper's FAILED record carries the RUNNING record's
+    ``started_at``, so a job whose index lacks one does not report the reap
+    time as its start."""
+    from datetime import datetime, timedelta, timezone
+    import au
+
+    cfg = JobsConfig(stale_running_s=0.0)
+    rt = jobs._runtime(project, cfg)
+    job_id = "reaped-keeps-start"
+    began = datetime.now() - timedelta(seconds=300)  # naive local, as au stamps
+    created = jobs._iso(began - timedelta(seconds=5))
+    rt.index[job_id] = {
+        "job_id": job_id, "kind": "op", "label": "x", "idempotency_key": job_id,
+        "params": {}, "created_at": created, "started_at": None, "finished_at": None,
+        "eta_candidates": [], "output_kind": None, "expected_cache_hit": False,
+        "cached": False, "cancel_requested": False, "pct_floor": None, "progress": {},
+        "cost": {}, "artifact_ref": None, "result": None, "error": None,
+        "last_event_id": None,
+    }
+    rt.au_store[job_id] = au.ComputationResult(
+        None, au.ComputationStatus.RUNNING, started_at=began
+    )
+    job = jobs.get_job(project, job_id, config=cfg)
+    assert job.status == jobs.FAILED
+    assert jobs._parse_iso(job.started_at) == began.astimezone(timezone.utc)
+
+
 def test_live_worker_is_not_reaped(project):
     """A genuinely running job (live thread) must NOT be reaped even under a
     zero stale threshold."""
