@@ -248,7 +248,7 @@ data-aria-dark="Switch to auto color mode">
 </span><span data-line="84"><span class="kn">import</span><span class="w"> </span><span class="nn">re</span>
 </span><span data-line="85"><span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">dataclass</span><span class="p">,</span> <span class="n">field</span>
 </span><span data-line="86"><span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
-</span><span data-line="87"><span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Protocol</span><span class="p">,</span> <span class="n">runtime_checkable</span>
+</span><span data-line="87"><span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Iterable</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Protocol</span><span class="p">,</span> <span class="n">runtime_checkable</span>
 </span><span data-line="88">
 </span><span data-line="89"><span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span>
 </span><span data-line="90">    <span class="s2">"Deliverable"</span><span class="p">,</span>
@@ -256,483 +256,554 @@ data-aria-dark="Switch to auto color mode">
 </span><span data-line="92">    <span class="s2">"Lister"</span><span class="p">,</span>
 </span><span data-line="93">    <span class="s2">"ProjectSummary"</span><span class="p">,</span>
 </span><span data-line="94">    <span class="s2">"ProjectLister"</span><span class="p">,</span>
-</span><span data-line="95">    <span class="s2">"Organiser"</span><span class="p">,</span>
-</span><span data-line="96">    <span class="s2">"parse_ref"</span><span class="p">,</span>
-</span><span data-line="97">    <span class="s2">"format_ref"</span><span class="p">,</span>
-</span><span data-line="98">    <span class="s2">"check_title"</span><span class="p">,</span>
-</span><span data-line="99">    <span class="s2">"caller_key"</span><span class="p">,</span>
-</span><span data-line="100">    <span class="s2">"safe_message"</span><span class="p">,</span>
-</span><span data-line="101">    <span class="s2">"check_delivery_source"</span><span class="p">,</span>
-</span><span data-line="102">    <span class="s2">"REF_WORD"</span><span class="p">,</span>
-</span><span data-line="103">    <span class="s2">"MAX_TITLE_LEN"</span><span class="p">,</span>
-</span><span data-line="104">    <span class="s2">"DELIVERY_FUNCTIONS"</span><span class="p">,</span>
-</span><span data-line="105"><span class="p">]</span>
-</span><span data-line="106">
-</span><span data-line="107"><span class="c1">#: The noun a genre uses when it labels a deliverable for a human ("cut 4").</span>
-</span><span data-line="108"><span class="c1">#: One word, so the label stays short enough to say in the middle of a sentence.</span>
-</span><span data-line="109"><span class="n">REF_WORD</span> <span class="o">=</span> <span class="s2">"cut"</span>
-</span><span data-line="110">
-</span><span data-line="111"><span class="c1">#: Spellings of an ordinal reference we accept. Deliberately permissive on input</span>
-</span><span data-line="112"><span class="c1">#: and single-formed on output: a human types what they remember, and we always</span>
-</span><span data-line="113"><span class="c1">#: print it back the one way.</span>
-</span><span data-line="114"><span class="n">_REF_RE</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">rf</span><span class="s2">"^\s*(?:</span><span class="si">{</span><span class="n">REF_WORD</span><span class="si">}</span><span class="s2">\s*[-_ ]?\s*|#\s*)?(\d</span><span class="se">{{</span><span class="s2">1,6</span><span class="se">}}</span><span class="s2">)\s*$"</span><span class="p">,</span> <span class="n">re</span><span class="o">.</span><span class="n">I</span><span class="p">)</span>
-</span><span data-line="115">
-</span><span data-line="116">
+</span><span data-line="95">    <span class="s2">"PLACED_META_KEY"</span><span class="p">,</span>
+</span><span data-line="96">    <span class="s2">"drop_guest_placed_duplicates"</span><span class="p">,</span>
+</span><span data-line="97">    <span class="s2">"Organiser"</span><span class="p">,</span>
+</span><span data-line="98">    <span class="s2">"parse_ref"</span><span class="p">,</span>
+</span><span data-line="99">    <span class="s2">"format_ref"</span><span class="p">,</span>
+</span><span data-line="100">    <span class="s2">"check_title"</span><span class="p">,</span>
+</span><span data-line="101">    <span class="s2">"caller_key"</span><span class="p">,</span>
+</span><span data-line="102">    <span class="s2">"safe_message"</span><span class="p">,</span>
+</span><span data-line="103">    <span class="s2">"check_delivery_source"</span><span class="p">,</span>
+</span><span data-line="104">    <span class="s2">"REF_WORD"</span><span class="p">,</span>
+</span><span data-line="105">    <span class="s2">"MAX_TITLE_LEN"</span><span class="p">,</span>
+</span><span data-line="106">    <span class="s2">"DELIVERY_FUNCTIONS"</span><span class="p">,</span>
+</span><span data-line="107"><span class="p">]</span>
+</span><span data-line="108">
+</span><span data-line="109"><span class="c1">#: The noun a genre uses when it labels a deliverable for a human ("cut 4").</span>
+</span><span data-line="110"><span class="c1">#: One word, so the label stays short enough to say in the middle of a sentence.</span>
+</span><span data-line="111"><span class="n">REF_WORD</span> <span class="o">=</span> <span class="s2">"cut"</span>
+</span><span data-line="112">
+</span><span data-line="113"><span class="c1">#: Spellings of an ordinal reference we accept. Deliberately permissive on input</span>
+</span><span data-line="114"><span class="c1">#: and single-formed on output: a human types what they remember, and we always</span>
+</span><span data-line="115"><span class="c1">#: print it back the one way.</span>
+</span><span data-line="116"><span class="n">_REF_RE</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">rf</span><span class="s2">"^\s*(?:</span><span class="si">{</span><span class="n">REF_WORD</span><span class="si">}</span><span class="s2">\s*[-_ ]?\s*|#\s*)?(\d</span><span class="se">{{</span><span class="s2">1,6</span><span class="se">}}</span><span class="s2">)\s*$"</span><span class="p">,</span> <span class="n">re</span><span class="o">.</span><span class="n">I</span><span class="p">)</span>
+</span><span data-line="117">
+</span><span data-line="118">
 <div class="viewcode-block" id="Deliverable">
 <a class="viewcode-back" href="../../_autosummary/nw.delivery.html#nw.Deliverable">[docs]</a>
-</span><span data-line="117"><span class="nd">@dataclass</span><span class="p">(</span><span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-</span><span data-line="118"><span class="k">class</span><span class="w"> </span><span class="nc">Deliverable</span><span class="p">:</span>
-</span><span data-line="119"><span class="w">    </span><span class="sd">"""A finished thing a person can watch, hear, or download.</span>
-</span><span data-line="120">
-</span><span data-line="121"><span class="sd">    ``path`` is server-side and never leaves the host; it is what the transport</span>
-</span><span data-line="122"><span class="sd">    streams. Everything else exists so the host does not have to guess:</span>
-</span><span data-line="123">
-</span><span data-line="124"><span class="sd">    - ``content_type`` — what to serve it as. The genre knows; the host would</span>
-</span><span data-line="125"><span class="sd">      otherwise re-derive it from a suffix.</span>
-</span><span data-line="126"><span class="sd">    - ``filename`` — what it should be called when it lands in someone's</span>
-</span><span data-line="127"><span class="sd">      Downloads folder. ``music_video_test_02-cut-4.mp4`` beats ``b02fc05417ea``.</span>
-</span><span data-line="128"><span class="sd">    - ``ref`` — the speakable label (see :func:`format_ref`).</span>
-</span><span data-line="129"><span class="sd">    - ``artifact_id`` — the stable, unambiguous id. ``ref`` is the convenience;</span>
-</span><span data-line="130"><span class="sd">      this is the truth, and it is what a signed token is minted against.</span>
-</span><span data-line="131">
-</span><span data-line="132"><span class="sd">    The optional descriptive fields are what a listing surface renders, and what</span>
-</span><span data-line="133"><span class="sd">    lets a watch page say "10 seconds, 4.4 MB, made yesterday" without opening</span>
-</span><span data-line="134"><span class="sd">    the file.</span>
-</span><span data-line="135"><span class="sd">    """</span>
-</span><span data-line="136">
-</span><span data-line="137">    <span class="n">path</span><span class="p">:</span> <span class="n">Path</span>
-</span><span data-line="138">    <span class="n">content_type</span><span class="p">:</span> <span class="nb">str</span>
-</span><span data-line="139">    <span class="n">filename</span><span class="p">:</span> <span class="nb">str</span>
-</span><span data-line="140">    <span class="n">artifact_id</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">""</span>
-</span><span data-line="141">    <span class="n">project_id</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">""</span>
-</span><span data-line="142">    <span class="n">genre</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">""</span>
-</span><span data-line="143">    <span class="n">ref</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
-</span><span data-line="144">    <span class="n">title</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
-</span><span data-line="145">    <span class="n">duration_s</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
-</span><span data-line="146">    <span class="n">size_bytes</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
-</span><span data-line="147">    <span class="n">created_at</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
-</span><span data-line="148">    <span class="c1">#: Genre-specific extras a listing or watch page may show. Free-form on</span>
-</span><span data-line="149">    <span class="c1">#: purpose — the host renders what it recognises and ignores the rest, so a</span>
-</span><span data-line="150">    <span class="c1">#: genre can enrich its own surface without a change here.</span>
-</span><span data-line="151">    <span class="n">meta</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="nb">dict</span><span class="p">)</span>
-</span><span data-line="152">
-</span><span data-line="153">    <span class="nd">@property</span>
-</span><span data-line="154">    <span class="k">def</span><span class="w"> </span><span class="nf">kind</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
-</span><span data-line="155"><span class="w">        </span><span class="sd">"""``'video'``, ``'audio'``, ``'image'`` or ``'file'`` — how to present it.</span>
-</span><span data-line="156">
-</span><span data-line="157"><span class="sd">        Derived from ``content_type`` so a genre never has to declare it twice.</span>
+</span><span data-line="119"><span class="nd">@dataclass</span><span class="p">(</span><span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</span><span data-line="120"><span class="k">class</span><span class="w"> </span><span class="nc">Deliverable</span><span class="p">:</span>
+</span><span data-line="121"><span class="w">    </span><span class="sd">"""A finished thing a person can watch, hear, or download.</span>
+</span><span data-line="122">
+</span><span data-line="123"><span class="sd">    ``path`` is server-side and never leaves the host; it is what the transport</span>
+</span><span data-line="124"><span class="sd">    streams. Everything else exists so the host does not have to guess:</span>
+</span><span data-line="125">
+</span><span data-line="126"><span class="sd">    - ``content_type`` — what to serve it as. The genre knows; the host would</span>
+</span><span data-line="127"><span class="sd">      otherwise re-derive it from a suffix.</span>
+</span><span data-line="128"><span class="sd">    - ``filename`` — what it should be called when it lands in someone's</span>
+</span><span data-line="129"><span class="sd">      Downloads folder. ``music_video_test_02-cut-4.mp4`` beats ``b02fc05417ea``.</span>
+</span><span data-line="130"><span class="sd">    - ``ref`` — the speakable label (see :func:`format_ref`).</span>
+</span><span data-line="131"><span class="sd">    - ``artifact_id`` — the stable, unambiguous id. ``ref`` is the convenience;</span>
+</span><span data-line="132"><span class="sd">      this is the truth, and it is what a signed token is minted against.</span>
+</span><span data-line="133">
+</span><span data-line="134"><span class="sd">    The optional descriptive fields are what a listing surface renders, and what</span>
+</span><span data-line="135"><span class="sd">    lets a watch page say "10 seconds, 4.4 MB, made yesterday" without opening</span>
+</span><span data-line="136"><span class="sd">    the file.</span>
+</span><span data-line="137"><span class="sd">    """</span>
+</span><span data-line="138">
+</span><span data-line="139">    <span class="n">path</span><span class="p">:</span> <span class="n">Path</span>
+</span><span data-line="140">    <span class="n">content_type</span><span class="p">:</span> <span class="nb">str</span>
+</span><span data-line="141">    <span class="n">filename</span><span class="p">:</span> <span class="nb">str</span>
+</span><span data-line="142">    <span class="n">artifact_id</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">""</span>
+</span><span data-line="143">    <span class="n">project_id</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">""</span>
+</span><span data-line="144">    <span class="n">genre</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">""</span>
+</span><span data-line="145">    <span class="n">ref</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+</span><span data-line="146">    <span class="n">title</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+</span><span data-line="147">    <span class="n">duration_s</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+</span><span data-line="148">    <span class="n">size_bytes</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+</span><span data-line="149">    <span class="n">created_at</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+</span><span data-line="150">    <span class="c1">#: Genre-specific extras a listing or watch page may show. Free-form on</span>
+</span><span data-line="151">    <span class="c1">#: purpose — the host renders what it recognises and ignores the rest, so a</span>
+</span><span data-line="152">    <span class="c1">#: genre can enrich its own surface without a change here.</span>
+</span><span data-line="153">    <span class="n">meta</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="nb">dict</span><span class="p">)</span>
+</span><span data-line="154">
+</span><span data-line="155">    <span class="nd">@property</span>
+</span><span data-line="156">    <span class="k">def</span><span class="w"> </span><span class="nf">kind</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+</span><span data-line="157"><span class="w">        </span><span class="sd">"""``'video'``, ``'audio'``, ``'image'`` or ``'file'`` — how to present it.</span>
 </span><span data-line="158">
-</span><span data-line="159"><span class="sd">        &gt;&gt;&gt; Deliverable(Path('a.mp4'), 'video/mp4', 'a.mp4').kind</span>
-</span><span data-line="160"><span class="sd">        'video'</span>
-</span><span data-line="161"><span class="sd">        &gt;&gt;&gt; Deliverable(Path('a.mp3'), 'audio/mpeg', 'a.mp3').kind</span>
-</span><span data-line="162"><span class="sd">        'audio'</span>
-</span><span data-line="163"><span class="sd">        &gt;&gt;&gt; Deliverable(Path('a.pdf'), 'application/pdf', 'a.pdf').kind</span>
-</span><span data-line="164"><span class="sd">        'file'</span>
-</span><span data-line="165"><span class="sd">        """</span>
-</span><span data-line="166">        <span class="n">major</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">content_type</span> <span class="ow">or</span> <span class="s2">""</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">"/"</span><span class="p">,</span> <span class="mi">1</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
-</span><span data-line="167">        <span class="k">return</span> <span class="n">major</span> <span class="k">if</span> <span class="n">major</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">"video"</span><span class="p">,</span> <span class="s2">"audio"</span><span class="p">,</span> <span class="s2">"image"</span><span class="p">)</span> <span class="k">else</span> <span class="s2">"file"</span>
-</span><span data-line="168">
-</span><span data-line="169">    <span class="nd">@property</span>
-</span><span data-line="170">    <span class="k">def</span><span class="w"> </span><span class="nf">label</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
-</span><span data-line="171"><span class="w">        </span><span class="sd">"""The best short name for a human — the ref if it has one, else the id.</span>
-</span><span data-line="172">
-</span><span data-line="173"><span class="sd">        &gt;&gt;&gt; Deliverable(Path('a.mp4'), 'video/mp4', 'a.mp4', ref='cut 4').label</span>
-</span><span data-line="174"><span class="sd">        'cut 4'</span>
-</span><span data-line="175"><span class="sd">        &gt;&gt;&gt; Deliverable(Path('a.mp4'), 'video/mp4', 'a.mp4', artifact_id='b02f').label</span>
-</span><span data-line="176"><span class="sd">        'b02f'</span>
-</span><span data-line="177"><span class="sd">        """</span>
-</span><span data-line="178">        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">ref</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">artifact_id</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">filename</span></div>
+</span><span data-line="159"><span class="sd">        Derived from ``content_type`` so a genre never has to declare it twice.</span>
+</span><span data-line="160">
+</span><span data-line="161"><span class="sd">        &gt;&gt;&gt; Deliverable(Path('a.mp4'), 'video/mp4', 'a.mp4').kind</span>
+</span><span data-line="162"><span class="sd">        'video'</span>
+</span><span data-line="163"><span class="sd">        &gt;&gt;&gt; Deliverable(Path('a.mp3'), 'audio/mpeg', 'a.mp3').kind</span>
+</span><span data-line="164"><span class="sd">        'audio'</span>
+</span><span data-line="165"><span class="sd">        &gt;&gt;&gt; Deliverable(Path('a.pdf'), 'application/pdf', 'a.pdf').kind</span>
+</span><span data-line="166"><span class="sd">        'file'</span>
+</span><span data-line="167"><span class="sd">        """</span>
+</span><span data-line="168">        <span class="n">major</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">content_type</span> <span class="ow">or</span> <span class="s2">""</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">"/"</span><span class="p">,</span> <span class="mi">1</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+</span><span data-line="169">        <span class="k">return</span> <span class="n">major</span> <span class="k">if</span> <span class="n">major</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">"video"</span><span class="p">,</span> <span class="s2">"audio"</span><span class="p">,</span> <span class="s2">"image"</span><span class="p">)</span> <span class="k">else</span> <span class="s2">"file"</span>
+</span><span data-line="170">
+</span><span data-line="171">    <span class="nd">@property</span>
+</span><span data-line="172">    <span class="k">def</span><span class="w"> </span><span class="nf">label</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+</span><span data-line="173"><span class="w">        </span><span class="sd">"""The best short name for a human — the ref if it has one, else the id.</span>
+</span><span data-line="174">
+</span><span data-line="175"><span class="sd">        &gt;&gt;&gt; Deliverable(Path('a.mp4'), 'video/mp4', 'a.mp4', ref='cut 4').label</span>
+</span><span data-line="176"><span class="sd">        'cut 4'</span>
+</span><span data-line="177"><span class="sd">        &gt;&gt;&gt; Deliverable(Path('a.mp4'), 'video/mp4', 'a.mp4', artifact_id='b02f').label</span>
+</span><span data-line="178"><span class="sd">        'b02f'</span>
+</span><span data-line="179"><span class="sd">        """</span>
+</span><span data-line="180">        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">ref</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">artifact_id</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">filename</span></div>
 
-</span><span data-line="179">
-</span><span data-line="180">
+</span><span data-line="181">
+</span><span data-line="182">
 <div class="viewcode-block" id="Resolver">
 <a class="viewcode-back" href="../../_autosummary/nw.delivery.html#nw.Resolver">[docs]</a>
-</span><span data-line="181"><span class="nd">@runtime_checkable</span>
-</span><span data-line="182"><span class="k">class</span><span class="w"> </span><span class="nc">Resolver</span><span class="p">(</span><span class="n">Protocol</span><span class="p">):</span>
-</span><span data-line="183"><span class="w">    </span><span class="sd">"""``resolve(email, project_id, artifact_id) -&gt; Deliverable`` — a genre's half.</span>
-</span><span data-line="184">
-</span><span data-line="185"><span class="sd">    ``artifact_id`` may be a raw id OR a reference the genre accepts (see</span>
-</span><span data-line="186"><span class="sd">    :func:`parse_ref`); resolving both is the genre's job, because only it knows</span>
-</span><span data-line="187"><span class="sd">    the ordering that gives ``cut 4`` its meaning.</span>
-</span><span data-line="188">
-</span><span data-line="189"><span class="sd">    Raises ``KeyError`` when nothing resolves (the host answers 404) and</span>
-</span><span data-line="190"><span class="sd">    ``PermissionError`` when it resolves but is not the caller's (403). Never</span>
-</span><span data-line="191"><span class="sd">    let a server path escape in the message.</span>
-</span><span data-line="192"><span class="sd">    """</span>
-</span><span data-line="193">
-</span><span data-line="194">    <span class="k">def</span><span class="w"> </span><span class="fm">__call__</span><span class="p">(</span>
-</span><span data-line="195">        <span class="bp">self</span><span class="p">,</span> <span class="n">email</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">project_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">artifact_id</span><span class="p">:</span> <span class="nb">str</span>
-</span><span data-line="196">    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Deliverable</span><span class="p">:</span> <span class="o">...</span></div>
+</span><span data-line="183"><span class="nd">@runtime_checkable</span>
+</span><span data-line="184"><span class="k">class</span><span class="w"> </span><span class="nc">Resolver</span><span class="p">(</span><span class="n">Protocol</span><span class="p">):</span>
+</span><span data-line="185"><span class="w">    </span><span class="sd">"""``resolve(email, project_id, artifact_id) -&gt; Deliverable`` — a genre's half.</span>
+</span><span data-line="186">
+</span><span data-line="187"><span class="sd">    ``artifact_id`` may be a raw id OR a reference the genre accepts (see</span>
+</span><span data-line="188"><span class="sd">    :func:`parse_ref`); resolving both is the genre's job, because only it knows</span>
+</span><span data-line="189"><span class="sd">    the ordering that gives ``cut 4`` its meaning.</span>
+</span><span data-line="190">
+</span><span data-line="191"><span class="sd">    Raises ``KeyError`` when nothing resolves (the host answers 404) and</span>
+</span><span data-line="192"><span class="sd">    ``PermissionError`` when it resolves but is not the caller's (403). Never</span>
+</span><span data-line="193"><span class="sd">    let a server path escape in the message.</span>
+</span><span data-line="194"><span class="sd">    """</span>
+</span><span data-line="195">
+</span><span data-line="196">    <span class="k">def</span><span class="w"> </span><span class="fm">__call__</span><span class="p">(</span>
+</span><span data-line="197">        <span class="bp">self</span><span class="p">,</span> <span class="n">email</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">project_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">artifact_id</span><span class="p">:</span> <span class="nb">str</span>
+</span><span data-line="198">    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Deliverable</span><span class="p">:</span> <span class="o">...</span></div>
 
-</span><span data-line="197">
-</span><span data-line="198">
-</span><span data-line="199"><span class="c1">#: ``list_deliverables(email, project_id=None) -&gt; list[Deliverable]`` — the other</span>
-</span><span data-line="200"><span class="c1">#: half of "give me my work". Without it a reference is undiscoverable: the user</span>
-</span><span data-line="201"><span class="c1">#: can only name a deliverable they still remember. ``project_id=None`` means</span>
-</span><span data-line="202"><span class="c1">#: every project of that caller's in this genre.</span>
-</span><span data-line="203"><span class="n">Lister</span> <span class="o">=</span> <span class="n">Callable</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="s2">"list[Deliverable]"</span><span class="p">]</span>
-</span><span data-line="204">
-</span><span data-line="205">
+</span><span data-line="199">
+</span><span data-line="200">
+</span><span data-line="201"><span class="c1">#: ``list_deliverables(email, project_id=None) -&gt; list[Deliverable]`` — the other</span>
+</span><span data-line="202"><span class="c1">#: half of "give me my work". Without it a reference is undiscoverable: the user</span>
+</span><span data-line="203"><span class="c1">#: can only name a deliverable they still remember. ``project_id=None`` means</span>
+</span><span data-line="204"><span class="c1">#: every project of that caller's in this genre.</span>
+</span><span data-line="205"><span class="n">Lister</span> <span class="o">=</span> <span class="n">Callable</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="s2">"list[Deliverable]"</span><span class="p">]</span>
+</span><span data-line="206">
+</span><span data-line="207">
 <div class="viewcode-block" id="parse_ref">
 <a class="viewcode-back" href="../../_autosummary/nw.delivery.html#nw.parse_ref">[docs]</a>
-</span><span data-line="206"><span class="k">def</span><span class="w"> </span><span class="nf">parse_ref</span><span class="p">(</span><span class="n">text</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
-</span><span data-line="207"><span class="w">    </span><span class="sd">"""The ordinal in a spoken reference, or ``None`` if it isn't one.</span>
-</span><span data-line="208">
-</span><span data-line="209"><span class="sd">    ``None`` is the signal to fall through to treating the input as a raw</span>
-</span><span data-line="210"><span class="sd">    artifact id — which is why this never raises: "not an ordinal" is an</span>
-</span><span data-line="211"><span class="sd">    ordinary, expected answer, not an error.</span>
-</span><span data-line="212">
-</span><span data-line="213"><span class="sd">    &gt;&gt;&gt; parse_ref("cut 4"), parse_ref("CUT4"), parse_ref(" cut - 4 ")</span>
-</span><span data-line="214"><span class="sd">    (4, 4, 4)</span>
-</span><span data-line="215"><span class="sd">    &gt;&gt;&gt; parse_ref("#11"), parse_ref("11")</span>
-</span><span data-line="216"><span class="sd">    (11, 11)</span>
-</span><span data-line="217"><span class="sd">    &gt;&gt;&gt; parse_ref("b02fc05417ea") is None, parse_ref("") is None</span>
-</span><span data-line="218"><span class="sd">    (True, True)</span>
-</span><span data-line="219">
-</span><span data-line="220"><span class="sd">    Zero and negatives are not references — deliverables are numbered from 1, so</span>
-</span><span data-line="221"><span class="sd">    accepting ``cut 0`` would resolve to a neighbour under a naive index:</span>
-</span><span data-line="222">
-</span><span data-line="223"><span class="sd">    &gt;&gt;&gt; parse_ref("cut 0") is None</span>
-</span><span data-line="224"><span class="sd">    True</span>
-</span><span data-line="225"><span class="sd">    """</span>
-</span><span data-line="226">    <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">text</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
-</span><span data-line="227">        <span class="k">return</span> <span class="kc">None</span>
-</span><span data-line="228">    <span class="n">m</span> <span class="o">=</span> <span class="n">_REF_RE</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">text</span><span class="p">)</span>
-</span><span data-line="229">    <span class="k">if</span> <span class="ow">not</span> <span class="n">m</span><span class="p">:</span>
-</span><span data-line="230">        <span class="k">return</span> <span class="kc">None</span>
-</span><span data-line="231">    <span class="n">n</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">m</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">1</span><span class="p">))</span>
-</span><span data-line="232">    <span class="k">return</span> <span class="n">n</span> <span class="k">if</span> <span class="n">n</span> <span class="o">&gt;=</span> <span class="mi">1</span> <span class="k">else</span> <span class="kc">None</span></div>
+</span><span data-line="208"><span class="k">def</span><span class="w"> </span><span class="nf">parse_ref</span><span class="p">(</span><span class="n">text</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
+</span><span data-line="209"><span class="w">    </span><span class="sd">"""The ordinal in a spoken reference, or ``None`` if it isn't one.</span>
+</span><span data-line="210">
+</span><span data-line="211"><span class="sd">    ``None`` is the signal to fall through to treating the input as a raw</span>
+</span><span data-line="212"><span class="sd">    artifact id — which is why this never raises: "not an ordinal" is an</span>
+</span><span data-line="213"><span class="sd">    ordinary, expected answer, not an error.</span>
+</span><span data-line="214">
+</span><span data-line="215"><span class="sd">    &gt;&gt;&gt; parse_ref("cut 4"), parse_ref("CUT4"), parse_ref(" cut - 4 ")</span>
+</span><span data-line="216"><span class="sd">    (4, 4, 4)</span>
+</span><span data-line="217"><span class="sd">    &gt;&gt;&gt; parse_ref("#11"), parse_ref("11")</span>
+</span><span data-line="218"><span class="sd">    (11, 11)</span>
+</span><span data-line="219"><span class="sd">    &gt;&gt;&gt; parse_ref("b02fc05417ea") is None, parse_ref("") is None</span>
+</span><span data-line="220"><span class="sd">    (True, True)</span>
+</span><span data-line="221">
+</span><span data-line="222"><span class="sd">    Zero and negatives are not references — deliverables are numbered from 1, so</span>
+</span><span data-line="223"><span class="sd">    accepting ``cut 0`` would resolve to a neighbour under a naive index:</span>
+</span><span data-line="224">
+</span><span data-line="225"><span class="sd">    &gt;&gt;&gt; parse_ref("cut 0") is None</span>
+</span><span data-line="226"><span class="sd">    True</span>
+</span><span data-line="227"><span class="sd">    """</span>
+</span><span data-line="228">    <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">text</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+</span><span data-line="229">        <span class="k">return</span> <span class="kc">None</span>
+</span><span data-line="230">    <span class="n">m</span> <span class="o">=</span> <span class="n">_REF_RE</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">text</span><span class="p">)</span>
+</span><span data-line="231">    <span class="k">if</span> <span class="ow">not</span> <span class="n">m</span><span class="p">:</span>
+</span><span data-line="232">        <span class="k">return</span> <span class="kc">None</span>
+</span><span data-line="233">    <span class="n">n</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">m</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">1</span><span class="p">))</span>
+</span><span data-line="234">    <span class="k">return</span> <span class="n">n</span> <span class="k">if</span> <span class="n">n</span> <span class="o">&gt;=</span> <span class="mi">1</span> <span class="k">else</span> <span class="kc">None</span></div>
 
-</span><span data-line="233">
-</span><span data-line="234">
+</span><span data-line="235">
+</span><span data-line="236">
 <div class="viewcode-block" id="format_ref">
 <a class="viewcode-back" href="../../_autosummary/nw.delivery.html#nw.format_ref">[docs]</a>
-</span><span data-line="235"><span class="k">def</span><span class="w"> </span><span class="nf">format_ref</span><span class="p">(</span><span class="n">n</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
-</span><span data-line="236"><span class="w">    </span><span class="sd">"""The one spelling we print. Input is permissive; output never varies.</span>
-</span><span data-line="237">
-</span><span data-line="238"><span class="sd">    &gt;&gt;&gt; format_ref(1), format_ref(42)</span>
-</span><span data-line="239"><span class="sd">    ('cut 1', 'cut 42')</span>
-</span><span data-line="240"><span class="sd">    """</span>
-</span><span data-line="241">    <span class="k">return</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">REF_WORD</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="nb">int</span><span class="p">(</span><span class="n">n</span><span class="p">)</span><span class="si">}</span><span class="s2">"</span></div>
+</span><span data-line="237"><span class="k">def</span><span class="w"> </span><span class="nf">format_ref</span><span class="p">(</span><span class="n">n</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+</span><span data-line="238"><span class="w">    </span><span class="sd">"""The one spelling we print. Input is permissive; output never varies.</span>
+</span><span data-line="239">
+</span><span data-line="240"><span class="sd">    &gt;&gt;&gt; format_ref(1), format_ref(42)</span>
+</span><span data-line="241"><span class="sd">    ('cut 1', 'cut 42')</span>
+</span><span data-line="242"><span class="sd">    """</span>
+</span><span data-line="243">    <span class="k">return</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">REF_WORD</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="nb">int</span><span class="p">(</span><span class="n">n</span><span class="p">)</span><span class="si">}</span><span class="s2">"</span></div>
 
-</span><span data-line="242">
-</span><span data-line="243">
-</span><span data-line="244"><span class="c1"># ---------------------------------------------------------------------------</span>
-</span><span data-line="245"><span class="c1"># Projects and organising — the seam's third and fourth functions</span>
-</span><span data-line="246"><span class="c1"># (reelee#333; the asset-surfaces ADR §3.3 "naming belongs to the genre",</span>
-</span><span data-line="247"><span class="c1"># §3.4 "the read claim stays read-only", §4 "zero organise operations").</span>
-</span><span data-line="248"><span class="c1"># ---------------------------------------------------------------------------</span>
-</span><span data-line="249">
-</span><span data-line="250">
+</span><span data-line="244">
+</span><span data-line="245">
+</span><span data-line="246"><span class="c1"># ---------------------------------------------------------------------------</span>
+</span><span data-line="247"><span class="c1"># Projects and organising — the seam's third and fourth functions</span>
+</span><span data-line="248"><span class="c1"># (reelee#333; the asset-surfaces ADR §3.3 "naming belongs to the genre",</span>
+</span><span data-line="249"><span class="c1"># §3.4 "the read claim stays read-only", §4 "zero organise operations").</span>
+</span><span data-line="250"><span class="c1"># ---------------------------------------------------------------------------</span>
+</span><span data-line="251">
+</span><span data-line="252">
 <div class="viewcode-block" id="caller_key">
 <a class="viewcode-back" href="../../_autosummary/nw.delivery.html#nw.caller_key">[docs]</a>
-</span><span data-line="251"><span class="k">def</span><span class="w"> </span><span class="nf">caller_key</span><span class="p">(</span><span class="n">email</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
-</span><span data-line="252"><span class="w">    </span><span class="sd">"""The one normalisation of a caller identity, applied at the seam.</span>
-</span><span data-line="253">
-</span><span data-line="254"><span class="sd">    Bucket keys are lowercased OAuth emails, and workspaces are created</span>
-</span><span data-line="255"><span class="sd">    lazily — so a caller who arrives as ``Noel@Example.com`` after months as</span>
-</span><span data-line="256"><span class="sd">    ``noel@example.com`` would silently mint a second, empty bucket, and their</span>
-</span><span data-line="257"><span class="sd">    entire body of work would vanish from every listing with no error. Two</span>
-</span><span data-line="258"><span class="sd">    normalisations that almost agree are two buckets; this is the one.</span>
-</span><span data-line="259">
-</span><span data-line="260"><span class="sd">    Hosts SHOULD route every seam call through it. It is offered, not</span>
-</span><span data-line="261"><span class="sd">    retroactively demanded: existing callers normalise where they already do,</span>
-</span><span data-line="262"><span class="sd">    and converge here as they touch those sites.</span>
-</span><span data-line="263">
-</span><span data-line="264"><span class="sd">    &gt;&gt;&gt; caller_key("  Noel@Example.COM ")</span>
-</span><span data-line="265"><span class="sd">    'noel@example.com'</span>
-</span><span data-line="266"><span class="sd">    """</span>
-</span><span data-line="267">    <span class="k">return</span> <span class="p">(</span><span class="n">email</span> <span class="ow">or</span> <span class="s2">""</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span></div>
+</span><span data-line="253"><span class="k">def</span><span class="w"> </span><span class="nf">caller_key</span><span class="p">(</span><span class="n">email</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+</span><span data-line="254"><span class="w">    </span><span class="sd">"""The one normalisation of a caller identity, applied at the seam.</span>
+</span><span data-line="255">
+</span><span data-line="256"><span class="sd">    Bucket keys are lowercased OAuth emails, and workspaces are created</span>
+</span><span data-line="257"><span class="sd">    lazily — so a caller who arrives as ``Noel@Example.com`` after months as</span>
+</span><span data-line="258"><span class="sd">    ``noel@example.com`` would silently mint a second, empty bucket, and their</span>
+</span><span data-line="259"><span class="sd">    entire body of work would vanish from every listing with no error. Two</span>
+</span><span data-line="260"><span class="sd">    normalisations that almost agree are two buckets; this is the one.</span>
+</span><span data-line="261">
+</span><span data-line="262"><span class="sd">    Hosts SHOULD route every seam call through it. It is offered, not</span>
+</span><span data-line="263"><span class="sd">    retroactively demanded: existing callers normalise where they already do,</span>
+</span><span data-line="264"><span class="sd">    and converge here as they touch those sites.</span>
+</span><span data-line="265">
+</span><span data-line="266"><span class="sd">    &gt;&gt;&gt; caller_key("  Noel@Example.COM ")</span>
+</span><span data-line="267"><span class="sd">    'noel@example.com'</span>
+</span><span data-line="268"><span class="sd">    """</span>
+</span><span data-line="269">    <span class="k">return</span> <span class="p">(</span><span class="n">email</span> <span class="ow">or</span> <span class="s2">""</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span></div>
 
-</span><span data-line="268">
-</span><span data-line="269">
+</span><span data-line="270">
+</span><span data-line="271">
 <div class="viewcode-block" id="ProjectSummary">
 <a class="viewcode-back" href="../../_autosummary/nw.delivery.html#nw.ProjectSummary">[docs]</a>
-</span><span data-line="270"><span class="nd">@dataclass</span><span class="p">(</span><span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-</span><span data-line="271"><span class="k">class</span><span class="w"> </span><span class="nc">ProjectSummary</span><span class="p">:</span>
-</span><span data-line="272"><span class="w">    </span><span class="sd">"""A project a caller has — whether or not it has ever rendered.</span>
-</span><span data-line="273">
-</span><span data-line="274"><span class="sd">    :data:`Lister` enumerates finished work, which means a footage project</span>
-</span><span data-line="275"><span class="sd">    with a song and twelve clips and no cut yet is invisible to every surface</span>
-</span><span data-line="276"><span class="sd">    in the system (reelee#333). This is the row that makes it findable.</span>
-</span><span data-line="277">
-</span><span data-line="278"><span class="sd">    Every existing workspace lister computes an mtime to sort by and then</span>
-</span><span data-line="279"><span class="sd">    throws it away — forcing a host that merges several genres' listings to</span>
-</span><span data-line="280"><span class="sd">    re-guess an order it was already told. The richer half wins, so</span>
-</span><span data-line="281"><span class="sd">    ``modified_at`` stays, and ``created_at`` with it (every manifest already</span>
-</span><span data-line="282"><span class="sd">    records it; only the row dropped it).</span>
-</span><span data-line="283">
-</span><span data-line="284"><span class="sd">    ``deliverable_count`` is three-valued on purpose: ``None`` means "not</span>
-</span><span data-line="285"><span class="sd">    counted" (counting may cost a walk the genre chose not to pay), ``0``</span>
-</span><span data-line="286"><span class="sd">    means counted and genuinely renderless — the project a surface must show</span>
-</span><span data-line="287"><span class="sd">    as "no cut yet" rather than omit. ``meta`` is the same escape valve</span>
-</span><span data-line="288"><span class="sd">    :attr:`Deliverable.meta` is: the host renders what it recognises and</span>
-</span><span data-line="289"><span class="sd">    ignores the rest. A genre with internal drawers stamps a disambiguator</span>
-</span><span data-line="290"><span class="sd">    there (muvid: ``{"muvid_genre": "footage"}``), because one genre</span>
-</span><span data-line="291"><span class="sd">    registration may span several workspaces and a ``project_id`` may appear</span>
-</span><span data-line="292"><span class="sd">    in more than one — hosts must not key merged rows by</span>
-</span><span data-line="293"><span class="sd">    ``(genre, project_id)`` alone.</span>
-</span><span data-line="294"><span class="sd">    """</span>
-</span><span data-line="295">
-</span><span data-line="296">    <span class="n">project_id</span><span class="p">:</span> <span class="nb">str</span>
-</span><span data-line="297">    <span class="n">title</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">""</span>
-</span><span data-line="298">    <span class="n">genre</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">""</span>
-</span><span data-line="299">    <span class="n">created_at</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
-</span><span data-line="300">    <span class="n">modified_at</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
-</span><span data-line="301">    <span class="n">deliverable_count</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
-</span><span data-line="302">    <span class="n">meta</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="nb">dict</span><span class="p">)</span>
-</span><span data-line="303">
-</span><span data-line="304">    <span class="nd">@property</span>
-</span><span data-line="305">    <span class="k">def</span><span class="w"> </span><span class="nf">label</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
-</span><span data-line="306"><span class="w">        </span><span class="sd">"""The best short name for a human — the title if it has one, else the id.</span>
-</span><span data-line="307">
-</span><span data-line="308"><span class="sd">        &gt;&gt;&gt; ProjectSummary("we_ll_see", "We'll See").label</span>
-</span><span data-line="309"><span class="sd">        "We'll See"</span>
-</span><span data-line="310"><span class="sd">        &gt;&gt;&gt; ProjectSummary("we_ll_see").label</span>
-</span><span data-line="311"><span class="sd">        'we_ll_see'</span>
-</span><span data-line="312"><span class="sd">        """</span>
-</span><span data-line="313">        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">title</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">project_id</span></div>
+</span><span data-line="272"><span class="nd">@dataclass</span><span class="p">(</span><span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</span><span data-line="273"><span class="k">class</span><span class="w"> </span><span class="nc">ProjectSummary</span><span class="p">:</span>
+</span><span data-line="274"><span class="w">    </span><span class="sd">"""A project a caller has — whether or not it has ever rendered.</span>
+</span><span data-line="275">
+</span><span data-line="276"><span class="sd">    :data:`Lister` enumerates finished work, which means a footage project</span>
+</span><span data-line="277"><span class="sd">    with a song and twelve clips and no cut yet is invisible to every surface</span>
+</span><span data-line="278"><span class="sd">    in the system (reelee#333). This is the row that makes it findable.</span>
+</span><span data-line="279">
+</span><span data-line="280"><span class="sd">    Every existing workspace lister computes an mtime to sort by and then</span>
+</span><span data-line="281"><span class="sd">    throws it away — forcing a host that merges several genres' listings to</span>
+</span><span data-line="282"><span class="sd">    re-guess an order it was already told. The richer half wins, so</span>
+</span><span data-line="283"><span class="sd">    ``modified_at`` stays, and ``created_at`` with it (every manifest already</span>
+</span><span data-line="284"><span class="sd">    records it; only the row dropped it).</span>
+</span><span data-line="285">
+</span><span data-line="286"><span class="sd">    ``deliverable_count`` is three-valued on purpose: ``None`` means "not</span>
+</span><span data-line="287"><span class="sd">    counted" (counting may cost a walk the genre chose not to pay), ``0``</span>
+</span><span data-line="288"><span class="sd">    means counted and genuinely renderless — the project a surface must show</span>
+</span><span data-line="289"><span class="sd">    as "no cut yet" rather than omit. ``meta`` is the same escape valve</span>
+</span><span data-line="290"><span class="sd">    :attr:`Deliverable.meta` is: the host renders what it recognises and</span>
+</span><span data-line="291"><span class="sd">    ignores the rest. A genre with internal drawers stamps a disambiguator</span>
+</span><span data-line="292"><span class="sd">    there (muvid: ``{"muvid_genre": "footage"}``), because one genre</span>
+</span><span data-line="293"><span class="sd">    registration may span several workspaces and a ``project_id`` may appear</span>
+</span><span data-line="294"><span class="sd">    in more than one — hosts must not key merged rows by</span>
+</span><span data-line="295"><span class="sd">    ``(genre, project_id)`` alone.</span>
+</span><span data-line="296"><span class="sd">    """</span>
+</span><span data-line="297">
+</span><span data-line="298">    <span class="n">project_id</span><span class="p">:</span> <span class="nb">str</span>
+</span><span data-line="299">    <span class="n">title</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">""</span>
+</span><span data-line="300">    <span class="n">genre</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">""</span>
+</span><span data-line="301">    <span class="n">created_at</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+</span><span data-line="302">    <span class="n">modified_at</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+</span><span data-line="303">    <span class="n">deliverable_count</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+</span><span data-line="304">    <span class="n">meta</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="nb">dict</span><span class="p">)</span>
+</span><span data-line="305">
+</span><span data-line="306">    <span class="nd">@property</span>
+</span><span data-line="307">    <span class="k">def</span><span class="w"> </span><span class="nf">label</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+</span><span data-line="308"><span class="w">        </span><span class="sd">"""The best short name for a human — the title if it has one, else the id.</span>
+</span><span data-line="309">
+</span><span data-line="310"><span class="sd">        &gt;&gt;&gt; ProjectSummary("we_ll_see", "We'll See").label</span>
+</span><span data-line="311"><span class="sd">        "We'll See"</span>
+</span><span data-line="312"><span class="sd">        &gt;&gt;&gt; ProjectSummary("we_ll_see").label</span>
+</span><span data-line="313"><span class="sd">        'we_ll_see'</span>
+</span><span data-line="314"><span class="sd">        """</span>
+</span><span data-line="315">        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">title</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">project_id</span></div>
 
-</span><span data-line="314">
-</span><span data-line="315">
-</span><span data-line="316"><span class="c1">#: ``list_projects(email) -&gt; list[ProjectSummary]`` — every project of this</span>
-</span><span data-line="317"><span class="c1">#: caller's in the genre, newest-modified first, INCLUDING projects that have</span>
-</span><span data-line="318"><span class="c1">#: never rendered. The genre is implicit: registration is per-genre, and the</span>
-</span><span data-line="319"><span class="c1">#: host stamps the registry key onto any row whose ``genre`` arrives blank.</span>
-</span><span data-line="320"><span class="c1">#:</span>
-</span><span data-line="321"><span class="c1">#: The error contract, stated once so no genre re-invents it: an empty list is</span>
-</span><span data-line="322"><span class="c1">#: a POSITIVE CLAIM — "nothing exists under this exact :func:`caller_key`" —</span>
-</span><span data-line="323"><span class="c1">#: and an infrastructure failure must RAISE. The host surfaces a raise as a</span>
-</span><span data-line="324"><span class="c1">#: per-genre problems entry; it never folds one into an empty result, because</span>
-</span><span data-line="325"><span class="c1">#: a listing that silently omits a genre can honestly report "you have made</span>
-</span><span data-line="326"><span class="c1">#: nothing" to a caller with work on disk (the ``except: continue`` defect).</span>
-</span><span data-line="327"><span class="c1">#: A lister that degrades its own errors to ``[]`` rebuilds that defect one</span>
-</span><span data-line="328"><span class="c1">#: layer down, where the host can no longer see it.</span>
-</span><span data-line="329"><span class="c1">#:</span>
-</span><span data-line="330"><span class="c1">#: Two boundaries a lister must keep: it MUST NOT create a workspace directory</span>
-</span><span data-line="331"><span class="c1">#: just to list it — emptiness is the only signal there is, and minting the</span>
-</span><span data-line="332"><span class="c1">#: directory corrupts it (whether an empty answer means "no work" or "never</span>
-</span><span data-line="333"><span class="c1">#: seen this caller" is the HOST's copy to write, with the host's knowledge of</span>
-</span><span data-line="334"><span class="c1">#: the allowlist). And rows are the caller's OWN projects; a genre MAY include</span>
-</span><span data-line="335"><span class="c1">#: rows shared with the caller if it marks them (``meta["access"]="shared"``).</span>
-</span><span data-line="336"><span class="c1">#:</span>
-</span><span data-line="337"><span class="c1">#: The keyword ``after=`` is RESERVED for a future pagination cursor — a genre</span>
-</span><span data-line="338"><span class="c1">#: must not define it to mean anything else.</span>
-</span><span data-line="339"><span class="n">ProjectLister</span> <span class="o">=</span> <span class="n">Callable</span><span class="p">[[</span><span class="nb">str</span><span class="p">],</span> <span class="s2">"list[ProjectSummary]"</span><span class="p">]</span>
-</span><span data-line="340">
-</span><span data-line="341">
-</span><span data-line="342"><span class="c1">#: The longest title :func:`check_title` accepts. Long enough for a real</span>
-</span><span data-line="343"><span class="c1">#: episode title, short enough to render in one listing row.</span>
-</span><span data-line="344"><span class="n">MAX_TITLE_LEN</span> <span class="o">=</span> <span class="mi">120</span>
-</span><span data-line="345">
-</span><span data-line="346">
+</span><span data-line="316">
+</span><span data-line="317">
+</span><span data-line="318"><span class="c1">#: ``list_projects(email) -&gt; list[ProjectSummary]`` — every project of this</span>
+</span><span data-line="319"><span class="c1">#: caller's in the genre, newest-modified first, INCLUDING projects that have</span>
+</span><span data-line="320"><span class="c1">#: never rendered. The genre is implicit: registration is per-genre, and the</span>
+</span><span data-line="321"><span class="c1">#: host stamps the registry key onto any row whose ``genre`` arrives blank.</span>
+</span><span data-line="322"><span class="c1">#:</span>
+</span><span data-line="323"><span class="c1">#: The error contract, stated once so no genre re-invents it: an empty list is</span>
+</span><span data-line="324"><span class="c1">#: a POSITIVE CLAIM — "nothing exists under this exact :func:`caller_key`" —</span>
+</span><span data-line="325"><span class="c1">#: and an infrastructure failure must RAISE. The host surfaces a raise as a</span>
+</span><span data-line="326"><span class="c1">#: per-genre problems entry; it never folds one into an empty result, because</span>
+</span><span data-line="327"><span class="c1">#: a listing that silently omits a genre can honestly report "you have made</span>
+</span><span data-line="328"><span class="c1">#: nothing" to a caller with work on disk (the ``except: continue`` defect).</span>
+</span><span data-line="329"><span class="c1">#: A lister that degrades its own errors to ``[]`` rebuilds that defect one</span>
+</span><span data-line="330"><span class="c1">#: layer down, where the host can no longer see it.</span>
+</span><span data-line="331"><span class="c1">#:</span>
+</span><span data-line="332"><span class="c1">#: Two boundaries a lister must keep: it MUST NOT create a workspace directory</span>
+</span><span data-line="333"><span class="c1">#: just to list it — emptiness is the only signal there is, and minting the</span>
+</span><span data-line="334"><span class="c1">#: directory corrupts it (whether an empty answer means "no work" or "never</span>
+</span><span data-line="335"><span class="c1">#: seen this caller" is the HOST's copy to write, with the host's knowledge of</span>
+</span><span data-line="336"><span class="c1">#: the allowlist). And rows are the caller's OWN projects; a genre MAY include</span>
+</span><span data-line="337"><span class="c1">#: rows shared with the caller if it marks them (``meta["access"]="shared"``).</span>
+</span><span data-line="338"><span class="c1">#:</span>
+</span><span data-line="339"><span class="c1">#: The keyword ``after=`` is RESERVED for a future pagination cursor — a genre</span>
+</span><span data-line="340"><span class="c1">#: must not define it to mean anything else.</span>
+</span><span data-line="341"><span class="n">ProjectLister</span> <span class="o">=</span> <span class="n">Callable</span><span class="p">[[</span><span class="nb">str</span><span class="p">],</span> <span class="s2">"list[ProjectSummary]"</span><span class="p">]</span>
+</span><span data-line="342">
+</span><span data-line="343">
+</span><span data-line="344"><span class="c1">#: The :attr:`ProjectSummary.meta` key a guest genre sets on a row for a project a</span>
+</span><span data-line="345"><span class="c1">#: HOST placed in the caller's bucket (muvid#334): "this row is the host's</span>
+</span><span data-line="346"><span class="c1">#: placed project, listed by me too". :func:`drop_guest_placed_duplicates`</span>
+</span><span data-line="347"><span class="c1">#: trusts it before any envelope read. A guest sets ``meta[PLACED_META_KEY] =</span>
+</span><span data-line="348"><span class="c1">#: True``, importing this constant rather than re-spelling the key.</span>
+</span><span data-line="349"><span class="n">PLACED_META_KEY</span> <span class="o">=</span> <span class="s2">"placed"</span>
+</span><span data-line="350">
+</span><span data-line="351">
+<div class="viewcode-block" id="drop_guest_placed_duplicates">
+<a class="viewcode-back" href="../../_autosummary/nw.delivery.html#nw.drop_guest_placed_duplicates">[docs]</a>
+</span><span data-line="352"><span class="k">def</span><span class="w"> </span><span class="nf">drop_guest_placed_duplicates</span><span class="p">(</span>
+</span><span data-line="353">    <span class="n">summaries</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="n">ProjectSummary</span><span class="p">],</span>
+</span><span data-line="354">    <span class="o">*</span><span class="p">,</span>
+</span><span data-line="355">    <span class="n">host</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+</span><span data-line="356">    <span class="n">genre_of</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="nb">str</span><span class="p">],</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]],</span>
+</span><span data-line="357">    <span class="n">owner_of</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="nb">str</span><span class="p">],</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]],</span>
+</span><span data-line="358"><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="n">ProjectSummary</span><span class="p">]:</span>
+</span><span data-line="359"><span class="w">    </span><span class="sd">"""``summaries`` without the ``host`` rows a guest genre already listed (nw#231).</span>
+</span><span data-line="360">
+</span><span data-line="361"><span class="sd">    A host that creates a guest genre's project in the caller's own bucket</span>
+</span><span data-line="362"><span class="sd">    (reelee placing a ``music_video``) lists it from its own lister, and so does</span>
+</span><span data-line="363"><span class="sd">    the guest's lister when it reads placed projects (muvid#296): one project,</span>
+</span><span data-line="364"><span class="sd">    two rows. Every aggregator over :data:`ProjectLister` s needs the same merge,</span>
+</span><span data-line="365"><span class="sd">    so it is here. A ``host`` row (``genre == host``) is dropped when a guest</span>
+</span><span data-line="366"><span class="sd">    row (any other ``genre``) carries the same ``project_id`` and either:</span>
+</span><span data-line="367">
+</span><span data-line="368"><span class="sd">    - that guest row is marked placed (``meta[PLACED_META_KEY]``): the guest</span>
+</span><span data-line="369"><span class="sd">      says so, no read needed; or</span>
+</span><span data-line="370"><span class="sd">    - ``owner_of(genre_of(project_id))`` is that guest's genre: the project's</span>
+</span><span data-line="371"><span class="sd">      recorded genre belongs to it, so it is not a host project that merely</span>
+</span><span data-line="372"><span class="sd">      shares an id. ``genre_of`` maps a ``project_id`` to its genre slug, e.g.</span>
+</span><span data-line="373"><span class="sd">      ``lambda pid: (nw.project_genre(projects_dir / pid) or {}).get("genre")``</span>
+</span><span data-line="374"><span class="sd">      (:func:`nw.project_genre` returns the envelope and opens no graph);</span>
+</span><span data-line="375"><span class="sd">      ``owner_of`` maps a slug to the genre (registry key) that lists it.</span>
+</span><span data-line="376">
+</span><span data-line="377"><span class="sd">    Only colliding host rows cost a ``genre_of`` call. Order is kept. Assumes</span>
+</span><span data-line="378"><span class="sd">    the host lists a caller's placed projects from one folder (the</span>
+</span><span data-line="379"><span class="sd">    ``register_caller_projects_dir`` locator), so a colliding ``project_id`` is</span>
+</span><span data-line="380"><span class="sd">    one project: a host that lists several drawers must pre-filter its rows,</span>
+</span><span data-line="381"><span class="sd">    since every colliding host row is dropped. Rows must carry their genre (the</span>
+</span><span data-line="382"><span class="sd">    host stamps a blank one, per :data:`ProjectLister`).</span>
+</span><span data-line="383">
+</span><span data-line="384"><span class="sd">    &gt;&gt;&gt; rows = [ProjectSummary("p1", genre="host"), ProjectSummary("p1", genre="guest",</span>
+</span><span data-line="385"><span class="sd">    ...         meta={"placed": True}), ProjectSummary("p2", genre="host")]</span>
+</span><span data-line="386"><span class="sd">    &gt;&gt;&gt; [(r.project_id, r.genre) for r in drop_guest_placed_duplicates(</span>
+</span><span data-line="387"><span class="sd">    ...     rows, host="host", genre_of=lambda i: None, owner_of=lambda g: None)]</span>
+</span><span data-line="388"><span class="sd">    [('p1', 'guest'), ('p2', 'host')]</span>
+</span><span data-line="389"><span class="sd">    """</span>
+</span><span data-line="390">    <span class="n">summaries</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">summaries</span><span class="p">)</span>
+</span><span data-line="391">    <span class="n">guests</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">set</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="p">{}</span>
+</span><span data-line="392">    <span class="n">marked</span><span class="p">:</span> <span class="nb">set</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+</span><span data-line="393">    <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">summaries</span><span class="p">:</span>
+</span><span data-line="394">        <span class="k">if</span> <span class="n">row</span><span class="o">.</span><span class="n">genre</span> <span class="o">!=</span> <span class="n">host</span><span class="p">:</span>
+</span><span data-line="395">            <span class="n">guests</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">row</span><span class="o">.</span><span class="n">project_id</span><span class="p">,</span> <span class="nb">set</span><span class="p">())</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">row</span><span class="o">.</span><span class="n">genre</span><span class="p">)</span>
+</span><span data-line="396">            <span class="k">if</span> <span class="p">(</span><span class="n">row</span><span class="o">.</span><span class="n">meta</span> <span class="ow">or</span> <span class="p">{})</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">PLACED_META_KEY</span><span class="p">):</span>
+</span><span data-line="397">                <span class="n">marked</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">row</span><span class="o">.</span><span class="n">project_id</span><span class="p">)</span>
+</span><span data-line="398">
+</span><span data-line="399">    <span class="k">def</span><span class="w"> </span><span class="nf">listed_by_its_guest</span><span class="p">(</span><span class="n">row</span><span class="p">:</span> <span class="n">ProjectSummary</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+</span><span data-line="400">        <span class="k">if</span> <span class="n">row</span><span class="o">.</span><span class="n">genre</span> <span class="o">!=</span> <span class="n">host</span> <span class="ow">or</span> <span class="n">row</span><span class="o">.</span><span class="n">project_id</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">guests</span><span class="p">:</span>
+</span><span data-line="401">            <span class="k">return</span> <span class="kc">False</span>
+</span><span data-line="402">        <span class="k">if</span> <span class="n">row</span><span class="o">.</span><span class="n">project_id</span> <span class="ow">in</span> <span class="n">marked</span><span class="p">:</span>
+</span><span data-line="403">            <span class="k">return</span> <span class="kc">True</span>
+</span><span data-line="404">        <span class="n">slug</span> <span class="o">=</span> <span class="n">genre_of</span><span class="p">(</span><span class="n">row</span><span class="o">.</span><span class="n">project_id</span><span class="p">)</span>
+</span><span data-line="405">        <span class="k">return</span> <span class="nb">bool</span><span class="p">(</span><span class="n">slug</span><span class="p">)</span> <span class="ow">and</span> <span class="n">owner_of</span><span class="p">(</span><span class="n">slug</span><span class="p">)</span> <span class="ow">in</span> <span class="n">guests</span><span class="p">[</span><span class="n">row</span><span class="o">.</span><span class="n">project_id</span><span class="p">]</span>
+</span><span data-line="406">
+</span><span data-line="407">    <span class="k">return</span> <span class="p">[</span><span class="n">row</span> <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">summaries</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">listed_by_its_guest</span><span class="p">(</span><span class="n">row</span><span class="p">)]</span></div>
+
+</span><span data-line="408">
+</span><span data-line="409">
+</span><span data-line="410"><span class="c1">#: The longest title :func:`check_title` accepts. Long enough for a real</span>
+</span><span data-line="411"><span class="c1">#: episode title, short enough to render in one listing row.</span>
+</span><span data-line="412"><span class="n">MAX_TITLE_LEN</span> <span class="o">=</span> <span class="mi">120</span>
+</span><span data-line="413">
+</span><span data-line="414">
 <div class="viewcode-block" id="check_title">
 <a class="viewcode-back" href="../../_autosummary/nw.delivery.html#nw.check_title">[docs]</a>
-</span><span data-line="347"><span class="k">def</span><span class="w"> </span><span class="nf">check_title</span><span class="p">(</span><span class="n">title</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
-</span><span data-line="348"><span class="w">    </span><span class="sd">"""Validate and normalise a human-assigned title; ``ValueError`` if refused.</span>
-</span><span data-line="349">
-</span><span data-line="350"><span class="sd">    The shared half of the naming rule, so every genre refuses the same</span>
-</span><span data-line="351"><span class="sd">    spellings rather than each inventing its own near-miss:</span>
-</span><span data-line="352">
-</span><span data-line="353"><span class="sd">    - **Never ref-shaped.** A title the shared parser reads as an ordinal</span>
-</span><span data-line="354"><span class="sd">      (``"cut 4"``, ``"#7"``, ``"12"``) is refused everywhere — a resolver</span>
-</span><span data-line="355"><span class="sd">      that tries :func:`parse_ref` first (muvid's does today; any genre may</span>
-</span><span data-line="356"><span class="sd">      tomorrow) would shadow it forever, so the user would have renamed their</span>
-</span><span data-line="357"><span class="sd">      work into a name that resolves to a *different* artifact.</span>
-</span><span data-line="358"><span class="sd">    - **Never path-shaped.** No separators, no ``.``/``..``, no control</span>
-</span><span data-line="359"><span class="sd">      characters — a title participates in resolution, so it inherits the</span>
-</span><span data-line="360"><span class="sd">      same hostility to traversal as any other id.</span>
-</span><span data-line="361">
-</span><span data-line="362"><span class="sd">    The OTHER half — "does this collide with an existing artifact_id, title</span>
-</span><span data-line="363"><span class="sd">    or filename in the genre's own namespace?" — is the genre's, because only</span>
-</span><span data-line="364"><span class="sd">    the genre knows its namespace. The contract there: a collision raises</span>
-</span><span data-line="365"><span class="sd">    ``ValueError`` naming the current holder, never silently reassigns.</span>
-</span><span data-line="366">
-</span><span data-line="367"><span class="sd">    This governs titles assigned through :class:`Organiser`; genre CREATE</span>
-</span><span data-line="368"><span class="sd">    paths keep their own (often looser) rules, so a render *created* as</span>
-</span><span data-line="369"><span class="sd">    ``"12"`` may exist that ``organise`` would refuse to assign — asymmetric,</span>
-</span><span data-line="370"><span class="sd">    and deliberate: organise is the door new names arrive through.</span>
-</span><span data-line="371">
-</span><span data-line="372"><span class="sd">    &gt;&gt;&gt; check_title("  The Slow Open ")</span>
-</span><span data-line="373"><span class="sd">    'The Slow Open'</span>
-</span><span data-line="374"><span class="sd">    &gt;&gt;&gt; check_title("cut 4")</span>
-</span><span data-line="375"><span class="sd">    Traceback (most recent call last):</span>
-</span><span data-line="376"><span class="sd">    ...</span>
-</span><span data-line="377"><span class="sd">    ValueError: 'cut 4' reads as a reference; pick a name that is not 'cut &lt;n&gt;', '#&lt;n&gt;' or a bare number</span>
-</span><span data-line="378"><span class="sd">    &gt;&gt;&gt; check_title("a/b")</span>
-</span><span data-line="379"><span class="sd">    Traceback (most recent call last):</span>
-</span><span data-line="380"><span class="sd">    ...</span>
-</span><span data-line="381"><span class="sd">    ValueError: a title cannot contain path separators or control characters</span>
-</span><span data-line="382"><span class="sd">    """</span>
-</span><span data-line="383">    <span class="n">t</span> <span class="o">=</span> <span class="p">(</span><span class="n">title</span> <span class="ow">or</span> <span class="s2">""</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
-</span><span data-line="384">    <span class="k">if</span> <span class="ow">not</span> <span class="n">t</span><span class="p">:</span>
-</span><span data-line="385">        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"a title cannot be empty"</span><span class="p">)</span>
-</span><span data-line="386">    <span class="k">if</span> <span class="n">parse_ref</span><span class="p">(</span><span class="n">t</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-</span><span data-line="387">        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-</span><span data-line="388">            <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">t</span><span class="si">!r}</span><span class="s2"> reads as a reference; pick a name that is not "</span>
-</span><span data-line="389">            <span class="sa">f</span><span class="s2">"'</span><span class="si">{</span><span class="n">REF_WORD</span><span class="si">}</span><span class="s2"> &lt;n&gt;', '#&lt;n&gt;' or a bare number"</span>
-</span><span data-line="390">        <span class="p">)</span>
-</span><span data-line="391">    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">t</span><span class="p">)</span> <span class="o">&gt;</span> <span class="n">MAX_TITLE_LEN</span><span class="p">:</span>
-</span><span data-line="392">        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"a title is at most </span><span class="si">{</span><span class="n">MAX_TITLE_LEN</span><span class="si">}</span><span class="s2"> characters"</span><span class="p">)</span>
-</span><span data-line="393">    <span class="k">if</span> <span class="nb">any</span><span class="p">(</span><span class="n">c</span> <span class="ow">in</span> <span class="n">t</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="s2">"/</span><span class="se">\\\0</span><span class="s2">"</span><span class="p">)</span> <span class="ow">or</span> <span class="n">t</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">"."</span><span class="p">,</span> <span class="s2">".."</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">any</span><span class="p">(</span><span class="nb">ord</span><span class="p">(</span><span class="n">c</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">32</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">t</span><span class="p">):</span>
-</span><span data-line="394">        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"a title cannot contain path separators or control characters"</span><span class="p">)</span>
-</span><span data-line="395">    <span class="k">return</span> <span class="n">t</span></div>
+</span><span data-line="415"><span class="k">def</span><span class="w"> </span><span class="nf">check_title</span><span class="p">(</span><span class="n">title</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+</span><span data-line="416"><span class="w">    </span><span class="sd">"""Validate and normalise a human-assigned title; ``ValueError`` if refused.</span>
+</span><span data-line="417">
+</span><span data-line="418"><span class="sd">    The shared half of the naming rule, so every genre refuses the same</span>
+</span><span data-line="419"><span class="sd">    spellings rather than each inventing its own near-miss:</span>
+</span><span data-line="420">
+</span><span data-line="421"><span class="sd">    - **Never ref-shaped.** A title the shared parser reads as an ordinal</span>
+</span><span data-line="422"><span class="sd">      (``"cut 4"``, ``"#7"``, ``"12"``) is refused everywhere — a resolver</span>
+</span><span data-line="423"><span class="sd">      that tries :func:`parse_ref` first (muvid's does today; any genre may</span>
+</span><span data-line="424"><span class="sd">      tomorrow) would shadow it forever, so the user would have renamed their</span>
+</span><span data-line="425"><span class="sd">      work into a name that resolves to a *different* artifact.</span>
+</span><span data-line="426"><span class="sd">    - **Never path-shaped.** No separators, no ``.``/``..``, no control</span>
+</span><span data-line="427"><span class="sd">      characters — a title participates in resolution, so it inherits the</span>
+</span><span data-line="428"><span class="sd">      same hostility to traversal as any other id.</span>
+</span><span data-line="429">
+</span><span data-line="430"><span class="sd">    The OTHER half — "does this collide with an existing artifact_id, title</span>
+</span><span data-line="431"><span class="sd">    or filename in the genre's own namespace?" — is the genre's, because only</span>
+</span><span data-line="432"><span class="sd">    the genre knows its namespace. The contract there: a collision raises</span>
+</span><span data-line="433"><span class="sd">    ``ValueError`` naming the current holder, never silently reassigns.</span>
+</span><span data-line="434">
+</span><span data-line="435"><span class="sd">    This governs titles assigned through :class:`Organiser`; genre CREATE</span>
+</span><span data-line="436"><span class="sd">    paths keep their own (often looser) rules, so a render *created* as</span>
+</span><span data-line="437"><span class="sd">    ``"12"`` may exist that ``organise`` would refuse to assign — asymmetric,</span>
+</span><span data-line="438"><span class="sd">    and deliberate: organise is the door new names arrive through.</span>
+</span><span data-line="439">
+</span><span data-line="440"><span class="sd">    &gt;&gt;&gt; check_title("  The Slow Open ")</span>
+</span><span data-line="441"><span class="sd">    'The Slow Open'</span>
+</span><span data-line="442"><span class="sd">    &gt;&gt;&gt; check_title("cut 4")</span>
+</span><span data-line="443"><span class="sd">    Traceback (most recent call last):</span>
+</span><span data-line="444"><span class="sd">    ...</span>
+</span><span data-line="445"><span class="sd">    ValueError: 'cut 4' reads as a reference; pick a name that is not 'cut &lt;n&gt;', '#&lt;n&gt;' or a bare number</span>
+</span><span data-line="446"><span class="sd">    &gt;&gt;&gt; check_title("a/b")</span>
+</span><span data-line="447"><span class="sd">    Traceback (most recent call last):</span>
+</span><span data-line="448"><span class="sd">    ...</span>
+</span><span data-line="449"><span class="sd">    ValueError: a title cannot contain path separators or control characters</span>
+</span><span data-line="450"><span class="sd">    """</span>
+</span><span data-line="451">    <span class="n">t</span> <span class="o">=</span> <span class="p">(</span><span class="n">title</span> <span class="ow">or</span> <span class="s2">""</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+</span><span data-line="452">    <span class="k">if</span> <span class="ow">not</span> <span class="n">t</span><span class="p">:</span>
+</span><span data-line="453">        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"a title cannot be empty"</span><span class="p">)</span>
+</span><span data-line="454">    <span class="k">if</span> <span class="n">parse_ref</span><span class="p">(</span><span class="n">t</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+</span><span data-line="455">        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+</span><span data-line="456">            <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">t</span><span class="si">!r}</span><span class="s2"> reads as a reference; pick a name that is not "</span>
+</span><span data-line="457">            <span class="sa">f</span><span class="s2">"'</span><span class="si">{</span><span class="n">REF_WORD</span><span class="si">}</span><span class="s2"> &lt;n&gt;', '#&lt;n&gt;' or a bare number"</span>
+</span><span data-line="458">        <span class="p">)</span>
+</span><span data-line="459">    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">t</span><span class="p">)</span> <span class="o">&gt;</span> <span class="n">MAX_TITLE_LEN</span><span class="p">:</span>
+</span><span data-line="460">        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"a title is at most </span><span class="si">{</span><span class="n">MAX_TITLE_LEN</span><span class="si">}</span><span class="s2"> characters"</span><span class="p">)</span>
+</span><span data-line="461">    <span class="k">if</span> <span class="nb">any</span><span class="p">(</span><span class="n">c</span> <span class="ow">in</span> <span class="n">t</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="s2">"/</span><span class="se">\\\0</span><span class="s2">"</span><span class="p">)</span> <span class="ow">or</span> <span class="n">t</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">"."</span><span class="p">,</span> <span class="s2">".."</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">any</span><span class="p">(</span><span class="nb">ord</span><span class="p">(</span><span class="n">c</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">32</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">t</span><span class="p">):</span>
+</span><span data-line="462">        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"a title cannot contain path separators or control characters"</span><span class="p">)</span>
+</span><span data-line="463">    <span class="k">return</span> <span class="n">t</span></div>
 
-</span><span data-line="396">
-</span><span data-line="397">
+</span><span data-line="464">
+</span><span data-line="465">
 <div class="viewcode-block" id="Organiser">
 <a class="viewcode-back" href="../../_autosummary/nw.delivery.html#nw.Organiser">[docs]</a>
-</span><span data-line="398"><span class="nd">@runtime_checkable</span>
-</span><span data-line="399"><span class="k">class</span><span class="w"> </span><span class="nc">Organiser</span><span class="p">(</span><span class="n">Protocol</span><span class="p">):</span>
-</span><span data-line="400"><span class="w">    </span><span class="sd">"""``organise(email, project_id, artifact_id, *, title=…, tags=…, note=…) -&gt; Deliverable``</span>
-</span><span data-line="401">
-</span><span data-line="402"><span class="sd">    The seam's fourth function: rename, tag and annotate a DELIVERABLE, owned</span>
-</span><span data-line="403"><span class="sd">    by whoever assigns :attr:`Deliverable.ref` — never by the host. A</span>
-</span><span data-line="404"><span class="sd">    host-owned label store is refused on the record (the asset-surfaces ADR</span>
-</span><span data-line="405"><span class="sd">    §3.3): it mints a second naming vocabulary the resolvers cannot resolve,</span>
-</span><span data-line="406"><span class="sd">    so the very name a page taught the user would fail in the download tool.</span>
-</span><span data-line="407"><span class="sd">    Keeping naming genre-side is what makes names resolvable, because the same</span>
-</span><span data-line="408"><span class="sd">    code owns the write and the lookup.</span>
-</span><span data-line="409">
-</span><span data-line="410"><span class="sd">    This function arrives ONLY on the authenticated tool path. The signed</span>
-</span><span data-line="411"><span class="sd">    download token stays read-only (ADR §3.4) — it is a forwardable bearer</span>
-</span><span data-line="412"><span class="sd">    credential, safe precisely because it authorises reading one artifact and</span>
-</span><span data-line="413"><span class="sd">    nothing else. Which is why the Protocol takes ``email`` first and</span>
-</span><span data-line="414"><span class="sd">    authorizes exactly as :data:`Resolver` does, before anything is written.</span>
-</span><span data-line="415">
-</span><span data-line="416"><span class="sd">    The durability contract — each guarantee one a real genre can keep:</span>
-</span><span data-line="417">
-</span><span data-line="418"><span class="sd">    - **``artifact_id`` never changes, and files are never renamed or</span>
-</span><span data-line="419"><span class="sd">      moved.** The id is what a signed token is minted against, and some</span>
-</span><span data-line="420"><span class="sd">      locations are load-bearing (braidio's episode path is recorded in the</span>
-</span><span data-line="421"><span class="sd">      annotation graph). A flat-set genre whose id is the file stem persists</span>
-</span><span data-line="422"><span class="sd">      naming in a genre-owned sidecar, NOT by renaming the file — a rename is</span>
-</span><span data-line="423"><span class="sd">      also how naming becomes destruction (``os.rename`` silently replaces an</span>
-</span><span data-line="424"><span class="sd">      existing target).</span>
-</span><span data-line="425"><span class="sd">    - **An accepted title resolves.** After ``organise(..., title=T)``</span>
-</span><span data-line="426"><span class="sd">      succeeds, the genre's own ``resolve`` accepts ``T`` for this</span>
-</span><span data-line="427"><span class="sd">      deliverable. Titles pass :func:`check_title`, and a collision with an</span>
-</span><span data-line="428"><span class="sd">      existing name in the genre's namespace raises ``ValueError`` naming the</span>
-</span><span data-line="429"><span class="sd">      holder. A genre whose ``ref`` IS its title mirrors the accepted title</span>
-</span><span data-line="430"><span class="sd">      into ``ref`` — the label follows the rename; the id still does not.</span>
-</span><span data-line="431"><span class="sd">    - **Partial update, all-or-nothing.** ``None`` means "leave unchanged";</span>
-</span><span data-line="432"><span class="sd">      ``""`` clears the title or note, ``[]`` clears tags (replaced whole,</span>
-</span><span data-line="433"><span class="sd">      never merged — read-modify-write is the caller's). A field the genre</span>
-</span><span data-line="434"><span class="sd">      cannot persist raises ``ValueError`` naming it, and nothing is written.</span>
-</span><span data-line="435"><span class="sd">    - **The return is a receipt, not an echo**: the Deliverable AS RE-READ</span>
-</span><span data-line="436"><span class="sd">      from storage after the write, so the caller sees exactly what every</span>
-</span><span data-line="437"><span class="sd">      later listing will — a genre that cannot re-read its own write has a</span>
-</span><span data-line="438"><span class="sd">      durability bug this makes visible immediately.</span>
-</span><span data-line="439"><span class="sd">    - **``tags`` and ``note`` surface in the returned Deliverable's ``meta``</span>
-</span><span data-line="440"><span class="sd">      under the parameter's own names** (``meta["tags"]``, ``meta["note"]``).</span>
-</span><span data-line="441"><span class="sd">      The spelling is pinned HERE, in the seam, so the write side and every</span>
-</span><span data-line="442"><span class="sd">      listing renderer read one vocabulary.</span>
-</span><span data-line="443">
-</span><span data-line="444"><span class="sd">    Raises ``KeyError`` (host: 404) when nothing resolves, ``PermissionError``</span>
-</span><span data-line="445"><span class="sd">    (403) where "not yours" is safe to reveal, ``ValueError`` (400) when a</span>
-</span><span data-line="446"><span class="sd">    requested change is refused. Deliberately NO delete: retrievability, cost</span>
-</span><span data-line="447"><span class="sd">    and destruction are three separate predicates, and destruction does not</span>
-</span><span data-line="448"><span class="sd">    ride a naming function — it would be a separately gated fifth function.</span>
-</span><span data-line="449"><span class="sd">    """</span>
-</span><span data-line="450">
-</span><span data-line="451">    <span class="k">def</span><span class="w"> </span><span class="fm">__call__</span><span class="p">(</span>
-</span><span data-line="452">        <span class="bp">self</span><span class="p">,</span>
-</span><span data-line="453">        <span class="n">email</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
-</span><span data-line="454">        <span class="n">project_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
-</span><span data-line="455">        <span class="n">artifact_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
-</span><span data-line="456">        <span class="o">*</span><span class="p">,</span>
-</span><span data-line="457">        <span class="n">title</span><span class="p">:</span> <span class="s2">"str | None"</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-</span><span data-line="458">        <span class="n">tags</span><span class="p">:</span> <span class="s2">"list[str] | None"</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-</span><span data-line="459">        <span class="n">note</span><span class="p">:</span> <span class="s2">"str | None"</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-</span><span data-line="460">    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Deliverable</span><span class="p">:</span> <span class="o">...</span></div>
+</span><span data-line="466"><span class="nd">@runtime_checkable</span>
+</span><span data-line="467"><span class="k">class</span><span class="w"> </span><span class="nc">Organiser</span><span class="p">(</span><span class="n">Protocol</span><span class="p">):</span>
+</span><span data-line="468"><span class="w">    </span><span class="sd">"""``organise(email, project_id, artifact_id, *, title=…, tags=…, note=…) -&gt; Deliverable``</span>
+</span><span data-line="469">
+</span><span data-line="470"><span class="sd">    The seam's fourth function: rename, tag and annotate a DELIVERABLE, owned</span>
+</span><span data-line="471"><span class="sd">    by whoever assigns :attr:`Deliverable.ref` — never by the host. A</span>
+</span><span data-line="472"><span class="sd">    host-owned label store is refused on the record (the asset-surfaces ADR</span>
+</span><span data-line="473"><span class="sd">    §3.3): it mints a second naming vocabulary the resolvers cannot resolve,</span>
+</span><span data-line="474"><span class="sd">    so the very name a page taught the user would fail in the download tool.</span>
+</span><span data-line="475"><span class="sd">    Keeping naming genre-side is what makes names resolvable, because the same</span>
+</span><span data-line="476"><span class="sd">    code owns the write and the lookup.</span>
+</span><span data-line="477">
+</span><span data-line="478"><span class="sd">    This function arrives ONLY on the authenticated tool path. The signed</span>
+</span><span data-line="479"><span class="sd">    download token stays read-only (ADR §3.4) — it is a forwardable bearer</span>
+</span><span data-line="480"><span class="sd">    credential, safe precisely because it authorises reading one artifact and</span>
+</span><span data-line="481"><span class="sd">    nothing else. Which is why the Protocol takes ``email`` first and</span>
+</span><span data-line="482"><span class="sd">    authorizes exactly as :data:`Resolver` does, before anything is written.</span>
+</span><span data-line="483">
+</span><span data-line="484"><span class="sd">    The durability contract — each guarantee one a real genre can keep:</span>
+</span><span data-line="485">
+</span><span data-line="486"><span class="sd">    - **``artifact_id`` never changes, and files are never renamed or</span>
+</span><span data-line="487"><span class="sd">      moved.** The id is what a signed token is minted against, and some</span>
+</span><span data-line="488"><span class="sd">      locations are load-bearing (braidio's episode path is recorded in the</span>
+</span><span data-line="489"><span class="sd">      annotation graph). A flat-set genre whose id is the file stem persists</span>
+</span><span data-line="490"><span class="sd">      naming in a genre-owned sidecar, NOT by renaming the file — a rename is</span>
+</span><span data-line="491"><span class="sd">      also how naming becomes destruction (``os.rename`` silently replaces an</span>
+</span><span data-line="492"><span class="sd">      existing target).</span>
+</span><span data-line="493"><span class="sd">    - **An accepted title resolves.** After ``organise(..., title=T)``</span>
+</span><span data-line="494"><span class="sd">      succeeds, the genre's own ``resolve`` accepts ``T`` for this</span>
+</span><span data-line="495"><span class="sd">      deliverable. Titles pass :func:`check_title`, and a collision with an</span>
+</span><span data-line="496"><span class="sd">      existing name in the genre's namespace raises ``ValueError`` naming the</span>
+</span><span data-line="497"><span class="sd">      holder. A genre whose ``ref`` IS its title mirrors the accepted title</span>
+</span><span data-line="498"><span class="sd">      into ``ref`` — the label follows the rename; the id still does not.</span>
+</span><span data-line="499"><span class="sd">    - **Partial update, all-or-nothing.** ``None`` means "leave unchanged";</span>
+</span><span data-line="500"><span class="sd">      ``""`` clears the title or note, ``[]`` clears tags (replaced whole,</span>
+</span><span data-line="501"><span class="sd">      never merged — read-modify-write is the caller's). A field the genre</span>
+</span><span data-line="502"><span class="sd">      cannot persist raises ``ValueError`` naming it, and nothing is written.</span>
+</span><span data-line="503"><span class="sd">    - **The return is a receipt, not an echo**: the Deliverable AS RE-READ</span>
+</span><span data-line="504"><span class="sd">      from storage after the write, so the caller sees exactly what every</span>
+</span><span data-line="505"><span class="sd">      later listing will — a genre that cannot re-read its own write has a</span>
+</span><span data-line="506"><span class="sd">      durability bug this makes visible immediately.</span>
+</span><span data-line="507"><span class="sd">    - **``tags`` and ``note`` surface in the returned Deliverable's ``meta``</span>
+</span><span data-line="508"><span class="sd">      under the parameter's own names** (``meta["tags"]``, ``meta["note"]``).</span>
+</span><span data-line="509"><span class="sd">      The spelling is pinned HERE, in the seam, so the write side and every</span>
+</span><span data-line="510"><span class="sd">      listing renderer read one vocabulary.</span>
+</span><span data-line="511">
+</span><span data-line="512"><span class="sd">    Raises ``KeyError`` (host: 404) when nothing resolves, ``PermissionError``</span>
+</span><span data-line="513"><span class="sd">    (403) where "not yours" is safe to reveal, ``ValueError`` (400) when a</span>
+</span><span data-line="514"><span class="sd">    requested change is refused. Deliberately NO delete: retrievability, cost</span>
+</span><span data-line="515"><span class="sd">    and destruction are three separate predicates, and destruction does not</span>
+</span><span data-line="516"><span class="sd">    ride a naming function — it would be a separately gated fifth function.</span>
+</span><span data-line="517"><span class="sd">    """</span>
+</span><span data-line="518">
+</span><span data-line="519">    <span class="k">def</span><span class="w"> </span><span class="fm">__call__</span><span class="p">(</span>
+</span><span data-line="520">        <span class="bp">self</span><span class="p">,</span>
+</span><span data-line="521">        <span class="n">email</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+</span><span data-line="522">        <span class="n">project_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+</span><span data-line="523">        <span class="n">artifact_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+</span><span data-line="524">        <span class="o">*</span><span class="p">,</span>
+</span><span data-line="525">        <span class="n">title</span><span class="p">:</span> <span class="s2">"str | None"</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span data-line="526">        <span class="n">tags</span><span class="p">:</span> <span class="s2">"list[str] | None"</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span data-line="527">        <span class="n">note</span><span class="p">:</span> <span class="s2">"str | None"</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span data-line="528">    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Deliverable</span><span class="p">:</span> <span class="o">...</span></div>
 
-</span><span data-line="461">
-</span><span data-line="462">
+</span><span data-line="529">
+</span><span data-line="530">
 <div class="viewcode-block" id="safe_message">
 <a class="viewcode-back" href="../../_autosummary/nw.delivery.html#nw.safe_message">[docs]</a>
-</span><span data-line="463"><span class="k">def</span><span class="w"> </span><span class="nf">safe_message</span><span class="p">(</span><span class="n">exc</span><span class="p">:</span> <span class="ne">BaseException</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
-</span><span data-line="464"><span class="w">    </span><span class="sd">"""An exception's message, reduced to what is safe to show a caller.</span>
-</span><span data-line="465">
-</span><span data-line="466"><span class="sd">    The seam's exception vocabulary — ``KeyError`` / ``PermissionError`` /</span>
-</span><span data-line="467"><span class="sd">    ``ValueError`` — passes through, because genre authors keep those</span>
-</span><span data-line="468"><span class="sd">    messages path-free BY CONTRACT (never let a server path escape in the</span>
-</span><span data-line="469"><span class="sd">    message; it is stated on :data:`Resolver` and it binds every seam</span>
-</span><span data-line="470"><span class="sd">    function). Anything else — an ``OSError`` proudly carrying a server path</span>
-</span><span data-line="471"><span class="sd">    — is reduced to its type name: a per-genre problems entry renders in a</span>
-</span><span data-line="472"><span class="sd">    tool response a non-developer reads.</span>
-</span><span data-line="473">
-</span><span data-line="474"><span class="sd">    &gt;&gt;&gt; safe_message(KeyError("no render named 'x'"))</span>
-</span><span data-line="475"><span class="sd">    'KeyError: "no render named \\'x\\'"'</span>
-</span><span data-line="476"><span class="sd">    &gt;&gt;&gt; safe_message(OSError("[Errno 13] /somewhere/private/thing.mp3"))</span>
-</span><span data-line="477"><span class="sd">    'OSError'</span>
-</span><span data-line="478"><span class="sd">    """</span>
-</span><span data-line="479">    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">exc</span><span class="p">,</span> <span class="p">(</span><span class="ne">KeyError</span><span class="p">,</span> <span class="ne">PermissionError</span><span class="p">,</span> <span class="ne">ValueError</span><span class="p">)):</span>
-</span><span data-line="480">        <span class="k">return</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">exc</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">exc</span><span class="si">}</span><span class="s2">"</span>
-</span><span data-line="481">    <span class="k">return</span> <span class="nb">type</span><span class="p">(</span><span class="n">exc</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span></div>
+</span><span data-line="531"><span class="k">def</span><span class="w"> </span><span class="nf">safe_message</span><span class="p">(</span><span class="n">exc</span><span class="p">:</span> <span class="ne">BaseException</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+</span><span data-line="532"><span class="w">    </span><span class="sd">"""An exception's message, reduced to what is safe to show a caller.</span>
+</span><span data-line="533">
+</span><span data-line="534"><span class="sd">    The seam's exception vocabulary — ``KeyError`` / ``PermissionError`` /</span>
+</span><span data-line="535"><span class="sd">    ``ValueError`` — passes through, because genre authors keep those</span>
+</span><span data-line="536"><span class="sd">    messages path-free BY CONTRACT (never let a server path escape in the</span>
+</span><span data-line="537"><span class="sd">    message; it is stated on :data:`Resolver` and it binds every seam</span>
+</span><span data-line="538"><span class="sd">    function). Anything else — an ``OSError`` proudly carrying a server path</span>
+</span><span data-line="539"><span class="sd">    — is reduced to its type name: a per-genre problems entry renders in a</span>
+</span><span data-line="540"><span class="sd">    tool response a non-developer reads.</span>
+</span><span data-line="541">
+</span><span data-line="542"><span class="sd">    &gt;&gt;&gt; safe_message(KeyError("no render named 'x'"))</span>
+</span><span data-line="543"><span class="sd">    'KeyError: "no render named \\'x\\'"'</span>
+</span><span data-line="544"><span class="sd">    &gt;&gt;&gt; safe_message(OSError("[Errno 13] /somewhere/private/thing.mp3"))</span>
+</span><span data-line="545"><span class="sd">    'OSError'</span>
+</span><span data-line="546"><span class="sd">    """</span>
+</span><span data-line="547">    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">exc</span><span class="p">,</span> <span class="p">(</span><span class="ne">KeyError</span><span class="p">,</span> <span class="ne">PermissionError</span><span class="p">,</span> <span class="ne">ValueError</span><span class="p">)):</span>
+</span><span data-line="548">        <span class="k">return</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">exc</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">exc</span><span class="si">}</span><span class="s2">"</span>
+</span><span data-line="549">    <span class="k">return</span> <span class="nb">type</span><span class="p">(</span><span class="n">exc</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span></div>
 
-</span><span data-line="482">
-</span><span data-line="483">
-</span><span data-line="484"><span class="c1">#: The four halves a genre may register, in the order a capability report</span>
-</span><span data-line="485"><span class="c1">#: prints. ``resolve`` is mandatory — a genre that cannot resolve a claim</span>
-</span><span data-line="486"><span class="c1">#: cannot be served at all. The rest are optional, and ABSENCE IS A CAPABILITY</span>
-</span><span data-line="487"><span class="c1">#: DECLARATION, not a hole: the host answers "this genre does not support</span>
-</span><span data-line="488"><span class="c1">#: that" (and may report it), never errors on it, and NEVER falls back to a</span>
-</span><span data-line="489"><span class="c1">#: store of its own.</span>
-</span><span data-line="490"><span class="n">DELIVERY_FUNCTIONS</span> <span class="o">=</span> <span class="p">(</span><span class="s2">"resolve"</span><span class="p">,</span> <span class="s2">"list"</span><span class="p">,</span> <span class="s2">"list_projects"</span><span class="p">,</span> <span class="s2">"organise"</span><span class="p">)</span>
-</span><span data-line="491">
-</span><span data-line="492">
+</span><span data-line="550">
+</span><span data-line="551">
+</span><span data-line="552"><span class="c1">#: The four halves a genre may register, in the order a capability report</span>
+</span><span data-line="553"><span class="c1">#: prints. ``resolve`` is mandatory — a genre that cannot resolve a claim</span>
+</span><span data-line="554"><span class="c1">#: cannot be served at all. The rest are optional, and ABSENCE IS A CAPABILITY</span>
+</span><span data-line="555"><span class="c1">#: DECLARATION, not a hole: the host answers "this genre does not support</span>
+</span><span data-line="556"><span class="c1">#: that" (and may report it), never errors on it, and NEVER falls back to a</span>
+</span><span data-line="557"><span class="c1">#: store of its own.</span>
+</span><span data-line="558"><span class="n">DELIVERY_FUNCTIONS</span> <span class="o">=</span> <span class="p">(</span><span class="s2">"resolve"</span><span class="p">,</span> <span class="s2">"list"</span><span class="p">,</span> <span class="s2">"list_projects"</span><span class="p">,</span> <span class="s2">"organise"</span><span class="p">)</span>
+</span><span data-line="559">
+</span><span data-line="560">
 <div class="viewcode-block" id="check_delivery_source">
 <a class="viewcode-back" href="../../_autosummary/nw.delivery.html#nw.check_delivery_source">[docs]</a>
-</span><span data-line="493"><span class="k">def</span><span class="w"> </span><span class="nf">check_delivery_source</span><span class="p">(</span><span class="n">genre</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">entry</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
-</span><span data-line="494"><span class="w">    </span><span class="sd">"""Refuse a malformed registration at wiring time, not at first call.</span>
-</span><span data-line="495">
-</span><span data-line="496"><span class="sd">    The registration map — ``{genre: {"resolve": fn, "list": fn,</span>
-</span><span data-line="497"><span class="sd">    "list_projects": fn, "organise": fn}}`` — is assembled by hand in the</span>
-</span><span data-line="498"><span class="sd">    deployment repo, which makes it the luckiest point of the whole seam: a</span>
-</span><span data-line="499"><span class="sd">    key typo'd ``"list_project"`` does not fail, it silently disables the</span>
-</span><span data-line="500"><span class="sd">    capability for that genre, and an unreachable failure is an invisible one</span>
-</span><span data-line="501"><span class="sd">    (this module's founding story). Call this on each entry when building the</span>
-</span><span data-line="502"><span class="sd">    map; it returns the entry unchanged so it composes inline.</span>
-</span><span data-line="503">
-</span><span data-line="504"><span class="sd">    **This is a pure shape check and must stay one** — no I/O, no imports, no</span>
-</span><span data-line="505"><span class="sd">    runtime state — so a deployment repo's CI can run it over the assembled</span>
-</span><span data-line="506"><span class="sd">    map and catch the typo *before* the boot-time raise ever fires. The raise</span>
-</span><span data-line="507"><span class="sd">    is the backstop, not the detector; growing a check here that needs a live</span>
-</span><span data-line="508"><span class="sd">    store would put the whole-connector blast radius back.</span>
-</span><span data-line="509">
-</span><span data-line="510"><span class="sd">    Release-ordering corollary: a new key ships HERE before any genre</span>
-</span><span data-line="511"><span class="sd">    registers it, or an older nw on the box refuses a newer genre's honest</span>
-</span><span data-line="512"><span class="sd">    registration.</span>
-</span><span data-line="513">
-</span><span data-line="514"><span class="sd">    &gt;&gt;&gt; entry = {"resolve": lambda e, p, a: None}</span>
-</span><span data-line="515"><span class="sd">    &gt;&gt;&gt; check_delivery_source("g", entry) is entry</span>
-</span><span data-line="516"><span class="sd">    True</span>
-</span><span data-line="517"><span class="sd">    &gt;&gt;&gt; check_delivery_source("g", {"list_project": None})</span>
-</span><span data-line="518"><span class="sd">    Traceback (most recent call last):</span>
-</span><span data-line="519"><span class="sd">    ...</span>
-</span><span data-line="520"><span class="sd">    ValueError: unknown delivery-source keys for genre 'g': ['list_project'] (known: ['resolve', 'list', 'list_projects', 'organise'])</span>
-</span><span data-line="521"><span class="sd">    &gt;&gt;&gt; check_delivery_source("g", {})</span>
-</span><span data-line="522"><span class="sd">    Traceback (most recent call last):</span>
-</span><span data-line="523"><span class="sd">    ...</span>
-</span><span data-line="524"><span class="sd">    ValueError: delivery source for genre 'g' has no 'resolve' — a genre that cannot resolve a claim cannot be served</span>
-</span><span data-line="525"><span class="sd">    """</span>
-</span><span data-line="526">    <span class="n">unknown</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">entry</span><span class="p">)</span> <span class="o">-</span> <span class="nb">set</span><span class="p">(</span><span class="n">DELIVERY_FUNCTIONS</span><span class="p">)</span>
-</span><span data-line="527">    <span class="k">if</span> <span class="n">unknown</span><span class="p">:</span>
-</span><span data-line="528">        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-</span><span data-line="529">            <span class="sa">f</span><span class="s2">"unknown delivery-source keys for genre </span><span class="si">{</span><span class="n">genre</span><span class="si">!r}</span><span class="s2">: "</span>
-</span><span data-line="530">            <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="nb">sorted</span><span class="p">(</span><span class="n">unknown</span><span class="p">)</span><span class="si">}</span><span class="s2"> (known: </span><span class="si">{</span><span class="nb">list</span><span class="p">(</span><span class="n">DELIVERY_FUNCTIONS</span><span class="p">)</span><span class="si">}</span><span class="s2">)"</span>
-</span><span data-line="531">        <span class="p">)</span>
-</span><span data-line="532">    <span class="k">if</span> <span class="s2">"resolve"</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">entry</span><span class="p">:</span>
-</span><span data-line="533">        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-</span><span data-line="534">            <span class="sa">f</span><span class="s2">"delivery source for genre </span><span class="si">{</span><span class="n">genre</span><span class="si">!r}</span><span class="s2"> has no 'resolve' — "</span>
-</span><span data-line="535">            <span class="s2">"a genre that cannot resolve a claim cannot be served"</span>
-</span><span data-line="536">        <span class="p">)</span>
-</span><span data-line="537">    <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">fn</span> <span class="ow">in</span> <span class="n">entry</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-</span><span data-line="538">        <span class="k">if</span> <span class="ow">not</span> <span class="nb">callable</span><span class="p">(</span><span class="n">fn</span><span class="p">):</span>
-</span><span data-line="539">            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-</span><span data-line="540">                <span class="sa">f</span><span class="s2">"delivery-source entry </span><span class="si">{</span><span class="n">key</span><span class="si">!r}</span><span class="s2"> for genre </span><span class="si">{</span><span class="n">genre</span><span class="si">!r}</span><span class="s2"> is not callable"</span>
-</span><span data-line="541">            <span class="p">)</span>
-</span><span data-line="542">    <span class="k">return</span> <span class="n">entry</span></div>
+</span><span data-line="561"><span class="k">def</span><span class="w"> </span><span class="nf">check_delivery_source</span><span class="p">(</span><span class="n">genre</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">entry</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+</span><span data-line="562"><span class="w">    </span><span class="sd">"""Refuse a malformed registration at wiring time, not at first call.</span>
+</span><span data-line="563">
+</span><span data-line="564"><span class="sd">    The registration map — ``{genre: {"resolve": fn, "list": fn,</span>
+</span><span data-line="565"><span class="sd">    "list_projects": fn, "organise": fn}}`` — is assembled by hand in the</span>
+</span><span data-line="566"><span class="sd">    deployment repo, which makes it the luckiest point of the whole seam: a</span>
+</span><span data-line="567"><span class="sd">    key typo'd ``"list_project"`` does not fail, it silently disables the</span>
+</span><span data-line="568"><span class="sd">    capability for that genre, and an unreachable failure is an invisible one</span>
+</span><span data-line="569"><span class="sd">    (this module's founding story). Call this on each entry when building the</span>
+</span><span data-line="570"><span class="sd">    map; it returns the entry unchanged so it composes inline.</span>
+</span><span data-line="571">
+</span><span data-line="572"><span class="sd">    **This is a pure shape check and must stay one** — no I/O, no imports, no</span>
+</span><span data-line="573"><span class="sd">    runtime state — so a deployment repo's CI can run it over the assembled</span>
+</span><span data-line="574"><span class="sd">    map and catch the typo *before* the boot-time raise ever fires. The raise</span>
+</span><span data-line="575"><span class="sd">    is the backstop, not the detector; growing a check here that needs a live</span>
+</span><span data-line="576"><span class="sd">    store would put the whole-connector blast radius back.</span>
+</span><span data-line="577">
+</span><span data-line="578"><span class="sd">    Release-ordering corollary: a new key ships HERE before any genre</span>
+</span><span data-line="579"><span class="sd">    registers it, or an older nw on the box refuses a newer genre's honest</span>
+</span><span data-line="580"><span class="sd">    registration.</span>
+</span><span data-line="581">
+</span><span data-line="582"><span class="sd">    &gt;&gt;&gt; entry = {"resolve": lambda e, p, a: None}</span>
+</span><span data-line="583"><span class="sd">    &gt;&gt;&gt; check_delivery_source("g", entry) is entry</span>
+</span><span data-line="584"><span class="sd">    True</span>
+</span><span data-line="585"><span class="sd">    &gt;&gt;&gt; check_delivery_source("g", {"list_project": None})</span>
+</span><span data-line="586"><span class="sd">    Traceback (most recent call last):</span>
+</span><span data-line="587"><span class="sd">    ...</span>
+</span><span data-line="588"><span class="sd">    ValueError: unknown delivery-source keys for genre 'g': ['list_project'] (known: ['resolve', 'list', 'list_projects', 'organise'])</span>
+</span><span data-line="589"><span class="sd">    &gt;&gt;&gt; check_delivery_source("g", {})</span>
+</span><span data-line="590"><span class="sd">    Traceback (most recent call last):</span>
+</span><span data-line="591"><span class="sd">    ...</span>
+</span><span data-line="592"><span class="sd">    ValueError: delivery source for genre 'g' has no 'resolve' — a genre that cannot resolve a claim cannot be served</span>
+</span><span data-line="593"><span class="sd">    """</span>
+</span><span data-line="594">    <span class="n">unknown</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">entry</span><span class="p">)</span> <span class="o">-</span> <span class="nb">set</span><span class="p">(</span><span class="n">DELIVERY_FUNCTIONS</span><span class="p">)</span>
+</span><span data-line="595">    <span class="k">if</span> <span class="n">unknown</span><span class="p">:</span>
+</span><span data-line="596">        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+</span><span data-line="597">            <span class="sa">f</span><span class="s2">"unknown delivery-source keys for genre </span><span class="si">{</span><span class="n">genre</span><span class="si">!r}</span><span class="s2">: "</span>
+</span><span data-line="598">            <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="nb">sorted</span><span class="p">(</span><span class="n">unknown</span><span class="p">)</span><span class="si">}</span><span class="s2"> (known: </span><span class="si">{</span><span class="nb">list</span><span class="p">(</span><span class="n">DELIVERY_FUNCTIONS</span><span class="p">)</span><span class="si">}</span><span class="s2">)"</span>
+</span><span data-line="599">        <span class="p">)</span>
+</span><span data-line="600">    <span class="k">if</span> <span class="s2">"resolve"</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">entry</span><span class="p">:</span>
+</span><span data-line="601">        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+</span><span data-line="602">            <span class="sa">f</span><span class="s2">"delivery source for genre </span><span class="si">{</span><span class="n">genre</span><span class="si">!r}</span><span class="s2"> has no 'resolve' — "</span>
+</span><span data-line="603">            <span class="s2">"a genre that cannot resolve a claim cannot be served"</span>
+</span><span data-line="604">        <span class="p">)</span>
+</span><span data-line="605">    <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">fn</span> <span class="ow">in</span> <span class="n">entry</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+</span><span data-line="606">        <span class="k">if</span> <span class="ow">not</span> <span class="nb">callable</span><span class="p">(</span><span class="n">fn</span><span class="p">):</span>
+</span><span data-line="607">            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+</span><span data-line="608">                <span class="sa">f</span><span class="s2">"delivery-source entry </span><span class="si">{</span><span class="n">key</span><span class="si">!r}</span><span class="s2"> for genre </span><span class="si">{</span><span class="n">genre</span><span class="si">!r}</span><span class="s2"> is not callable"</span>
+</span><span data-line="609">            <span class="p">)</span>
+</span><span data-line="610">    <span class="k">return</span> <span class="n">entry</span></div>
 
 </span></pre></div>
         </article><button class="back-to-top" type="button">
@@ -761,7 +832,7 @@ data-aria-dark="Switch to auto color mode">
     </div>
   </div>
 </footer>
-      <script src="../../_static/documentation_options.js?v=8cac2a7c"></script>
+      <script src="../../_static/documentation_options.js?v=28d4ae65"></script>
       <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
       <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>

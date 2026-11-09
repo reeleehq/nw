@@ -1,4 +1,4 @@
-> built 2026-11-09 00:50 UTC from 6d903ae (main) · nw 0.0.150. Details: build_info.json
+> built 2026-11-09 00:53 UTC from f806501 (main) · nw 0.0.151. Details: build_info.json
 
 # index.html.md
 
@@ -2093,22 +2093,24 @@ than letting the host pass it as an afterthought.
 
 ### Module Attributes
 
-| [`REF_WORD`](_autosummary/nw.delivery.html.md#nw.delivery.REF_WORD)           | The noun a genre uses when it labels a deliverable for a human ("cut 4").                                                                                         |
-|---------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| [`Lister`](_autosummary/nw.delivery.html.md#nw.delivery.Lister)             | `list_deliverables(email, project_id=None) -> list[Deliverable]` — the other half of "give me my work".                                                           |
-| [`ProjectLister`](_autosummary/nw.delivery.html.md#nw.delivery.ProjectLister)      | `list_projects(email) -> list[ProjectSummary]` — every project of this caller's in the genre, newest-modified first, INCLUDING projects that have never rendered. |
-| [`MAX_TITLE_LEN`](_autosummary/nw.delivery.html.md#nw.delivery.MAX_TITLE_LEN)      | The longest title [`check_title()`](_autosummary/nw.delivery.html.md#nw.delivery.check_title) accepts.                                                                         |
-| [`DELIVERY_FUNCTIONS`](_autosummary/nw.delivery.html.md#nw.delivery.DELIVERY_FUNCTIONS) | The four halves a genre may register, in the order a capability report prints.                                                                                    |
+| [`REF_WORD`](_autosummary/nw.delivery.html.md#nw.delivery.REF_WORD)           | The noun a genre uses when it labels a deliverable for a human ("cut 4").                                                                                                            |
+|---------------------------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| [`Lister`](_autosummary/nw.delivery.html.md#nw.delivery.Lister)             | `list_deliverables(email, project_id=None) -> list[Deliverable]` — the other half of "give me my work".                                                                              |
+| [`ProjectLister`](_autosummary/nw.delivery.html.md#nw.delivery.ProjectLister)      | `list_projects(email) -> list[ProjectSummary]` — every project of this caller's in the genre, newest-modified first, INCLUDING projects that have never rendered.                    |
+| [`PLACED_META_KEY`](_autosummary/nw.delivery.html.md#nw.delivery.PLACED_META_KEY)    | The `ProjectSummary.meta` key a guest genre sets on a row for a project a HOST placed in the caller's bucket (muvid#334): "this row is the host's placed project, listed by me too". |
+| [`MAX_TITLE_LEN`](_autosummary/nw.delivery.html.md#nw.delivery.MAX_TITLE_LEN)      | The longest title [`check_title()`](_autosummary/nw.delivery.html.md#nw.delivery.check_title) accepts.                                                                                            |
+| [`DELIVERY_FUNCTIONS`](_autosummary/nw.delivery.html.md#nw.delivery.DELIVERY_FUNCTIONS) | The four halves a genre may register, in the order a capability report prints.                                                                                                       |
 
 ### Functions
 
-| [`parse_ref`](_autosummary/nw.delivery.html.md#nw.delivery.parse_ref)(text)                     | The ordinal in a spoken reference, or `None` if it isn't one.           |
-|--------------------------------------------------------------------------------------|-------------------------------------------------------------------------|
-| [`format_ref`](_autosummary/nw.delivery.html.md#nw.delivery.format_ref)(n)                       | The one spelling we print.                                              |
-| [`check_title`](_autosummary/nw.delivery.html.md#nw.delivery.check_title)(title)                  | Validate and normalise a human-assigned title; `ValueError` if refused. |
-| [`caller_key`](_autosummary/nw.delivery.html.md#nw.delivery.caller_key)(email)                   | The one normalisation of a caller identity, applied at the seam.        |
-| [`safe_message`](_autosummary/nw.delivery.html.md#nw.delivery.safe_message)(exc)                   | An exception's message, reduced to what is safe to show a caller.       |
-| [`check_delivery_source`](_autosummary/nw.delivery.html.md#nw.delivery.check_delivery_source)(genre, entry) | Refuse a malformed registration at wiring time, not at first call.      |
+| [`drop_guest_placed_duplicates`](_autosummary/nw.delivery.html.md#nw.delivery.drop_guest_placed_duplicates)(summaries, \*, ...)   | `summaries` without the `host` rows a guest genre already listed (nw#231).   |
+|-----------------------------------------------------------------------------------------------------|------------------------------------------------------------------------------|
+| [`parse_ref`](_autosummary/nw.delivery.html.md#nw.delivery.parse_ref)(text)                                    | The ordinal in a spoken reference, or `None` if it isn't one.                |
+| [`format_ref`](_autosummary/nw.delivery.html.md#nw.delivery.format_ref)(n)                                      | The one spelling we print.                                                   |
+| [`check_title`](_autosummary/nw.delivery.html.md#nw.delivery.check_title)(title)                                 | Validate and normalise a human-assigned title; `ValueError` if refused.      |
+| [`caller_key`](_autosummary/nw.delivery.html.md#nw.delivery.caller_key)(email)                                  | The one normalisation of a caller identity, applied at the seam.             |
+| [`safe_message`](_autosummary/nw.delivery.html.md#nw.delivery.safe_message)(exc)                                  | An exception's message, reduced to what is safe to show a caller.            |
+| [`check_delivery_source`](_autosummary/nw.delivery.html.md#nw.delivery.check_delivery_source)(genre, entry)                | Refuse a malformed registration at wiring time, not at first call.           |
 
 ### Classes
 
@@ -2247,6 +2249,14 @@ Raises `KeyError` (host: 404) when nothing resolves, `PermissionError`
 requested change is refused. Deliberately NO delete: retrievability, cost
 and destruction are three separate predicates, and destruction does not
 ride a naming function — it would be a separately gated fifth function.
+
+### nw.delivery.PLACED_META_KEY *= 'placed'*
+
+The `ProjectSummary.meta` key a guest genre sets on a row for a project a
+HOST placed in the caller’s bucket (muvid#334): “this row is the host’s
+placed project, listed by me too”. [`drop_guest_placed_duplicates()`](_autosummary/nw.delivery.html.md#nw.delivery.drop_guest_placed_duplicates)
+trusts it before any envelope read. A guest sets `meta[PLACED_META_KEY] =
+True`, importing this constant rather than re-spelling the key.
 
 ### nw.delivery.ProjectLister
 
@@ -2435,6 +2445,44 @@ ValueError: a title cannot contain path separators or control characters
 
 * **Return type:**
   [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
+
+### nw.delivery.drop_guest_placed_duplicates(summaries, , host, genre_of, owner_of)
+
+`summaries` without the `host` rows a guest genre already listed (nw#231).
+
+A host that creates a guest genre’s project in the caller’s own bucket
+(reelee placing a `music_video`) lists it from its own lister, and so does
+the guest’s lister when it reads placed projects (muvid#296): one project,
+two rows. Every aggregator over [`ProjectLister`](_autosummary/nw.delivery.html.md#nw.delivery.ProjectLister) s needs the same merge,
+so it is here. A `host` row (`genre == host`) is dropped when a guest
+row (any other `genre`) carries the same `project_id` and either:
+
+- that guest row is marked placed (`meta[PLACED_META_KEY]`): the guest
+  says so, no read needed; or
+- `owner_of(genre_of(project_id))` is that guest’s genre: the project’s
+  recorded genre belongs to it, so it is not a host project that merely
+  shares an id. `genre_of` maps a `project_id` to its genre slug, e.g.
+  `lambda pid: (nw.project_genre(projects_dir / pid) or {}).get("genre")`
+  ([`nw.project_genre()`](_autosummary/nw.html.md#nw.project_genre) returns the envelope and opens no graph);
+  `owner_of` maps a slug to the genre (registry key) that lists it.
+
+Only colliding host rows cost a `genre_of` call. Order is kept. Assumes
+the host lists a caller’s placed projects from one folder (the
+`register_caller_projects_dir` locator), so a colliding `project_id` is
+one project: a host that lists several drawers must pre-filter its rows,
+since every colliding host row is dropped. Rows must carry their genre (the
+host stamps a blank one, per [`ProjectLister`](_autosummary/nw.delivery.html.md#nw.delivery.ProjectLister)).
+
+```pycon
+>>> rows = [ProjectSummary("p1", genre="host"), ProjectSummary("p1", genre="guest",
+...         meta={"placed": True}), ProjectSummary("p2", genre="host")]
+>>> [(r.project_id, r.genre) for r in drop_guest_placed_duplicates(
+...     rows, host="host", genre_of=lambda i: None, owner_of=lambda g: None)]
+[('p1', 'guest'), ('p2', 'host')]
+```
+
+* **Return type:**
+  [`list`](https://docs.python.org/3/builtins/stdtypes.html#list)[[`ProjectSummary`](_autosummary/nw.delivery.html.md#nw.delivery.ProjectSummary)]
 
 ### nw.delivery.format_ref(n)
 
@@ -12404,20 +12452,18 @@ produce different URLs. The local file paths are byte-stable.
 
 # About this build
 
-This documentation was built on **2026-11-09 00:50 UTC** from commit <a href="https://github.com/reeleehq/nw/commit/6d903ae15346f1af6fadf4fac582158383608e1e"><code>6d903ae</code></a> on branch <code>main</code>, for **nw 0.0.150** (from <code>pyproject.toml</code>).
+This documentation was built on **2026-11-09 00:53 UTC** from commit <a href="https://github.com/reeleehq/nw/commit/f8065010e9574b6ed8cf6ea587e8864dbc755417"><code>f806501</code></a> on branch <code>main</code>, for **nw 0.0.151** (from <code>pyproject.toml</code>).
 
-#### WARNING
-The documentation and the package may be misaligned:
-
-- The documented version (0.0.150) is ahead of the latest release on PyPI (0.0.149): these docs describe unreleased code.
+#### NOTE
+Nothing suggests a mismatch: the tree was clean at the commit above, and the documented version is the one on PyPI.
 
 ## Source
 
 |                     |                                                                                                                                                    |
 |---------------------|----------------------------------------------------------------------------------------------------------------------------------------------------|
-| Commit              | <a href="https://github.com/reeleehq/nw/commit/6d903ae15346f1af6fadf4fac582158383608e1e"><code>6d903ae15346f1af6fadf4fac582158383608e1e</code></a> |
+| Commit              | <a href="https://github.com/reeleehq/nw/commit/f8065010e9574b6ed8cf6ea587e8864dbc755417"><code>f8065010e9574b6ed8cf6ea587e8864dbc755417</code></a> |
 | Branch              | <code>main</code>                                                                                                                                  |
-| Tags at this commit | <code>0.0.150</code>                                                                                                                               |
+| Tags at this commit | <code>0.0.151</code>                                                                                                                               |
 | Working tree        | clean                                                                                                                                              |
 | Remote              | <code>https://github.com/reeleehq/nw</code>                                                                                                        |
 
@@ -12426,9 +12472,9 @@ The documentation and the package may be misaligned:
 |              |                                                                                            |
 |--------------|--------------------------------------------------------------------------------------------|
 | Repository   | <code>reeleehq/nw</code>                                                                   |
-| Run          | <a href="https://github.com/reeleehq/nw/actions/runs/42541884196">42541884196</a>          |
+| Run          | <a href="https://github.com/reeleehq/nw/actions/runs/42542362283">42542362283</a>          |
 | Ref          | <code>refs/heads/main</code>                                                               |
-| Event commit | <code>162e02b58efa1e1ee9f77e49fb421b0dddea7a95</code> (in the history of the built commit) |
+| Event commit | <code>d732001cfac58ee736acfed5e6b2c1e0edf5b4ea</code> (in the history of the built commit) |
 
 ## Tools
 
@@ -12453,13 +12499,13 @@ The documentation and the package may be misaligned:
 
 ## Package on PyPI
 
-Latest release: <a href="https://pypi.org/project/nw/0.0.149/">0.0.149</a>, older than the documented version (0.0.150).
+Latest release: <a href="https://pypi.org/project/nw/0.0.151/">0.0.151</a>, the same as the documented version.
 
 ## Reproduce
 
 ```bash
 git clone https://github.com/reeleehq/nw && cd nw
-git checkout 6d903ae15346f1af6fadf4fac582158383608e1e
+git checkout f8065010e9574b6ed8cf6ea587e8864dbc755417
 pip install "epythet==0.2.22"
 epythet quickstart . --ignore tests/ scrap/ examples/
 ```

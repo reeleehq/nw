@@ -84,22 +84,24 @@ than letting the host pass it as an afterthought.
 
 ### Module Attributes
 
-| [`REF_WORD`](#nw.delivery.REF_WORD)           | The noun a genre uses when it labels a deliverable for a human ("cut 4").                                                                                         |
-|---------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| [`Lister`](#nw.delivery.Lister)             | `list_deliverables(email, project_id=None) -> list[Deliverable]` — the other half of "give me my work".                                                           |
-| [`ProjectLister`](#nw.delivery.ProjectLister)      | `list_projects(email) -> list[ProjectSummary]` — every project of this caller's in the genre, newest-modified first, INCLUDING projects that have never rendered. |
-| [`MAX_TITLE_LEN`](#nw.delivery.MAX_TITLE_LEN)      | The longest title [`check_title()`](#nw.delivery.check_title) accepts.                                                                         |
-| [`DELIVERY_FUNCTIONS`](#nw.delivery.DELIVERY_FUNCTIONS) | The four halves a genre may register, in the order a capability report prints.                                                                                    |
+| [`REF_WORD`](#nw.delivery.REF_WORD)           | The noun a genre uses when it labels a deliverable for a human ("cut 4").                                                                                                            |
+|---------------------------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| [`Lister`](#nw.delivery.Lister)             | `list_deliverables(email, project_id=None) -> list[Deliverable]` — the other half of "give me my work".                                                                              |
+| [`ProjectLister`](#nw.delivery.ProjectLister)      | `list_projects(email) -> list[ProjectSummary]` — every project of this caller's in the genre, newest-modified first, INCLUDING projects that have never rendered.                    |
+| [`PLACED_META_KEY`](#nw.delivery.PLACED_META_KEY)    | The `ProjectSummary.meta` key a guest genre sets on a row for a project a HOST placed in the caller's bucket (muvid#334): "this row is the host's placed project, listed by me too". |
+| [`MAX_TITLE_LEN`](#nw.delivery.MAX_TITLE_LEN)      | The longest title [`check_title()`](#nw.delivery.check_title) accepts.                                                                                            |
+| [`DELIVERY_FUNCTIONS`](#nw.delivery.DELIVERY_FUNCTIONS) | The four halves a genre may register, in the order a capability report prints.                                                                                                       |
 
 ### Functions
 
-| [`parse_ref`](#nw.delivery.parse_ref)(text)                     | The ordinal in a spoken reference, or `None` if it isn't one.           |
-|--------------------------------------------------------------------------------------|-------------------------------------------------------------------------|
-| [`format_ref`](#nw.delivery.format_ref)(n)                       | The one spelling we print.                                              |
-| [`check_title`](#nw.delivery.check_title)(title)                  | Validate and normalise a human-assigned title; `ValueError` if refused. |
-| [`caller_key`](#nw.delivery.caller_key)(email)                   | The one normalisation of a caller identity, applied at the seam.        |
-| [`safe_message`](#nw.delivery.safe_message)(exc)                   | An exception's message, reduced to what is safe to show a caller.       |
-| [`check_delivery_source`](#nw.delivery.check_delivery_source)(genre, entry) | Refuse a malformed registration at wiring time, not at first call.      |
+| [`drop_guest_placed_duplicates`](#nw.delivery.drop_guest_placed_duplicates)(summaries, \*, ...)   | `summaries` without the `host` rows a guest genre already listed (nw#231).   |
+|-----------------------------------------------------------------------------------------------------|------------------------------------------------------------------------------|
+| [`parse_ref`](#nw.delivery.parse_ref)(text)                                    | The ordinal in a spoken reference, or `None` if it isn't one.                |
+| [`format_ref`](#nw.delivery.format_ref)(n)                                      | The one spelling we print.                                                   |
+| [`check_title`](#nw.delivery.check_title)(title)                                 | Validate and normalise a human-assigned title; `ValueError` if refused.      |
+| [`caller_key`](#nw.delivery.caller_key)(email)                                  | The one normalisation of a caller identity, applied at the seam.             |
+| [`safe_message`](#nw.delivery.safe_message)(exc)                                  | An exception's message, reduced to what is safe to show a caller.            |
+| [`check_delivery_source`](#nw.delivery.check_delivery_source)(genre, entry)                | Refuse a malformed registration at wiring time, not at first call.           |
 
 ### Classes
 
@@ -238,6 +240,14 @@ Raises `KeyError` (host: 404) when nothing resolves, `PermissionError`
 requested change is refused. Deliberately NO delete: retrievability, cost
 and destruction are three separate predicates, and destruction does not
 ride a naming function — it would be a separately gated fifth function.
+
+### nw.delivery.PLACED_META_KEY *= 'placed'*
+
+The `ProjectSummary.meta` key a guest genre sets on a row for a project a
+HOST placed in the caller’s bucket (muvid#334): “this row is the host’s
+placed project, listed by me too”. [`drop_guest_placed_duplicates()`](#nw.delivery.drop_guest_placed_duplicates)
+trusts it before any envelope read. A guest sets `meta[PLACED_META_KEY] =
+True`, importing this constant rather than re-spelling the key.
 
 ### nw.delivery.ProjectLister
 
@@ -426,6 +436,44 @@ ValueError: a title cannot contain path separators or control characters
 
 * **Return type:**
   [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
+
+### nw.delivery.drop_guest_placed_duplicates(summaries, , host, genre_of, owner_of)
+
+`summaries` without the `host` rows a guest genre already listed (nw#231).
+
+A host that creates a guest genre’s project in the caller’s own bucket
+(reelee placing a `music_video`) lists it from its own lister, and so does
+the guest’s lister when it reads placed projects (muvid#296): one project,
+two rows. Every aggregator over [`ProjectLister`](#nw.delivery.ProjectLister) s needs the same merge,
+so it is here. A `host` row (`genre == host`) is dropped when a guest
+row (any other `genre`) carries the same `project_id` and either:
+
+- that guest row is marked placed (`meta[PLACED_META_KEY]`): the guest
+  says so, no read needed; or
+- `owner_of(genre_of(project_id))` is that guest’s genre: the project’s
+  recorded genre belongs to it, so it is not a host project that merely
+  shares an id. `genre_of` maps a `project_id` to its genre slug, e.g.
+  `lambda pid: (nw.project_genre(projects_dir / pid) or {}).get("genre")`
+  ([`nw.project_genre()`](nw.html.md#nw.project_genre) returns the envelope and opens no graph);
+  `owner_of` maps a slug to the genre (registry key) that lists it.
+
+Only colliding host rows cost a `genre_of` call. Order is kept. Assumes
+the host lists a caller’s placed projects from one folder (the
+`register_caller_projects_dir` locator), so a colliding `project_id` is
+one project: a host that lists several drawers must pre-filter its rows,
+since every colliding host row is dropped. Rows must carry their genre (the
+host stamps a blank one, per [`ProjectLister`](#nw.delivery.ProjectLister)).
+
+```pycon
+>>> rows = [ProjectSummary("p1", genre="host"), ProjectSummary("p1", genre="guest",
+...         meta={"placed": True}), ProjectSummary("p2", genre="host")]
+>>> [(r.project_id, r.genre) for r in drop_guest_placed_duplicates(
+...     rows, host="host", genre_of=lambda i: None, owner_of=lambda g: None)]
+[('p1', 'guest'), ('p2', 'host')]
+```
+
+* **Return type:**
+  [`list`](https://docs.python.org/3/builtins/stdtypes.html#list)[[`ProjectSummary`](#nw.delivery.ProjectSummary)]
 
 ### nw.delivery.format_ref(n)
 
