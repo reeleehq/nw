@@ -57,3 +57,26 @@ def test_a_reused_id_must_be_among_the_annotations(tmp_path, fal):
         result = _Reusing().execute(proj, _plan(), (_skeleton(proj, (shot,)),))
     with pytest.raises(AssertionError, match="not among result.annotations"):
         writes.check(replace(result, reused_ids=frozenset({uuid4()})))
+
+
+def test_a_derived_node_rewritten_unchanged_counts_as_written(tmp_path, fal):
+    """The trace branch: remove + re-add of the same derived node inside the
+    block is a write (a fresh trace names it), so reporting it reused lies."""
+    proj, (shot,) = _project(tmp_path)
+    first = _Reusing().execute(proj, _plan(), (_skeleton(proj, (shot,)),))
+    (node,) = first.annotations
+    with recording_writes(proj) as writes:
+        proj.graph.remove_annotation(node.id)
+        proj.graph.add_annotation(node)
+    writes.check(replace(first, reused_ids=frozenset()))  # written: true
+    with pytest.raises(AssertionError, match="reported reused, but written"):
+        writes.check(replace(first, reused_ids=frozenset({node.id})))
+
+
+def test_writes_after_the_block_do_not_count(tmp_path, fal):
+    proj, (shot,) = _project(tmp_path)
+    with recording_writes(proj) as writes:
+        pass
+    result = _Reusing().execute(proj, _plan(), (_skeleton(proj, (shot,)),))
+    with pytest.raises(AssertionError, match="reported written, not written"):
+        writes.check(result)
