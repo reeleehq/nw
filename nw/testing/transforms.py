@@ -41,7 +41,9 @@ class _Snapshot:
 
 def _fingerprint(ann) -> str:
     return json.dumps(
-        [ann.body, str(ann.provenance.generated_at_time), ann.tier], sort_keys=True, default=str
+        [ann.body, str(ann.provenance.generated_at_time), ann.tier],
+        sort_keys=True,
+        default=str,
     )
 
 
@@ -99,10 +101,18 @@ class WriteRecord:
         written = self.written_in_call()
         claimed_written = {a.id for a in result.written}
         lies = (
-            [f"{i}: reported written, not written in this call" for i in claimed_written - written]
-            + [f"{i}: reported reused, but written in this call" for i in set(result.reused_ids) & written]
-            + [f"{i}: reported reused, but not among result.annotations"
-               for i in set(result.reused_ids) - {a.id for a in result.annotations}]
+            [
+                f"{i}: reported written, not written in this call"
+                for i in claimed_written - written
+            ]
+            + [
+                f"{i}: reported reused, but written in this call"
+                for i in set(result.reused_ids) & written
+            ]
+            + [
+                f"{i}: reported reused, but not among result.annotations"
+                for i in set(result.reused_ids) - {a.id for a in result.annotations}
+            ]
         )
         if require_traces:
             traced = _new_trace_targets(self.project, self.before)
@@ -114,7 +124,9 @@ class WriteRecord:
             ]
         lies.sort()
         if lies:
-            raise AssertionError("TransformResult does not hold up:\n  " + "\n  ".join(lies))
+            raise AssertionError(
+                "TransformResult does not hold up:\n  " + "\n  ".join(lies)
+            )
 
 
 @contextmanager
