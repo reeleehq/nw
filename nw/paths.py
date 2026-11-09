@@ -133,5 +133,7 @@ def check_path_segment(
     ):
         raise ValueError(f"invalid {what}: {value!r} is not a single path segment")
     if pattern is not None and not pattern.fullmatch(value):
-        raise ValueError(f"invalid {what}: {value!r} does not match {pattern.pattern!r}")
+        raise ValueError(
+            f"invalid {what}: {value!r} does not match {pattern.pattern!r}"
+        )
     return value

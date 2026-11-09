@@ -741,7 +741,9 @@ class Project:
 
     def character_dir(self, name: str) -> Path:
         """``characters/<name>``; ``name`` must be one path segment (nw#227)."""
-        return self.root / "characters" / check_path_segment(name, what="character name")
+        return (
+            self.root / "characters" / check_path_segment(name, what="character name")
+        )
 
     def add_character(self, name: str, *, description: str = "") -> CharacterRef:
         """Add a character (idempotent: re-adds update the description).
@@ -869,8 +871,10 @@ class Project:
 
     def environment_dir(self, name: str) -> Path:
         """``environments/<name>``; ``name`` must be one path segment (nw#227)."""
-        return self.root / "environments" / check_path_segment(
-            name, what="environment name"
+        return (
+            self.root
+            / "environments"
+            / check_path_segment(name, what="environment name")
         )
 
     def add_environment(self, name: str, *, description: str = "") -> EnvironmentRef:
