@@ -49,6 +49,8 @@ from dataclasses import KW_ONLY, dataclass, field
 from pathlib import Path
 from typing import Optional
 
+from dol.atomic import DFLT_RETRY, atomic_write
+
 from nw.paths import check_path_segment
 
 #: The store's data home, under nw's (not any genre's).
@@ -118,13 +120,16 @@ def hash_file(path, *, chunk_size: int = _HASH_CHUNK) -> str:
 
 
 def _atomic_write(path: Path, text: str) -> None:
+    """``text`` to ``path`` by :func:`dol.atomic_write`: temp file, then an
+    ``os.replace`` retried on a Windows sharing violation (nw#243)."""
     path.parent.mkdir(parents=True, exist_ok=True)
-    tmp = path.with_name(f".{path.name}.{os.getpid()}.{time.monotonic_ns()}.tmp")
-    try:
-        tmp.write_text(text, encoding="utf-8")
-        os.replace(tmp, path)
-    finally:
-        tmp.unlink(missing_ok=True)
+    atomic_write(path, text.encode("utf-8"), retry=DFLT_RETRY)
+
+
+def _read_text(path: Path) -> str:
+    """``path``'s text, retried like a write: on Windows a read landing while a
+    writer swaps the file is refused for that instant (nw#243)."""
+    return DFLT_RETRY(Path.read_text, path, "utf-8")
 
 
 @dataclass
@@ -224,7 +229,7 @@ class SharedMediaStore:
             tmp = blob.with_name(f".{aid}.{os.getpid()}.tmp")
             try:
                 shutil.copy2(src, tmp)
-                os.replace(tmp, blob)
+                DFLT_RETRY(os.replace, tmp, blob)  # a reader may hold the blob (nw#243)
             finally:
                 tmp.unlink(missing_ok=True)
         self.clear_mark(aid)
@@ -260,7 +265,7 @@ class SharedMediaStore:
             return []
         out = []
         for p in sorted(self._catalogs_dir.glob("*.json")):
-            out.append(Path(json.loads(p.read_text(encoding="utf-8"))["rows_dir"]))
+            out.append(Path(json.loads(_read_text(p))["rows_dir"]))
         return out
 
     def references(self) -> dict[str, int]:
@@ -315,7 +320,7 @@ class SharedMediaStore:
                 continue
             since = None
             try:
-                since = float(mark.read_text())
+                since = float(_read_text(mark))
             except (OSError, ValueError):
                 pass
             if since is None:
