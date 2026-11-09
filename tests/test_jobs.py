@@ -703,6 +703,73 @@ def test_a_reaped_run_keeps_its_au_start(project):
     assert jobs._parse_iso(job.started_at) == began.astimezone(timezone.utc)
 
 
+def _bare_record(job_id, **over):
+    from datetime import datetime, timedelta, timezone
+
+    old = (datetime.now(timezone.utc) - timedelta(seconds=600)).isoformat().replace(
+        "+00:00", "Z"
+    )
+    record = {
+        "job_id": job_id, "kind": "op", "label": "x", "idempotency_key": job_id,
+        "params": {}, "created_at": old, "started_at": old, "finished_at": None,
+        "eta_candidates": [], "output_kind": None, "expected_cache_hit": False,
+        "cached": False, "cancel_requested": False, "pct_floor": None, "progress": {},
+        "cost": {}, "artifact_ref": None, "result": None, "error": None,
+        "last_event_id": None, "heartbeat_at": old,
+    }
+    record.update(over)
+    return record
+
+
+def test_a_late_event_cannot_make_an_unfinished_runs_figure_exact(project):
+    """nw#249: after the render raised (``error_kind`` set, flag True), a
+    helper thread's late ``has_unknown_costs=False`` event must not flip it."""
+    rt = jobs._runtime(project)
+    rt.index["late"] = _bare_record(
+        "late", error_kind="crashed",
+        cost={"actual_usd": 0.3, "actual_is_lower_bound": True},
+    )
+    jobs._mirror_event_into_index(
+        rt, "late", {"kind": "journey.stage_completed", "actual_usd": 0.4,
+                     "has_unknown_costs": False},
+    )
+    cost = rt.index["late"]["cost"]
+    assert cost["actual_usd"] == 0.4 and cost["actual_is_lower_bound"] is True
+
+
+def test_a_finished_ordinary_run_still_takes_its_events_flag(project):
+    rt = jobs._runtime(project)
+    rt.index["ok"] = _bare_record("ok", cost={"actual_is_lower_bound": True})
+    jobs._mirror_event_into_index(
+        rt, "ok", {"kind": "x", "actual_usd": 0.1, "has_unknown_costs": False}
+    )
+    assert rt.index["ok"]["cost"]["actual_is_lower_bound"] is False
+
+
+def test_a_cancelled_run_whose_worker_died_reads_as_a_lower_bound(project):
+    """nw#249: au reads CANCELLED, so the reaper never sees it; a spend it
+    reported before its worker died without ending is a lower bound."""
+    import au
+
+    rt = jobs._runtime(project)
+    rt.index["c-dead"] = _bare_record(
+        "c-dead", cancel_requested=True,
+        cost={"actual_usd": 0.3, "actual_is_lower_bound": False},
+    )
+    rt.au_store["c-dead"] = au.ComputationResult(None, au.ComputationStatus.CANCELLED)
+    job = jobs.get_job(project, "c-dead")
+    assert job.status == jobs.CANCELLED
+    assert job.cost.actual_is_lower_bound is True
+
+    # One whose worker reported its end keeps what it reported.
+    rt.index["c-done"] = _bare_record(
+        "c-done", cancel_requested=True, worker_exited_at=rt.index["c-dead"]["created_at"],
+        cost={"actual_usd": 0.3, "actual_is_lower_bound": False},
+    )
+    rt.au_store["c-done"] = au.ComputationResult(None, au.ComputationStatus.CANCELLED)
+    assert jobs.get_job(project, "c-done").cost.actual_is_lower_bound is False
+
+
 def test_live_worker_is_not_reaped(project):
     """A genuinely running job (live thread) must NOT be reaped even under a
     zero stale threshold."""
