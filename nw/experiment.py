@@ -15,12 +15,13 @@ rather than a shell pipeline.
 from __future__ import annotations
 
 import shutil
+import warnings
 from uuid import uuid4
 from pathlib import Path
 from typing import Callable, Iterable, Optional, TypeVar
 
 from .project import Project
-from .migrate import is_migrated
+from .migrate import _TIER_CHARACTER_REF, _TIER_ENVIRONMENT_REF, is_migrated
 from .storage import (
     PROJECT_FILE_NAME,
     TENANT_KEY,
@@ -40,6 +41,20 @@ _MIGRATED_DOC = ".nw/migrated_to_graph"
 # Subtrees that make sense to preserve when cloning — copying these from src
 # carries forward shared inputs (the song, the alignment, the casting).
 _DEFAULT_PRESERVE: tuple[str, ...] = ("song", "lyrics", "characters")
+
+# The graph tier a preserved folder's entities live in, for a graph-native
+# source: the folder is copied, its refs are not (nw#258).
+_GRAPH_TIER_OF_FOLDER: dict[str, str] = {
+    "characters": _TIER_CHARACTER_REF,
+    "environments": _TIER_ENVIRONMENT_REF,
+}
+
+
+class CloneDropsGraphEntities(UserWarning):
+    """A clone of a graph-native project leaves entities behind that live only
+    in the source's graph (nw#258). ``warnings.simplefilter("error",
+    CloneDropsGraphEntities)`` makes it refuse instead."""
+
 
 # Subtrees that make sense to reset (recreate empty) when cloning — these are
 # per-experiment outputs that must NOT carry over.
@@ -119,6 +134,7 @@ def clone_project(
         target.mkdir()
 
     _make_independent(src, dst)
+    _warn_of_dropped_graph_entities(src, preserve_set)
 
     # Update title if requested (or fall back to the dst folder name).
     proj = Project(dst)
@@ -130,6 +146,33 @@ def clone_project(
         reset=sorted(reset),
     )
     return proj.read_summary()
+
+
+def _warn_of_dropped_graph_entities(src: Path, preserved: set[str]) -> None:
+    """Warn when a preserved folder's entities live only in ``src``'s graph.
+
+    A graph-native project keeps its character / environment refs in the graph,
+    which a clone does not carry: the clone keeps ``characters/thor/`` on disk
+    yet ``read_spec()`` lists no characters. Until a clone copies those rows
+    (nw#258), say so rather than hand back a silently emptier project.
+    """
+    if not is_migrated(src):
+        return  # legacy: the clone migrates them from project.json on open
+    from .graph import annotations_at_tier
+
+    dropped = {
+        tier: n
+        for folder, tier in _GRAPH_TIER_OF_FOLDER.items()
+        if folder in preserved and (n := len(annotations_at_tier(src, tier)))
+    }
+    if dropped:
+        listed = ", ".join(f"{n} {tier}" for tier, n in sorted(dropped.items()))
+        warnings.warn(
+            f"clone_project: {listed} live only in {src.name}'s graph and are not "
+            "carried into the clone (its folders are); see nw#258",
+            CloneDropsGraphEntities,
+            stacklevel=3,
+        )
 
 
 def _make_independent(src: Path, dst: Path) -> None:
