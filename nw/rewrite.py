@@ -166,9 +166,11 @@ def upgrade_superseded_traces(
     return moved
 
 
-def _upgraded_upstream(body: Mapping, by_id: Mapping[UUID, Any]):
+def _upgraded_upstream(body: Mapping, by_id: Mapping[UUID, Any], today_of=None):
     """``body``'s upstream as nw records it today, or ``None`` when nothing moves
-    or the trace is stale (or names a parent that is gone)."""
+    or the trace is stale (or names a parent that is gone). ``today_of(parent)``
+    is :func:`upstream_entry` under today's scheme, memoized by the caller."""
+    today_of = today_of or (lambda p: upstream_entry(p, scheme=VALUE_DIGEST_SCHEME))
     scheme = body.get("digest_scheme")
     if scheme not in VALUE_DIGEST_SCHEMES:
         return None
@@ -179,7 +181,7 @@ def _upgraded_upstream(body: Mapping, by_id: Mapping[UUID, Any]):
             parent = by_id[UUID(str(entry["annotation_id"]))]
         except (KeyError, ValueError, TypeError):
             return None
-        today = upstream_entry(parent, scheme=VALUE_DIGEST_SCHEME)
+        today = today_of(parent)
         recorded = entry.get("value_digest")
         if not (
             recorded == today["value_digest"]
@@ -200,18 +202,35 @@ def _upgrade_traces(storage) -> int:
     from .graph import iter_all_annotations
 
     by_id = {a.id: a for a in iter_all_annotations(storage)}
+    todays: dict = {}
+
+    def today_of(parent):  # a parent with many children is digested once
+        if parent.id not in todays:
+            todays[parent.id] = upstream_entry(parent, scheme=VALUE_DIGEST_SCHEME)
+        return todays[parent.id]
+
     moved = 0
     with storage.open_stores() as stores:
         for store in stores:
             for ann in list(store.all()):
                 if ann.body_schema_uri != VERIFYING_TRACE_BODY_SCHEMA_URI:
                     continue
-                upstream = _upgraded_upstream(ann.body, by_id)
-                if upstream is None:
-                    continue
-                body = {**ann.body, "digest_scheme": VALUE_DIGEST_SCHEME, "upstream": upstream}
-                store.update(ann.model_copy(update={"body": body}))
-                moved += 1
+                # One bad row (a parent outside the JSON contract, a trace a
+                # concurrent writer replaced) must not stop the rest, nor keep
+                # the marker from being written; left as it is, a trace is at
+                # worst stale, never wrong-fresh.
+                try:
+                    upstream = _upgraded_upstream(ann.body, by_id, today_of)
+                    if upstream is None:
+                        continue
+                    body = {**ann.body, "digest_scheme": VALUE_DIGEST_SCHEME, "upstream": upstream}
+                    store.update(ann.model_copy(update={"body": body}))
+                    moved += 1
+                except Exception:
+                    _logger.warning(
+                        "upgrade_superseded_traces: left trace %s as it is", ann.id,
+                        exc_info=True,
+                    )
     return moved
 
 
