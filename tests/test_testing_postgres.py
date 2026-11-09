@@ -17,27 +17,12 @@ def test_unavailable_names_what_is_missing(monkeypatch):
         assert "pg_ctl" in pgt.postgres_unavailable()
 
 
-def test_pg_env_skips_instead_of_erroring_without_postgres(pytester):
-    pytester.makeconftest('pytest_plugins = ["nw.testing.postgres"]')
-    pytester.makepyfile(
-        """
-        import nw.testing.postgres as pgt
-
-        def test_x(pg_env, monkeypatch):
-            raise AssertionError("ran without postgres")
-        """
-    )
-    pytester.makepyfile(
-        sitecustomize=""  # placeholder: no-op
-    )
-    result = pytester.runpytest_inprocess(
-        "-p", "no:cacheprovider", "-o", "addopts=",
-        "--override-ini", "python_files=test_*.py",
-    )
-    # With postgres available it runs (and our test body fails on purpose);
-    # without, it must skip. Either way it never *errors* on a missing fixture.
-    outcomes = result.parseoutcomes()
-    assert "error" not in outcomes and "errors" not in outcomes
+def test_pg_env_skips_instead_of_erroring_without_postgres(request, monkeypatch):
+    """Where Postgres is missing, a test using pg_env skips: it never errors on
+    the absent ``postgresql`` fixture (it does not ask for it first)."""
+    monkeypatch.setattr(pgt, "postgres_unavailable", lambda: "needs pg_ctl on PATH")
+    with pytest.raises(pytest.skip.Exception, match="needs pg_ctl"):
+        request.getfixturevalue("pg_env")
 
 
 def test_pg_env_points_nws_backend_at_postgres(pg_env):
