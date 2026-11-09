@@ -1,4 +1,4 @@
-> built 2026-11-09 00:35 UTC from 7021ad4 (main) · nw 0.0.146. Details: build_info.json
+> built 2026-11-09 00:36 UTC from 5fbae76 (main) · nw 0.0.147. Details: build_info.json
 
 # index.html.md
 
@@ -7769,6 +7769,7 @@ True
 | [`secrets`](_autosummary/nw.secrets.html.md#module-nw.secrets)                         | Execution secrets — credentials that reach `execute` and nothing else.                                                          |
 | [`stages`](_autosummary/nw.stages.html.md#module-nw.stages)                           | Stages: the plain-English steps of a kind of production, owned by the engine (reelee#458).                                      |
 | [`storage`](_autosummary/nw.storage.html.md#module-nw.storage)                         | Where a project's state lives: the project-storage seam (nw#101).                                                               |
+| [`testing`](_autosummary/nw.testing.html.md#module-nw.testing)                         | Test helpers nw ships for its consumers (hosts, genres, plugins).                                                               |
 | [`transforms`](_autosummary/nw.transforms.html.md#nw.transforms)                          | A typed dict-backed plugin registry.                                                                                            |
 | [`validation`](_autosummary/nw.validation.html.md#module-nw.validation)                   | Pluggable validation of finished work — the seam, not the checks.                                                               |
 | [`workflow`](_autosummary/nw.workflow.html.md#module-nw.workflow)                       | Workflow: prepare → plan → execute, for a **video shot**.                                                                       |
@@ -11689,6 +11690,21 @@ graph it already has stays readable.
   [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
 
 
+# _autosummary/nw.testing.html.md
+
+# nw.testing
+
+Test helpers nw ships for its consumers (hosts, genres, plugins).
+
+Nothing here is imported by `import nw`; a consumer imports the module it
+needs from its own tests or conftest. Each module may need test-only
+dependencies (`pytest`, and for `nw.testing.postgres` the
+`pytest-postgresql` / `psycopg` pair plus a Postgres binary), and skips
+cleanly where they are missing.
+
+### Modules
+
+
 # _autosummary/nw.transforms.html.md
 
 # nw.transforms
@@ -12324,18 +12340,20 @@ produce different URLs. The local file paths are byte-stable.
 
 # About this build
 
-This documentation was built on **2026-11-09 00:35 UTC** from commit <a href="https://github.com/reeleehq/nw/commit/7021ad4a7fefff0f52ab643240a61c7b6489f35c"><code>7021ad4</code></a> on branch <code>main</code>, for **nw 0.0.146** (from <code>pyproject.toml</code>).
+This documentation was built on **2026-11-09 00:36 UTC** from commit <a href="https://github.com/reeleehq/nw/commit/5fbae76a25aa0dbd21fe2ef1f35005f62ac9e1cf"><code>5fbae76</code></a> on branch <code>main</code>, for **nw 0.0.147** (from <code>pyproject.toml</code>).
 
-#### NOTE
-Nothing suggests a mismatch: the tree was clean at the commit above, and the documented version is the one on PyPI.
+#### WARNING
+The documentation and the package may be misaligned:
+
+- The documented version (0.0.147) is ahead of the latest release on PyPI (0.0.146): these docs describe unreleased code.
 
 ## Source
 
 |                     |                                                                                                                                                    |
 |---------------------|----------------------------------------------------------------------------------------------------------------------------------------------------|
-| Commit              | <a href="https://github.com/reeleehq/nw/commit/7021ad4a7fefff0f52ab643240a61c7b6489f35c"><code>7021ad4a7fefff0f52ab643240a61c7b6489f35c</code></a> |
+| Commit              | <a href="https://github.com/reeleehq/nw/commit/5fbae76a25aa0dbd21fe2ef1f35005f62ac9e1cf"><code>5fbae76a25aa0dbd21fe2ef1f35005f62ac9e1cf</code></a> |
 | Branch              | <code>main</code>                                                                                                                                  |
-| Tags at this commit | <code>0.0.146</code>                                                                                                                               |
+| Tags at this commit | <code>0.0.147</code>                                                                                                                               |
 | Working tree        | clean                                                                                                                                              |
 | Remote              | <code>https://github.com/reeleehq/nw</code>                                                                                                        |
 
@@ -12344,9 +12362,9 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 |              |                                                                                            |
 |--------------|--------------------------------------------------------------------------------------------|
 | Repository   | <code>reeleehq/nw</code>                                                                   |
-| Run          | <a href="https://github.com/reeleehq/nw/actions/runs/42539983525">42539983525</a>          |
+| Run          | <a href="https://github.com/reeleehq/nw/actions/runs/42540619025">42540619025</a>          |
 | Ref          | <code>refs/heads/main</code>                                                               |
-| Event commit | <code>bbc8443853a814823b2158873f0782d9aa3a6d06</code> (in the history of the built commit) |
+| Event commit | <code>d7c2563927289c629f6cfe38f0f04f425d45dd44</code> (in the history of the built commit) |
 
 ## Tools
 
@@ -12371,13 +12389,13 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 
 ## Package on PyPI
 
-Latest release: <a href="https://pypi.org/project/nw/0.0.146/">0.0.146</a>, the same as the documented version.
+Latest release: <a href="https://pypi.org/project/nw/0.0.146/">0.0.146</a>, older than the documented version (0.0.147).
 
 ## Reproduce
 
 ```bash
 git clone https://github.com/reeleehq/nw && cd nw
-git checkout 7021ad4a7fefff0f52ab643240a61c7b6489f35c
+git checkout 5fbae76a25aa0dbd21fe2ef1f35005f62ac9e1cf
 pip install "epythet==0.2.22"
 epythet quickstart . --ignore tests/ scrap/ examples/
 ```

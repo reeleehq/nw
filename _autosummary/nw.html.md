@@ -4084,6 +4084,7 @@ True
 | [`secrets`](nw.secrets.html.md#module-nw.secrets)                         | Execution secrets — credentials that reach `execute` and nothing else.                                                          |
 | [`stages`](nw.stages.html.md#module-nw.stages)                           | Stages: the plain-English steps of a kind of production, owned by the engine (reelee#458).                                      |
 | [`storage`](nw.storage.html.md#module-nw.storage)                         | Where a project's state lives: the project-storage seam (nw#101).                                                               |
+| [`testing`](nw.testing.html.md#module-nw.testing)                         | Test helpers nw ships for its consumers (hosts, genres, plugins).                                                               |
 | [`transforms`](nw.transforms.html.md#nw.transforms)                          | A typed dict-backed plugin registry.                                                                                            |
 | [`validation`](nw.validation.html.md#module-nw.validation)                   | Pluggable validation of finished work — the seam, not the checks.                                                               |
 | [`workflow`](nw.workflow.html.md#module-nw.workflow)                       | Workflow: prepare → plan → execute, for a **video shot**.                                                                       |

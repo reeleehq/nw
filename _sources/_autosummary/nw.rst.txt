@@ -193,6 +193,7 @@
    stages
    storage
    storyboard
+   testing
    transforms
    validation
    workflow
