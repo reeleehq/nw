@@ -1,5 +1,9 @@
 """Turning a caller-editable id into a file name that cannot leave its directory.
 
+Two modes, one module: :func:`safe_path_segment` **maps** any id to a safe
+name (never refuses), and :func:`check_path_segment` **validates** a name a
+caller chose and refuses one that is not a single direct child (nw#227).
+
 An id that came out of a body a caller can edit (a storyboard panel's
 ``panel_id``, a clip's id, a take's key) is *data*, and joining data onto a
 directory as ``dir / f"{id}.png"`` lets ``../../x`` write anywhere the process
@@ -33,7 +37,7 @@ from __future__ import annotations
 import hashlib
 import re
 
-__all__ = ["MAX_NAME_BYTES", "is_kept", "safe_path_segment"]
+__all__ = ["MAX_NAME_BYTES", "check_path_segment", "is_kept", "safe_path_segment"]
 
 MAX_NAME_BYTES = 255
 """The longest file name, in bytes, the filesystems nw runs on accept."""
@@ -45,6 +49,10 @@ mapped file's identity: changing it renames those files, so it is not a knob."""
 _KEPT = re.compile(r"[A-Za-z0-9][A-Za-z0-9_-]*")
 """An id kept verbatim: ASCII letters, digits, ``_`` and ``-``, not led by a
 punctuation mark. No ``.``, which is what keeps mapped names disjoint."""
+
+_NOT_IN_A_SEGMENT = ("/", "\\", "\x00", ":")
+"""Characters a validated segment may not hold: separators, NUL, and ``:``
+(a Windows drive or stream prefix)."""
 
 _UNSAFE_RUN = re.compile(r"[^A-Za-z0-9_-]+")
 _WINDOWS_DEVICE = re.compile(r"(CON|PRN|AUX|NUL|COM[0-9]|LPT[0-9])", re.IGNORECASE)
@@ -98,3 +106,32 @@ def safe_path_segment(
     if not slug or _WINDOWS_DEVICE.fullmatch(slug):
         slug = ("_" + slug)[:slug_room]
     return f"{slug}.{digest}{suffix}"
+
+
+def check_path_segment(
+    value: str, *, what: str = "path segment", pattern: "re.Pattern | None" = None
+) -> str:
+    """``value``, refused unless it names a direct child of the directory it is
+    joined to: not empty, not ``.`` or ``..``, no ``/``, ``\\``, NUL, or
+    ``:`` (on Windows ``D:x`` joins to another drive) (nw#227). Returns it
+    unchanged.
+
+    ``pattern`` is a stricter policy a caller adds (``fullmatch``), e.g. a
+    store whose names must be slugs. ``what`` names the value in the error.
+
+    >>> check_path_segment("ep_01", what="project_id")
+    'ep_01'
+    >>> check_path_segment("../escape", what="project_id")
+    Traceback (most recent call last):
+        ...
+    ValueError: invalid project_id: '../escape' is not a single path segment
+    """
+    if (
+        not isinstance(value, str)
+        or value in ("", ".", "..")
+        or any(c in value for c in _NOT_IN_A_SEGMENT)
+    ):
+        raise ValueError(f"invalid {what}: {value!r} is not a single path segment")
+    if pattern is not None and not pattern.fullmatch(value):
+        raise ValueError(f"invalid {what}: {value!r} does not match {pattern.pattern!r}")
+    return value

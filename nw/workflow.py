@@ -442,7 +442,10 @@ def _resolve_character_anchors(project: Project, shot: ShotSpec) -> dict[str, Pa
     """
     out: dict[str, Path] = {}
     for name in shot.characters:
-        char_dir = project.character_dir(name)
+        try:
+            char_dir = project.character_dir(name)
+        except ValueError:  # a name no folder can hold: missing, as documented
+            continue
         if not char_dir.exists():
             continue
 
@@ -483,7 +486,10 @@ def _resolve_environment_anchor(project: Project, shot: ShotSpec) -> Optional[Pa
     """Return ``environments/<name>/establishing.png`` if present, else None."""
     if not shot.environment:
         return None
-    env_dir = project.environment_dir(shot.environment)
+    try:
+        env_dir = project.environment_dir(shot.environment)
+    except ValueError:  # a name no folder can hold: no anchor
+        return None
     candidate = env_dir / "establishing.png"
     if candidate.exists():
         return candidate

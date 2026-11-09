@@ -86,6 +86,7 @@ from .storage import (
     is_project,
     project_lock,
 )
+from .paths import check_path_segment
 from .migrate import (
     _TIER_CHARACTER_REF,
     _TIER_DECISION,
@@ -739,7 +740,8 @@ class Project:
     # -- characters --------------------------------------------------------
 
     def character_dir(self, name: str) -> Path:
-        return self.root / "characters" / name
+        """``characters/<name>``; ``name`` must be one path segment (nw#227)."""
+        return self.root / "characters" / check_path_segment(name, what="character name")
 
     def add_character(self, name: str, *, description: str = "") -> CharacterRef:
         """Add a character (idempotent: re-adds update the description).
@@ -866,7 +868,10 @@ class Project:
     # -- environments ------------------------------------------------------
 
     def environment_dir(self, name: str) -> Path:
-        return self.root / "environments" / name
+        """``environments/<name>``; ``name`` must be one path segment (nw#227)."""
+        return self.root / "environments" / check_path_segment(
+            name, what="environment name"
+        )
 
     def add_environment(self, name: str, *, description: str = "") -> EnvironmentRef:
         d = self.environment_dir(name)
@@ -889,7 +894,8 @@ class Project:
     # -- shots / sections --------------------------------------------------
 
     def shot_dir(self, shot_id: str) -> Path:
-        return self.root / "shots" / shot_id
+        """``shots/<shot_id>``; the id must be one path segment (nw#227)."""
+        return self.root / "shots" / check_path_segment(shot_id, what="shot id")
 
     def upsert_shot(self, shot: ShotSpec) -> ShotSpec:
         self._docs[f"shots/{shot.id}/shot.json"] = json.loads(shot.model_dump_json())
