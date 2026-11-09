@@ -769,6 +769,15 @@ def test_a_cancelled_run_whose_worker_died_reads_as_a_lower_bound(project):
     rt.au_store["c-done"] = au.ComputationResult(None, au.ComputationStatus.CANCELLED)
     assert jobs.get_job(project, "c-done").cost.actual_is_lower_bound is False
 
+    # One whose worker is still alive (fresh heartbeat) is not flagged yet: its
+    # own end (a raise, or a reconcile) will say.
+    rt.index["c-live"] = _bare_record(
+        "c-live", cancel_requested=True, heartbeat_at=jobs.now_iso(),
+        cost={"actual_usd": 0.3, "actual_is_lower_bound": False},
+    )
+    rt.au_store["c-live"] = au.ComputationResult(None, au.ComputationStatus.CANCELLED)
+    assert jobs.get_job(project, "c-live").cost.actual_is_lower_bound is False
+
 
 def test_live_worker_is_not_reaped(project):
     """A genuinely running job (live thread) must NOT be reaped even under a
