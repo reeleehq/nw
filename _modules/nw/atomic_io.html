@@ -192,62 +192,67 @@ data-aria-dark="Switch to auto color mode">
 </span><span data-line="28">
 </span><span data-line="29"><span class="kn">from</span><span class="w"> </span><span class="nn">dol.atomic</span><span class="w"> </span><span class="kn">import</span> <span class="n">DFLT_RETRY</span><span class="p">,</span> <span class="n">atomic_write</span>
 </span><span data-line="30">
-</span><span data-line="31"><span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"copy_file_atomic"</span><span class="p">,</span> <span class="s2">"read_text_retrying"</span><span class="p">,</span> <span class="s2">"replace_retrying"</span><span class="p">,</span> <span class="s2">"write_text_atomic"</span><span class="p">]</span>
-</span><span data-line="32">
-</span><span data-line="33"><span class="n">COPY_CHUNK_BYTES</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">&lt;&lt;</span> <span class="mi">20</span>
-</span><span data-line="34"><span class="sd">"""Bytes read per chunk by :func:`copy_file_atomic`."""</span>
-</span><span data-line="35">
-</span><span data-line="36">
-</span><span data-line="37"><span class="k">def</span><span class="w"> </span><span class="nf">_policy</span><span class="p">(</span><span class="n">retry</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Callable</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Callable</span><span class="p">:</span>
-</span><span data-line="38"><span class="w">    </span><span class="sd">"""``retry``, else dol's default, looked up at call time (so it can be swapped)."""</span>
-</span><span data-line="39">    <span class="k">return</span> <span class="n">retry</span> <span class="k">if</span> <span class="n">retry</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">DFLT_RETRY</span>
+</span><span data-line="31"><span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span>
+</span><span data-line="32">    <span class="s2">"copy_file_atomic"</span><span class="p">,</span>
+</span><span data-line="33">    <span class="s2">"read_text_retrying"</span><span class="p">,</span>
+</span><span data-line="34">    <span class="s2">"replace_retrying"</span><span class="p">,</span>
+</span><span data-line="35">    <span class="s2">"write_text_atomic"</span><span class="p">,</span>
+</span><span data-line="36"><span class="p">]</span>
+</span><span data-line="37">
+</span><span data-line="38"><span class="n">COPY_CHUNK_BYTES</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">&lt;&lt;</span> <span class="mi">20</span>
+</span><span data-line="39"><span class="sd">"""Bytes read per chunk by :func:`copy_file_atomic`."""</span>
 </span><span data-line="40">
 </span><span data-line="41">
+</span><span data-line="42"><span class="k">def</span><span class="w"> </span><span class="nf">_policy</span><span class="p">(</span><span class="n">retry</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Callable</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Callable</span><span class="p">:</span>
+</span><span data-line="43"><span class="w">    </span><span class="sd">"""``retry``, else dol's default, looked up at call time (so it can be swapped)."""</span>
+</span><span data-line="44">    <span class="k">return</span> <span class="n">retry</span> <span class="k">if</span> <span class="n">retry</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">DFLT_RETRY</span>
+</span><span data-line="45">
+</span><span data-line="46">
 <div class="viewcode-block" id="copy_file_atomic">
 <a class="viewcode-back" href="../../_autosummary/nw.atomic_io.html#nw.atomic_io.copy_file_atomic">[docs]</a>
-</span><span data-line="42"><span class="k">def</span><span class="w"> </span><span class="nf">copy_file_atomic</span><span class="p">(</span>
-</span><span data-line="43">    <span class="n">src</span><span class="p">,</span> <span class="n">dst</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">retry</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Callable</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">chunk_bytes</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">COPY_CHUNK_BYTES</span>
-</span><span data-line="44"><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-</span><span data-line="45"><span class="w">    </span><span class="sd">"""Copy ``src`` to ``dst`` atomically: a copy that fails half-way never</span>
-</span><span data-line="46"><span class="sd">    leaves a short ``dst``, and a reader holding ``dst`` is outlasted. Times and</span>
-</span><span data-line="47"><span class="sd">    mode are copied after (best effort), as ``shutil.copy2`` would."""</span>
-</span><span data-line="48">
-</span><span data-line="49">    <span class="k">def</span><span class="w"> </span><span class="nf">chunks</span><span class="p">():</span>
-</span><span data-line="50">        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">src</span><span class="p">,</span> <span class="s2">"rb"</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
-</span><span data-line="51">            <span class="k">while</span> <span class="n">chunk</span> <span class="o">:=</span> <span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">chunk_bytes</span><span class="p">):</span>
-</span><span data-line="52">                <span class="k">yield</span> <span class="n">chunk</span>
+</span><span data-line="47"><span class="k">def</span><span class="w"> </span><span class="nf">copy_file_atomic</span><span class="p">(</span>
+</span><span data-line="48">    <span class="n">src</span><span class="p">,</span> <span class="n">dst</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">retry</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Callable</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">chunk_bytes</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">COPY_CHUNK_BYTES</span>
+</span><span data-line="49"><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+</span><span data-line="50"><span class="w">    </span><span class="sd">"""Copy ``src`` to ``dst`` atomically: a copy that fails half-way never</span>
+</span><span data-line="51"><span class="sd">    leaves a short ``dst``, and a reader holding ``dst`` is outlasted. Times and</span>
+</span><span data-line="52"><span class="sd">    mode are copied after (best effort), as ``shutil.copy2`` would."""</span>
 </span><span data-line="53">
-</span><span data-line="54">    <span class="n">atomic_write</span><span class="p">(</span><span class="n">dst</span><span class="p">,</span> <span class="n">chunks</span><span class="p">(),</span> <span class="n">retry</span><span class="o">=</span><span class="n">_policy</span><span class="p">(</span><span class="n">retry</span><span class="p">))</span>
-</span><span data-line="55">    <span class="k">try</span><span class="p">:</span>
-</span><span data-line="56">        <span class="n">shutil</span><span class="o">.</span><span class="n">copystat</span><span class="p">(</span><span class="n">src</span><span class="p">,</span> <span class="n">dst</span><span class="p">)</span>
-</span><span data-line="57">    <span class="k">except</span> <span class="ne">OSError</span><span class="p">:</span>
-</span><span data-line="58">        <span class="k">pass</span></div>
+</span><span data-line="54">    <span class="k">def</span><span class="w"> </span><span class="nf">chunks</span><span class="p">():</span>
+</span><span data-line="55">        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">src</span><span class="p">,</span> <span class="s2">"rb"</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+</span><span data-line="56">            <span class="k">while</span> <span class="n">chunk</span> <span class="o">:=</span> <span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">chunk_bytes</span><span class="p">):</span>
+</span><span data-line="57">                <span class="k">yield</span> <span class="n">chunk</span>
+</span><span data-line="58">
+</span><span data-line="59">    <span class="n">atomic_write</span><span class="p">(</span><span class="n">dst</span><span class="p">,</span> <span class="n">chunks</span><span class="p">(),</span> <span class="n">retry</span><span class="o">=</span><span class="n">_policy</span><span class="p">(</span><span class="n">retry</span><span class="p">))</span>
+</span><span data-line="60">    <span class="k">try</span><span class="p">:</span>
+</span><span data-line="61">        <span class="n">shutil</span><span class="o">.</span><span class="n">copystat</span><span class="p">(</span><span class="n">src</span><span class="p">,</span> <span class="n">dst</span><span class="p">)</span>
+</span><span data-line="62">    <span class="k">except</span> <span class="ne">OSError</span><span class="p">:</span>
+</span><span data-line="63">        <span class="k">pass</span></div>
 
-</span><span data-line="59">
-</span><span data-line="60">
+</span><span data-line="64">
+</span><span data-line="65">
 <div class="viewcode-block" id="write_text_atomic">
 <a class="viewcode-back" href="../../_autosummary/nw.atomic_io.html#nw.atomic_io.write_text_atomic">[docs]</a>
-</span><span data-line="61"><span class="k">def</span><span class="w"> </span><span class="nf">write_text_atomic</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">text</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">retry</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Callable</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-</span><span data-line="62"><span class="w">    </span><span class="sd">"""``text`` (UTF-8) to ``path`` atomically; parent folders are created."""</span>
-</span><span data-line="63">    <span class="n">path</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
-</span><span data-line="64">    <span class="n">path</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">parents</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-</span><span data-line="65">    <span class="n">atomic_write</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">text</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s2">"utf-8"</span><span class="p">),</span> <span class="n">retry</span><span class="o">=</span><span class="n">_policy</span><span class="p">(</span><span class="n">retry</span><span class="p">))</span></div>
-
-</span><span data-line="66">
-</span><span data-line="67">
-<div class="viewcode-block" id="replace_retrying">
-<a class="viewcode-back" href="../../_autosummary/nw.atomic_io.html#nw.atomic_io.replace_retrying">[docs]</a>
-</span><span data-line="68"><span class="k">def</span><span class="w"> </span><span class="nf">replace_retrying</span><span class="p">(</span><span class="n">src</span><span class="p">,</span> <span class="n">dst</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">retry</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Callable</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-</span><span data-line="69"><span class="w">    </span><span class="sd">"""``os.replace(src, dst)``, retried on a sharing violation."""</span>
-</span><span data-line="70">    <span class="n">_policy</span><span class="p">(</span><span class="n">retry</span><span class="p">)(</span><span class="n">os</span><span class="o">.</span><span class="n">replace</span><span class="p">,</span> <span class="n">src</span><span class="p">,</span> <span class="n">dst</span><span class="p">)</span></div>
+</span><span data-line="66"><span class="k">def</span><span class="w"> </span><span class="nf">write_text_atomic</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">text</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">retry</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Callable</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+</span><span data-line="67"><span class="w">    </span><span class="sd">"""``text`` (UTF-8) to ``path`` atomically; parent folders are created."""</span>
+</span><span data-line="68">    <span class="n">path</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+</span><span data-line="69">    <span class="n">path</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">parents</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</span><span data-line="70">    <span class="n">atomic_write</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">text</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s2">"utf-8"</span><span class="p">),</span> <span class="n">retry</span><span class="o">=</span><span class="n">_policy</span><span class="p">(</span><span class="n">retry</span><span class="p">))</span></div>
 
 </span><span data-line="71">
 </span><span data-line="72">
+<div class="viewcode-block" id="replace_retrying">
+<a class="viewcode-back" href="../../_autosummary/nw.atomic_io.html#nw.atomic_io.replace_retrying">[docs]</a>
+</span><span data-line="73"><span class="k">def</span><span class="w"> </span><span class="nf">replace_retrying</span><span class="p">(</span><span class="n">src</span><span class="p">,</span> <span class="n">dst</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">retry</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Callable</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+</span><span data-line="74"><span class="w">    </span><span class="sd">"""``os.replace(src, dst)``, retried on a sharing violation."""</span>
+</span><span data-line="75">    <span class="n">_policy</span><span class="p">(</span><span class="n">retry</span><span class="p">)(</span><span class="n">os</span><span class="o">.</span><span class="n">replace</span><span class="p">,</span> <span class="n">src</span><span class="p">,</span> <span class="n">dst</span><span class="p">)</span></div>
+
+</span><span data-line="76">
+</span><span data-line="77">
 <div class="viewcode-block" id="read_text_retrying">
 <a class="viewcode-back" href="../../_autosummary/nw.atomic_io.html#nw.atomic_io.read_text_retrying">[docs]</a>
-</span><span data-line="73"><span class="k">def</span><span class="w"> </span><span class="nf">read_text_retrying</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">retry</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Callable</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
-</span><span data-line="74"><span class="w">    </span><span class="sd">"""``path``'s UTF-8 text, retried on a sharing violation."""</span>
-</span><span data-line="75">    <span class="k">return</span> <span class="n">_policy</span><span class="p">(</span><span class="n">retry</span><span class="p">)(</span><span class="n">Path</span><span class="o">.</span><span class="n">read_text</span><span class="p">,</span> <span class="n">Path</span><span class="p">(</span><span class="n">path</span><span class="p">),</span> <span class="s2">"utf-8"</span><span class="p">)</span></div>
+</span><span data-line="78"><span class="k">def</span><span class="w"> </span><span class="nf">read_text_retrying</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">retry</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Callable</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+</span><span data-line="79"><span class="w">    </span><span class="sd">"""``path``'s UTF-8 text, retried on a sharing violation."""</span>
+</span><span data-line="80">    <span class="k">return</span> <span class="n">_policy</span><span class="p">(</span><span class="n">retry</span><span class="p">)(</span><span class="n">Path</span><span class="o">.</span><span class="n">read_text</span><span class="p">,</span> <span class="n">Path</span><span class="p">(</span><span class="n">path</span><span class="p">),</span> <span class="s2">"utf-8"</span><span class="p">)</span></div>
 
 </span></pre></div>
         </article><button class="back-to-top" type="button">
@@ -276,7 +281,7 @@ data-aria-dark="Switch to auto color mode">
     </div>
   </div>
 </footer>
-      <script src="../../_static/documentation_options.js?v=cbf0c937"></script>
+      <script src="../../_static/documentation_options.js?v=6f884d2e"></script>
       <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
       <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
