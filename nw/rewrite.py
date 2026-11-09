@@ -53,6 +53,7 @@ from .bodies.verifying_trace import (
     upstream_entry,
 )
 from .storage import ProjectLike, as_project_storage, project_lock
+from lacing.digest import VALUE_DIGEST_SCHEME, VALUE_DIGEST_SCHEMES
 
 _logger = logging.getLogger(__name__)
 
@@ -117,6 +118,120 @@ def rewrite_values(
         if key is not None:
             storage.docs[key] = {"rewritten": changed}
     return changed
+
+
+TRACE_UPGRADE_MARKER = "traces-on-current-digest-scheme"
+"""The marker :func:`upgrade_superseded_traces` records once a project's traces
+are all on today's digest scheme (bump it if the scheme moves again)."""
+
+
+def upgrade_superseded_traces(
+    project: ProjectLike, *, marker: str | None = TRACE_UPGRADE_MARKER
+) -> int:
+    """Re-record every verifying trace that is on a superseded digest scheme, or
+    whose entries are not what nw records today, **while it still vouches** for
+    its parents' current values; return how many traces moved (nw#226).
+
+    Per trace: an entry equal to :func:`~nw.bodies.verifying_trace.upstream_entry`
+    today (digest and ``excluded_paths`` together) is kept; one whose recorded
+    digest still describes the parent
+    (:func:`~nw.bodies.verifying_trace.digest_vouches` under the entry's scheme
+    and exclusions) is re-recorded as ``upstream_entry`` records it; any other
+    entry means the trace is already stale, and it is left alone (never
+    blessed). So a fresh dependent stays fresh and a stale one stays stale.
+
+    Why: a trace recorded under an old scheme digests the whole body, so a later
+    fill of a ``Derived`` field (a panel image's ``asset_id``) reads as an
+    upstream change, and each host repaired that per write (reelee's
+    ``_upgrade_traces``). Run once per project, it never meets the fill.
+
+    Idempotent; with ``marker`` (the default) it runs at most once per project,
+    under the same lock and marker discipline as :func:`rewrite_values`;
+    ``marker=None`` runs every time.
+    """
+    key = _marker_key(marker) if marker is not None else None
+    storage = as_project_storage(project)
+    if key is not None and key in storage.docs:
+        return 0
+    with project_lock(storage, LOCK_NAME):
+        if key is not None and key in storage.docs:
+            return 0
+        _freshness_pass.forget()
+        try:
+            moved = _upgrade_traces(storage)
+        finally:
+            _freshness_pass.forget()
+        if key is not None:
+            storage.docs[key] = {"rewritten": moved}
+    return moved
+
+
+def _upgraded_upstream(body: Mapping, by_id: Mapping[UUID, Any], today_of=None):
+    """``body``'s upstream as nw records it today, or ``None`` when nothing moves
+    or the trace is stale (or names a parent that is gone). ``today_of(parent)``
+    is :func:`upstream_entry` under today's scheme, memoized by the caller."""
+    today_of = today_of or (lambda p: upstream_entry(p, scheme=VALUE_DIGEST_SCHEME))
+    scheme = body.get("digest_scheme")
+    if scheme not in VALUE_DIGEST_SCHEMES:
+        return None
+    moved = scheme != VALUE_DIGEST_SCHEME
+    upstream = []
+    for entry in body.get("upstream") or ():
+        try:
+            parent = by_id[UUID(str(entry["annotation_id"]))]
+        except (KeyError, ValueError, TypeError):
+            return None
+        today = today_of(parent)
+        recorded = entry.get("value_digest")
+        if not (
+            recorded == today["value_digest"]
+            and recorded_exclusions(entry) == recorded_exclusions(today)
+        ):
+            if not digest_vouches(
+                parent, recorded, scheme=scheme, excluded=recorded_exclusions(entry)
+            ):
+                return None  # already stale: not ours to freshen
+            moved = True
+        # Only the parent's id carries over: a field a newer nw added refines
+        # the OLD digest, not this one.
+        upstream.append({"annotation_id": entry["annotation_id"], **today})
+    return upstream if moved else None
+
+
+def _upgrade_traces(storage) -> int:
+    from .graph import iter_all_annotations
+
+    by_id = {a.id: a for a in iter_all_annotations(storage)}
+    todays: dict = {}
+
+    def today_of(parent):  # a parent with many children is digested once
+        if parent.id not in todays:
+            todays[parent.id] = upstream_entry(parent, scheme=VALUE_DIGEST_SCHEME)
+        return todays[parent.id]
+
+    moved = 0
+    with storage.open_stores() as stores:
+        for store in stores:
+            for ann in list(store.all()):
+                if ann.body_schema_uri != VERIFYING_TRACE_BODY_SCHEMA_URI:
+                    continue
+                # One bad row (a parent outside the JSON contract, a trace a
+                # concurrent writer replaced) must not stop the rest, nor keep
+                # the marker from being written; left as it is, a trace is at
+                # worst stale, never wrong-fresh.
+                try:
+                    upstream = _upgraded_upstream(ann.body, by_id, today_of)
+                    if upstream is None:
+                        continue
+                    body = {**ann.body, "digest_scheme": VALUE_DIGEST_SCHEME, "upstream": upstream}
+                    store.update(ann.model_copy(update={"body": body}))
+                    moved += 1
+                except Exception:
+                    _logger.warning(
+                        "upgrade_superseded_traces: left trace %s as it is", ann.id,
+                        exc_info=True,
+                    )
+    return moved
 
 
 def is_rewritten(project: ProjectLike, marker: str) -> bool:
