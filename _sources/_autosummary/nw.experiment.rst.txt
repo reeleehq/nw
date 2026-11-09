@@ -12,3 +12,9 @@ nw.experiment
       clone_project
       summarize_all
    
+   .. rubric:: Exceptions
+
+   .. autosummary::
+   
+      CloneDropsGraphEntities
+   

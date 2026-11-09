@@ -20,6 +20,19 @@ rather than a shell pipeline.
 | [`clone_project`](#nw.experiment.clone_project)(src_root, dst_root, \*[, ...])   | Clone an nw project to a new root.                               |
 | [`summarize_all`](#nw.experiment.summarize_all)(roots)                           | Convenience: return a `ProjectSummary` for each project.         |
 
+### Exceptions
+
+| [`CloneDropsGraphEntities`](#nw.experiment.CloneDropsGraphEntities)   | A clone of a graph-native project leaves entities behind that live only in the source's graph (nw#258).   |
+|----------------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------|
+
+### *exception* nw.experiment.CloneDropsGraphEntities
+
+Bases: [`UserWarning`](https://docs.python.org/3/builtins/exceptions.html#UserWarning)
+
+A clone of a graph-native project leaves entities behind that live only
+in the source’s graph (nw#258). `warnings.simplefilter("error",
+CloneDropsGraphEntities)` makes it refuse instead.
+
 ### nw.experiment.apply_to_projects(roots, fn, , parallel=False)
 
 Apply `fn` to each project at `roots` and collect the results.

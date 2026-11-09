@@ -135,6 +135,7 @@ data-aria-dark="Switch to auto color mode">
       <i class="i-lucide close"></i>
     </button>
     <div class="sy-scrollbar sy-rside-inner px-6 xl:top-16 xl:sticky xl:pl-0 pt-6 pb-4"><div class="localtoc"><h3>On this page</h3><ul>
+<li><a class="reference internal" href="#nw.experiment.CloneDropsGraphEntities"><code class="docutils literal notranslate"><span class="pre">CloneDropsGraphEntities</span></code></a></li>
 <li><a class="reference internal" href="#nw.experiment.apply_to_projects"><code class="docutils literal notranslate"><span class="pre">apply_to_projects()</span></code></a></li>
 <li><a class="reference internal" href="#nw.experiment.clone_project"><code class="docutils literal notranslate"><span class="pre">clone_project()</span></code></a></li>
 <li><a class="reference internal" href="#nw.experiment.summarize_all"><code class="docutils literal notranslate"><span class="pre">summarize_all()</span></code></a></li>
@@ -205,6 +206,25 @@ rather than a shell pipeline.</p>
 </tbody>
 </table>
 </div>
+<p class="rubric">Exceptions</p>
+<div class="table-wrapper autosummary longtable docutils container">
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#nw.experiment.CloneDropsGraphEntities" title="nw.experiment.CloneDropsGraphEntities"><code class="xref py py-obj docutils literal notranslate"><span class="pre">CloneDropsGraphEntities</span></code></a></p></td>
+<td><p>A clone of a graph-native project leaves entities behind that live only in the source's graph (nw#258).</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<dl class="py exception">
+<dt class="sig sig-object py" id="nw.experiment.CloneDropsGraphEntities">
+<span class="property"><span class="k"><span class="pre">exception</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">nw.experiment.</span></span><span class="sig-name descname"><span class="pre">CloneDropsGraphEntities</span></span><a class="reference internal" href="../_modules/nw/experiment.html#CloneDropsGraphEntities"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nw.experiment.CloneDropsGraphEntities" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/builtins/exceptions.html#UserWarning" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">UserWarning</span></code></a></p>
+<p>A clone of a graph-native project leaves entities behind that live only
+in the source’s graph (nw#258). <code class="docutils literal notranslate"><span class="pre">warnings.simplefilter(&quot;error&quot;,</span>
+<span class="pre">CloneDropsGraphEntities)</span></code> makes it refuse instead.</p>
+</dd></dl>
+
 <dl class="py function">
 <dt class="sig sig-object py" id="nw.experiment.apply_to_projects">
 <span class="sig-prename descclassname"><span class="pre">nw.experiment.</span></span><span class="sig-name descname"><span class="pre">apply_to_projects</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">roots</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fn</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">parallel</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/nw/experiment.html#apply_to_projects"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nw.experiment.apply_to_projects" title="Link to this definition">#</a></dt>
@@ -321,7 +341,7 @@ to avoid clobbering work).</p></li>
     </div>
   </div>
 </footer>
-      <script src="../_static/documentation_options.js?v=bb54a016"></script>
+      <script src="../_static/documentation_options.js?v=70dd30db"></script>
       <script src="../_static/doctools.js?v=fd6eb6e6"></script>
       <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
