@@ -19,6 +19,11 @@ from nw import (
 )
 
 
+# The seeded project has a character, so cloning it warns (nw#258); the tests
+# that are not about that warning do not need to hear it.
+pytestmark = pytest.mark.filterwarnings("ignore::nw.experiment.CloneDropsGraphEntities")
+
+
 def _seed_project(root: Path, *, title: str) -> Project:
     proj = Project.init(root, title=title)
     proj.add_character("thor", description="narrator")
@@ -231,6 +236,12 @@ def test_a_graph_native_clone_warns_of_the_entities_it_leaves_behind(tmp_path):
     _seed_project(src, title="Original")  # adds character "thor"
     with pytest.warns(CloneDropsGraphEntities, match="character-ref"):
         clone_project(src, tmp_path / "dst")
+
+    with warnings.catch_warnings():  # made an error, it refuses before any work
+        warnings.simplefilter("error", CloneDropsGraphEntities)
+        with pytest.raises(CloneDropsGraphEntities):
+            clone_project(src, tmp_path / "refused")
+    assert not (tmp_path / "refused").exists()
 
     with warnings.catch_warnings():
         warnings.simplefilter("error", CloneDropsGraphEntities)

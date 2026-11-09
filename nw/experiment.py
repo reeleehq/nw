@@ -27,7 +27,9 @@ from .storage import (
     TENANT_KEY,
     FolderStorage,
     as_project_storage,
+    close_quietly,
     is_project,
+    open_graph_for_read,
 )
 from .schema import ProjectSummary
 
@@ -101,6 +103,9 @@ def clone_project(
             f"{src} keeps its documents in {type(src_storage).__name__}, not "
             "nw's folder layout; clone_project copies folders only."
         )
+    # Before any work: a caller who made the warning an error gets a refusal,
+    # not a half-made clone.
+    _warn_of_dropped_graph_entities(src_storage, set(preserve))
 
     if dst.exists():
         if not force:
@@ -134,7 +139,6 @@ def clone_project(
         target.mkdir()
 
     _make_independent(src, dst)
-    _warn_of_dropped_graph_entities(src, preserve_set)
 
     # Update title if requested (or fall back to the dst folder name).
     proj = Project(dst)
@@ -148,7 +152,7 @@ def clone_project(
     return proj.read_summary()
 
 
-def _warn_of_dropped_graph_entities(src: Path, preserved: set[str]) -> None:
+def _warn_of_dropped_graph_entities(src: FolderStorage, preserved: set[str]) -> None:
     """Warn when a preserved folder's entities live only in ``src``'s graph.
 
     A graph-native project keeps its character / environment refs in the graph,
@@ -156,20 +160,23 @@ def _warn_of_dropped_graph_entities(src: Path, preserved: set[str]) -> None:
     yet ``read_spec()`` lists no characters. Until a clone copies those rows
     (nw#258), say so rather than hand back a silently emptier project.
     """
-    if not is_migrated(src):
+    if not is_migrated(src.root):
         return  # legacy: the clone migrates them from project.json on open
-    from .graph import annotations_at_tier
-
-    dropped = {
-        tier: n
-        for folder, tier in _GRAPH_TIER_OF_FOLDER.items()
-        if folder in preserved and (n := len(annotations_at_tier(src, tier)))
-    }
+    tiers = {t for f, t in _GRAPH_TIER_OF_FOLDER.items() if f in preserved}
+    if not tiers:
+        return
+    store = open_graph_for_read(src)  # read-only: the source may be live
+    if store is None:
+        return
+    try:
+        dropped = {t: n for t in sorted(tiers) if (n := len(list(store.by_tier(t))))}
+    finally:
+        close_quietly(store)
     if dropped:
-        listed = ", ".join(f"{n} {tier}" for tier, n in sorted(dropped.items()))
+        listed = ", ".join(f"{t} x{n}" for t, n in dropped.items())
         warnings.warn(
-            f"clone_project: {listed} live only in {src.name}'s graph and are not "
-            "carried into the clone (its folders are); see nw#258",
+            f"clone_project: graph-only entities of {src.root.name} are not carried "
+            f"into the clone, though their folders are ({listed}); see nw#258",
             CloneDropsGraphEntities,
             stacklevel=3,
         )
