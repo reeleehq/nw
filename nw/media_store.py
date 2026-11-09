@@ -43,14 +43,12 @@ import hashlib
 import json
 import os
 import re
-import shutil
 import time
 from dataclasses import KW_ONLY, dataclass, field
 from pathlib import Path
 from typing import Optional
 
-from dol.atomic import DFLT_RETRY, atomic_write
-
+from nw.atomic_io import copy_file_atomic, read_text_retrying, write_text_atomic
 from nw.paths import check_path_segment
 
 #: The store's data home, under nw's (not any genre's).
@@ -117,19 +115,6 @@ def hash_file(path, *, chunk_size: int = _HASH_CHUNK) -> str:
         while chunk := f.read(chunk_size):
             h.update(chunk)
     return h.hexdigest()
-
-
-def _atomic_write(path: Path, text: str) -> None:
-    """``text`` to ``path`` by :func:`dol.atomic_write`: temp file, then an
-    ``os.replace`` retried on a Windows sharing violation (nw#243)."""
-    path.parent.mkdir(parents=True, exist_ok=True)
-    atomic_write(path, text.encode("utf-8"), retry=DFLT_RETRY)
-
-
-def _read_text(path: Path) -> str:
-    """``path``'s text, retried like a write: on Windows a read landing while a
-    writer swaps the file is refused for that instant (nw#243)."""
-    return DFLT_RETRY(Path.read_text, path, "utf-8")
 
 
 @dataclass
@@ -226,12 +211,7 @@ class SharedMediaStore:
                     f"{self.blobs_dir}: another filesystem. Keep the store on the "
                     "media's filesystem or pass allow_cross_device_copy=True.",
                 ) from exc
-            tmp = blob.with_name(f".{aid}.{os.getpid()}.tmp")
-            try:
-                shutil.copy2(src, tmp)
-                DFLT_RETRY(os.replace, tmp, blob)  # a reader may hold the blob (nw#243)
-            finally:
-                tmp.unlink(missing_ok=True)
+            copy_file_atomic(src, blob)  # unique O_EXCL temp; retried (nw#260)
         self.clear_mark(aid)
         if not blob.exists():  # a concurrent sweep removed it just before the clear
             return self.put(src, artifact_id=aid)
@@ -247,7 +227,7 @@ class SharedMediaStore:
         # apart from one that really holds no rows (see ``references``).
         (rows_dir / _SENTINEL).touch()
         key = hashlib.sha256(str(rows_dir).encode()).hexdigest()[:24]
-        _atomic_write(
+        write_text_atomic(
             self._catalogs_dir / f"{key}.json", json.dumps({"rows_dir": str(rows_dir)})
         )
 
@@ -265,7 +245,7 @@ class SharedMediaStore:
             return []
         out = []
         for p in sorted(self._catalogs_dir.glob("*.json")):
-            out.append(Path(json.loads(_read_text(p))["rows_dir"]))
+            out.append(Path(json.loads(read_text_retrying(p))["rows_dir"]))
         return out
 
     def references(self) -> dict[str, int]:
@@ -320,13 +300,13 @@ class SharedMediaStore:
                 continue
             since = None
             try:
-                since = float(_read_text(mark))
+                since = float(read_text_retrying(mark))
             except (OSError, ValueError):
                 pass
             if since is None:
                 rep.marked.append(aid)
                 if apply:
-                    _atomic_write(mark, repr(now))
+                    write_text_atomic(mark, repr(now))
             elif now - since >= grace_s:
                 if self._referenced_now(aid):  # a row appeared since the snapshot
                     rep.unmarked.append(aid)

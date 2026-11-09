@@ -162,10 +162,11 @@ def test_catalog_reads_and_writes_outlast_a_brief_sharing_violation(tmp_path, mo
 
     import dol.atomic
 
+    import nw.atomic_io
     import nw.media_store as ms
 
     retry = dol.atomic.Retry(on=(PermissionError,), backoff_s=0)
-    monkeypatch.setattr(ms, "DFLT_RETRY", retry)  # Windows' policy, on any OS
+    monkeypatch.setattr(nw.atomic_io, "DFLT_RETRY", retry)  # Windows' policy, on any OS
 
     def flaky(real):
         calls = []
