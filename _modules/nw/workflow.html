@@ -616,120 +616,126 @@ data-aria-dark="Switch to auto color mode">
 </span><span data-line="442"><span class="sd">    """</span>
 </span><span data-line="443">    <span class="n">out</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Path</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
 </span><span data-line="444">    <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">shot</span><span class="o">.</span><span class="n">characters</span><span class="p">:</span>
-</span><span data-line="445">        <span class="n">char_dir</span> <span class="o">=</span> <span class="n">project</span><span class="o">.</span><span class="n">character_dir</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
-</span><span data-line="446">        <span class="k">if</span> <span class="ow">not</span> <span class="n">char_dir</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
-</span><span data-line="447">            <span class="k">continue</span>
-</span><span data-line="448">
-</span><span data-line="449">        <span class="c1"># 1. Explicit anchor from card.json</span>
-</span><span data-line="450">        <span class="k">try</span><span class="p">:</span>
-</span><span data-line="451">            <span class="n">card</span> <span class="o">=</span> <span class="n">project</span><span class="o">.</span><span class="n">read_character_card</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
-</span><span data-line="452">            <span class="n">ref</span> <span class="o">=</span> <span class="n">card</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"reference_image_path"</span><span class="p">)</span> <span class="ow">or</span> <span class="s2">""</span>
-</span><span data-line="453">            <span class="k">if</span> <span class="n">ref</span><span class="p">:</span>
-</span><span data-line="454">                <span class="n">p</span> <span class="o">=</span> <span class="p">(</span>
-</span><span data-line="455">                    <span class="n">Path</span><span class="p">(</span><span class="n">ref</span><span class="p">)</span> <span class="k">if</span> <span class="n">Path</span><span class="p">(</span><span class="n">ref</span><span class="p">)</span><span class="o">.</span><span class="n">is_absolute</span><span class="p">()</span> <span class="k">else</span> <span class="n">project</span><span class="o">.</span><span class="n">root</span> <span class="o">/</span> <span class="n">ref</span>
-</span><span data-line="456">                <span class="p">)</span><span class="o">.</span><span class="n">resolve</span><span class="p">()</span>
-</span><span data-line="457">                <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
-</span><span data-line="458">                    <span class="n">out</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">p</span>
-</span><span data-line="459">                    <span class="k">continue</span>
-</span><span data-line="460">        <span class="k">except</span> <span class="ne">FileNotFoundError</span><span class="p">:</span>
-</span><span data-line="461">            <span class="k">pass</span>
-</span><span data-line="462">
-</span><span data-line="463">        <span class="c1"># 2. First image in selected/, then refs/</span>
-</span><span data-line="464">        <span class="k">for</span> <span class="n">sub</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">"selected"</span><span class="p">,</span> <span class="s2">"refs"</span><span class="p">):</span>
-</span><span data-line="465">            <span class="n">sub_dir</span> <span class="o">=</span> <span class="n">char_dir</span> <span class="o">/</span> <span class="n">sub</span>
-</span><span data-line="466">            <span class="k">if</span> <span class="ow">not</span> <span class="n">sub_dir</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
-</span><span data-line="467">                <span class="k">continue</span>
-</span><span data-line="468">            <span class="k">for</span> <span class="n">image_path</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">sub_dir</span><span class="o">.</span><span class="n">iterdir</span><span class="p">()):</span>
-</span><span data-line="469">                <span class="k">if</span> <span class="n">image_path</span><span class="o">.</span><span class="n">is_file</span><span class="p">()</span> <span class="ow">and</span> <span class="n">image_path</span><span class="o">.</span><span class="n">suffix</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">in</span> <span class="p">{</span>
-</span><span data-line="470">                    <span class="s2">".png"</span><span class="p">,</span>
-</span><span data-line="471">                    <span class="s2">".jpg"</span><span class="p">,</span>
-</span><span data-line="472">                    <span class="s2">".jpeg"</span><span class="p">,</span>
-</span><span data-line="473">                    <span class="s2">".webp"</span><span class="p">,</span>
-</span><span data-line="474">                <span class="p">}:</span>
-</span><span data-line="475">                    <span class="n">out</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">image_path</span>
-</span><span data-line="476">                    <span class="k">break</span>
-</span><span data-line="477">            <span class="k">if</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">out</span><span class="p">:</span>
-</span><span data-line="478">                <span class="k">break</span>
-</span><span data-line="479">    <span class="k">return</span> <span class="n">out</span>
-</span><span data-line="480">
-</span><span data-line="481">
-</span><span data-line="482"><span class="k">def</span><span class="w"> </span><span class="nf">_resolve_environment_anchor</span><span class="p">(</span><span class="n">project</span><span class="p">:</span> <span class="n">Project</span><span class="p">,</span> <span class="n">shot</span><span class="p">:</span> <span class="n">ShotSpec</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Path</span><span class="p">]:</span>
-</span><span data-line="483"><span class="w">    </span><span class="sd">"""Return ``environments/&lt;name&gt;/establishing.png`` if present, else None."""</span>
-</span><span data-line="484">    <span class="k">if</span> <span class="ow">not</span> <span class="n">shot</span><span class="o">.</span><span class="n">environment</span><span class="p">:</span>
-</span><span data-line="485">        <span class="k">return</span> <span class="kc">None</span>
-</span><span data-line="486">    <span class="n">env_dir</span> <span class="o">=</span> <span class="n">project</span><span class="o">.</span><span class="n">environment_dir</span><span class="p">(</span><span class="n">shot</span><span class="o">.</span><span class="n">environment</span><span class="p">)</span>
-</span><span data-line="487">    <span class="n">candidate</span> <span class="o">=</span> <span class="n">env_dir</span> <span class="o">/</span> <span class="s2">"establishing.png"</span>
-</span><span data-line="488">    <span class="k">if</span> <span class="n">candidate</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
-</span><span data-line="489">        <span class="k">return</span> <span class="n">candidate</span>
-</span><span data-line="490">    <span class="c1"># Look for any image in the environment dir.</span>
-</span><span data-line="491">    <span class="k">if</span> <span class="n">env_dir</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
-</span><span data-line="492">        <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">env_dir</span><span class="o">.</span><span class="n">iterdir</span><span class="p">()):</span>
-</span><span data-line="493">            <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">is_file</span><span class="p">()</span> <span class="ow">and</span> <span class="n">p</span><span class="o">.</span><span class="n">suffix</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">in</span> <span class="p">{</span><span class="s2">".png"</span><span class="p">,</span> <span class="s2">".jpg"</span><span class="p">,</span> <span class="s2">".jpeg"</span><span class="p">,</span> <span class="s2">".webp"</span><span class="p">}:</span>
-</span><span data-line="494">                <span class="k">return</span> <span class="n">p</span>
-</span><span data-line="495">    <span class="k">return</span> <span class="kc">None</span>
-</span><span data-line="496">
-</span><span data-line="497">
-</span><span data-line="498"><span class="k">def</span><span class="w"> </span><span class="nf">_lyric_lines_for_shot</span><span class="p">(</span><span class="n">project</span><span class="p">:</span> <span class="n">Project</span><span class="p">,</span> <span class="n">shot</span><span class="p">:</span> <span class="n">ShotSpec</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">dict</span><span class="p">]:</span>
-</span><span data-line="499"><span class="w">    </span><span class="sd">"""Read the lacing alignment store and return lyric lines that fall in the shot."""</span>
-</span><span data-line="500">    <span class="n">align_path</span> <span class="o">=</span> <span class="n">project</span><span class="o">.</span><span class="n">root</span> <span class="o">/</span> <span class="s2">"lyrics"</span> <span class="o">/</span> <span class="s2">"alignment.annot"</span>
-</span><span data-line="501">    <span class="k">try</span><span class="p">:</span>
-</span><span data-line="502">        <span class="kn">from</span><span class="w"> </span><span class="nn">lacing.tracks.subtitle</span><span class="w"> </span><span class="kn">import</span> <span class="n">SubtitleTrack</span>
+</span><span data-line="445">        <span class="k">try</span><span class="p">:</span>
+</span><span data-line="446">            <span class="n">char_dir</span> <span class="o">=</span> <span class="n">project</span><span class="o">.</span><span class="n">character_dir</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+</span><span data-line="447">        <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>  <span class="c1"># a name no folder can hold: missing, as documented</span>
+</span><span data-line="448">            <span class="k">continue</span>
+</span><span data-line="449">        <span class="k">if</span> <span class="ow">not</span> <span class="n">char_dir</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+</span><span data-line="450">            <span class="k">continue</span>
+</span><span data-line="451">
+</span><span data-line="452">        <span class="c1"># 1. Explicit anchor from card.json</span>
+</span><span data-line="453">        <span class="k">try</span><span class="p">:</span>
+</span><span data-line="454">            <span class="n">card</span> <span class="o">=</span> <span class="n">project</span><span class="o">.</span><span class="n">read_character_card</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+</span><span data-line="455">            <span class="n">ref</span> <span class="o">=</span> <span class="n">card</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"reference_image_path"</span><span class="p">)</span> <span class="ow">or</span> <span class="s2">""</span>
+</span><span data-line="456">            <span class="k">if</span> <span class="n">ref</span><span class="p">:</span>
+</span><span data-line="457">                <span class="n">p</span> <span class="o">=</span> <span class="p">(</span>
+</span><span data-line="458">                    <span class="n">Path</span><span class="p">(</span><span class="n">ref</span><span class="p">)</span> <span class="k">if</span> <span class="n">Path</span><span class="p">(</span><span class="n">ref</span><span class="p">)</span><span class="o">.</span><span class="n">is_absolute</span><span class="p">()</span> <span class="k">else</span> <span class="n">project</span><span class="o">.</span><span class="n">root</span> <span class="o">/</span> <span class="n">ref</span>
+</span><span data-line="459">                <span class="p">)</span><span class="o">.</span><span class="n">resolve</span><span class="p">()</span>
+</span><span data-line="460">                <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+</span><span data-line="461">                    <span class="n">out</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">p</span>
+</span><span data-line="462">                    <span class="k">continue</span>
+</span><span data-line="463">        <span class="k">except</span> <span class="ne">FileNotFoundError</span><span class="p">:</span>
+</span><span data-line="464">            <span class="k">pass</span>
+</span><span data-line="465">
+</span><span data-line="466">        <span class="c1"># 2. First image in selected/, then refs/</span>
+</span><span data-line="467">        <span class="k">for</span> <span class="n">sub</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">"selected"</span><span class="p">,</span> <span class="s2">"refs"</span><span class="p">):</span>
+</span><span data-line="468">            <span class="n">sub_dir</span> <span class="o">=</span> <span class="n">char_dir</span> <span class="o">/</span> <span class="n">sub</span>
+</span><span data-line="469">            <span class="k">if</span> <span class="ow">not</span> <span class="n">sub_dir</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+</span><span data-line="470">                <span class="k">continue</span>
+</span><span data-line="471">            <span class="k">for</span> <span class="n">image_path</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">sub_dir</span><span class="o">.</span><span class="n">iterdir</span><span class="p">()):</span>
+</span><span data-line="472">                <span class="k">if</span> <span class="n">image_path</span><span class="o">.</span><span class="n">is_file</span><span class="p">()</span> <span class="ow">and</span> <span class="n">image_path</span><span class="o">.</span><span class="n">suffix</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">in</span> <span class="p">{</span>
+</span><span data-line="473">                    <span class="s2">".png"</span><span class="p">,</span>
+</span><span data-line="474">                    <span class="s2">".jpg"</span><span class="p">,</span>
+</span><span data-line="475">                    <span class="s2">".jpeg"</span><span class="p">,</span>
+</span><span data-line="476">                    <span class="s2">".webp"</span><span class="p">,</span>
+</span><span data-line="477">                <span class="p">}:</span>
+</span><span data-line="478">                    <span class="n">out</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">image_path</span>
+</span><span data-line="479">                    <span class="k">break</span>
+</span><span data-line="480">            <span class="k">if</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">out</span><span class="p">:</span>
+</span><span data-line="481">                <span class="k">break</span>
+</span><span data-line="482">    <span class="k">return</span> <span class="n">out</span>
+</span><span data-line="483">
+</span><span data-line="484">
+</span><span data-line="485"><span class="k">def</span><span class="w"> </span><span class="nf">_resolve_environment_anchor</span><span class="p">(</span><span class="n">project</span><span class="p">:</span> <span class="n">Project</span><span class="p">,</span> <span class="n">shot</span><span class="p">:</span> <span class="n">ShotSpec</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Path</span><span class="p">]:</span>
+</span><span data-line="486"><span class="w">    </span><span class="sd">"""Return ``environments/&lt;name&gt;/establishing.png`` if present, else None."""</span>
+</span><span data-line="487">    <span class="k">if</span> <span class="ow">not</span> <span class="n">shot</span><span class="o">.</span><span class="n">environment</span><span class="p">:</span>
+</span><span data-line="488">        <span class="k">return</span> <span class="kc">None</span>
+</span><span data-line="489">    <span class="k">try</span><span class="p">:</span>
+</span><span data-line="490">        <span class="n">env_dir</span> <span class="o">=</span> <span class="n">project</span><span class="o">.</span><span class="n">environment_dir</span><span class="p">(</span><span class="n">shot</span><span class="o">.</span><span class="n">environment</span><span class="p">)</span>
+</span><span data-line="491">    <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>  <span class="c1"># a name no folder can hold: no anchor</span>
+</span><span data-line="492">        <span class="k">return</span> <span class="kc">None</span>
+</span><span data-line="493">    <span class="n">candidate</span> <span class="o">=</span> <span class="n">env_dir</span> <span class="o">/</span> <span class="s2">"establishing.png"</span>
+</span><span data-line="494">    <span class="k">if</span> <span class="n">candidate</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+</span><span data-line="495">        <span class="k">return</span> <span class="n">candidate</span>
+</span><span data-line="496">    <span class="c1"># Look for any image in the environment dir.</span>
+</span><span data-line="497">    <span class="k">if</span> <span class="n">env_dir</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+</span><span data-line="498">        <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">env_dir</span><span class="o">.</span><span class="n">iterdir</span><span class="p">()):</span>
+</span><span data-line="499">            <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">is_file</span><span class="p">()</span> <span class="ow">and</span> <span class="n">p</span><span class="o">.</span><span class="n">suffix</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">in</span> <span class="p">{</span><span class="s2">".png"</span><span class="p">,</span> <span class="s2">".jpg"</span><span class="p">,</span> <span class="s2">".jpeg"</span><span class="p">,</span> <span class="s2">".webp"</span><span class="p">}:</span>
+</span><span data-line="500">                <span class="k">return</span> <span class="n">p</span>
+</span><span data-line="501">    <span class="k">return</span> <span class="kc">None</span>
+</span><span data-line="502">
 </span><span data-line="503">
-</span><span data-line="504">        <span class="kn">from</span><span class="w"> </span><span class="nn">.graph_backend</span><span class="w"> </span><span class="kn">import</span> <span class="n">SCOPE_ALIGNMENT</span><span class="p">,</span> <span class="n">open_graph_store</span><span class="p">,</span> <span class="n">selected_backend</span>
-</span><span data-line="505">        <span class="kn">from</span><span class="w"> </span><span class="nn">.migrate</span><span class="w"> </span><span class="kn">import</span> <span class="n">project_asset_id</span>
-</span><span data-line="506">    <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
-</span><span data-line="507">        <span class="k">return</span> <span class="p">[]</span>
-</span><span data-line="508">    <span class="c1"># In SQLite mode an absent file means "no alignment". In Postgres mode the</span>
-</span><span data-line="509">    <span class="c1"># file never exists; presence is a DB question, so always open and let the</span>
-</span><span data-line="510">    <span class="c1"># empty-store path return no lines.</span>
-</span><span data-line="511">    <span class="k">if</span> <span class="n">selected_backend</span><span class="p">()</span> <span class="o">==</span> <span class="s2">"sqlite"</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">align_path</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
-</span><span data-line="512">        <span class="k">return</span> <span class="p">[]</span>
-</span><span data-line="513">    <span class="n">store</span> <span class="o">=</span> <span class="n">open_graph_store</span><span class="p">(</span>
-</span><span data-line="514">        <span class="n">align_path</span><span class="p">,</span> <span class="n">asset_id</span><span class="o">=</span><span class="n">project_asset_id</span><span class="p">(</span><span class="n">project</span><span class="o">.</span><span class="n">root</span><span class="p">),</span> <span class="n">scope</span><span class="o">=</span><span class="n">SCOPE_ALIGNMENT</span>
-</span><span data-line="515">    <span class="p">)</span>
-</span><span data-line="516">    <span class="k">try</span><span class="p">:</span>
-</span><span data-line="517">        <span class="n">track</span> <span class="o">=</span> <span class="n">SubtitleTrack</span><span class="p">(</span><span class="n">store</span><span class="p">,</span> <span class="n">asset_id</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
-</span><span data-line="518">        <span class="k">return</span> <span class="p">[</span>
-</span><span data-line="519">            <span class="p">{</span>
-</span><span data-line="520">                <span class="s2">"text"</span><span class="p">:</span> <span class="n">ann</span><span class="o">.</span><span class="n">body</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"text"</span><span class="p">,</span> <span class="s2">""</span><span class="p">),</span>
-</span><span data-line="521">                <span class="s2">"start_s"</span><span class="p">:</span> <span class="n">ann</span><span class="o">.</span><span class="n">reference</span><span class="o">.</span><span class="n">interval</span><span class="o">.</span><span class="n">start</span><span class="o">.</span><span class="n">to_seconds</span><span class="p">(),</span>
-</span><span data-line="522">                <span class="s2">"end_s"</span><span class="p">:</span> <span class="n">ann</span><span class="o">.</span><span class="n">reference</span><span class="o">.</span><span class="n">interval</span><span class="o">.</span><span class="n">end</span><span class="o">.</span><span class="n">to_seconds</span><span class="p">(),</span>
-</span><span data-line="523">                <span class="s2">"line_index"</span><span class="p">:</span> <span class="n">ann</span><span class="o">.</span><span class="n">body</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"line_index"</span><span class="p">),</span>
-</span><span data-line="524">                <span class="s2">"section"</span><span class="p">:</span> <span class="n">ann</span><span class="o">.</span><span class="n">body</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"section"</span><span class="p">),</span>
-</span><span data-line="525">            <span class="p">}</span>
-</span><span data-line="526">            <span class="k">for</span> <span class="n">ann</span> <span class="ow">in</span> <span class="n">track</span><span class="o">.</span><span class="n">lines_in</span><span class="p">(</span><span class="n">shot</span><span class="o">.</span><span class="n">start_s</span><span class="p">,</span> <span class="n">shot</span><span class="o">.</span><span class="n">end_s</span><span class="p">)</span>
-</span><span data-line="527">        <span class="p">]</span>
-</span><span data-line="528">    <span class="k">finally</span><span class="p">:</span>
-</span><span data-line="529">        <span class="n">store</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
-</span><span data-line="530">
-</span><span data-line="531">
-</span><span data-line="532"><span class="k">def</span><span class="w"> </span><span class="nf">_build_storyboard_prompt</span><span class="p">(</span>
-</span><span data-line="533">    <span class="o">*</span><span class="p">,</span>
-</span><span data-line="534">    <span class="n">spec</span><span class="p">,</span>
-</span><span data-line="535">    <span class="n">shot</span><span class="p">:</span> <span class="n">ShotSpec</span><span class="p">,</span>
-</span><span data-line="536">    <span class="n">char_descriptions</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">],</span>
-</span><span data-line="537">    <span class="n">env_description</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
-</span><span data-line="538">    <span class="n">lyric_lines</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">dict</span><span class="p">],</span>
-</span><span data-line="539"><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
-</span><span data-line="540">    <span class="n">parts</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
-</span><span data-line="541">    <span class="k">if</span> <span class="n">shot</span><span class="o">.</span><span class="n">description</span><span class="p">:</span>
-</span><span data-line="542">        <span class="n">parts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">shot</span><span class="o">.</span><span class="n">description</span><span class="p">)</span>
-</span><span data-line="543">    <span class="k">if</span> <span class="n">shot</span><span class="o">.</span><span class="n">framing</span><span class="p">:</span>
-</span><span data-line="544">        <span class="n">parts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">"framing: </span><span class="si">{</span><span class="n">shot</span><span class="o">.</span><span class="n">framing</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
-</span><span data-line="545">    <span class="k">if</span> <span class="n">shot</span><span class="o">.</span><span class="n">camera</span><span class="p">:</span>
-</span><span data-line="546">        <span class="n">parts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">"camera: </span><span class="si">{</span><span class="n">shot</span><span class="o">.</span><span class="n">camera</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
-</span><span data-line="547">    <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">desc</span> <span class="ow">in</span> <span class="n">char_descriptions</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-</span><span data-line="548">        <span class="k">if</span> <span class="n">desc</span><span class="p">:</span>
-</span><span data-line="549">            <span class="n">parts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">desc</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
-</span><span data-line="550">    <span class="k">if</span> <span class="n">env_description</span><span class="p">:</span>
-</span><span data-line="551">        <span class="n">parts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">"location: </span><span class="si">{</span><span class="n">env_description</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
-</span><span data-line="552">    <span class="k">if</span> <span class="n">spec</span><span class="o">.</span><span class="n">global_style</span><span class="p">:</span>
-</span><span data-line="553">        <span class="n">parts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">"style: </span><span class="si">{</span><span class="n">spec</span><span class="o">.</span><span class="n">global_style</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
-</span><span data-line="554">    <span class="k">if</span> <span class="n">lyric_lines</span><span class="p">:</span>
-</span><span data-line="555">        <span class="n">parts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
-</span><span data-line="556">            <span class="s2">"lyrics: "</span> <span class="o">+</span> <span class="s2">" / "</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">L</span><span class="p">[</span><span class="s2">"text"</span><span class="p">]</span> <span class="k">for</span> <span class="n">L</span> <span class="ow">in</span> <span class="n">lyric_lines</span> <span class="k">if</span> <span class="n">L</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"text"</span><span class="p">))</span>
-</span><span data-line="557">        <span class="p">)</span>
-</span><span data-line="558">    <span class="k">return</span> <span class="s2">" | "</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">parts</span><span class="p">)</span>
+</span><span data-line="504"><span class="k">def</span><span class="w"> </span><span class="nf">_lyric_lines_for_shot</span><span class="p">(</span><span class="n">project</span><span class="p">:</span> <span class="n">Project</span><span class="p">,</span> <span class="n">shot</span><span class="p">:</span> <span class="n">ShotSpec</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">dict</span><span class="p">]:</span>
+</span><span data-line="505"><span class="w">    </span><span class="sd">"""Read the lacing alignment store and return lyric lines that fall in the shot."""</span>
+</span><span data-line="506">    <span class="n">align_path</span> <span class="o">=</span> <span class="n">project</span><span class="o">.</span><span class="n">root</span> <span class="o">/</span> <span class="s2">"lyrics"</span> <span class="o">/</span> <span class="s2">"alignment.annot"</span>
+</span><span data-line="507">    <span class="k">try</span><span class="p">:</span>
+</span><span data-line="508">        <span class="kn">from</span><span class="w"> </span><span class="nn">lacing.tracks.subtitle</span><span class="w"> </span><span class="kn">import</span> <span class="n">SubtitleTrack</span>
+</span><span data-line="509">
+</span><span data-line="510">        <span class="kn">from</span><span class="w"> </span><span class="nn">.graph_backend</span><span class="w"> </span><span class="kn">import</span> <span class="n">SCOPE_ALIGNMENT</span><span class="p">,</span> <span class="n">open_graph_store</span><span class="p">,</span> <span class="n">selected_backend</span>
+</span><span data-line="511">        <span class="kn">from</span><span class="w"> </span><span class="nn">.migrate</span><span class="w"> </span><span class="kn">import</span> <span class="n">project_asset_id</span>
+</span><span data-line="512">    <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+</span><span data-line="513">        <span class="k">return</span> <span class="p">[]</span>
+</span><span data-line="514">    <span class="c1"># In SQLite mode an absent file means "no alignment". In Postgres mode the</span>
+</span><span data-line="515">    <span class="c1"># file never exists; presence is a DB question, so always open and let the</span>
+</span><span data-line="516">    <span class="c1"># empty-store path return no lines.</span>
+</span><span data-line="517">    <span class="k">if</span> <span class="n">selected_backend</span><span class="p">()</span> <span class="o">==</span> <span class="s2">"sqlite"</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">align_path</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+</span><span data-line="518">        <span class="k">return</span> <span class="p">[]</span>
+</span><span data-line="519">    <span class="n">store</span> <span class="o">=</span> <span class="n">open_graph_store</span><span class="p">(</span>
+</span><span data-line="520">        <span class="n">align_path</span><span class="p">,</span> <span class="n">asset_id</span><span class="o">=</span><span class="n">project_asset_id</span><span class="p">(</span><span class="n">project</span><span class="o">.</span><span class="n">root</span><span class="p">),</span> <span class="n">scope</span><span class="o">=</span><span class="n">SCOPE_ALIGNMENT</span>
+</span><span data-line="521">    <span class="p">)</span>
+</span><span data-line="522">    <span class="k">try</span><span class="p">:</span>
+</span><span data-line="523">        <span class="n">track</span> <span class="o">=</span> <span class="n">SubtitleTrack</span><span class="p">(</span><span class="n">store</span><span class="p">,</span> <span class="n">asset_id</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+</span><span data-line="524">        <span class="k">return</span> <span class="p">[</span>
+</span><span data-line="525">            <span class="p">{</span>
+</span><span data-line="526">                <span class="s2">"text"</span><span class="p">:</span> <span class="n">ann</span><span class="o">.</span><span class="n">body</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"text"</span><span class="p">,</span> <span class="s2">""</span><span class="p">),</span>
+</span><span data-line="527">                <span class="s2">"start_s"</span><span class="p">:</span> <span class="n">ann</span><span class="o">.</span><span class="n">reference</span><span class="o">.</span><span class="n">interval</span><span class="o">.</span><span class="n">start</span><span class="o">.</span><span class="n">to_seconds</span><span class="p">(),</span>
+</span><span data-line="528">                <span class="s2">"end_s"</span><span class="p">:</span> <span class="n">ann</span><span class="o">.</span><span class="n">reference</span><span class="o">.</span><span class="n">interval</span><span class="o">.</span><span class="n">end</span><span class="o">.</span><span class="n">to_seconds</span><span class="p">(),</span>
+</span><span data-line="529">                <span class="s2">"line_index"</span><span class="p">:</span> <span class="n">ann</span><span class="o">.</span><span class="n">body</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"line_index"</span><span class="p">),</span>
+</span><span data-line="530">                <span class="s2">"section"</span><span class="p">:</span> <span class="n">ann</span><span class="o">.</span><span class="n">body</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"section"</span><span class="p">),</span>
+</span><span data-line="531">            <span class="p">}</span>
+</span><span data-line="532">            <span class="k">for</span> <span class="n">ann</span> <span class="ow">in</span> <span class="n">track</span><span class="o">.</span><span class="n">lines_in</span><span class="p">(</span><span class="n">shot</span><span class="o">.</span><span class="n">start_s</span><span class="p">,</span> <span class="n">shot</span><span class="o">.</span><span class="n">end_s</span><span class="p">)</span>
+</span><span data-line="533">        <span class="p">]</span>
+</span><span data-line="534">    <span class="k">finally</span><span class="p">:</span>
+</span><span data-line="535">        <span class="n">store</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+</span><span data-line="536">
+</span><span data-line="537">
+</span><span data-line="538"><span class="k">def</span><span class="w"> </span><span class="nf">_build_storyboard_prompt</span><span class="p">(</span>
+</span><span data-line="539">    <span class="o">*</span><span class="p">,</span>
+</span><span data-line="540">    <span class="n">spec</span><span class="p">,</span>
+</span><span data-line="541">    <span class="n">shot</span><span class="p">:</span> <span class="n">ShotSpec</span><span class="p">,</span>
+</span><span data-line="542">    <span class="n">char_descriptions</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">],</span>
+</span><span data-line="543">    <span class="n">env_description</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+</span><span data-line="544">    <span class="n">lyric_lines</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">dict</span><span class="p">],</span>
+</span><span data-line="545"><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+</span><span data-line="546">    <span class="n">parts</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+</span><span data-line="547">    <span class="k">if</span> <span class="n">shot</span><span class="o">.</span><span class="n">description</span><span class="p">:</span>
+</span><span data-line="548">        <span class="n">parts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">shot</span><span class="o">.</span><span class="n">description</span><span class="p">)</span>
+</span><span data-line="549">    <span class="k">if</span> <span class="n">shot</span><span class="o">.</span><span class="n">framing</span><span class="p">:</span>
+</span><span data-line="550">        <span class="n">parts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">"framing: </span><span class="si">{</span><span class="n">shot</span><span class="o">.</span><span class="n">framing</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+</span><span data-line="551">    <span class="k">if</span> <span class="n">shot</span><span class="o">.</span><span class="n">camera</span><span class="p">:</span>
+</span><span data-line="552">        <span class="n">parts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">"camera: </span><span class="si">{</span><span class="n">shot</span><span class="o">.</span><span class="n">camera</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+</span><span data-line="553">    <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">desc</span> <span class="ow">in</span> <span class="n">char_descriptions</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+</span><span data-line="554">        <span class="k">if</span> <span class="n">desc</span><span class="p">:</span>
+</span><span data-line="555">            <span class="n">parts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">desc</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+</span><span data-line="556">    <span class="k">if</span> <span class="n">env_description</span><span class="p">:</span>
+</span><span data-line="557">        <span class="n">parts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">"location: </span><span class="si">{</span><span class="n">env_description</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+</span><span data-line="558">    <span class="k">if</span> <span class="n">spec</span><span class="o">.</span><span class="n">global_style</span><span class="p">:</span>
+</span><span data-line="559">        <span class="n">parts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">"style: </span><span class="si">{</span><span class="n">spec</span><span class="o">.</span><span class="n">global_style</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+</span><span data-line="560">    <span class="k">if</span> <span class="n">lyric_lines</span><span class="p">:</span>
+</span><span data-line="561">        <span class="n">parts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+</span><span data-line="562">            <span class="s2">"lyrics: "</span> <span class="o">+</span> <span class="s2">" / "</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">L</span><span class="p">[</span><span class="s2">"text"</span><span class="p">]</span> <span class="k">for</span> <span class="n">L</span> <span class="ow">in</span> <span class="n">lyric_lines</span> <span class="k">if</span> <span class="n">L</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"text"</span><span class="p">))</span>
+</span><span data-line="563">        <span class="p">)</span>
+</span><span data-line="564">    <span class="k">return</span> <span class="s2">" | "</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">parts</span><span class="p">)</span>
 </span></pre></div>
         </article><button class="back-to-top" type="button">
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
@@ -757,7 +763,7 @@ data-aria-dark="Switch to auto color mode">
     </div>
   </div>
 </footer>
-      <script src="../../_static/documentation_options.js?v=5574531b"></script>
+      <script src="../../_static/documentation_options.js?v=628cd971"></script>
       <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
       <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>

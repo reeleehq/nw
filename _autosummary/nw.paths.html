@@ -131,6 +131,7 @@ data-aria-dark="Switch to auto color mode">
     </button>
     <div class="sy-scrollbar sy-rside-inner px-6 xl:top-16 xl:sticky xl:pl-0 pt-6 pb-4"><div class="localtoc"><h3>On this page</h3><ul>
 <li><a class="reference internal" href="#nw.paths.MAX_NAME_BYTES"><code class="docutils literal notranslate"><span class="pre">MAX_NAME_BYTES</span></code></a></li>
+<li><a class="reference internal" href="#nw.paths.check_path_segment"><code class="docutils literal notranslate"><span class="pre">check_path_segment()</span></code></a></li>
 <li><a class="reference internal" href="#nw.paths.is_kept"><code class="docutils literal notranslate"><span class="pre">is_kept()</span></code></a></li>
 <li><a class="reference internal" href="#nw.paths.safe_path_segment"><code class="docutils literal notranslate"><span class="pre">safe_path_segment()</span></code></a></li>
 </ul>
@@ -174,6 +175,9 @@ data-aria-dark="Switch to auto color mode">
           <section id="module-nw.paths">
 <span id="nw-paths"></span><h1>nw.paths<a class="headerlink" href="#module-nw.paths" title="Link to this heading">#</a></h1>
 <p>Turning a caller-editable id into a file name that cannot leave its directory.</p>
+<p>Two modes, one module: <a class="reference internal" href="#nw.paths.safe_path_segment" title="nw.paths.safe_path_segment"><code class="xref py py-func docutils literal notranslate"><span class="pre">safe_path_segment()</span></code></a> <strong>maps</strong> any id to a safe
+name (never refuses), and <a class="reference internal" href="#nw.paths.check_path_segment" title="nw.paths.check_path_segment"><code class="xref py py-func docutils literal notranslate"><span class="pre">check_path_segment()</span></code></a> <strong>validates</strong> a name a
+caller chose and refuses one that is not a single direct child (nw#227).</p>
 <p>An id that came out of a body a caller can edit (a storyboard panel’s
 <code class="docutils literal notranslate"><span class="pre">panel_id</span></code>, a clip’s id, a take’s key) is <em>data</em>, and joining data onto a
 directory as <code class="docutils literal notranslate"><span class="pre">dir</span> <span class="pre">/</span> <span class="pre">f&quot;{id}.png&quot;</span></code> lets <code class="docutils literal notranslate"><span class="pre">../../x</span></code> write anywhere the process
@@ -212,10 +216,13 @@ case would rename every existing mixed-case file, and the ids artful mints
 <div class="table-wrapper autosummary longtable docutils container">
 <table class="autosummary longtable docutils align-default">
 <tbody>
-<tr class="row-odd"><td><p><a class="reference internal" href="#nw.paths.is_kept" title="nw.paths.is_kept"><code class="xref py py-obj docutils literal notranslate"><span class="pre">is_kept</span></code></a>(name)</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#nw.paths.check_path_segment" title="nw.paths.check_path_segment"><code class="xref py py-obj docutils literal notranslate"><span class="pre">check_path_segment</span></code></a>(value, *[, what, pattern])</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">value</span></code>, refused unless it names a direct child of the directory it is joined to: not empty, not <code class="docutils literal notranslate"><span class="pre">.</span></code> or <code class="docutils literal notranslate"><span class="pre">..</span></code>, no <code class="docutils literal notranslate"><span class="pre">/</span></code>, <code class="docutils literal notranslate"><span class="pre">\</span></code>, NUL, or <code class="docutils literal notranslate"><span class="pre">:</span></code> (on Windows <code class="docutils literal notranslate"><span class="pre">D:x</span></code> joins to another drive) (nw#227).</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#nw.paths.is_kept" title="nw.paths.is_kept"><code class="xref py py-obj docutils literal notranslate"><span class="pre">is_kept</span></code></a>(name)</p></td>
 <td><p>Whether <a class="reference internal" href="#nw.paths.safe_path_segment" title="nw.paths.safe_path_segment"><code class="xref py py-func docutils literal notranslate"><span class="pre">safe_path_segment()</span></code></a> keeps <code class="docutils literal notranslate"><span class="pre">name</span></code> verbatim (its stem).</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#nw.paths.safe_path_segment" title="nw.paths.safe_path_segment"><code class="xref py py-obj docutils literal notranslate"><span class="pre">safe_path_segment</span></code></a>(value, *[, suffix, max_bytes])</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#nw.paths.safe_path_segment" title="nw.paths.safe_path_segment"><code class="xref py py-obj docutils literal notranslate"><span class="pre">safe_path_segment</span></code></a>(value, *[, suffix, max_bytes])</p></td>
 <td><p>A single file name for <code class="docutils literal notranslate"><span class="pre">value</span></code> (plus <code class="docutils literal notranslate"><span class="pre">suffix</span></code>) that is always a direct child of the directory it is joined to.</p></td>
 </tr>
 </tbody>
@@ -225,6 +232,30 @@ case would rename every existing mixed-case file, and the ids artful mints
 <dt class="sig sig-object py" id="nw.paths.MAX_NAME_BYTES">
 <span class="sig-prename descclassname"><span class="pre">nw.paths.</span></span><span class="sig-name descname"><span class="pre">MAX_NAME_BYTES</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">255</span></span><a class="headerlink" href="#nw.paths.MAX_NAME_BYTES" title="Link to this definition">#</a></dt>
 <dd><p>The longest file name, in bytes, the filesystems nw runs on accept.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="nw.paths.check_path_segment">
+<span class="sig-prename descclassname"><span class="pre">nw.paths.</span></span><span class="sig-name descname"><span class="pre">check_path_segment</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">what</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'path</span> <span class="pre">segment'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pattern</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/nw/paths.html#check_path_segment"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nw.paths.check_path_segment" title="Link to this definition">#</a></dt>
+<dd><p><code class="docutils literal notranslate"><span class="pre">value</span></code>, refused unless it names a direct child of the directory it is
+joined to: not empty, not <code class="docutils literal notranslate"><span class="pre">.</span></code> or <code class="docutils literal notranslate"><span class="pre">..</span></code>, no <code class="docutils literal notranslate"><span class="pre">/</span></code>, <code class="docutils literal notranslate"><span class="pre">\</span></code>, NUL, or
+<code class="docutils literal notranslate"><span class="pre">:</span></code> (on Windows <code class="docutils literal notranslate"><span class="pre">D:x</span></code> joins to another drive) (nw#227). Returns it
+unchanged.</p>
+<p><code class="docutils literal notranslate"><span class="pre">pattern</span></code> is a stricter policy a caller adds (<code class="docutils literal notranslate"><span class="pre">fullmatch</span></code>), e.g. a
+store whose names must be slugs. <code class="docutils literal notranslate"><span class="pre">what</span></code> names the value in the error.</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span data-line="1"><span class="gp">&gt;&gt;&gt; </span><span class="n">check_path_segment</span><span class="p">(</span><span class="s2">"ep_01"</span><span class="p">,</span> <span class="n">what</span><span class="o">=</span><span class="s2">"project_id"</span><span class="p">)</span>
+</span><span data-line="2"><span class="go">'ep_01'</span>
+</span><span data-line="3"><span class="gp">&gt;&gt;&gt; </span><span class="n">check_path_segment</span><span class="p">(</span><span class="s2">"../escape"</span><span class="p">,</span> <span class="n">what</span><span class="o">=</span><span class="s2">"project_id"</span><span class="p">)</span>
+</span><span data-line="4"><span class="gt">Traceback (most recent call last):</span>
+</span><span data-line="5"><span class="w">    </span><span class="o">...</span>
+</span><span data-line="6"><span class="gr">ValueError</span>: <span class="n">invalid project_id: '../escape' is not a single path segment</span>
+</span></pre></div>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a></span></p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py function">
@@ -310,7 +341,7 @@ within <code class="docutils literal notranslate"><span class="pre">max_bytes</s
     </div>
   </div>
 </footer>
-      <script src="../_static/documentation_options.js?v=5574531b"></script>
+      <script src="../_static/documentation_options.js?v=628cd971"></script>
       <script src="../_static/doctools.js?v=fd6eb6e6"></script>
       <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script src="../_static/clipboard.min.js?v=a7894cd8"></script>

@@ -134,6 +134,8 @@ data-aria-dark="Switch to auto color mode">
 <li><a class="reference internal" href="#nw.project.DEFAULT_GENRE_STATUS_MAX_BYTES"><code class="docutils literal notranslate"><span class="pre">DEFAULT_GENRE_STATUS_MAX_BYTES</span></code></a></li>
 <li><a class="reference internal" href="#nw.project.Project"><code class="docutils literal notranslate"><span class="pre">Project</span></code></a><ul>
 <li><a class="reference internal" href="#nw.project.Project.add_character"><code class="docutils literal notranslate"><span class="pre">Project.add_character()</span></code></a></li>
+<li><a class="reference internal" href="#nw.project.Project.character_dir"><code class="docutils literal notranslate"><span class="pre">Project.character_dir()</span></code></a></li>
+<li><a class="reference internal" href="#nw.project.Project.environment_dir"><code class="docutils literal notranslate"><span class="pre">Project.environment_dir()</span></code></a></li>
 <li><a class="reference internal" href="#nw.project.Project.genre_status"><code class="docutils literal notranslate"><span class="pre">Project.genre_status()</span></code></a></li>
 <li><a class="reference internal" href="#nw.project.Project.init"><code class="docutils literal notranslate"><span class="pre">Project.init()</span></code></a></li>
 <li><a class="reference internal" href="#nw.project.Project.list_character_images"><code class="docutils literal notranslate"><span class="pre">Project.list_character_images()</span></code></a></li>
@@ -148,6 +150,7 @@ data-aria-dark="Switch to auto color mode">
 <li><a class="reference internal" href="#nw.project.Project.set_global_style"><code class="docutils literal notranslate"><span class="pre">Project.set_global_style()</span></code></a></li>
 <li><a class="reference internal" href="#nw.project.Project.set_song"><code class="docutils literal notranslate"><span class="pre">Project.set_song()</span></code></a></li>
 <li><a class="reference internal" href="#nw.project.Project.set_title"><code class="docutils literal notranslate"><span class="pre">Project.set_title()</span></code></a></li>
+<li><a class="reference internal" href="#nw.project.Project.shot_dir"><code class="docutils literal notranslate"><span class="pre">Project.shot_dir()</span></code></a></li>
 <li><a class="reference internal" href="#nw.project.Project.total_spend_usd"><code class="docutils literal notranslate"><span class="pre">Project.total_spend_usd()</span></code></a></li>
 <li><a class="reference internal" href="#nw.project.Project.update_spec"><code class="docutils literal notranslate"><span class="pre">Project.update_spec()</span></code></a></li>
 <li><a class="reference internal" href="#nw.project.Project.write_spec"><code class="docutils literal notranslate"><span class="pre">Project.write_spec()</span></code></a></li>
@@ -287,6 +290,28 @@ way to lose them.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="nw.schema.html#nw.schema.CharacterRef" title="nw.schema.CharacterRef"><code class="xref py py-class docutils literal notranslate"><span class="pre">CharacterRef</span></code></a></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nw.project.Project.character_dir">
+<span class="sig-name descname"><span class="pre">character_dir</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/nw/project.html#Project.character_dir"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nw.project.Project.character_dir" title="Link to this definition">#</a></dt>
+<dd><p><code class="docutils literal notranslate"><span class="pre">characters/&lt;name&gt;</span></code>; <code class="docutils literal notranslate"><span class="pre">name</span></code> must be one path segment (nw#227).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Path</span></code></a></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="nw.project.Project.environment_dir">
+<span class="sig-name descname"><span class="pre">environment_dir</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/nw/project.html#Project.environment_dir"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nw.project.Project.environment_dir" title="Link to this definition">#</a></dt>
+<dd><p><code class="docutils literal notranslate"><span class="pre">environments/&lt;name&gt;</span></code>; <code class="docutils literal notranslate"><span class="pre">name</span></code> must be one path segment (nw#227).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Path</span></code></a></span></p>
 </dd>
 </dl>
 </dd></dl>
@@ -528,6 +553,17 @@ path with placeholder metadata).</p>
 </dd></dl>
 
 <dl class="py method">
+<dt class="sig sig-object py" id="nw.project.Project.shot_dir">
+<span class="sig-name descname"><span class="pre">shot_dir</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">shot_id</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/nw/project.html#Project.shot_dir"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nw.project.Project.shot_dir" title="Link to this definition">#</a></dt>
+<dd><p><code class="docutils literal notranslate"><span class="pre">shots/&lt;shot_id&gt;</span></code>; the id must be one path segment (nw#227).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Path</span></code></a></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
 <dt class="sig sig-object py" id="nw.project.Project.total_spend_usd">
 <span class="sig-name descname"><span class="pre">total_spend_usd</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/nw/project.html#Project.total_spend_usd"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nw.project.Project.total_spend_usd" title="Link to this definition">#</a></dt>
 <dd><p>Sum the cost recorded on every decision in the project.</p>
@@ -650,7 +686,7 @@ not a path detector; the contract is still the hook author’s to keep.</p>
     </div>
   </div>
 </footer>
-      <script src="../_static/documentation_options.js?v=5574531b"></script>
+      <script src="../_static/documentation_options.js?v=628cd971"></script>
       <script src="../_static/doctools.js?v=fd6eb6e6"></script>
       <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script src="../_static/clipboard.min.js?v=a7894cd8"></script>

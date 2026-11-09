@@ -1123,6 +1123,20 @@ way to lose them.
 * **Return type:**
   [`CharacterRef`](nw.schema.html.md#nw.schema.CharacterRef)
 
+#### character_dir(name)
+
+`characters/<name>`; `name` must be one path segment (nw#227).
+
+* **Return type:**
+  [`Path`](https://docs.python.org/3/library/pathlib.html#pathlib.Path)
+
+#### environment_dir(name)
+
+`environments/<name>`; `name` must be one path segment (nw#227).
+
+* **Return type:**
+  [`Path`](https://docs.python.org/3/library/pathlib.html#pathlib.Path)
+
 #### genre_status()
 
 Where this project stands, in the genre’s own terms. Override me.
@@ -1310,6 +1324,13 @@ Set the project title.
 
 * **Return type:**
   [`ProjectSpec`](nw.schema.html.md#nw.schema.ProjectSpec)
+
+#### shot_dir(shot_id)
+
+`shots/<shot_id>`; the id must be one path segment (nw#227).
+
+* **Return type:**
+  [`Path`](https://docs.python.org/3/library/pathlib.html#pathlib.Path)
 
 #### total_spend_usd()
 

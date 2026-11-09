@@ -162,109 +162,149 @@ data-aria-dark="Switch to auto color mode">
           <h1>Source code for nw.paths</h1><div class="highlight"><pre>
 <span></span><span data-line="1"><span class="sd">"""Turning a caller-editable id into a file name that cannot leave its directory.</span>
 </span><span data-line="2">
-</span><span data-line="3"><span class="sd">An id that came out of a body a caller can edit (a storyboard panel's</span>
-</span><span data-line="4"><span class="sd">``panel_id``, a clip's id, a take's key) is *data*, and joining data onto a</span>
-</span><span data-line="5"><span class="sd">directory as ``dir / f"{id}.png"`` lets ``../../x`` write anywhere the process</span>
-</span><span data-line="6"><span class="sd">can. :func:`safe_path_segment` is the one mapping from such an id to a single</span>
-</span><span data-line="7"><span class="sd">path segment, shared by every genre that names files after ids (nw#220; reelee</span>
-</span><span data-line="8"><span class="sd">fixed the same pattern for its Ken Burns clips in reelee#930).</span>
-</span><span data-line="9">
-</span><span data-line="10"><span class="sd">The mapping, and why each part is there:</span>
-</span><span data-line="11">
-</span><span data-line="12"><span class="sd">- **An id that is already a safe slug is kept as is**, so the file of a panel</span>
-</span><span data-line="13"><span class="sd">  that has always rendered to ``storyboard/&lt;panel_id&gt;.png`` keeps that name and</span>
-</span><span data-line="14"><span class="sd">  a re-render still overwrites it.</span>
-</span><span data-line="15"><span class="sd">- **Anything else becomes its slug, a ``.`` and a short digest of the id.** The</span>
-</span><span data-line="16"><span class="sd">  digest keeps two odd ids that slug alike (``a/b``, ``a\\b``) apart, and the</span>
-</span><span data-line="17"><span class="sd">  ``.`` is never in a kept id, so a mapped name cannot equal a kept one.</span>
-</span><span data-line="18"><span class="sd">- **The name fits a file name's byte limit**, suffix included, and never spells</span>
-</span><span data-line="19"><span class="sd">  a Windows device name (``CON``, ``NUL``, ``COM1`` …), which Windows refuses</span>
-</span><span data-line="20"><span class="sd">  whatever the extension.</span>
-</span><span data-line="21">
-</span><span data-line="22"><span class="sd">Not handled: two kept ids differing only in case (``Panel1``, ``panel1``) share</span>
-</span><span data-line="23"><span class="sd">a file on a case-insensitive filesystem, so editing an id to ``P0A1`` beside</span>
-</span><span data-line="24"><span class="sd">``p0a1`` overwrites that file — inside the directory, never outside it. Folding</span>
-</span><span data-line="25"><span class="sd">case would rename every existing mixed-case file, and the ids artful mints</span>
-</span><span data-line="26"><span class="sd">(``new_panel_id``) are lowercase.</span>
-</span><span data-line="27">
-</span><span data-line="28"><span class="sd">No dependency beyond the standard library.</span>
-</span><span data-line="29"><span class="sd">"""</span>
-</span><span data-line="30">
-</span><span data-line="31"><span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
-</span><span data-line="32">
-</span><span data-line="33"><span class="kn">import</span><span class="w"> </span><span class="nn">hashlib</span>
-</span><span data-line="34"><span class="kn">import</span><span class="w"> </span><span class="nn">re</span>
-</span><span data-line="35">
-</span><span data-line="36"><span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"MAX_NAME_BYTES"</span><span class="p">,</span> <span class="s2">"is_kept"</span><span class="p">,</span> <span class="s2">"safe_path_segment"</span><span class="p">]</span>
-</span><span data-line="37">
-</span><span data-line="38"><span class="n">MAX_NAME_BYTES</span> <span class="o">=</span> <span class="mi">255</span>
-</span><span data-line="39"><span class="sd">"""The longest file name, in bytes, the filesystems nw runs on accept."""</span>
-</span><span data-line="40">
-</span><span data-line="41"><span class="n">_DIGEST_LEN</span> <span class="o">=</span> <span class="mi">8</span>
-</span><span data-line="42"><span class="sd">"""Hex characters of the id's SHA-256 a mapped name carries. Part of every</span>
-</span><span data-line="43"><span class="sd">mapped file's identity: changing it renames those files, so it is not a knob."""</span>
+</span><span data-line="3"><span class="sd">Two modes, one module: :func:`safe_path_segment` **maps** any id to a safe</span>
+</span><span data-line="4"><span class="sd">name (never refuses), and :func:`check_path_segment` **validates** a name a</span>
+</span><span data-line="5"><span class="sd">caller chose and refuses one that is not a single direct child (nw#227).</span>
+</span><span data-line="6">
+</span><span data-line="7"><span class="sd">An id that came out of a body a caller can edit (a storyboard panel's</span>
+</span><span data-line="8"><span class="sd">``panel_id``, a clip's id, a take's key) is *data*, and joining data onto a</span>
+</span><span data-line="9"><span class="sd">directory as ``dir / f"{id}.png"`` lets ``../../x`` write anywhere the process</span>
+</span><span data-line="10"><span class="sd">can. :func:`safe_path_segment` is the one mapping from such an id to a single</span>
+</span><span data-line="11"><span class="sd">path segment, shared by every genre that names files after ids (nw#220; reelee</span>
+</span><span data-line="12"><span class="sd">fixed the same pattern for its Ken Burns clips in reelee#930).</span>
+</span><span data-line="13">
+</span><span data-line="14"><span class="sd">The mapping, and why each part is there:</span>
+</span><span data-line="15">
+</span><span data-line="16"><span class="sd">- **An id that is already a safe slug is kept as is**, so the file of a panel</span>
+</span><span data-line="17"><span class="sd">  that has always rendered to ``storyboard/&lt;panel_id&gt;.png`` keeps that name and</span>
+</span><span data-line="18"><span class="sd">  a re-render still overwrites it.</span>
+</span><span data-line="19"><span class="sd">- **Anything else becomes its slug, a ``.`` and a short digest of the id.** The</span>
+</span><span data-line="20"><span class="sd">  digest keeps two odd ids that slug alike (``a/b``, ``a\\b``) apart, and the</span>
+</span><span data-line="21"><span class="sd">  ``.`` is never in a kept id, so a mapped name cannot equal a kept one.</span>
+</span><span data-line="22"><span class="sd">- **The name fits a file name's byte limit**, suffix included, and never spells</span>
+</span><span data-line="23"><span class="sd">  a Windows device name (``CON``, ``NUL``, ``COM1`` …), which Windows refuses</span>
+</span><span data-line="24"><span class="sd">  whatever the extension.</span>
+</span><span data-line="25">
+</span><span data-line="26"><span class="sd">Not handled: two kept ids differing only in case (``Panel1``, ``panel1``) share</span>
+</span><span data-line="27"><span class="sd">a file on a case-insensitive filesystem, so editing an id to ``P0A1`` beside</span>
+</span><span data-line="28"><span class="sd">``p0a1`` overwrites that file — inside the directory, never outside it. Folding</span>
+</span><span data-line="29"><span class="sd">case would rename every existing mixed-case file, and the ids artful mints</span>
+</span><span data-line="30"><span class="sd">(``new_panel_id``) are lowercase.</span>
+</span><span data-line="31">
+</span><span data-line="32"><span class="sd">No dependency beyond the standard library.</span>
+</span><span data-line="33"><span class="sd">"""</span>
+</span><span data-line="34">
+</span><span data-line="35"><span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
+</span><span data-line="36">
+</span><span data-line="37"><span class="kn">import</span><span class="w"> </span><span class="nn">hashlib</span>
+</span><span data-line="38"><span class="kn">import</span><span class="w"> </span><span class="nn">re</span>
+</span><span data-line="39">
+</span><span data-line="40"><span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"MAX_NAME_BYTES"</span><span class="p">,</span> <span class="s2">"check_path_segment"</span><span class="p">,</span> <span class="s2">"is_kept"</span><span class="p">,</span> <span class="s2">"safe_path_segment"</span><span class="p">]</span>
+</span><span data-line="41">
+</span><span data-line="42"><span class="n">MAX_NAME_BYTES</span> <span class="o">=</span> <span class="mi">255</span>
+</span><span data-line="43"><span class="sd">"""The longest file name, in bytes, the filesystems nw runs on accept."""</span>
 </span><span data-line="44">
-</span><span data-line="45"><span class="n">_KEPT</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s2">"[A-Za-z0-9][A-Za-z0-9_-]*"</span><span class="p">)</span>
-</span><span data-line="46"><span class="sd">"""An id kept verbatim: ASCII letters, digits, ``_`` and ``-``, not led by a</span>
-</span><span data-line="47"><span class="sd">punctuation mark. No ``.``, which is what keeps mapped names disjoint."""</span>
+</span><span data-line="45"><span class="n">_DIGEST_LEN</span> <span class="o">=</span> <span class="mi">8</span>
+</span><span data-line="46"><span class="sd">"""Hex characters of the id's SHA-256 a mapped name carries. Part of every</span>
+</span><span data-line="47"><span class="sd">mapped file's identity: changing it renames those files, so it is not a knob."""</span>
 </span><span data-line="48">
-</span><span data-line="49"><span class="n">_UNSAFE_RUN</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s2">"[^A-Za-z0-9_-]+"</span><span class="p">)</span>
-</span><span data-line="50"><span class="n">_WINDOWS_DEVICE</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s2">"(CON|PRN|AUX|NUL|COM[0-9]|LPT[0-9])"</span><span class="p">,</span> <span class="n">re</span><span class="o">.</span><span class="n">IGNORECASE</span><span class="p">)</span>
-</span><span data-line="51">
+</span><span data-line="49"><span class="n">_KEPT</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s2">"[A-Za-z0-9][A-Za-z0-9_-]*"</span><span class="p">)</span>
+</span><span data-line="50"><span class="sd">"""An id kept verbatim: ASCII letters, digits, ``_`` and ``-``, not led by a</span>
+</span><span data-line="51"><span class="sd">punctuation mark. No ``.``, which is what keeps mapped names disjoint."""</span>
 </span><span data-line="52">
+</span><span data-line="53"><span class="n">_NOT_IN_A_SEGMENT</span> <span class="o">=</span> <span class="p">(</span><span class="s2">"/"</span><span class="p">,</span> <span class="s2">"</span><span class="se">\\</span><span class="s2">"</span><span class="p">,</span> <span class="s2">"</span><span class="se">\x00</span><span class="s2">"</span><span class="p">,</span> <span class="s2">":"</span><span class="p">)</span>
+</span><span data-line="54"><span class="sd">"""Characters a validated segment may not hold: separators, NUL, and ``:``</span>
+</span><span data-line="55"><span class="sd">(a Windows drive or stream prefix)."""</span>
+</span><span data-line="56">
+</span><span data-line="57"><span class="n">_UNSAFE_RUN</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s2">"[^A-Za-z0-9_-]+"</span><span class="p">)</span>
+</span><span data-line="58"><span class="n">_WINDOWS_DEVICE</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s2">"(CON|PRN|AUX|NUL|COM[0-9]|LPT[0-9])"</span><span class="p">,</span> <span class="n">re</span><span class="o">.</span><span class="n">IGNORECASE</span><span class="p">)</span>
+</span><span data-line="59">
+</span><span data-line="60">
 <div class="viewcode-block" id="is_kept">
 <a class="viewcode-back" href="../../_autosummary/nw.paths.html#nw.is_kept">[docs]</a>
-</span><span data-line="53"><span class="k">def</span><span class="w"> </span><span class="nf">is_kept</span><span class="p">(</span><span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
-</span><span data-line="54"><span class="w">    </span><span class="sd">"""Whether :func:`safe_path_segment` keeps ``name`` verbatim (its stem).</span>
-</span><span data-line="55">
-</span><span data-line="56"><span class="sd">    &gt;&gt;&gt; is_kept("p0a1"), is_kept("x.9cdf6a50"), is_kept("nul")</span>
-</span><span data-line="57"><span class="sd">    (True, False, False)</span>
-</span><span data-line="58"><span class="sd">    """</span>
-</span><span data-line="59">    <span class="k">return</span> <span class="nb">bool</span><span class="p">(</span><span class="n">_KEPT</span><span class="o">.</span><span class="n">fullmatch</span><span class="p">(</span><span class="n">name</span><span class="p">))</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">_WINDOWS_DEVICE</span><span class="o">.</span><span class="n">fullmatch</span><span class="p">(</span><span class="n">name</span><span class="p">)</span></div>
+</span><span data-line="61"><span class="k">def</span><span class="w"> </span><span class="nf">is_kept</span><span class="p">(</span><span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+</span><span data-line="62"><span class="w">    </span><span class="sd">"""Whether :func:`safe_path_segment` keeps ``name`` verbatim (its stem).</span>
+</span><span data-line="63">
+</span><span data-line="64"><span class="sd">    &gt;&gt;&gt; is_kept("p0a1"), is_kept("x.9cdf6a50"), is_kept("nul")</span>
+</span><span data-line="65"><span class="sd">    (True, False, False)</span>
+</span><span data-line="66"><span class="sd">    """</span>
+</span><span data-line="67">    <span class="k">return</span> <span class="nb">bool</span><span class="p">(</span><span class="n">_KEPT</span><span class="o">.</span><span class="n">fullmatch</span><span class="p">(</span><span class="n">name</span><span class="p">))</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">_WINDOWS_DEVICE</span><span class="o">.</span><span class="n">fullmatch</span><span class="p">(</span><span class="n">name</span><span class="p">)</span></div>
 
-</span><span data-line="60">
-</span><span data-line="61">
+</span><span data-line="68">
+</span><span data-line="69">
 <div class="viewcode-block" id="safe_path_segment">
 <a class="viewcode-back" href="../../_autosummary/nw.paths.html#nw.safe_path_segment">[docs]</a>
-</span><span data-line="62"><span class="k">def</span><span class="w"> </span><span class="nf">safe_path_segment</span><span class="p">(</span>
-</span><span data-line="63">    <span class="n">value</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
-</span><span data-line="64">    <span class="o">*</span><span class="p">,</span>
-</span><span data-line="65">    <span class="n">suffix</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">""</span><span class="p">,</span>
-</span><span data-line="66">    <span class="n">max_bytes</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">MAX_NAME_BYTES</span><span class="p">,</span>
-</span><span data-line="67"><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
-</span><span data-line="68"><span class="w">    </span><span class="sd">"""A single file name for ``value`` (plus ``suffix``) that is always a direct</span>
-</span><span data-line="69"><span class="sd">    child of the directory it is joined to.</span>
-</span><span data-line="70">
-</span><span data-line="71"><span class="sd">    &gt;&gt;&gt; safe_path_segment("p0a1", suffix=".png")</span>
-</span><span data-line="72"><span class="sd">    'p0a1.png'</span>
-</span><span data-line="73"><span class="sd">    &gt;&gt;&gt; safe_path_segment("../../x", suffix=".png")</span>
-</span><span data-line="74"><span class="sd">    'x.9cdf6a50.png'</span>
-</span><span data-line="75"><span class="sd">    &gt;&gt;&gt; safe_path_segment("..")</span>
-</span><span data-line="76"><span class="sd">    '_.5ec1f7e7'</span>
-</span><span data-line="77"><span class="sd">    &gt;&gt;&gt; safe_path_segment("con", suffix=".png")</span>
-</span><span data-line="78"><span class="sd">    '_con.1143da2b.png'</span>
-</span><span data-line="79">
-</span><span data-line="80"><span class="sd">    Deterministic, so the same id always lands on the same file. ``suffix`` is</span>
-</span><span data-line="81"><span class="sd">    appended verbatim and is the caller's (a literal like ``".png"``, never</span>
-</span><span data-line="82"><span class="sd">    data). Raises ``ValueError`` when ``suffix`` leaves no room for a name</span>
-</span><span data-line="83"><span class="sd">    within ``max_bytes``.</span>
-</span><span data-line="84"><span class="sd">    """</span>
-</span><span data-line="85">    <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
-</span><span data-line="86">        <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"safe_path_segment: value must be a str, got </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">value</span><span class="p">)</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
-</span><span data-line="87">    <span class="n">room</span> <span class="o">=</span> <span class="n">max_bytes</span> <span class="o">-</span> <span class="nb">len</span><span class="p">(</span><span class="n">suffix</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s2">"utf-8"</span><span class="p">))</span>
-</span><span data-line="88">    <span class="k">if</span> <span class="n">is_kept</span><span class="p">(</span><span class="n">value</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">value</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="n">room</span><span class="p">:</span>
-</span><span data-line="89">        <span class="k">return</span> <span class="n">value</span> <span class="o">+</span> <span class="n">suffix</span>
-</span><span data-line="90">    <span class="n">digest</span> <span class="o">=</span> <span class="n">hashlib</span><span class="o">.</span><span class="n">sha256</span><span class="p">(</span><span class="n">value</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s2">"utf-8"</span><span class="p">))</span><span class="o">.</span><span class="n">hexdigest</span><span class="p">()[:</span><span class="n">_DIGEST_LEN</span><span class="p">]</span>
-</span><span data-line="91">    <span class="n">slug_room</span> <span class="o">=</span> <span class="n">room</span> <span class="o">-</span> <span class="nb">len</span><span class="p">(</span><span class="s2">"."</span><span class="p">)</span> <span class="o">-</span> <span class="nb">len</span><span class="p">(</span><span class="n">digest</span><span class="p">)</span>
-</span><span data-line="92">    <span class="k">if</span> <span class="n">slug_room</span> <span class="o">&lt;</span> <span class="mi">1</span><span class="p">:</span>
-</span><span data-line="93">        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-</span><span data-line="94">            <span class="sa">f</span><span class="s2">"safe_path_segment: suffix </span><span class="si">{</span><span class="n">suffix</span><span class="si">!r}</span><span class="s2"> leaves no room for a name "</span>
-</span><span data-line="95">            <span class="sa">f</span><span class="s2">"within </span><span class="si">{</span><span class="n">max_bytes</span><span class="si">}</span><span class="s2"> bytes"</span>
-</span><span data-line="96">        <span class="p">)</span>
-</span><span data-line="97">    <span class="n">slug</span> <span class="o">=</span> <span class="n">_UNSAFE_RUN</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="s2">"-"</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">(</span><span class="s2">"-_"</span><span class="p">)[:</span><span class="n">slug_room</span><span class="p">]</span>
-</span><span data-line="98">    <span class="k">if</span> <span class="ow">not</span> <span class="n">slug</span> <span class="ow">or</span> <span class="n">_WINDOWS_DEVICE</span><span class="o">.</span><span class="n">fullmatch</span><span class="p">(</span><span class="n">slug</span><span class="p">):</span>
-</span><span data-line="99">        <span class="n">slug</span> <span class="o">=</span> <span class="p">(</span><span class="s2">"_"</span> <span class="o">+</span> <span class="n">slug</span><span class="p">)[:</span><span class="n">slug_room</span><span class="p">]</span>
-</span><span data-line="100">    <span class="k">return</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">slug</span><span class="si">}</span><span class="s2">.</span><span class="si">{</span><span class="n">digest</span><span class="si">}{</span><span class="n">suffix</span><span class="si">}</span><span class="s2">"</span></div>
+</span><span data-line="70"><span class="k">def</span><span class="w"> </span><span class="nf">safe_path_segment</span><span class="p">(</span>
+</span><span data-line="71">    <span class="n">value</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+</span><span data-line="72">    <span class="o">*</span><span class="p">,</span>
+</span><span data-line="73">    <span class="n">suffix</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">""</span><span class="p">,</span>
+</span><span data-line="74">    <span class="n">max_bytes</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">MAX_NAME_BYTES</span><span class="p">,</span>
+</span><span data-line="75"><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+</span><span data-line="76"><span class="w">    </span><span class="sd">"""A single file name for ``value`` (plus ``suffix``) that is always a direct</span>
+</span><span data-line="77"><span class="sd">    child of the directory it is joined to.</span>
+</span><span data-line="78">
+</span><span data-line="79"><span class="sd">    &gt;&gt;&gt; safe_path_segment("p0a1", suffix=".png")</span>
+</span><span data-line="80"><span class="sd">    'p0a1.png'</span>
+</span><span data-line="81"><span class="sd">    &gt;&gt;&gt; safe_path_segment("../../x", suffix=".png")</span>
+</span><span data-line="82"><span class="sd">    'x.9cdf6a50.png'</span>
+</span><span data-line="83"><span class="sd">    &gt;&gt;&gt; safe_path_segment("..")</span>
+</span><span data-line="84"><span class="sd">    '_.5ec1f7e7'</span>
+</span><span data-line="85"><span class="sd">    &gt;&gt;&gt; safe_path_segment("con", suffix=".png")</span>
+</span><span data-line="86"><span class="sd">    '_con.1143da2b.png'</span>
+</span><span data-line="87">
+</span><span data-line="88"><span class="sd">    Deterministic, so the same id always lands on the same file. ``suffix`` is</span>
+</span><span data-line="89"><span class="sd">    appended verbatim and is the caller's (a literal like ``".png"``, never</span>
+</span><span data-line="90"><span class="sd">    data). Raises ``ValueError`` when ``suffix`` leaves no room for a name</span>
+</span><span data-line="91"><span class="sd">    within ``max_bytes``.</span>
+</span><span data-line="92"><span class="sd">    """</span>
+</span><span data-line="93">    <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+</span><span data-line="94">        <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"safe_path_segment: value must be a str, got </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">value</span><span class="p">)</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+</span><span data-line="95">    <span class="n">room</span> <span class="o">=</span> <span class="n">max_bytes</span> <span class="o">-</span> <span class="nb">len</span><span class="p">(</span><span class="n">suffix</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s2">"utf-8"</span><span class="p">))</span>
+</span><span data-line="96">    <span class="k">if</span> <span class="n">is_kept</span><span class="p">(</span><span class="n">value</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">value</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="n">room</span><span class="p">:</span>
+</span><span data-line="97">        <span class="k">return</span> <span class="n">value</span> <span class="o">+</span> <span class="n">suffix</span>
+</span><span data-line="98">    <span class="n">digest</span> <span class="o">=</span> <span class="n">hashlib</span><span class="o">.</span><span class="n">sha256</span><span class="p">(</span><span class="n">value</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s2">"utf-8"</span><span class="p">))</span><span class="o">.</span><span class="n">hexdigest</span><span class="p">()[:</span><span class="n">_DIGEST_LEN</span><span class="p">]</span>
+</span><span data-line="99">    <span class="n">slug_room</span> <span class="o">=</span> <span class="n">room</span> <span class="o">-</span> <span class="nb">len</span><span class="p">(</span><span class="s2">"."</span><span class="p">)</span> <span class="o">-</span> <span class="nb">len</span><span class="p">(</span><span class="n">digest</span><span class="p">)</span>
+</span><span data-line="100">    <span class="k">if</span> <span class="n">slug_room</span> <span class="o">&lt;</span> <span class="mi">1</span><span class="p">:</span>
+</span><span data-line="101">        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+</span><span data-line="102">            <span class="sa">f</span><span class="s2">"safe_path_segment: suffix </span><span class="si">{</span><span class="n">suffix</span><span class="si">!r}</span><span class="s2"> leaves no room for a name "</span>
+</span><span data-line="103">            <span class="sa">f</span><span class="s2">"within </span><span class="si">{</span><span class="n">max_bytes</span><span class="si">}</span><span class="s2"> bytes"</span>
+</span><span data-line="104">        <span class="p">)</span>
+</span><span data-line="105">    <span class="n">slug</span> <span class="o">=</span> <span class="n">_UNSAFE_RUN</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="s2">"-"</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">(</span><span class="s2">"-_"</span><span class="p">)[:</span><span class="n">slug_room</span><span class="p">]</span>
+</span><span data-line="106">    <span class="k">if</span> <span class="ow">not</span> <span class="n">slug</span> <span class="ow">or</span> <span class="n">_WINDOWS_DEVICE</span><span class="o">.</span><span class="n">fullmatch</span><span class="p">(</span><span class="n">slug</span><span class="p">):</span>
+</span><span data-line="107">        <span class="n">slug</span> <span class="o">=</span> <span class="p">(</span><span class="s2">"_"</span> <span class="o">+</span> <span class="n">slug</span><span class="p">)[:</span><span class="n">slug_room</span><span class="p">]</span>
+</span><span data-line="108">    <span class="k">return</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">slug</span><span class="si">}</span><span class="s2">.</span><span class="si">{</span><span class="n">digest</span><span class="si">}{</span><span class="n">suffix</span><span class="si">}</span><span class="s2">"</span></div>
+
+</span><span data-line="109">
+</span><span data-line="110">
+<div class="viewcode-block" id="check_path_segment">
+<a class="viewcode-back" href="../../_autosummary/nw.paths.html#nw.check_path_segment">[docs]</a>
+</span><span data-line="111"><span class="k">def</span><span class="w"> </span><span class="nf">check_path_segment</span><span class="p">(</span>
+</span><span data-line="112">    <span class="n">value</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">what</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"path segment"</span><span class="p">,</span> <span class="n">pattern</span><span class="p">:</span> <span class="s2">"re.Pattern | None"</span> <span class="o">=</span> <span class="kc">None</span>
+</span><span data-line="113"><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+</span><span data-line="114"><span class="w">    </span><span class="sd">"""``value``, refused unless it names a direct child of the directory it is</span>
+</span><span data-line="115"><span class="sd">    joined to: not empty, not ``.`` or ``..``, no ``/``, ``\\``, NUL, or</span>
+</span><span data-line="116"><span class="sd">    ``:`` (on Windows ``D:x`` joins to another drive) (nw#227). Returns it</span>
+</span><span data-line="117"><span class="sd">    unchanged.</span>
+</span><span data-line="118">
+</span><span data-line="119"><span class="sd">    ``pattern`` is a stricter policy a caller adds (``fullmatch``), e.g. a</span>
+</span><span data-line="120"><span class="sd">    store whose names must be slugs. ``what`` names the value in the error.</span>
+</span><span data-line="121">
+</span><span data-line="122"><span class="sd">    &gt;&gt;&gt; check_path_segment("ep_01", what="project_id")</span>
+</span><span data-line="123"><span class="sd">    'ep_01'</span>
+</span><span data-line="124"><span class="sd">    &gt;&gt;&gt; check_path_segment("../escape", what="project_id")</span>
+</span><span data-line="125"><span class="sd">    Traceback (most recent call last):</span>
+</span><span data-line="126"><span class="sd">        ...</span>
+</span><span data-line="127"><span class="sd">    ValueError: invalid project_id: '../escape' is not a single path segment</span>
+</span><span data-line="128"><span class="sd">    """</span>
+</span><span data-line="129">    <span class="k">if</span> <span class="p">(</span>
+</span><span data-line="130">        <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span>
+</span><span data-line="131">        <span class="ow">or</span> <span class="n">value</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">""</span><span class="p">,</span> <span class="s2">"."</span><span class="p">,</span> <span class="s2">".."</span><span class="p">)</span>
+</span><span data-line="132">        <span class="ow">or</span> <span class="nb">any</span><span class="p">(</span><span class="n">c</span> <span class="ow">in</span> <span class="n">value</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">_NOT_IN_A_SEGMENT</span><span class="p">)</span>
+</span><span data-line="133">    <span class="p">):</span>
+</span><span data-line="134">        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"invalid </span><span class="si">{</span><span class="n">what</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">value</span><span class="si">!r}</span><span class="s2"> is not a single path segment"</span><span class="p">)</span>
+</span><span data-line="135">    <span class="k">if</span> <span class="n">pattern</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">pattern</span><span class="o">.</span><span class="n">fullmatch</span><span class="p">(</span><span class="n">value</span><span class="p">):</span>
+</span><span data-line="136">        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"invalid </span><span class="si">{</span><span class="n">what</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">value</span><span class="si">!r}</span><span class="s2"> does not match </span><span class="si">{</span><span class="n">pattern</span><span class="o">.</span><span class="n">pattern</span><span class="si">!r}</span><span class="s2">"</span><span class="p">)</span>
+</span><span data-line="137">    <span class="k">return</span> <span class="n">value</span></div>
 
 </span></pre></div>
         </article><button class="back-to-top" type="button">
@@ -293,7 +333,7 @@ data-aria-dark="Switch to auto color mode">
     </div>
   </div>
 </footer>
-      <script src="../../_static/documentation_options.js?v=5574531b"></script>
+      <script src="../../_static/documentation_options.js?v=628cd971"></script>
       <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
       <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>

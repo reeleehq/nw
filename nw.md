@@ -1,4 +1,4 @@
-> built 2026-11-09 00:02 UTC from 34c0350 (main) · nw 0.0.135. Details: build_info.json
+> built 2026-11-09 00:06 UTC from ec8845f (main) · nw 0.0.136. Details: build_info.json
 
 # index.html.md
 
@@ -4808,6 +4808,20 @@ way to lose them.
 * **Return type:**
   [`CharacterRef`](_autosummary/nw.schema.html.md#nw.schema.CharacterRef)
 
+#### character_dir(name)
+
+`characters/<name>`; `name` must be one path segment (nw#227).
+
+* **Return type:**
+  [`Path`](https://docs.python.org/3/library/pathlib.html#pathlib.Path)
+
+#### environment_dir(name)
+
+`environments/<name>`; `name` must be one path segment (nw#227).
+
+* **Return type:**
+  [`Path`](https://docs.python.org/3/library/pathlib.html#pathlib.Path)
+
 #### genre_status()
 
 Where this project stands, in the genre’s own terms. Override me.
@@ -4995,6 +5009,13 @@ Set the project title.
 
 * **Return type:**
   [`ProjectSpec`](_autosummary/nw.schema.html.md#nw.schema.ProjectSpec)
+
+#### shot_dir(shot_id)
+
+`shots/<shot_id>`; the id must be one path segment (nw#227).
+
+* **Return type:**
+  [`Path`](https://docs.python.org/3/library/pathlib.html#pathlib.Path)
 
 #### total_spend_usd()
 
@@ -9515,6 +9536,10 @@ is [`nw.storage.tenant_id_of()`](_autosummary/nw.storage.html.md#nw.storage.tena
 
 Turning a caller-editable id into a file name that cannot leave its directory.
 
+Two modes, one module: [`safe_path_segment()`](_autosummary/nw.paths.html.md#nw.paths.safe_path_segment) **maps** any id to a safe
+name (never refuses), and [`check_path_segment()`](_autosummary/nw.paths.html.md#nw.paths.check_path_segment) **validates** a name a
+caller chose and refuses one that is not a single direct child (nw#227).
+
 An id that came out of a body a caller can edit (a storyboard panel’s
 `panel_id`, a clip’s id, a take’s key) is *data*, and joining data onto a
 directory as `dir / f"{id}.png"` lets `../../x` write anywhere the process
@@ -9549,13 +9574,36 @@ No dependency beyond the standard library.
 
 ### Functions
 
-| [`is_kept`](_autosummary/nw.paths.html.md#nw.paths.is_kept)(name)                                     | Whether [`safe_path_segment()`](_autosummary/nw.paths.html.md#nw.paths.safe_path_segment) keeps `name` verbatim (its stem).   |
-|----------------------------------------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------|
-| [`safe_path_segment`](_autosummary/nw.paths.html.md#nw.paths.safe_path_segment)(value, \*[, suffix, max_bytes]) | A single file name for `value` (plus `suffix`) that is always a direct child of the directory it is joined to.   |
+| [`check_path_segment`](_autosummary/nw.paths.html.md#nw.paths.check_path_segment)(value, \*[, what, pattern])    | `value`, refused unless it names a direct child of the directory it is joined to: not empty, not `.` or `..`, no `/`, `\`, NUL, or `:` (on Windows `D:x` joins to another drive) (nw#227).   |
+|----------------------------------------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| [`is_kept`](_autosummary/nw.paths.html.md#nw.paths.is_kept)(name)                                     | Whether [`safe_path_segment()`](_autosummary/nw.paths.html.md#nw.paths.safe_path_segment) keeps `name` verbatim (its stem).                                                                               |
+| [`safe_path_segment`](_autosummary/nw.paths.html.md#nw.paths.safe_path_segment)(value, \*[, suffix, max_bytes]) | A single file name for `value` (plus `suffix`) that is always a direct child of the directory it is joined to.                                                                               |
 
 ### nw.paths.MAX_NAME_BYTES *= 255*
 
 The longest file name, in bytes, the filesystems nw runs on accept.
+
+### nw.paths.check_path_segment(value, , what='path segment', pattern=None)
+
+`value`, refused unless it names a direct child of the directory it is
+joined to: not empty, not `.` or `..`, no `/`, `\`, NUL, or
+`:` (on Windows `D:x` joins to another drive) (nw#227). Returns it
+unchanged.
+
+`pattern` is a stricter policy a caller adds (`fullmatch`), e.g. a
+store whose names must be slugs. `what` names the value in the error.
+
+```pycon
+>>> check_path_segment("ep_01", what="project_id")
+'ep_01'
+>>> check_path_segment("../escape", what="project_id")
+Traceback (most recent call last):
+    ...
+ValueError: invalid project_id: '../escape' is not a single path segment
+```
+
+* **Return type:**
+  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
 
 ### nw.paths.is_kept(name)
 
@@ -9980,6 +10028,20 @@ way to lose them.
 * **Return type:**
   [`CharacterRef`](_autosummary/nw.schema.html.md#nw.schema.CharacterRef)
 
+#### character_dir(name)
+
+`characters/<name>`; `name` must be one path segment (nw#227).
+
+* **Return type:**
+  [`Path`](https://docs.python.org/3/library/pathlib.html#pathlib.Path)
+
+#### environment_dir(name)
+
+`environments/<name>`; `name` must be one path segment (nw#227).
+
+* **Return type:**
+  [`Path`](https://docs.python.org/3/library/pathlib.html#pathlib.Path)
+
 #### genre_status()
 
 Where this project stands, in the genre’s own terms. Override me.
@@ -10167,6 +10229,13 @@ Set the project title.
 
 * **Return type:**
   [`ProjectSpec`](_autosummary/nw.schema.html.md#nw.schema.ProjectSpec)
+
+#### shot_dir(shot_id)
+
+`shots/<shot_id>`; the id must be one path segment (nw#227).
+
+* **Return type:**
+  [`Path`](https://docs.python.org/3/library/pathlib.html#pathlib.Path)
 
 #### total_spend_usd()
 
@@ -12251,7 +12320,7 @@ produce different URLs. The local file paths are byte-stable.
 
 # About this build
 
-This documentation was built on **2026-11-09 00:02 UTC** from commit <a href="https://github.com/reeleehq/nw/commit/34c03506d305b570f0e81ebae15b0b2487e97438"><code>34c0350</code></a> on branch <code>main</code>, for **nw 0.0.135** (from <code>pyproject.toml</code>).
+This documentation was built on **2026-11-09 00:06 UTC** from commit <a href="https://github.com/reeleehq/nw/commit/ec8845f422dfec4302638437ce9da005ad33a78c"><code>ec8845f</code></a> on branch <code>main</code>, for **nw 0.0.136** (from <code>pyproject.toml</code>).
 
 #### NOTE
 Nothing suggests a mismatch: the tree was clean at the commit above, and the documented version is the one on PyPI.
@@ -12260,9 +12329,9 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 
 |                     |                                                                                                                                                    |
 |---------------------|----------------------------------------------------------------------------------------------------------------------------------------------------|
-| Commit              | <a href="https://github.com/reeleehq/nw/commit/34c03506d305b570f0e81ebae15b0b2487e97438"><code>34c03506d305b570f0e81ebae15b0b2487e97438</code></a> |
+| Commit              | <a href="https://github.com/reeleehq/nw/commit/ec8845f422dfec4302638437ce9da005ad33a78c"><code>ec8845f422dfec4302638437ce9da005ad33a78c</code></a> |
 | Branch              | <code>main</code>                                                                                                                                  |
-| Tags at this commit | <code>0.0.135</code>                                                                                                                               |
+| Tags at this commit | none                                                                                                                                               |
 | Working tree        | clean                                                                                                                                              |
 | Remote              | <code>https://github.com/reeleehq/nw</code>                                                                                                        |
 
@@ -12271,9 +12340,9 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 |              |                                                                                            |
 |--------------|--------------------------------------------------------------------------------------------|
 | Repository   | <code>reeleehq/nw</code>                                                                   |
-| Run          | <a href="https://github.com/reeleehq/nw/actions/runs/42535131135">42535131135</a>          |
+| Run          | <a href="https://github.com/reeleehq/nw/actions/runs/42535801281">42535801281</a>          |
 | Ref          | <code>refs/heads/main</code>                                                               |
-| Event commit | <code>32dec1a198b6d52d87fb8d92fdfb4a1fe5c57574</code> (in the history of the built commit) |
+| Event commit | <code>fbab8947f5fabb3973128b9550ee20997f6229bf</code> (in the history of the built commit) |
 
 ## Tools
 
@@ -12298,13 +12367,13 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 
 ## Package on PyPI
 
-Latest release: <a href="https://pypi.org/project/nw/0.0.135/">0.0.135</a>, the same as the documented version.
+Latest release: <a href="https://pypi.org/project/nw/0.0.136/">0.0.136</a>, the same as the documented version.
 
 ## Reproduce
 
 ```bash
 git clone https://github.com/reeleehq/nw && cd nw
-git checkout 34c03506d305b570f0e81ebae15b0b2487e97438
+git checkout ec8845f422dfec4302638437ce9da005ad33a78c
 pip install "epythet==0.2.22"
 epythet quickstart . --ignore tests/ scrap/ examples/
 ```

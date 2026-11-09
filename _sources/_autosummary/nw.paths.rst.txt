@@ -14,6 +14,7 @@ nw.paths
 
    .. autosummary::
    
+      check_path_segment
       is_kept
       safe_path_segment
    

@@ -2,6 +2,10 @@
 
 Turning a caller-editable id into a file name that cannot leave its directory.
 
+Two modes, one module: [`safe_path_segment()`](#nw.paths.safe_path_segment) **maps** any id to a safe
+name (never refuses), and [`check_path_segment()`](#nw.paths.check_path_segment) **validates** a name a
+caller chose and refuses one that is not a single direct child (nw#227).
+
 An id that came out of a body a caller can edit (a storyboard panel’s
 `panel_id`, a clip’s id, a take’s key) is *data*, and joining data onto a
 directory as `dir / f"{id}.png"` lets `../../x` write anywhere the process
@@ -36,13 +40,36 @@ No dependency beyond the standard library.
 
 ### Functions
 
-| [`is_kept`](#nw.paths.is_kept)(name)                                     | Whether [`safe_path_segment()`](#nw.paths.safe_path_segment) keeps `name` verbatim (its stem).   |
-|----------------------------------------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------|
-| [`safe_path_segment`](#nw.paths.safe_path_segment)(value, \*[, suffix, max_bytes]) | A single file name for `value` (plus `suffix`) that is always a direct child of the directory it is joined to.   |
+| [`check_path_segment`](#nw.paths.check_path_segment)(value, \*[, what, pattern])    | `value`, refused unless it names a direct child of the directory it is joined to: not empty, not `.` or `..`, no `/`, `\`, NUL, or `:` (on Windows `D:x` joins to another drive) (nw#227).   |
+|----------------------------------------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| [`is_kept`](#nw.paths.is_kept)(name)                                     | Whether [`safe_path_segment()`](#nw.paths.safe_path_segment) keeps `name` verbatim (its stem).                                                                               |
+| [`safe_path_segment`](#nw.paths.safe_path_segment)(value, \*[, suffix, max_bytes]) | A single file name for `value` (plus `suffix`) that is always a direct child of the directory it is joined to.                                                                               |
 
 ### nw.paths.MAX_NAME_BYTES *= 255*
 
 The longest file name, in bytes, the filesystems nw runs on accept.
+
+### nw.paths.check_path_segment(value, , what='path segment', pattern=None)
+
+`value`, refused unless it names a direct child of the directory it is
+joined to: not empty, not `.` or `..`, no `/`, `\`, NUL, or
+`:` (on Windows `D:x` joins to another drive) (nw#227). Returns it
+unchanged.
+
+`pattern` is a stricter policy a caller adds (`fullmatch`), e.g. a
+store whose names must be slugs. `what` names the value in the error.
+
+```pycon
+>>> check_path_segment("ep_01", what="project_id")
+'ep_01'
+>>> check_path_segment("../escape", what="project_id")
+Traceback (most recent call last):
+    ...
+ValueError: invalid project_id: '../escape' is not a single path segment
+```
+
+* **Return type:**
+  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
 
 ### nw.paths.is_kept(name)
 
