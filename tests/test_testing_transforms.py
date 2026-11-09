@@ -96,6 +96,23 @@ def test_require_traces_flags_a_derived_row_written_behind_add_annotation(tmp_pa
         with proj.storage.open_stores() as stores:
             next(iter(stores)).add(raw)
     lying = replace(honest, annotations=(raw,), reused_ids=frozenset())
-    writes.check(lying)  # written, truthfully
-    with pytest.raises(AssertionError, match="without a verifying trace"):
-        writes.check(lying, require_traces=True)
+    writes.check(lying, require_traces=False)  # written, truthfully
+    with pytest.raises(AssertionError, match="no verifying trace"):
+        writes.check(lying)  # traces are required by default
+
+
+def test_a_derived_row_whose_parent_is_in_no_store_has_no_trace(tmp_path, fal):
+    """add_annotation writes no trace when it cannot resolve a parent: still a
+    row that reads stale forever, and the message names that cause too."""
+    from uuid import uuid4
+
+    proj, (shot,) = _project(tmp_path)
+    orphan = _skeleton(proj, (uuid4(),), shot_id="orphan")  # parent exists nowhere
+    with recording_writes(proj) as writes:
+        proj.graph.add_annotation(orphan)
+    result = replace(
+        _Reusing().execute(proj, _plan(), (_skeleton(proj, (shot,)),)),
+        annotations=(orphan,), reused_ids=frozenset(),
+    )
+    with pytest.raises(AssertionError, match="could not resolve or digest a parent"):
+        writes.check(result)

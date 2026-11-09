@@ -86,15 +86,16 @@ class WriteRecord:
         changed = {i for i, fp in now.rows.items() if self.before.rows.get(i) != fp}
         return frozenset(changed) | _new_trace_targets(self.project, self.before)
 
-    def check(self, result, *, require_traces: bool = False) -> None:
+    def check(self, result, *, require_traces: bool = True) -> None:
         """Raise ``AssertionError`` unless ``result.written`` / ``result.reused_ids``
         tell the truth (a real raise, so ``python -O`` cannot skip it).
 
-        ``require_traces=True`` also flags a written **derived** row (one with
-        ``was_derived_from`` parents) that got no verifying trace in the block:
-        written by a raw ``store.add`` that bypassed
-        :meth:`nw.graph.ProjectGraph.add_annotation`, it reads stale forever
-        (nw#271)."""
+        ``require_traces`` (default ``True``) also flags a written **derived**
+        row (one with ``was_derived_from`` parents) that got no verifying trace
+        in the block: written by a raw ``store.add``, or by ``add_annotation``
+        with a parent it could not resolve or digest, it reads stale forever
+        (nw#271). Only rows the result reports are scanned; a derived row
+        written but not reported is out of this check's reach."""
         written = self.written_in_call()
         claimed_written = {a.id for a in result.written}
         lies = (
@@ -106,13 +107,14 @@ class WriteRecord:
         if require_traces:
             traced = _new_trace_targets(self.project, self.before)
             lies += [
-                f"{a.id}: written without a verifying trace (bypassed add_annotation)"
+                f"{a.id}: derived row has no verifying trace (a raw store.add, or "
+                "add_annotation could not resolve or digest a parent); reads stale forever"
                 for a in result.written
                 if a.provenance.was_derived_from and a.id not in traced
             ]
         lies.sort()
         if lies:
-            raise AssertionError("TransformResult misreports what it wrote:\n  " + "\n  ".join(lies))
+            raise AssertionError("TransformResult does not hold up:\n  " + "\n  ".join(lies))
 
 
 @contextmanager
