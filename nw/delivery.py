@@ -84,7 +84,7 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Callable, Protocol, runtime_checkable
+from typing import Callable, Iterable, Optional, Protocol, runtime_checkable
 
 __all__ = [
     "Deliverable",
@@ -92,6 +92,8 @@ __all__ = [
     "Lister",
     "ProjectSummary",
     "ProjectLister",
+    "PLACED_META_KEY",
+    "drop_guest_placed_duplicates",
     "Organiser",
     "parse_ref",
     "format_ref",
@@ -337,6 +339,66 @@ class ProjectSummary:
 #: The keyword ``after=`` is RESERVED for a future pagination cursor — a genre
 #: must not define it to mean anything else.
 ProjectLister = Callable[[str], "list[ProjectSummary]"]
+
+
+#: The :attr:`ProjectSummary.meta` key a guest genre sets on a row for a project a
+#: HOST placed in the caller's bucket (muvid#334): "this row is the host's
+#: placed project, listed by me too". :func:`drop_guest_placed_duplicates`
+#: trusts it before any envelope read.
+PLACED_META_KEY = "placed"
+
+
+def drop_guest_placed_duplicates(
+    summaries: Iterable[ProjectSummary],
+    *,
+    host: str,
+    genre_of: Callable[[str], Optional[str]],
+    owner_of: Callable[[str], Optional[str]],
+) -> list[ProjectSummary]:
+    """``summaries`` without the ``host`` rows a guest genre already listed (nw#231).
+
+    A host that creates a guest genre's project in the caller's own bucket
+    (reelee placing a ``music_video``) lists it from its own lister, and so does
+    the guest's lister when it reads placed projects (muvid#296): one project,
+    two rows. Every aggregator over :data:`ProjectLister` s needs the same merge,
+    so it is here. A ``host`` row (``genre == host``) is dropped when a guest
+    row (any other ``genre``) carries the same ``project_id`` and either:
+
+    - that guest row is marked placed (``meta[PLACED_META_KEY]``): the guest
+      says so, no read needed; or
+    - ``owner_of(genre_of(project_id))`` is that guest's genre: the project's
+      recorded genre belongs to it, so it is not a host project that merely
+      shares an id. ``genre_of`` maps a ``project_id`` to its genre slug (a
+      host typically resolves the id to a root and calls
+      :func:`nw.project_genre`, which opens no graph); ``owner_of`` maps a slug
+      to the genre (registry key) that lists it.
+
+    Only colliding host rows cost a ``genre_of`` call. Order is kept.
+
+    >>> rows = [ProjectSummary("p1", genre="host"), ProjectSummary("p1", genre="guest",
+    ...         meta={"placed": True}), ProjectSummary("p2", genre="host")]
+    >>> [(r.project_id, r.genre) for r in drop_guest_placed_duplicates(
+    ...     rows, host="host", genre_of=lambda i: None, owner_of=lambda g: None)]
+    [('p1', 'guest'), ('p2', 'host')]
+    """
+    summaries = list(summaries)
+    guests: dict[str, set[str]] = {}
+    marked: set[str] = set()
+    for row in summaries:
+        if row.genre != host:
+            guests.setdefault(row.project_id, set()).add(row.genre)
+            if (row.meta or {}).get(PLACED_META_KEY):
+                marked.add(row.project_id)
+
+    def listed_by_its_guest(row: ProjectSummary) -> bool:
+        if row.genre != host or row.project_id not in guests:
+            return False
+        if row.project_id in marked:
+            return True
+        slug = genre_of(row.project_id)
+        return bool(slug) and owner_of(slug) in guests[row.project_id]
+
+    return [row for row in summaries if not listed_by_its_guest(row)]
 
 
 #: The longest title :func:`check_title` accepts. Long enough for a real
