@@ -182,19 +182,19 @@ def _upgraded_upstream(body: Mapping, by_id: Mapping[UUID, Any], today_of=None):
         except (KeyError, ValueError, TypeError):
             return None
         today = today_of(parent)
-        recorded = entry.get("value_digest")
-        if not (
-            recorded == today["value_digest"]
+        if (
+            entry.get("value_digest") == today["value_digest"]
             and recorded_exclusions(entry) == recorded_exclusions(today)
         ):
-            if not digest_vouches(
-                parent, recorded, scheme=scheme, excluded=recorded_exclusions(entry)
-            ):
-                return None  # already stale: not ours to freshen
-            moved = True
-        # Only the parent's id carries over: a field a newer nw added refines
-        # the OLD digest, not this one.
-        upstream.append({"annotation_id": entry["annotation_id"], **today})
+            upstream.append({"annotation_id": entry["annotation_id"], **today})
+            continue
+        reentered = _reentered(
+            entry, vouches_for=parent, recorded_scheme=scheme, today=lambda: today
+        )
+        if reentered is None:
+            return None  # already stale: not ours to freshen
+        upstream.append(reentered)
+        moved = True
     return upstream if moved else None
 
 
@@ -339,6 +339,34 @@ def _rewrite_stores(storage, fn: Callable[[Any], Any], where) -> int:
     return written
 
 
+def _reentered(
+    entry: Mapping,
+    *,
+    vouches_for: Any,
+    recorded_scheme: str,
+    today: Callable[[], dict],
+) -> dict | None:
+    """``entry`` re-recorded as ``today()`` — if its digest, read under
+    ``recorded_scheme`` and its recorded exclusions, still vouches for
+    ``vouches_for``'s value; ``None`` when it does not (the trace is stale
+    there, and no one may freshen it). The one vouch-then-re-record step of
+    :func:`rewrite_values` (vouch for the old body, record the new one) and
+    :func:`upgrade_superseded_traces` (vouch for and record the same parent
+    under today's scheme), nw#273. ``today`` is called only after a vouch.
+
+    Only the parent's id carries over: a field a newer nw added refines the OLD
+    digest, not this one.
+    """
+    if not digest_vouches(
+        vouches_for,
+        entry.get("value_digest"),
+        scheme=recorded_scheme,
+        excluded=recorded_exclusions(entry),
+    ):
+        return None
+    return {"annotation_id": entry["annotation_id"], **today()}
+
+
 def _restamped_trace(ann: Any, plan: Mapping[UUID, tuple[Any, Any]]) -> Any:
     """``ann`` (a verifying trace) with each upstream digest of a rewritten annotation
     moved from the old body's digest to the new one's; ``None`` when nothing moves."""
@@ -354,15 +382,12 @@ def _restamped_trace(ann: Any, plan: Mapping[UUID, tuple[Any, Any]]) -> Any:
             # Any digest that still vouches for the old body moves, including
             # one recorded before a Derived marker or under fewer of them
             # (nw#179, nw#180); it is re-recorded with today's exclusions.
-            if digest_vouches(
-                old,
-                entry["value_digest"],
-                scheme=scheme,
-                excluded=recorded_exclusions(entry),
-            ):
-                kept = {k: v for k, v in entry.items() if k != "excluded_paths"}
-                entry = {**kept, **upstream_entry(new, scheme=scheme)}
-                moved = True
+            reentered = _reentered(
+                entry, vouches_for=old, recorded_scheme=scheme,
+                today=lambda: upstream_entry(new, scheme=scheme),
+            )
+            if reentered is not None:
+                entry, moved = reentered, True
         except (KeyError, ValueError, TypeError):
             pass
         upstream.append(entry)
