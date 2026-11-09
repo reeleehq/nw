@@ -62,3 +62,15 @@ def test_an_unknown_genre_keeps_the_host_row():
     rows = [ProjectSummary("mv1", genre="reelee"), ProjectSummary("mv1", genre="muvid")]
     out, _ = _merge(rows, {"mv1": None})
     assert out == [("mv1", "reelee"), ("mv1", "muvid")]
+
+
+def test_with_two_guests_on_one_id_only_the_owner_counts():
+    rows = [
+        ProjectSummary("mv1", genre="reelee"),
+        ProjectSummary("mv1", genre="braidio"),
+        ProjectSummary("mv1", genre="muvid"),
+    ]
+    out, _ = _merge(rows, {"mv1": "music_video"})  # muvid's genre
+    assert out == [("mv1", "braidio"), ("mv1", "muvid")]
+    out, _ = _merge(rows, {"mv1": "reelee_story"})  # neither guest's
+    assert out == [("mv1", "reelee"), ("mv1", "braidio"), ("mv1", "muvid")]

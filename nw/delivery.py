@@ -344,7 +344,8 @@ ProjectLister = Callable[[str], "list[ProjectSummary]"]
 #: The :attr:`ProjectSummary.meta` key a guest genre sets on a row for a project a
 #: HOST placed in the caller's bucket (muvid#334): "this row is the host's
 #: placed project, listed by me too". :func:`drop_guest_placed_duplicates`
-#: trusts it before any envelope read.
+#: trusts it before any envelope read. A guest sets ``meta[PLACED_META_KEY] =
+#: True``, importing this constant rather than re-spelling the key.
 PLACED_META_KEY = "placed"
 
 
@@ -368,12 +369,17 @@ def drop_guest_placed_duplicates(
       says so, no read needed; or
     - ``owner_of(genre_of(project_id))`` is that guest's genre: the project's
       recorded genre belongs to it, so it is not a host project that merely
-      shares an id. ``genre_of`` maps a ``project_id`` to its genre slug (a
-      host typically resolves the id to a root and calls
-      :func:`nw.project_genre`, which opens no graph); ``owner_of`` maps a slug
-      to the genre (registry key) that lists it.
+      shares an id. ``genre_of`` maps a ``project_id`` to its genre slug, e.g.
+      ``lambda pid: (nw.project_genre(projects_dir / pid) or {}).get("genre")``
+      (:func:`nw.project_genre` returns the envelope and opens no graph);
+      ``owner_of`` maps a slug to the genre (registry key) that lists it.
 
-    Only colliding host rows cost a ``genre_of`` call. Order is kept.
+    Only colliding host rows cost a ``genre_of`` call. Order is kept. Assumes
+    the host lists a caller's placed projects from one folder (the
+    ``register_caller_projects_dir`` locator), so a colliding ``project_id`` is
+    one project: a host that lists several drawers must pre-filter its rows,
+    since every colliding host row is dropped. Rows must carry their genre (the
+    host stamps a blank one, per :data:`ProjectLister`).
 
     >>> rows = [ProjectSummary("p1", genre="host"), ProjectSummary("p1", genre="guest",
     ...         meta={"placed": True}), ProjectSummary("p2", genre="host")]
