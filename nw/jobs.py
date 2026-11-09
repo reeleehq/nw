@@ -88,7 +88,7 @@ import time
 import urllib.parse
 from collections.abc import Callable, Iterator, Mapping, MutableMapping
 from contextlib import AbstractContextManager, nullcontext, suppress
-from dataclasses import dataclass, field, asdict, replace
+from dataclasses import dataclass, field, asdict
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, TYPE_CHECKING
@@ -2213,7 +2213,7 @@ def _bind_worker(
                 on_event(ev)
         finally:
             try:
-                _mirror_event_into_index(rt, job_id, ev)
+                _mirror_event_into_index(rt, job_id, ev, run_token=run_token)
             except Exception:
                 pass
 
@@ -2286,13 +2286,15 @@ def _bind_worker(
                     # Classified HERE, on the live exception: what au persists is
                     # its text, which cannot say a refusal from a crash.
                     with rt.lock:
-                        _index_update_locked(
-                            rt,
-                            job_id,
-                            error_kind=error_kind_of(e),
-                            error_detail=error_detail_of(e, secrets=secrets),
-                            **_cost_of_an_unfinished_run(_index_get_locked(rt, job_id)),
-                        )
+                        current = _index_get_locked(rt, job_id)
+                        if _is_run(current, run_token):  # not a run that replaced ours
+                            _index_update_locked(
+                                rt,
+                                job_id,
+                                error_kind=error_kind_of(e),
+                                error_detail=error_detail_of(e, secrets=secrets),
+                                **_cost_of_an_unfinished_run(current),
+                            )
                     # au persists the RENDERED exception text as the job's
                     # error; a provider echoing the key back would put it in
                     # the store. `redact_exception` returns a rebuilt
@@ -2312,7 +2314,7 @@ def _bind_worker(
             # the reaper it exists to inform never fires.
             stop_beat.set()
             beat.join()
-        _reconcile_terminal(rt, job_id, result)
+        _reconcile_terminal(rt, job_id, result, run_token=run_token)
         return result
 
     return run
@@ -2421,14 +2423,21 @@ def _mirror_provider_phase(
             updates["provider_started_at"] = now_iso()
 
 
-def _mirror_event_into_index(rt, job_id, ev) -> None:
+def _is_run(record, run_token) -> bool:
+    """Whether ``record`` exists and is run ``run_token``'s (``None``: any run)."""
+    return record is not None and (run_token is None or record.get("run_token") == run_token)
+
+
+def _mirror_event_into_index(rt, job_id, ev, *, run_token=None) -> None:
     """Project a render lifecycle event into the index: progress, cost, cached,
-    last_event_id, artifact_ref."""
+    last_event_id, artifact_ref. With ``run_token``, only into that run's record:
+    a previous run's helper thread emitting after a re-enqueue under the same
+    key must not write into the new run (nw#262)."""
     fields = _event_fields(ev)
     kind = _event_kind(ev)
     with rt.lock:
         record = _index_get_locked(rt, job_id)
-        if record is None:
+        if not _is_run(record, run_token):
             return
         progress = dict(record.get("progress") or {})
         cost = dict(record.get("cost") or {})
@@ -2516,12 +2525,13 @@ def _cost_of_an_unfinished_run(record) -> dict:
     return {"cost": {**cost, "actual_is_lower_bound": True}}
 
 
-def _reconcile_terminal(rt, job_id, result) -> None:
+def _reconcile_terminal(rt, job_id, result, *, run_token=None) -> None:
     """Capture terminal payload fields (artifact, actual cost) the render returns
-    but may not have emitted as events."""
+    but may not have emitted as events — into run ``run_token``'s record only
+    (nw#262)."""
     with rt.lock:
         record = _index_get_locked(rt, job_id)
-        if record is None:
+        if not _is_run(record, run_token):
             return
         updates: dict[str, Any] = {"finished_at": now_iso()}
         if isinstance(result, Mapping):
@@ -2565,6 +2575,7 @@ def _read_job(rt, record, config, *, project) -> Job:
     run_token = record.get("run_token")  # the run this read starts from
     au_result = rt.au_store[job_id]
     au_result = _maybe_reap(rt, record, au_result, config)
+    _maybe_settle_cancelled_cost(rt, record, au_result, config)
     if au_result.status in _AU_TERMINAL:
         record = _index_snapshot(rt, job_id) or record
     job = _project_job(rt, record, au_result, config)
@@ -2616,6 +2627,39 @@ def _maybe_reap(rt, record, au_result, config) -> ComputationResult:
         # Under the lock, both writes: a relaunch happens only under it, so
         # FAILED can never land on a run that replaced the one reaped.
         return _fail_locked(rt, job_id, REAPED_REASON, started_at=current.started_at)
+
+
+def _maybe_settle_cancelled_cost(rt, record, au_result, config) -> None:
+    """Persist the lower-bound flag of a cancelled run whose worker died (nw#262).
+
+    au already reads CANCELLED, so :func:`_maybe_reap` (RUNNING only) never
+    sees such a run, and its reported spend would keep the last event's flag.
+    Decided as a reap is: skipped without the lock while the record shows life
+    or its end was reported (``worker_exited_at``), then re-checked under
+    ``rt.lock`` on a fresh read of the same run, and written once — so the
+    flag, once True, stays True for every reader (it is no longer a per-read
+    judgement that a late heartbeat could flip back).
+    """
+    if (
+        au_result.status is not ComputationStatus.CANCELLED
+        or record.get("worker_exited_at") is not None
+        or not _cost_of_an_unfinished_run(record)
+        or (record.get("cost") or {}).get("actual_is_lower_bound") is True
+        or _shows_life(record, config)
+    ):
+        return
+    job_id = record["job_id"]
+    with rt.lock:
+        fresh = _index_get_locked(rt, job_id)
+        if (
+            fresh is None
+            or fresh.get("run_token") != record.get("run_token")
+            or fresh.get("worker_exited_at") is not None
+            or _shows_life(fresh, config)
+            or rt.middleware.is_running_locked(job_id)
+        ):
+            return
+        _index_update_locked(rt, job_id, **_cost_of_an_unfinished_run(fresh))
 
 
 def _fail_locked(
@@ -2761,17 +2805,6 @@ def _project_job(rt, record, au_result, config) -> Job:
 
     progress = _progress_from(record)
     cost = _cost_from(record)
-    if (
-        status == CANCELLED
-        and cost.actual_usd is not None
-        and record.get("worker_exited_at") is None
-        and not _heartbeat_is_fresh(record, config)
-    ):
-        # Cancelled, and its worker is gone without ever reporting its end (it
-        # died after the cancel): the spend it reported is a lower bound, as
-        # for a reaped run, which the reaper never sees because au already
-        # reads CANCELLED (nw#249). Read-side only: the record is not rewritten.
-        cost = replace(cost, actual_is_lower_bound=True)
 
     # Liveness, but only where the question means anything: a terminal job's
     # worker is *supposed* to be silent, and reporting that as lost contact

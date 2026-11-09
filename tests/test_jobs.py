@@ -706,7 +706,7 @@ def test_a_reaped_run_keeps_its_au_start(project):
 def _bare_record(job_id, **over):
     from datetime import datetime, timedelta, timezone
 
-    old = (datetime.now(timezone.utc) - timedelta(seconds=600)).isoformat().replace(
+    old = (datetime.now(timezone.utc) - timedelta(seconds=1200)).isoformat().replace(
         "+00:00", "Z"
     )
     record = {
@@ -737,6 +737,24 @@ def test_a_late_event_cannot_make_an_unfinished_runs_figure_exact(project):
     assert cost["actual_usd"] == 0.4 and cost["actual_is_lower_bound"] is True
 
 
+def test_a_previous_runs_late_writes_never_reach_the_run_that_replaced_it(project):
+    """nw#262: event mirroring and the terminal reconcile write only into their
+    own run's record (``run_token``), as heartbeats already did."""
+    rt = jobs._runtime(project)
+    rt.index["re"] = _bare_record("re", run_token="new", cost={"actual_usd": 0.1})
+    jobs._mirror_event_into_index(
+        rt, "re", {"kind": "x", "actual_usd": 9.9, "has_unknown_costs": False},
+        run_token="old",
+    )
+    jobs._reconcile_terminal(rt, "re", {"cost_usd_actual": 9.9}, run_token="old")
+    assert rt.index["re"]["cost"] == {"actual_usd": 0.1}
+    assert rt.index["re"]["finished_at"] is None
+    jobs._mirror_event_into_index(
+        rt, "re", {"kind": "x", "actual_usd": 0.2}, run_token="new"
+    )
+    assert rt.index["re"]["cost"]["actual_usd"] == 0.2
+
+
 def test_a_finished_ordinary_run_still_takes_its_events_flag(project):
     rt = jobs._runtime(project)
     rt.index["ok"] = _bare_record("ok", cost={"actual_is_lower_bound": True})
@@ -760,6 +778,12 @@ def test_a_cancelled_run_whose_worker_died_reads_as_a_lower_bound(project):
     job = jobs.get_job(project, "c-dead")
     assert job.status == jobs.CANCELLED
     assert job.cost.actual_is_lower_bound is True
+    # Persisted, so it is monotonic: a late heartbeat cannot flip it back (nw#262).
+    assert rt.index["c-dead"]["cost"]["actual_is_lower_bound"] is True
+    record = rt.index["c-dead"]
+    record["heartbeat_at"] = jobs.now_iso()
+    rt.index["c-dead"] = record
+    assert jobs.get_job(project, "c-dead").cost.actual_is_lower_bound is True
 
     # One whose worker reported its end keeps what it reported.
     rt.index["c-done"] = _bare_record(
