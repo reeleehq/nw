@@ -348,7 +348,12 @@ class SharedMediaStore:
         )
 
     def clear_mark(self, aid: str) -> None:
-        """Forget that ``aid`` was unreferenced (a host just used it)."""
+        """Forget that ``aid`` was unreferenced (a host just used it).
+
+        ``aid`` must be a content digest: a host calls this, and a raw id like
+        ``../../x`` would otherwise delete a file outside the store (nw#253)."""
+        if not is_content_digest(aid):
+            raise ValueError(f"clear_mark: {aid!r} is not a content digest")
         (self._marks_dir / aid).unlink(missing_ok=True)
 
 
