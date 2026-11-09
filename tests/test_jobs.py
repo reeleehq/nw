@@ -3905,7 +3905,7 @@ def test_a_run_written_in_another_time_zone_is_read_at_the_right_instant(project
     replica in another time zone reads the same instant (before, it read the
     writer's local clock as its own and was off by the difference)."""
     import time
-    from datetime import datetime, timezone
+    from datetime import datetime, timedelta, timezone
 
     import au
 
@@ -3928,12 +3928,14 @@ def test_a_run_written_in_another_time_zone_is_read_at_the_right_instant(project
         # au stamps its own times naive local (`datetime.now()`), as here
         writer_local = began.astimezone().replace(tzinfo=None)
         rt.au_store[job_id] = au.ComputationResult(
-            {"ok": True}, au.ComputationStatus.COMPLETED, started_at=writer_local
+            {"ok": True}, au.ComputationStatus.COMPLETED, started_at=writer_local,
+            completed_at=writer_local + timedelta(minutes=5),
         )
         os.environ["TZ"] = "EST+5"  # the reader, on another host
         time.tzset()
         job = jobs.get_job(project, job_id)
         assert jobs._parse_iso(job.started_at) == began
+        assert jobs._parse_iso(job.finished_at) == began + timedelta(minutes=5)
     finally:
         if before is None:
             os.environ.pop("TZ", None)
