@@ -182,10 +182,9 @@ def _upgraded_upstream(body: Mapping, by_id: Mapping[UUID, Any], today_of=None):
         except (KeyError, ValueError, TypeError):
             return None
         today = today_of(parent)
-        if (
-            entry.get("value_digest") == today["value_digest"]
-            and recorded_exclusions(entry) == recorded_exclusions(today)
-        ):
+        if entry.get("value_digest") == today["value_digest"] and recorded_exclusions(
+            entry
+        ) == recorded_exclusions(today):
             upstream.append({"annotation_id": entry["annotation_id"], **today})
             continue
         reentered = _reentered(
@@ -383,7 +382,9 @@ def _restamped_trace(ann: Any, plan: Mapping[UUID, tuple[Any, Any]]) -> Any:
             # one recorded before a Derived marker or under fewer of them
             # (nw#179, nw#180); it is re-recorded with today's exclusions.
             reentered = _reentered(
-                entry, vouches_for=old, recorded_scheme=scheme,
+                entry,
+                vouches_for=old,
+                recorded_scheme=scheme,
                 today=lambda: upstream_entry(new, scheme=scheme),
             )
             if reentered is not None:
