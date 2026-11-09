@@ -10,7 +10,11 @@ import nw
 from nw import Project, rewrite_values
 from nw.freshness import all_stale
 
-from tests.test_freshness import _derived, _traces  # scaffolding shared with the freshness suite
+from tests.test_freshness import (  # noqa: F401 — scaffolding shared with the freshness suite
+    _derived,
+    _traces,
+    derived_field_schema,
+)
 
 
 def _rename(body):
@@ -253,18 +257,27 @@ def _trace_for(proj, ann_id):
     return trace
 
 
-def test_a_restamp_keeps_the_traces_scheme_and_the_dependent_fresh(proj):
+def test_a_restamp_keeps_the_traces_scheme_and_the_dependent_fresh(
+    proj, derived_field_schema
+):
     """A value rewritten under a trace recorded on an older scheme is re-stamped
-    under that same scheme, never relabelled with today's (which would claim
-    one scheme while holding another's digest)."""
+    under that same scheme, never with today's digest (which would claim one
+    scheme while holding another's). The parent has a ``Derived`` field, so the
+    v1 and v2 digests differ and a mix-up shows."""
     from lacing.digest import VALUE_DIGEST_SCHEMES
 
-    from tests.test_freshness import _as_recorded_under
+    from tests.test_freshness import _as_recorded_under, _parent_with_derived_field
 
-    src = _source(proj)
+    src = _parent_with_derived_field(proj)
     child = _derived(proj, [src.id], body={"shot_id": "c"})
     _as_recorded_under(proj, child, VALUE_DIGEST_SCHEMES[0])
-    assert rewrite_values(proj, _rename) == 1
+
+    def rename_artifact(body):
+        if body.get("artifact_id") == "a":
+            body["artifact_id"] = "b"
+        return body
+
+    assert rewrite_values(proj, rename_artifact) == 1
     assert _trace_for(proj, child.id).body["digest_scheme"] == VALUE_DIGEST_SCHEMES[0]
     assert all_stale(proj.root) == []
 
