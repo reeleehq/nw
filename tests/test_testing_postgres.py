@@ -11,10 +11,11 @@ from nw.testing.postgres import pg_env  # noqa: F401 — a fixture
 def test_unavailable_names_what_is_missing(monkeypatch):
     monkeypatch.setattr(pgt.importlib.util, "find_spec", lambda name: None)
     assert "pytest_postgresql" in pgt.postgres_unavailable()
-    monkeypatch.undo()
+    monkeypatch.setattr(pgt.importlib.util, "find_spec", lambda name: object())
     monkeypatch.setattr(pgt.shutil, "which", lambda name: None)
-    if pgt.importlib.util.find_spec("pytest_postgresql") and pgt.importlib.util.find_spec("psycopg"):
-        assert "pg_ctl" in pgt.postgres_unavailable()
+    assert "pg_ctl" in pgt.postgres_unavailable()
+    monkeypatch.setattr(pgt.shutil, "which", lambda name: "/usr/bin/" + name)
+    assert pgt.postgres_unavailable() is None
 
 
 def test_pg_env_skips_instead_of_erroring_without_postgres(request, monkeypatch):

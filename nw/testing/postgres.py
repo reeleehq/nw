@@ -1,10 +1,13 @@
 """A per-test Postgres for nw's graph backend: ``pg_env`` and its skip rule (nw#242).
 
-Three packages hand-rolled the same harness (nw's own Postgres tests, lacing's
-conftest, reelee's project-meta tests). It lives here once::
+nw's own Postgres tests and reelee's project-meta tests carried copies of the
+same harness; it lives here once (lacing keeps its own store-level one: it
+cannot depend on nw)::
 
-    # a consumer's conftest.py
+    # a consumer's ROOT conftest.py (pytest refuses pytest_plugins elsewhere)
     pytest_plugins = ["nw.testing.postgres"]
+    # ...or, in one test module:
+    from nw.testing.postgres import pg_env  # noqa: F401
 
     # a test
     def test_on_postgres(pg_env, tmp_path):
@@ -16,7 +19,9 @@ pooled connections afterwards, so a connection to a torn-down database never
 leaks into the next test. Where ``pytest-postgresql``, ``psycopg`` or a
 Postgres binary is missing, a test using it **skips** (it never errors), so
 hosted CI without Postgres stays green. For a module that is Postgres-only,
-:func:`skip_module_unless_postgres` skips it whole at import.
+:func:`skip_module_unless_postgres` skips it whole at import. (With plugin
+autoload disabled, ``PYTEST_DISABLE_PLUGIN_AUTOLOAD``, load pytest-postgresql
+yourself, ``-p pytest_postgresql.plugin``, or ``postgresql`` is not found.)
 """
 
 from __future__ import annotations
@@ -27,13 +32,12 @@ from typing import Iterator, Optional
 
 import pytest
 
+from nw.graph_backend import ENV_BACKEND, ENV_DB_URL, POSTGRES_BACKEND
+
 __all__ = ["conninfo", "pg_env", "postgres_unavailable", "skip_module_unless_postgres"]
 
 POSTGRES_BINARIES = ("pg_ctl", "postgres")
 """Executables any one of which on ``PATH`` means a local Postgres can start."""
-
-BACKEND_ENV = {"backend": "NW_GRAPH_BACKEND", "url": "NW_GRAPH_DB_URL"}
-"""The environment variables :mod:`nw.graph_backend` reads."""
 
 
 def postgres_unavailable() -> Optional[str]:
@@ -77,8 +81,8 @@ def pg_env(request, monkeypatch) -> Iterator[str]:
     if reason is not None:
         pytest.skip(reason)
     url = conninfo(request.getfixturevalue("postgresql"))
-    monkeypatch.setenv(BACKEND_ENV["backend"], "postgres")
-    monkeypatch.setenv(BACKEND_ENV["url"], url)
+    monkeypatch.setenv(ENV_BACKEND, POSTGRES_BACKEND)
+    monkeypatch.setenv(ENV_DB_URL, url)
     from lacing.store import close_all_pools
 
     try:
