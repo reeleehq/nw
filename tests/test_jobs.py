@@ -753,6 +753,46 @@ def test_a_previous_runs_late_writes_never_reach_the_run_that_replaced_it(projec
         rt, "re", {"kind": "x", "actual_usd": 0.2}, run_token="new"
     )
     assert rt.index["re"]["cost"]["actual_usd"] == 0.2
+    # The old run's render raising now must not mark the new run as failed.
+    jobs._record_raise(rt, "re", RuntimeError("old run fell over"), run_token="old")
+    assert rt.index["re"].get("error_kind") is None
+    assert "actual_is_lower_bound" not in rt.index["re"]["cost"]
+
+
+def test_a_settled_cancelled_flag_survives_a_late_event(project):
+    """nw#262: once settled, ``unfinished`` keeps a late exact-looking event
+    from clearing the lower bound."""
+    import au
+
+    rt = jobs._runtime(project)
+    rt.index["c"] = _bare_record(
+        "c", cancel_requested=True, cost={"actual_usd": 0.3, "actual_is_lower_bound": False}
+    )
+    rt.au_store["c"] = au.ComputationResult(None, au.ComputationStatus.CANCELLED)
+    assert jobs.get_job(project, "c").cost.actual_is_lower_bound is True
+    jobs._mirror_event_into_index(
+        rt, "c", {"kind": "x", "actual_usd": 0.3, "has_unknown_costs": False}
+    )
+    assert rt.index["c"]["cost"]["actual_is_lower_bound"] is True
+
+
+def test_a_replaced_cancelled_run_is_announced_with_its_settled_cost(project, announced):
+    """nw#262: re-enqueueing over a dead cancelled run nobody read settles its
+    cost before the replaced run is announced to terminal hooks."""
+    import au
+
+    rt = jobs._runtime(project)
+    key = jobs._default_idempotency_key(project, "op", VIDEO_PARAMS)
+    rt.index[key] = _bare_record(
+        key, run_token="old", cancel_requested=True, terminal_announced=False,
+        cost={"actual_usd": 0.3, "actual_is_lower_bound": False},
+    )
+    rt.au_store[key] = au.ComputationResult(None, au.ComputationStatus.CANCELLED)
+    release = threading.Event()
+    release.set()
+    jobs.enqueue(project, "op", VIDEO_PARAMS, dispatch={"op": _blocking_stub(release)})
+    cancelled = [j for j in announced.jobs if j.status == jobs.CANCELLED]
+    assert cancelled and cancelled[0].cost.actual_is_lower_bound is True
 
 
 def test_a_finished_ordinary_run_still_takes_its_events_flag(project):
