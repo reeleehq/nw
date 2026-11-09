@@ -28,7 +28,12 @@ from typing import Callable, Optional
 
 from dol.atomic import DFLT_RETRY, atomic_write
 
-__all__ = ["copy_file_atomic", "read_text_retrying", "replace_retrying", "write_text_atomic"]
+__all__ = [
+    "copy_file_atomic",
+    "read_text_retrying",
+    "replace_retrying",
+    "write_text_atomic",
+]
 
 COPY_CHUNK_BYTES = 1 << 20
 """Bytes read per chunk by :func:`copy_file_atomic`."""
