@@ -43,13 +43,12 @@ import hashlib
 import json
 import os
 import re
-import shutil
 import time
 from dataclasses import KW_ONLY, dataclass, field
 from pathlib import Path
 from typing import Optional
 
-from nw.atomic_io import read_text_retrying, replace_retrying, write_text_atomic
+from nw.atomic_io import copy_file_atomic, read_text_retrying, write_text_atomic
 from nw.paths import check_path_segment
 
 #: The store's data home, under nw's (not any genre's).
@@ -212,12 +211,7 @@ class SharedMediaStore:
                     f"{self.blobs_dir}: another filesystem. Keep the store on the "
                     "media's filesystem or pass allow_cross_device_copy=True.",
                 ) from exc
-            tmp = blob.with_name(f".{aid}.{os.getpid()}.{time.monotonic_ns()}.tmp")  # unique per call
-            try:
-                shutil.copy2(src, tmp)
-                replace_retrying(tmp, blob)  # a reader may hold the blob (nw#243)
-            finally:
-                tmp.unlink(missing_ok=True)
+            copy_file_atomic(src, blob)  # unique O_EXCL temp; retried (nw#260)
         self.clear_mark(aid)
         if not blob.exists():  # a concurrent sweep removed it just before the clear
             return self.put(src, artifact_id=aid)

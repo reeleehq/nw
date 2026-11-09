@@ -60,7 +60,6 @@ from __future__ import annotations
 import errno
 import json
 import os
-import shutil
 import time
 from dataclasses import KW_ONLY, dataclass, field
 from pathlib import Path
@@ -68,7 +67,7 @@ from typing import TYPE_CHECKING, Iterator, Mapping, Optional
 
 # Content addressing has one home, the shared store (nw#194): the id check
 # every reader applies before an id becomes a path, and the digest itself.
-from .atomic_io import read_text_retrying, replace_retrying, write_text_atomic
+from .atomic_io import copy_file_atomic, read_text_retrying, write_text_atomic
 from .media_store import hash_file, is_content_digest
 
 if TYPE_CHECKING:
@@ -473,12 +472,7 @@ class HostArtifactCatalog:
             # Copy beside the blob, then rename into place: a copy that fails
             # half-way must never leave a short file under a digest, because
             # every later run trusts whatever is there.
-            tmp = _tmp_sibling(blob)
-            try:
-                shutil.copy2(src, tmp)
-                replace_retrying(tmp, blob)  # a reader may hold the blob (nw#260)
-            finally:
-                tmp.unlink(missing_ok=True)
+            copy_file_atomic(src, blob)  # unique O_EXCL temp; retried (nw#260)
             report.blobs_copied += 1
             report.bytes_copied += blob.stat().st_size
             report.cross_device = True
@@ -509,10 +503,6 @@ def _check_digest(aid: str) -> None:
             "shape, so a row written under any other id is accepted here and "
             "refused there."
         )
-
-
-def _tmp_sibling(path: Path) -> Path:
-    return path.with_name(f".{path.name}.{os.getpid()}.{time.monotonic_ns()}.tmp")
 
 
 def _read(path: Path) -> Optional[dict]:

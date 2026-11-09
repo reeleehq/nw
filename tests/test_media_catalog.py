@@ -273,17 +273,17 @@ def test_a_copy_happens_only_when_paid_for(project, monkeypatch):
 
 
 def test_a_copy_that_fails_half_way_leaves_no_blob(project, monkeypatch):
-    """Every later run trusts what is under a digest, so a short file must never be."""
-    import shutil
+    """Every later run trusts what is under a digest, so a short file must never be.
 
+    The copy is ``nw.atomic_io.copy_file_atomic`` (nw#260): fail its final swap,
+    as a full disk or a refused rename would, and nothing may land."""
     _refuse_links(monkeypatch)
     media = _media(project)
 
-    def _short_copy(src, dst, **kw):
-        Path(dst).write_bytes(b"short")
+    def _no_space(*a, **k):
         raise OSError(errno.ENOSPC, "No space left on device")
 
-    monkeypatch.setattr(shutil, "copy2", _short_copy)
+    monkeypatch.setattr(os, "replace", _no_space)
     cat = HostArtifactCatalog(project, allow_cross_device_copy=True)
     with pytest.raises(OSError):
         cat.register(media, kind="video")
