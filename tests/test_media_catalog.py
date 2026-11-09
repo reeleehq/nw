@@ -444,3 +444,51 @@ def test_rows_load_through_the_hosts_own_model(tmp_path):
     )
     assert proc.returncode == 0, proc.stderr
     assert proc.stdout.strip() == "4"
+
+
+# --- Windows sharing violations (nw#260) -------------------------------------
+
+
+def test_a_row_read_refused_for_an_instant_is_retried(tmp_path, monkeypatch):
+    import dol.atomic
+
+    import nw.atomic_io
+    from nw.media_catalog import _read
+
+    row = tmp_path / "r.json"
+    row.write_text('{"id": 1}')
+    monkeypatch.setattr(
+        nw.atomic_io, "DFLT_RETRY", dol.atomic.Retry(on=(PermissionError,), backoff_s=0)
+    )
+    real = Path.read_text
+    calls = []
+
+    def flaky(self, *a, **k):
+        calls.append(self)
+        if len(calls) == 1:
+            raise PermissionError("being replaced")
+        return real(self, *a, **k)
+
+    monkeypatch.setattr(Path, "read_text", flaky)
+    assert _read(row) == {"id": 1}
+
+
+def test_a_row_read_that_stays_refused_raises_not_reads_as_absent(tmp_path, monkeypatch):
+    """Reading as None would make register() rewrite the row (nw#260)."""
+    import pytest
+
+    from nw.media_catalog import _read
+
+    row = tmp_path / "r.json"
+    row.write_text('{"id": 1}')
+
+    def refused(self, *a, **k):
+        raise PermissionError("held open")
+
+    monkeypatch.setattr(Path, "read_text", refused)
+    with pytest.raises(PermissionError):
+        _read(row)
+    monkeypatch.undo()
+    assert _read(tmp_path / "missing.json") is None
+    (tmp_path / "bad.json").write_text("{not json")
+    assert _read(tmp_path / "bad.json") is None

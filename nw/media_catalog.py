@@ -68,6 +68,7 @@ from typing import TYPE_CHECKING, Iterator, Mapping, Optional
 
 # Content addressing has one home, the shared store (nw#194): the id check
 # every reader applies before an id becomes a path, and the digest itself.
+from .atomic_io import read_text_retrying, replace_retrying, write_text_atomic
 from .media_store import hash_file, is_content_digest
 
 if TYPE_CHECKING:
@@ -351,7 +352,7 @@ class HostArtifactCatalog:
     def iter_rows(self) -> Iterator[dict]:
         """Every row, parsed, in id order. For tests and diagnostics."""
         for p in sorted(self.rows_dir.glob("*.json")):
-            yield json.loads(p.read_text(encoding="utf-8"))
+            yield json.loads(read_text_retrying(p))
 
     def register(
         self,
@@ -420,7 +421,7 @@ class HostArtifactCatalog:
             return aid
         # Atomic: the host indexes every row, and a half-written one would fail
         # its whole catalog, not this artifact.
-        _atomic_write_text(row_path, json.dumps(row, indent=2))
+        write_text_atomic(row_path, json.dumps(row, indent=2))
         report.rows_written += 1
         return aid
 
@@ -475,7 +476,7 @@ class HostArtifactCatalog:
             tmp = _tmp_sibling(blob)
             try:
                 shutil.copy2(src, tmp)
-                os.replace(tmp, blob)
+                replace_retrying(tmp, blob)  # a reader may hold the blob (nw#260)
             finally:
                 tmp.unlink(missing_ok=True)
             report.blobs_copied += 1
@@ -514,19 +515,14 @@ def _tmp_sibling(path: Path) -> Path:
     return path.with_name(f".{path.name}.{os.getpid()}.{time.monotonic_ns()}.tmp")
 
 
-def _atomic_write_text(path: Path, text: str) -> None:
-    tmp = _tmp_sibling(path)
-    try:
-        tmp.write_text(text, encoding="utf-8")
-        os.replace(tmp, path)
-    finally:
-        tmp.unlink(missing_ok=True)
-
-
 def _read(path: Path) -> Optional[dict]:
+    """``path``'s row, or ``None`` when there is none or it is not JSON (a row
+    worth rewriting). A read refused even after retries **raises**: on Windows
+    a sharing violation must not read as "no row" and get the row rewritten
+    (nw#260)."""
     try:
-        return json.loads(path.read_text(encoding="utf-8"))
-    except (OSError, ValueError):
+        return json.loads(read_text_retrying(path))
+    except (FileNotFoundError, ValueError):
         return None
 
 
