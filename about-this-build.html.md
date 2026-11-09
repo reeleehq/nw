@@ -2,12 +2,10 @@
 
 # About this build
 
-This documentation was built on **2026-11-09 00:34 UTC** from commit <a href="https://github.com/reeleehq/nw/commit/7021ad4a7fefff0f52ab643240a61c7b6489f35c"><code>7021ad4</code></a> on branch <code>main</code>, for **nw 0.0.146** (from <code>pyproject.toml</code>).
+This documentation was built on **2026-11-09 00:35 UTC** from commit <a href="https://github.com/reeleehq/nw/commit/7021ad4a7fefff0f52ab643240a61c7b6489f35c"><code>7021ad4</code></a> on branch <code>main</code>, for **nw 0.0.146** (from <code>pyproject.toml</code>).
 
-#### WARNING
-The documentation and the package may be misaligned:
-
-- The documented version (0.0.146) is ahead of the latest release on PyPI (0.0.141): these docs describe unreleased code.
+#### NOTE
+Nothing suggests a mismatch: the tree was clean at the commit above, and the documented version is the one on PyPI.
 
 ## Source
 
@@ -24,9 +22,9 @@ The documentation and the package may be misaligned:
 |              |                                                                                            |
 |--------------|--------------------------------------------------------------------------------------------|
 | Repository   | <code>reeleehq/nw</code>                                                                   |
-| Run          | <a href="https://github.com/reeleehq/nw/actions/runs/42539964008">42539964008</a>          |
+| Run          | <a href="https://github.com/reeleehq/nw/actions/runs/42539983525">42539983525</a>          |
 | Ref          | <code>refs/heads/main</code>                                                               |
-| Event commit | <code>ba4b7e8621af8b84420427503ad82de4a252b037</code> (in the history of the built commit) |
+| Event commit | <code>bbc8443853a814823b2158873f0782d9aa3a6d06</code> (in the history of the built commit) |
 
 ## Tools
 
@@ -51,7 +49,7 @@ The documentation and the package may be misaligned:
 
 ## Package on PyPI
 
-Latest release: <a href="https://pypi.org/project/nw/0.0.141/">0.0.141</a>, older than the documented version (0.0.146).
+Latest release: <a href="https://pypi.org/project/nw/0.0.146/">0.0.146</a>, the same as the documented version.
 
 ## Reproduce
 

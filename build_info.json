@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "built_at": "2026-11-09T00:34:47Z",
+  "built_at": "2026-11-09T00:35:05Z",
   "package": {
     "name": "nw",
     "version": "0.0.146",
@@ -23,12 +23,12 @@
   "ci": {
     "provider": "github",
     "repository": "reeleehq/nw",
-    "sha": "ba4b7e8621af8b84420427503ad82de4a252b037",
+    "sha": "bbc8443853a814823b2158873f0782d9aa3a6d06",
     "sha_in_history": true,
     "ref": "refs/heads/main",
     "ref_name": "main",
-    "run_id": "42539964008",
-    "run_url": "https://github.com/reeleehq/nw/actions/runs/42539964008",
+    "run_id": "42539983525",
+    "run_url": "https://github.com/reeleehq/nw/actions/runs/42539983525",
     "server_url": "https://github.com"
   },
   "tools": {
@@ -62,16 +62,14 @@
   },
   "pypi": {
     "checked": true,
-    "latest": "0.0.141",
-    "relation": "ahead",
+    "latest": "0.0.146",
+    "relation": "same",
     "error": null
   },
   "reproduce": "git clone https://github.com/reeleehq/nw && cd nw\ngit checkout 7021ad4a7fefff0f52ab643240a61c7b6489f35c\npip install \"epythet==0.2.22\"\nepythet quickstart . --ignore tests/ scrap/ examples/",
   "warnings": [],
   "alignment": {
-    "aligned": false,
-    "notes": [
-      "The documented version (0.0.146) is ahead of the latest release on PyPI (0.0.141): these docs describe unreleased code."
-    ]
+    "aligned": true,
+    "notes": []
   }
 }
