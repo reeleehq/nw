@@ -13,19 +13,19 @@ default path (zero behaviour change) is covered by the rest of the nw suite.
 from __future__ import annotations
 
 import json
-import shutil
 from pathlib import Path
 from uuid import uuid4
 
 import pytest
 
-# Skip the whole module unless a real local Postgres is available.
-pytest.importorskip("pytest_postgresql")
-pytest.importorskip("psycopg")
-if not any(shutil.which(name) for name in ("pg_ctl", "postgres")):
-    pytest.skip("Postgres binary not on PATH", allow_module_level=True)
+from nw.testing.postgres import (  # noqa: F401 — pg_env is a fixture
+    pg_env,
+    skip_module_unless_postgres,
+)
 
-import psycopg  # noqa: E402
+# Skip the whole module unless a real local Postgres is available.
+skip_module_unless_postgres()
+
 
 import nw  # noqa: E402
 from nw.bodies import SectionBodyV1, ShotBodyV1  # noqa: E402
@@ -40,17 +40,6 @@ from lacing import TimeInterval  # noqa: E402
 # ---------------------------------------------------------------------------
 # helpers
 # ---------------------------------------------------------------------------
-
-
-def _conninfo(postgresql) -> str:
-    info = postgresql.info
-    return psycopg.conninfo.make_conninfo(
-        host=info.host,
-        port=info.port,
-        user=info.user,
-        password=info.password or "",
-        dbname=info.dbname,
-    )
 
 
 def _seed_pre_graph_project(tmp_path: Path, name: str, *, title: str) -> Path:
@@ -95,19 +84,6 @@ def _seed_pre_graph_project(tmp_path: Path, name: str, *, title: str) -> Path:
     }
     (root / "project.json").write_text(json.dumps(spec, indent=2))
     return root
-
-
-@pytest.fixture
-def pg_env(postgresql, monkeypatch):
-    """Point nw's graph backend at the per-test Postgres DB."""
-    monkeypatch.setenv("NW_GRAPH_BACKEND", "postgres")
-    monkeypatch.setenv("NW_GRAPH_DB_URL", _conninfo(postgresql))
-    # close pooled connections between tests so a stale conn to a torn-down DB
-    # never leaks into the next test.
-    from lacing.store import close_all_pools
-
-    yield
-    close_all_pools()
 
 
 # ---------------------------------------------------------------------------
