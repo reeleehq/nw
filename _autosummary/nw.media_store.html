@@ -304,6 +304,8 @@ Reference count = the number of live rows naming a blob (<code class="xref py py
 <dt class="sig sig-object py" id="nw.media_store.SharedMediaStore.clear_mark">
 <span class="sig-name descname"><span class="pre">clear_mark</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">aid</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/nw/media_store.html#SharedMediaStore.clear_mark"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nw.media_store.SharedMediaStore.clear_mark" title="Link to this definition">#</a></dt>
 <dd><p>Forget that <code class="docutils literal notranslate"><span class="pre">aid</span></code> was unreferenced (a host just used it).</p>
+<p><code class="docutils literal notranslate"><span class="pre">aid</span></code> must be a content digest: a host calls this, and a raw id like
+<code class="docutils literal notranslate"><span class="pre">../../x</span></code> would otherwise delete a file outside the store (nw#253).</p>
 <dl class="field-list simple">
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><span class="highlight sphinx_autodoc_typehints-value"><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></a></span></span></p>
@@ -470,7 +472,7 @@ prefix match or a trailing newline never reach the filesystem.</p>
     </div>
   </div>
 </footer>
-      <script src="../_static/documentation_options.js?v=4c1b7e21"></script>
+      <script src="../_static/documentation_options.js?v=df9b7052"></script>
       <script src="../_static/doctools.js?v=fd6eb6e6"></script>
       <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script src="../_static/clipboard.min.js?v=a7894cd8"></script>

@@ -544,23 +544,28 @@ data-aria-dark="Switch to auto color mode">
 <div class="viewcode-block" id="SharedMediaStore.clear_mark">
 <a class="viewcode-back" href="../../_autosummary/nw.media_store.html#nw.media_catalog.SharedMediaStore.clear_mark">[docs]</a>
 </span><span data-line="350">    <span class="k">def</span><span class="w"> </span><span class="nf">clear_mark</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">aid</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-</span><span data-line="351"><span class="w">        </span><span class="sd">"""Forget that ``aid`` was unreferenced (a host just used it)."""</span>
-</span><span data-line="352">        <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_marks_dir</span> <span class="o">/</span> <span class="n">aid</span><span class="p">)</span><span class="o">.</span><span class="n">unlink</span><span class="p">(</span><span class="n">missing_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span></div>
+</span><span data-line="351"><span class="w">        </span><span class="sd">"""Forget that ``aid`` was unreferenced (a host just used it).</span>
+</span><span data-line="352">
+</span><span data-line="353"><span class="sd">        ``aid`` must be a content digest: a host calls this, and a raw id like</span>
+</span><span data-line="354"><span class="sd">        ``../../x`` would otherwise delete a file outside the store (nw#253)."""</span>
+</span><span data-line="355">        <span class="k">if</span> <span class="ow">not</span> <span class="n">is_content_digest</span><span class="p">(</span><span class="n">aid</span><span class="p">):</span>
+</span><span data-line="356">            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"clear_mark: </span><span class="si">{</span><span class="n">aid</span><span class="si">!r}</span><span class="s2"> is not a content digest"</span><span class="p">)</span>
+</span><span data-line="357">        <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_marks_dir</span> <span class="o">/</span> <span class="n">aid</span><span class="p">)</span><span class="o">.</span><span class="n">unlink</span><span class="p">(</span><span class="n">missing_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span></div>
 </div>
 
-</span><span data-line="353">
-</span><span data-line="354">
-</span><span data-line="355"><span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span>
-</span><span data-line="356">    <span class="s2">"DEFAULT_GRACE_S"</span><span class="p">,</span>
-</span><span data-line="357">    <span class="s2">"DEFAULT_LIFECYCLE_CLASS"</span><span class="p">,</span>
-</span><span data-line="358">    <span class="s2">"DEFAULT_STORE_ROOT"</span><span class="p">,</span>
-</span><span data-line="359">    <span class="s2">"DEFAULT_TENANT"</span><span class="p">,</span>
-</span><span data-line="360">    <span class="s2">"SharedMediaStore"</span><span class="p">,</span>
-</span><span data-line="361">    <span class="s2">"StoreCatalogUnreadable"</span><span class="p">,</span>
-</span><span data-line="362">    <span class="s2">"SweepReport"</span><span class="p">,</span>
-</span><span data-line="363">    <span class="s2">"hash_file"</span><span class="p">,</span>
-</span><span data-line="364">    <span class="s2">"is_content_digest"</span><span class="p">,</span>
-</span><span data-line="365"><span class="p">]</span>
+</span><span data-line="358">
+</span><span data-line="359">
+</span><span data-line="360"><span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span>
+</span><span data-line="361">    <span class="s2">"DEFAULT_GRACE_S"</span><span class="p">,</span>
+</span><span data-line="362">    <span class="s2">"DEFAULT_LIFECYCLE_CLASS"</span><span class="p">,</span>
+</span><span data-line="363">    <span class="s2">"DEFAULT_STORE_ROOT"</span><span class="p">,</span>
+</span><span data-line="364">    <span class="s2">"DEFAULT_TENANT"</span><span class="p">,</span>
+</span><span data-line="365">    <span class="s2">"SharedMediaStore"</span><span class="p">,</span>
+</span><span data-line="366">    <span class="s2">"StoreCatalogUnreadable"</span><span class="p">,</span>
+</span><span data-line="367">    <span class="s2">"SweepReport"</span><span class="p">,</span>
+</span><span data-line="368">    <span class="s2">"hash_file"</span><span class="p">,</span>
+</span><span data-line="369">    <span class="s2">"is_content_digest"</span><span class="p">,</span>
+</span><span data-line="370"><span class="p">]</span>
 </span></pre></div>
         </article><button class="back-to-top" type="button">
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
@@ -588,7 +593,7 @@ data-aria-dark="Switch to auto color mode">
     </div>
   </div>
 </footer>
-      <script src="../../_static/documentation_options.js?v=4c1b7e21"></script>
+      <script src="../../_static/documentation_options.js?v=df9b7052"></script>
       <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
       <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>

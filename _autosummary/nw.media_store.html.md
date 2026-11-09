@@ -87,6 +87,9 @@ Where `artifact_id`’s bytes are, or `None` if not stored.
 
 Forget that `aid` was unreferenced (a host just used it).
 
+`aid` must be a content digest: a host calls this, and a raw id like
+`../../x` would otherwise delete a file outside the store (nw#253).
+
 * **Return type:**
   [`None`](https://docs.python.org/3/builtins/constants.html#None)
 

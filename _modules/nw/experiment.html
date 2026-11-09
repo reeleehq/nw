@@ -310,60 +310,63 @@ data-aria-dark="Switch to auto color mode">
 </span><span data-line="145"><span class="sd">      migration on it. A legacy (unmigrated) source still migrates on open.</span>
 </span><span data-line="146"><span class="sd">    """</span>
 </span><span data-line="147">    <span class="n">src_docs</span><span class="p">,</span> <span class="n">dst_docs</span> <span class="o">=</span> <span class="n">FolderStorage</span><span class="p">(</span><span class="n">src</span><span class="p">)</span><span class="o">.</span><span class="n">docs</span><span class="p">,</span> <span class="n">FolderStorage</span><span class="p">(</span><span class="n">dst</span><span class="p">)</span><span class="o">.</span><span class="n">docs</span>
-</span><span data-line="148">    <span class="n">dst_docs</span><span class="p">[</span><span class="n">PROJECT_FILE_NAME</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="o">**</span><span class="n">dst_docs</span><span class="p">[</span><span class="n">PROJECT_FILE_NAME</span><span class="p">],</span> <span class="n">TENANT_KEY</span><span class="p">:</span> <span class="n">uuid4</span><span class="p">()</span><span class="o">.</span><span class="n">hex</span><span class="p">}</span>
-</span><span data-line="149">    <span class="k">if</span> <span class="n">is_migrated</span><span class="p">(</span><span class="n">src</span><span class="p">)</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">is_migrated</span><span class="p">(</span><span class="n">dst</span><span class="p">):</span>
-</span><span data-line="150">        <span class="n">dst_docs</span><span class="p">[</span><span class="n">_MIGRATED_DOC</span><span class="p">]</span> <span class="o">=</span> <span class="n">src_docs</span><span class="p">[</span><span class="n">_MIGRATED_DOC</span><span class="p">]</span>
-</span><span data-line="151">
-</span><span data-line="152">
+</span><span data-line="148">    <span class="n">dst_docs</span><span class="p">[</span><span class="n">PROJECT_FILE_NAME</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
+</span><span data-line="149">        <span class="o">**</span><span class="n">dst_docs</span><span class="p">[</span><span class="n">PROJECT_FILE_NAME</span><span class="p">],</span>
+</span><span data-line="150">        <span class="n">TENANT_KEY</span><span class="p">:</span> <span class="n">uuid4</span><span class="p">()</span><span class="o">.</span><span class="n">hex</span><span class="p">,</span>
+</span><span data-line="151">    <span class="p">}</span>
+</span><span data-line="152">    <span class="k">if</span> <span class="n">is_migrated</span><span class="p">(</span><span class="n">src</span><span class="p">)</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">is_migrated</span><span class="p">(</span><span class="n">dst</span><span class="p">):</span>
+</span><span data-line="153">        <span class="n">dst_docs</span><span class="p">[</span><span class="n">_MIGRATED_DOC</span><span class="p">]</span> <span class="o">=</span> <span class="n">src_docs</span><span class="p">[</span><span class="n">_MIGRATED_DOC</span><span class="p">]</span>
+</span><span data-line="154">
+</span><span data-line="155">
 <div class="viewcode-block" id="apply_to_projects">
 <a class="viewcode-back" href="../../_autosummary/nw.experiment.html#nw.apply_to_projects">[docs]</a>
-</span><span data-line="153"><span class="k">def</span><span class="w"> </span><span class="nf">apply_to_projects</span><span class="p">(</span>
-</span><span data-line="154">    <span class="n">roots</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="nb">str</span> <span class="o">|</span> <span class="n">Path</span><span class="p">],</span>
-</span><span data-line="155">    <span class="n">fn</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">Project</span><span class="p">],</span> <span class="n">T</span><span class="p">],</span>
-</span><span data-line="156">    <span class="o">*</span><span class="p">,</span>
-</span><span data-line="157">    <span class="n">parallel</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
-</span><span data-line="158"><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="n">T</span><span class="p">]:</span>
-</span><span data-line="159"><span class="w">    </span><span class="sd">"""Apply ``fn`` to each project at ``roots`` and collect the results.</span>
-</span><span data-line="160">
-</span><span data-line="161"><span class="sd">    Args:</span>
-</span><span data-line="162"><span class="sd">        roots: Iterable of project roots. Each must point to an existing</span>
-</span><span data-line="163"><span class="sd">            nw project.</span>
-</span><span data-line="164"><span class="sd">        fn: Callable taking a :class:`Project` and returning anything. Use this</span>
-</span><span data-line="165"><span class="sd">            for per-project operations: parsing a script, estimating cost,</span>
-</span><span data-line="166"><span class="sd">            rendering, gathering reports.</span>
-</span><span data-line="167"><span class="sd">        parallel: When True, run ``fn`` in a thread pool. Useful when ``fn``</span>
-</span><span data-line="168"><span class="sd">            is I/O- or API-bound (e.g. a render). When False (default), runs</span>
-</span><span data-line="169"><span class="sd">            sequentially in submission order — the safest semantics.</span>
-</span><span data-line="170">
-</span><span data-line="171"><span class="sd">    Returns:</span>
-</span><span data-line="172"><span class="sd">        A list of ``fn(project)`` results in the same order as ``roots``.</span>
+</span><span data-line="156"><span class="k">def</span><span class="w"> </span><span class="nf">apply_to_projects</span><span class="p">(</span>
+</span><span data-line="157">    <span class="n">roots</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="nb">str</span> <span class="o">|</span> <span class="n">Path</span><span class="p">],</span>
+</span><span data-line="158">    <span class="n">fn</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">Project</span><span class="p">],</span> <span class="n">T</span><span class="p">],</span>
+</span><span data-line="159">    <span class="o">*</span><span class="p">,</span>
+</span><span data-line="160">    <span class="n">parallel</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+</span><span data-line="161"><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="n">T</span><span class="p">]:</span>
+</span><span data-line="162"><span class="w">    </span><span class="sd">"""Apply ``fn`` to each project at ``roots`` and collect the results.</span>
+</span><span data-line="163">
+</span><span data-line="164"><span class="sd">    Args:</span>
+</span><span data-line="165"><span class="sd">        roots: Iterable of project roots. Each must point to an existing</span>
+</span><span data-line="166"><span class="sd">            nw project.</span>
+</span><span data-line="167"><span class="sd">        fn: Callable taking a :class:`Project` and returning anything. Use this</span>
+</span><span data-line="168"><span class="sd">            for per-project operations: parsing a script, estimating cost,</span>
+</span><span data-line="169"><span class="sd">            rendering, gathering reports.</span>
+</span><span data-line="170"><span class="sd">        parallel: When True, run ``fn`` in a thread pool. Useful when ``fn``</span>
+</span><span data-line="171"><span class="sd">            is I/O- or API-bound (e.g. a render). When False (default), runs</span>
+</span><span data-line="172"><span class="sd">            sequentially in submission order — the safest semantics.</span>
 </span><span data-line="173">
-</span><span data-line="174"><span class="sd">    Examples:</span>
-</span><span data-line="175"><span class="sd">        &gt;&gt;&gt; # Estimate cost of all four sibling experiments without rendering:</span>
-</span><span data-line="176"><span class="sd">        &gt;&gt;&gt; # totals = apply_to_projects(roots, lambda p: estimate_render_cost(p))</span>
-</span><span data-line="177"><span class="sd">        &gt;&gt;&gt; # Apply the same script to all of them after a refactor:</span>
-</span><span data-line="178"><span class="sd">        &gt;&gt;&gt; # apply_to_projects(roots, lambda p: parse_script(p))</span>
-</span><span data-line="179"><span class="sd">    """</span>
-</span><span data-line="180">    <span class="n">projects</span> <span class="o">=</span> <span class="p">[</span><span class="n">Project</span><span class="p">(</span><span class="n">r</span><span class="p">)</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">roots</span><span class="p">]</span>
-</span><span data-line="181">    <span class="k">if</span> <span class="ow">not</span> <span class="n">parallel</span><span class="p">:</span>
-</span><span data-line="182">        <span class="k">return</span> <span class="p">[</span><span class="n">fn</span><span class="p">(</span><span class="n">p</span><span class="p">)</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">projects</span><span class="p">]</span>
-</span><span data-line="183">
-</span><span data-line="184">    <span class="kn">from</span><span class="w"> </span><span class="nn">concurrent.futures</span><span class="w"> </span><span class="kn">import</span> <span class="n">ThreadPoolExecutor</span>
-</span><span data-line="185">
-</span><span data-line="186">    <span class="k">with</span> <span class="n">ThreadPoolExecutor</span><span class="p">(</span><span class="n">max_workers</span><span class="o">=</span><span class="nb">min</span><span class="p">(</span><span class="mi">8</span><span class="p">,</span> <span class="nb">max</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">projects</span><span class="p">))))</span> <span class="k">as</span> <span class="n">exe</span><span class="p">:</span>
-</span><span data-line="187">        <span class="n">futures</span> <span class="o">=</span> <span class="p">[</span><span class="n">exe</span><span class="o">.</span><span class="n">submit</span><span class="p">(</span><span class="n">fn</span><span class="p">,</span> <span class="n">p</span><span class="p">)</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">projects</span><span class="p">]</span>
-</span><span data-line="188">        <span class="k">return</span> <span class="p">[</span><span class="n">f</span><span class="o">.</span><span class="n">result</span><span class="p">()</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">futures</span><span class="p">]</span></div>
+</span><span data-line="174"><span class="sd">    Returns:</span>
+</span><span data-line="175"><span class="sd">        A list of ``fn(project)`` results in the same order as ``roots``.</span>
+</span><span data-line="176">
+</span><span data-line="177"><span class="sd">    Examples:</span>
+</span><span data-line="178"><span class="sd">        &gt;&gt;&gt; # Estimate cost of all four sibling experiments without rendering:</span>
+</span><span data-line="179"><span class="sd">        &gt;&gt;&gt; # totals = apply_to_projects(roots, lambda p: estimate_render_cost(p))</span>
+</span><span data-line="180"><span class="sd">        &gt;&gt;&gt; # Apply the same script to all of them after a refactor:</span>
+</span><span data-line="181"><span class="sd">        &gt;&gt;&gt; # apply_to_projects(roots, lambda p: parse_script(p))</span>
+</span><span data-line="182"><span class="sd">    """</span>
+</span><span data-line="183">    <span class="n">projects</span> <span class="o">=</span> <span class="p">[</span><span class="n">Project</span><span class="p">(</span><span class="n">r</span><span class="p">)</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">roots</span><span class="p">]</span>
+</span><span data-line="184">    <span class="k">if</span> <span class="ow">not</span> <span class="n">parallel</span><span class="p">:</span>
+</span><span data-line="185">        <span class="k">return</span> <span class="p">[</span><span class="n">fn</span><span class="p">(</span><span class="n">p</span><span class="p">)</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">projects</span><span class="p">]</span>
+</span><span data-line="186">
+</span><span data-line="187">    <span class="kn">from</span><span class="w"> </span><span class="nn">concurrent.futures</span><span class="w"> </span><span class="kn">import</span> <span class="n">ThreadPoolExecutor</span>
+</span><span data-line="188">
+</span><span data-line="189">    <span class="k">with</span> <span class="n">ThreadPoolExecutor</span><span class="p">(</span><span class="n">max_workers</span><span class="o">=</span><span class="nb">min</span><span class="p">(</span><span class="mi">8</span><span class="p">,</span> <span class="nb">max</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">projects</span><span class="p">))))</span> <span class="k">as</span> <span class="n">exe</span><span class="p">:</span>
+</span><span data-line="190">        <span class="n">futures</span> <span class="o">=</span> <span class="p">[</span><span class="n">exe</span><span class="o">.</span><span class="n">submit</span><span class="p">(</span><span class="n">fn</span><span class="p">,</span> <span class="n">p</span><span class="p">)</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">projects</span><span class="p">]</span>
+</span><span data-line="191">        <span class="k">return</span> <span class="p">[</span><span class="n">f</span><span class="o">.</span><span class="n">result</span><span class="p">()</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">futures</span><span class="p">]</span></div>
 
-</span><span data-line="189">
-</span><span data-line="190">
+</span><span data-line="192">
+</span><span data-line="193">
 <div class="viewcode-block" id="summarize_all">
 <a class="viewcode-back" href="../../_autosummary/nw.experiment.html#nw.summarize_all">[docs]</a>
-</span><span data-line="191"><span class="k">def</span><span class="w"> </span><span class="nf">summarize_all</span><span class="p">(</span><span class="n">roots</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="nb">str</span> <span class="o">|</span> <span class="n">Path</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="n">ProjectSummary</span><span class="p">]:</span>
-</span><span data-line="192"><span class="w">    </span><span class="sd">"""Convenience: return a :class:`ProjectSummary` for each project.</span>
-</span><span data-line="193">
-</span><span data-line="194"><span class="sd">    Equivalent to ``apply_to_projects(roots, lambda p: p.read_summary())``.</span>
-</span><span data-line="195"><span class="sd">    """</span>
-</span><span data-line="196">    <span class="k">return</span> <span class="n">apply_to_projects</span><span class="p">(</span><span class="n">roots</span><span class="p">,</span> <span class="k">lambda</span> <span class="n">p</span><span class="p">:</span> <span class="n">p</span><span class="o">.</span><span class="n">read_summary</span><span class="p">())</span></div>
+</span><span data-line="194"><span class="k">def</span><span class="w"> </span><span class="nf">summarize_all</span><span class="p">(</span><span class="n">roots</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="nb">str</span> <span class="o">|</span> <span class="n">Path</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="n">ProjectSummary</span><span class="p">]:</span>
+</span><span data-line="195"><span class="w">    </span><span class="sd">"""Convenience: return a :class:`ProjectSummary` for each project.</span>
+</span><span data-line="196">
+</span><span data-line="197"><span class="sd">    Equivalent to ``apply_to_projects(roots, lambda p: p.read_summary())``.</span>
+</span><span data-line="198"><span class="sd">    """</span>
+</span><span data-line="199">    <span class="k">return</span> <span class="n">apply_to_projects</span><span class="p">(</span><span class="n">roots</span><span class="p">,</span> <span class="k">lambda</span> <span class="n">p</span><span class="p">:</span> <span class="n">p</span><span class="o">.</span><span class="n">read_summary</span><span class="p">())</span></div>
 
 </span></pre></div>
         </article><button class="back-to-top" type="button">
@@ -392,7 +395,7 @@ data-aria-dark="Switch to auto color mode">
     </div>
   </div>
 </footer>
-      <script src="../../_static/documentation_options.js?v=4c1b7e21"></script>
+      <script src="../../_static/documentation_options.js?v=df9b7052"></script>
       <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
       <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
