@@ -238,8 +238,8 @@ def json_docs(root: str | Path) -> MutableMapping[str, Any]:
     """
     return wrap_kvs(
         mk_dirs_if_missing(_AtomicFiles(str(root), delete_func=os.remove)),
-        data_of_obj=lambda obj: json.dumps(obj, indent=2).encode("utf-8"),
-        obj_of_data=lambda data: json.loads(data),
+        value_encoder=lambda obj: json.dumps(obj, indent=2).encode("utf-8"),
+        value_decoder=lambda data: json.loads(data),
     )
 
 
