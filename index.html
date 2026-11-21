@@ -232,7 +232,7 @@ body schemas, Transforms, and genres — without modifying <code class="docutils
 <p>nw ships one agent skill, <code class="docutils literal notranslate"><span class="pre">nw/data/skills/nw/SKILL.md</span></code> (installed with the wheel, and discoverable by <code class="docutils literal notranslate"><span class="pre">gh</span> <span class="pre">skill</span> <span class="pre">install</span> <span class="pre">reeleehq/nw</span> <span class="pre">nw</span></code>). It names nw to a coding session that has not read this repo: the project, genre, Transform, plan and freshness model in one page.</p>
 </section>
 <section id="genre-and-template-the-central-abstraction">
-<h2>Genre and Template — the central abstraction<a class="headerlink" href="#genre-and-template-the-central-abstraction" title="Link to this heading">#</a></h2>
+<span id="genre-and-template--the-central-abstraction"></span><h2>Genre and Template — the central abstraction<a class="headerlink" href="#genre-and-template-the-central-abstraction" title="Link to this heading">#</a></h2>
 <p>A <code class="docutils literal notranslate"><span class="pre">Genre</span></code> is a <strong>reusable definition of a production kind</strong>. It is a frozen
 dataclass that <em>references</em> substrate pieces by name rather than owning them:</p>
 <div class="table-wrapper colwidths-auto docutils container">
@@ -289,7 +289,7 @@ open-closed shape as <code class="docutils literal notranslate"><span class="pre
 </span></pre></div>
 </div>
 <section id="genre-project-resolve-initialize-create">
-<h3>Genre → project: resolve, initialize, create<a class="headerlink" href="#genre-project-resolve-initialize-create" title="Link to this heading">#</a></h3>
+<span id="genre--project-resolve-initialize-create"></span><h3>Genre → project: resolve, initialize, create<a class="headerlink" href="#genre-project-resolve-initialize-create" title="Link to this heading">#</a></h3>
 <p>Three registries connect a chosen genre to an actual project. Each is optional,
 and each is registered by the genre’s <strong>owning app</strong> — so a host that aggregates
 many genres can serve any of them without knowing which app owns which.</p>
@@ -334,7 +334,7 @@ architecture discussion that settled it.</p>
 </section>
 </section>
 <section id="transforms-the-a-b-arrow">
-<h2>Transforms — the A → B arrow<a class="headerlink" href="#transforms-the-a-b-arrow" title="Link to this heading">#</a></h2>
+<span id="transforms--the-a--b-arrow"></span><h2>Transforms — the A → B arrow<a class="headerlink" href="#transforms-the-a-b-arrow" title="Link to this heading">#</a></h2>
 <p>Every step in an audiovisual workflow is a <code class="docutils literal notranslate"><span class="pre">Transform</span></code>: screenplay → treatment,
 beat → storyboard panel, panel → image, clips → animatic, shot → rendered clip.
 A Transform is a <strong>swappable, costed function from A-annotations to
@@ -375,7 +375,7 @@ produces the real output.</p>
 </div>
 </section>
 <section id="a-caller-s-key-reaches-execute-and-nothing-else">
-<h3>A caller’s key reaches <code class="docutils literal notranslate"><span class="pre">execute</span></code> and nothing else<a class="headerlink" href="#a-caller-s-key-reaches-execute-and-nothing-else" title="Link to this heading">#</a></h3>
+<span id="a-callers-key-reaches-execute-and-nothing-else"></span><h3>A caller’s key reaches <code class="docutils literal notranslate"><span class="pre">execute</span></code> and nothing else<a class="headerlink" href="#a-caller-s-key-reaches-execute-and-nothing-else" title="Link to this heading">#</a></h3>
 <p>A server rendering on a caller’s bring-your-own credential hands it to
 <code class="docutils literal notranslate"><span class="pre">execute(...,</span> <span class="pre">secrets=)</span></code> — a read-only <code class="docutils literal notranslate"><span class="pre">{provider_name:</span> <span class="pre">key}</span></code> mapping
 (<code class="docutils literal notranslate"><span class="pre">nw.Secrets</span></code>) — and to nothing else. It never enters the Plan, the skeleton,
@@ -397,7 +397,7 @@ reaches a run record or the job index.</p>
 </section>
 </section>
 <section id="prepare-plan-execute-with-a-budget-gate">
-<h2>prepare → plan → execute, with a budget gate<a class="headerlink" href="#prepare-plan-execute-with-a-budget-gate" title="Link to this heading">#</a></h2>
+<span id="prepare--plan--execute-with-a-budget-gate"></span><h2>prepare → plan → execute, with a budget gate<a class="headerlink" href="#prepare-plan-execute-with-a-budget-gate" title="Link to this heading">#</a></h2>
 <p>The <strong>shot</strong> render unit makes the same split concrete, and it is why cost is
 knowable before the network goes near a credit card. It is shot-typed by
 construction (<code class="docutils literal notranslate"><span class="pre">ShotSpec</span></code> in, <code class="docutils literal notranslate"><span class="pre">output.mp4</span></code> out), so it is <strong>not</strong> the extension
@@ -630,7 +630,7 @@ length?”, “is there a frozen-frame segment?”, “are there gaps between sh
 </div>
 </section>
 <section id="validation-a-pluggable-menu-placed-where-you-want-it">
-<h2>Validation — a pluggable menu, placed where you want it<a class="headerlink" href="#validation-a-pluggable-menu-placed-where-you-want-it" title="Link to this heading">#</a></h2>
+<span id="validation--a-pluggable-menu-placed-where-you-want-it"></span><h2>Validation — a pluggable menu, placed where you want it<a class="headerlink" href="#validation-a-pluggable-menu-placed-where-you-want-it" title="Link to this heading">#</a></h2>
 <p><code class="docutils literal notranslate"><span class="pre">nw.inspect</span></code> above answers one question about one shot. <code class="docutils literal notranslate"><span class="pre">nw.validation</span></code> is the
 general form: a <strong>registry of checks</strong> that anyone can add to, with dependencies
 resolved, independent checks run concurrently, and one report at the end.</p>
@@ -881,7 +881,7 @@ succeed (<a class="reference external" href="https://github.com/thorwhalen/nw/is
 </section>
 </section>
 
-<p class="epythet-provenance" style="font-size:.8em;opacity:.65;margin-top:2.5em;text-align:right">built 2026-11-09 02:18 UTC from <a href="https://github.com/reeleehq/nw/commit/b6a1b2fd1a1277ffe1958b5239675b3894001705">b6a1b2f</a> (main) · nw 0.0.155 · <a href="about-this-build.html">about this build</a></p>
+<p class="epythet-provenance" style="font-size:.8em;opacity:.65;margin-top:2.5em;text-align:right">built 2026-11-21 18:52 UTC from <a href="https://github.com/reeleehq/nw/commit/03df53a60e47af7dc72c344eefcfbe86306c4fcc">03df53a</a> (main) · nw 0.0.156 · <a href="about-this-build.html">about this build</a></p>
         </article><button class="back-to-top" type="button">
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
     <path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12z"></path>
@@ -916,7 +916,7 @@ succeed (<a class="reference external" href="https://github.com/thorwhalen/nw/is
     </div>
   </div>
 </footer>
-      <script src="_static/documentation_options.js?v=d4a5b4c2"></script>
+      <script src="_static/documentation_options.js?v=e35d3ea8"></script>
       <script src="_static/doctools.js?v=fd6eb6e6"></script>
       <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script src="_static/clipboard.min.js?v=a7894cd8"></script>
