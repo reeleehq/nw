@@ -36,8 +36,10 @@ from nw.graph_backend import ENV_BACKEND, ENV_DB_URL, POSTGRES_BACKEND
 
 __all__ = ["conninfo", "pg_env", "postgres_unavailable", "skip_module_unless_postgres"]
 
-POSTGRES_BINARIES = ("pg_ctl", "postgres")
-"""Executables any one of which on ``PATH`` means a local Postgres can start."""
+POSTGRES_BINARIES = ("pg_ctl",)
+"""Executables all of which must be on ``PATH`` for a local Postgres to start:
+pytest-postgresql runs ``pg_ctl``, so a bare ``postgres`` binary is not enough
+(nw#281)."""
 
 
 def postgres_unavailable() -> Optional[str]:
@@ -45,7 +47,7 @@ def postgres_unavailable() -> Optional[str]:
     for module in ("pytest_postgresql", "psycopg"):
         if importlib.util.find_spec(module) is None:
             return f"needs {module} (nw's Postgres tests: pip install pytest-postgresql 'psycopg[binary]')"
-    if not any(shutil.which(name) for name in POSTGRES_BINARIES):
+    if not all(shutil.which(name) for name in POSTGRES_BINARIES):
         return "needs a Postgres binary (pg_ctl) on PATH"
     return None
 

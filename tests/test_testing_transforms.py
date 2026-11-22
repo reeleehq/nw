@@ -116,3 +116,49 @@ def test_a_derived_row_whose_parent_is_in_no_store_has_no_trace(tmp_path, fal):
     )
     with pytest.raises(AssertionError, match="could not resolve or digest a parent"):
         writes.check(result)
+
+
+def test_require_traces_resolvable_spares_a_row_whose_parents_are_not_in_the_graph(
+    tmp_path, fal
+):
+    proj, (shot,) = _project(tmp_path)
+    with recording_writes(proj) as writes:
+        result = _Reusing().execute(proj, _plan(), (_skeleton(proj, (shot,)),))
+    writes.check(result, require_traces="resolvable")  # traced: passes
+
+    # a derived row written with a raw store.add (no trace), parents present
+    (node,) = result.written
+    proj.graph.remove_annotation(node.id)
+    with recording_writes(proj) as writes:
+        with proj.storage.open_stores() as stores:
+            next(iter(stores)).add(node)
+    with pytest.raises(AssertionError, match="no verifying trace"):
+        writes.check(result, require_traces="resolvable")
+
+    # same row, parent gone: nothing can be traced, so "resolvable" lets it be
+    proj.graph.remove_annotation(shot)
+    writes.check(result, require_traces="resolvable")
+    with pytest.raises(AssertionError, match="no verifying trace"):
+        writes.check(result, require_traces=True)
+    with pytest.raises(ValueError, match="require_traces"):
+        writes.check(result, require_traces="sometimes")
+
+
+def test_the_truthful_writes_fixture_fails_a_test_whose_execute_lies(
+    tmp_path, fal, monkeypatch
+):
+    import nw.testing.transforms as tt
+
+    class Liar(_Reusing):
+        def execute(self, project, plan, skeleton, **kw):
+            res = super().execute(project, plan, skeleton, **kw)
+            return replace(res, reused_ids=frozenset(a.id for a in res.annotations))
+
+    monkeypatch.setattr(tt, "_execute_owners", lambda owner_filter: [Liar])
+    gen = tt.make_truthful_writes_fixture(autouse=False).__wrapped__()
+    next(gen)  # setup: Liar.execute is wrapped
+    proj, (shot,) = _project(tmp_path)
+    Liar().execute(proj, _plan(), (_skeleton(proj, (shot,)),))
+    with pytest.raises(AssertionError, match="reported reused, but written"):
+        next(gen)  # teardown reports the lie
+    assert "execute" in vars(Liar)  # and the original is restored
