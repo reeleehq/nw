@@ -371,3 +371,26 @@ def test_an_envelope_gone_from_the_graph_clears_the_mirror(
     proj.graph.remove_annotation(env.id)
     assert proj.resolved_genre() is None
     assert nw.project_genre(proj) is None
+
+
+def test_project_genre_graph_fallback_reads_a_pre_mirror_envelope_without_writing(
+    tmp_path, clean_genre_registries
+):
+    from nw.graph import GENRE_ENVELOPE_DOC
+
+    _demo_genre()
+    proj = nw.Project.init(tmp_path / "p")
+    nw.initialize_genre("env_demo", proj, template="duo")
+    expected = proj.resolved_genre()
+    del proj.storage.docs[GENRE_ENVELOPE_DOC]  # an envelope that predates the mirror
+
+    assert nw.project_genre(proj) is None
+    assert nw.project_genre(proj, fallback="graph") == expected
+    assert GENRE_ENVELOPE_DOC not in proj.storage.docs  # never backfilled
+
+
+def test_project_genre_graph_fallback_is_none_for_no_graph_and_validates(tmp_path):
+    assert nw.project_genre(tmp_path / "nothing-here", fallback="graph") is None
+    assert not (tmp_path / "nothing-here").exists()
+    with pytest.raises(ValueError, match="fallback"):
+        nw.project_genre(tmp_path, fallback="nope")
