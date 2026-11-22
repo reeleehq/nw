@@ -615,7 +615,7 @@ are recorded as linked artifacts), see
 <tr class="row-even"><td><p><a class="reference internal" href="#nw.register_genre_resolver" title="nw.register_genre_resolver"><code class="xref py py-obj docutils literal notranslate"><span class="pre">register_genre_resolver</span></code></a>(slug, resolver)</p></td>
 <td><p>Register a resolver for a genre slug; returns it for inline use.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#nw.project_genre" title="nw.project_genre"><code class="xref py py-obj docutils literal notranslate"><span class="pre">project_genre</span></code></a>(project)</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#nw.project_genre" title="nw.project_genre"><code class="xref py py-obj docutils literal notranslate"><span class="pre">project_genre</span></code></a>(project, *[, fallback])</p></td>
 <td><p>The <code class="docutils literal notranslate"><span class="pre">{genre,</span> <span class="pre">template,</span> <span class="pre">params}</span></code> envelope <code class="docutils literal notranslate"><span class="pre">project</span></code> was created as, read <strong>without opening its graph</strong> (nw#223); <code class="docutils literal notranslate"><span class="pre">None</span></code> when it has none.</p></td>
 </tr>
 <tr class="row-even"><td><p><a class="reference internal" href="#nw.resolve_genre" title="nw.resolve_genre"><code class="xref py py-obj docutils literal notranslate"><span class="pre">resolve_genre</span></code></a>(genre[, template])</p></td>
@@ -4776,7 +4776,7 @@ ready to plan.</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="nw.project_genre">
-<span class="sig-prename descclassname"><span class="pre">nw.</span></span><span class="sig-name descname"><span class="pre">project_genre</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">project</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/nw/genres.html#project_genre"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nw.project_genre" title="Link to this definition">#</a></dt>
+<span class="sig-prename descclassname"><span class="pre">nw.</span></span><span class="sig-name descname"><span class="pre">project_genre</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">project</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">fallback</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/nw/genres.html#project_genre"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nw.project_genre" title="Link to this definition">#</a></dt>
 <dd><p>The <code class="docutils literal notranslate"><span class="pre">{genre,</span> <span class="pre">template,</span> <span class="pre">params}</span></code> envelope <code class="docutils literal notranslate"><span class="pre">project</span></code> was created as,
 read <strong>without opening its graph</strong> (nw#223); <code class="docutils literal notranslate"><span class="pre">None</span></code> when it has none.</p>
 <p><code class="docutils literal notranslate"><span class="pre">project</span></code> is a path, a storage or an <code class="docutils literal notranslate"><span class="pre">nw.Project</span></code>. Reads the mirror
@@ -4787,6 +4787,11 @@ not N graph opens (any of which can fail on a locked or corrupt graph).
 backfills the mirror for a project whose envelope predates it; until then
 such a project reads <code class="docutils literal notranslate"><span class="pre">None</span></code> here. An unreadable or malformed mirror also
 reads <code class="docutils literal notranslate"><span class="pre">None</span></code>, never raises.</p>
+<p><code class="docutils literal notranslate"><span class="pre">fallback=&quot;graph&quot;</span></code> (nw#280) adds a <strong>read-only</strong> second try for an
+envelope that predates the mirror: the graph is opened with the read-only
+opener (never creating or writing anything, and **never backfilling the
+mirror**, so a listing stays a pure read) and an unreadable or absent graph
+still reads <code class="docutils literal notranslate"><span class="pre">None</span></code>. The default, <code class="docutils literal notranslate"><span class="pre">None</span></code>, never opens a graph.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.15)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code></a>[<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#dict" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></a>]</span></p>
@@ -5785,7 +5790,7 @@ addressable across runs.</p>
     </div>
   </div>
 </footer>
-      <script src="../_static/documentation_options.js?v=4725bab1"></script>
+      <script src="../_static/documentation_options.js?v=af3f1973"></script>
       <script src="../_static/doctools.js?v=fd6eb6e6"></script>
       <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script src="../_static/clipboard.min.js?v=a7894cd8"></script>

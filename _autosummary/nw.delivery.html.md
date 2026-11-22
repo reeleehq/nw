@@ -241,13 +241,15 @@ requested change is refused. Deliberately NO delete: retrievability, cost
 and destruction are three separate predicates, and destruction does not
 ride a naming function — it would be a separately gated fifth function.
 
-### nw.delivery.PLACED_META_KEY *= 'placed'*
+### nw.delivery.PLACED_META_KEY *= 'nw.placed'*
 
 The `ProjectSummary.meta` key a guest genre sets on a row for a project a
 HOST placed in the caller’s bucket (muvid#334): “this row is the host’s
 placed project, listed by me too”. [`drop_guest_placed_duplicates()`](#nw.delivery.drop_guest_placed_duplicates)
-trusts it before any envelope read. A guest sets `meta[PLACED_META_KEY] =
-True`, importing this constant rather than re-spelling the key.
+reads it as a hint, never a verdict (nw#279). A guest sets
+`meta[PLACED_META_KEY] = True` (exactly `True`), importing this constant
+rather than re-spelling the key. The key is namespaced because genres
+already use a bare `"placed"` for a count in their stage stats.
 
 ### nw.delivery.ProjectLister
 
@@ -448,11 +450,14 @@ two rows. Every aggregator over [`ProjectLister`](#nw.delivery.ProjectLister) s 
 so it is here. A `host` row (`genre == host`) is dropped when a guest
 row (any other `genre`) carries the same `project_id` and either:
 
-- that guest row is marked placed (`meta[PLACED_META_KEY]`): the guest
-  says so, no read needed; or
 - `owner_of(genre_of(project_id))` is that guest’s genre: the project’s
   recorded genre belongs to it, so it is not a host project that merely
-  shares an id. `genre_of` maps a `project_id` to its genre slug, e.g.
+  shares an id; or
+- the recorded genre is unknown (`genre_of` returns nothing, e.g. an
+  envelope that predates the mirror) and that guest row is marked placed
+  (`meta[PLACED_META_KEY] is True`): the mark stands in for a missing
+  read. A mark never overrides a recorded genre that is not the guest’s:
+  a genuine host project is kept. `genre_of` maps a `project_id` to its genre slug, e.g.
   `lambda pid: (nw.project_genre(projects_dir / pid) or {}).get("genre")`
   ([`nw.project_genre()`](nw.html.md#nw.project_genre) returns the envelope and opens no graph);
   `owner_of` maps a slug to the genre (registry key) that lists it.
@@ -466,7 +471,7 @@ host stamps a blank one, per [`ProjectLister`](#nw.delivery.ProjectLister)).
 
 ```pycon
 >>> rows = [ProjectSummary("p1", genre="host"), ProjectSummary("p1", genre="guest",
-...         meta={"placed": True}), ProjectSummary("p2", genre="host")]
+...         meta={PLACED_META_KEY: True}), ProjectSummary("p2", genre="host")]
 >>> [(r.project_id, r.genre) for r in drop_guest_placed_duplicates(
 ...     rows, host="host", genre_of=lambda i: None, owner_of=lambda g: None)]
 [('p1', 'guest'), ('p2', 'host')]

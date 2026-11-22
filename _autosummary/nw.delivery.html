@@ -495,12 +495,14 @@ ride a naming function — it would be a separately gated fifth function.</p>
 
 <dl class="py data">
 <dt class="sig sig-object py" id="nw.delivery.PLACED_META_KEY">
-<span class="sig-prename descclassname"><span class="pre">nw.delivery.</span></span><span class="sig-name descname"><span class="pre">PLACED_META_KEY</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'placed'</span></span><a class="headerlink" href="#nw.delivery.PLACED_META_KEY" title="Link to this definition">#</a></dt>
+<span class="sig-prename descclassname"><span class="pre">nw.delivery.</span></span><span class="sig-name descname"><span class="pre">PLACED_META_KEY</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'nw.placed'</span></span><a class="headerlink" href="#nw.delivery.PLACED_META_KEY" title="Link to this definition">#</a></dt>
 <dd><p>The <code class="xref py py-attr docutils literal notranslate"><span class="pre">ProjectSummary.meta</span></code> key a guest genre sets on a row for a project a
 HOST placed in the caller’s bucket (muvid#334): “this row is the host’s
 placed project, listed by me too”. <a class="reference internal" href="#nw.delivery.drop_guest_placed_duplicates" title="nw.delivery.drop_guest_placed_duplicates"><code class="xref py py-func docutils literal notranslate"><span class="pre">drop_guest_placed_duplicates()</span></code></a>
-trusts it before any envelope read. A guest sets <code class="docutils literal notranslate"><span class="pre">meta[PLACED_META_KEY]</span> <span class="pre">=</span>
-<span class="pre">True</span></code>, importing this constant rather than re-spelling the key.</p>
+reads it as a hint, never a verdict (nw#279). A guest sets
+<code class="docutils literal notranslate"><span class="pre">meta[PLACED_META_KEY]</span> <span class="pre">=</span> <span class="pre">True</span></code> (exactly <code class="docutils literal notranslate"><span class="pre">True</span></code>), importing this constant
+rather than re-spelling the key. The key is namespaced because genres
+already use a bare <code class="docutils literal notranslate"><span class="pre">&quot;placed&quot;</span></code> for a count in their stage stats.</p>
 </dd></dl>
 
 <dl class="py data">
@@ -704,11 +706,14 @@ two rows. Every aggregator over <a class="reference internal" href="#nw.delivery
 so it is here. A <code class="docutils literal notranslate"><span class="pre">host</span></code> row (<code class="docutils literal notranslate"><span class="pre">genre</span> <span class="pre">==</span> <span class="pre">host</span></code>) is dropped when a guest
 row (any other <code class="docutils literal notranslate"><span class="pre">genre</span></code>) carries the same <code class="docutils literal notranslate"><span class="pre">project_id</span></code> and either:</p>
 <ul class="simple">
-<li><p>that guest row is marked placed (<code class="docutils literal notranslate"><span class="pre">meta[PLACED_META_KEY]</span></code>): the guest
-says so, no read needed; or</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">owner_of(genre_of(project_id))</span></code> is that guest’s genre: the project’s
 recorded genre belongs to it, so it is not a host project that merely
-shares an id. <code class="docutils literal notranslate"><span class="pre">genre_of</span></code> maps a <code class="docutils literal notranslate"><span class="pre">project_id</span></code> to its genre slug, e.g.
+shares an id; or</p></li>
+<li><p>the recorded genre is unknown (<code class="docutils literal notranslate"><span class="pre">genre_of</span></code> returns nothing, e.g. an
+envelope that predates the mirror) and that guest row is marked placed
+(<code class="docutils literal notranslate"><span class="pre">meta[PLACED_META_KEY]</span> <span class="pre">is</span> <span class="pre">True</span></code>): the mark stands in for a missing
+read. A mark never overrides a recorded genre that is not the guest’s:
+a genuine host project is kept. <code class="docutils literal notranslate"><span class="pre">genre_of</span></code> maps a <code class="docutils literal notranslate"><span class="pre">project_id</span></code> to its genre slug, e.g.
 <code class="docutils literal notranslate"><span class="pre">lambda</span> <span class="pre">pid:</span> <span class="pre">(nw.project_genre(projects_dir</span> <span class="pre">/</span> <span class="pre">pid)</span> <span class="pre">or</span> <span class="pre">{}).get(&quot;genre&quot;)</span></code>
 (<a class="reference internal" href="nw.html#nw.project_genre" title="nw.project_genre"><code class="xref py py-func docutils literal notranslate"><span class="pre">nw.project_genre()</span></code></a> returns the envelope and opens no graph);
 <code class="docutils literal notranslate"><span class="pre">owner_of</span></code> maps a slug to the genre (registry key) that lists it.</p></li>
@@ -720,7 +725,7 @@ one project: a host that lists several drawers must pre-filter its rows,
 since every colliding host row is dropped. Rows must carry their genre (the
 host stamps a blank one, per <a class="reference internal" href="#nw.delivery.ProjectLister" title="nw.delivery.ProjectLister"><code class="xref py py-data docutils literal notranslate"><span class="pre">ProjectLister</span></code></a>).</p>
 <div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span data-line="1"><span class="gp">&gt;&gt;&gt; </span><span class="n">rows</span> <span class="o">=</span> <span class="p">[</span><span class="n">ProjectSummary</span><span class="p">(</span><span class="s2">"p1"</span><span class="p">,</span> <span class="n">genre</span><span class="o">=</span><span class="s2">"host"</span><span class="p">),</span> <span class="n">ProjectSummary</span><span class="p">(</span><span class="s2">"p1"</span><span class="p">,</span> <span class="n">genre</span><span class="o">=</span><span class="s2">"guest"</span><span class="p">,</span>
-</span><span data-line="2"><span class="gp">... </span>        <span class="n">meta</span><span class="o">=</span><span class="p">{</span><span class="s2">"placed"</span><span class="p">:</span> <span class="kc">True</span><span class="p">}),</span> <span class="n">ProjectSummary</span><span class="p">(</span><span class="s2">"p2"</span><span class="p">,</span> <span class="n">genre</span><span class="o">=</span><span class="s2">"host"</span><span class="p">)]</span>
+</span><span data-line="2"><span class="gp">... </span>        <span class="n">meta</span><span class="o">=</span><span class="p">{</span><span class="n">PLACED_META_KEY</span><span class="p">:</span> <span class="kc">True</span><span class="p">}),</span> <span class="n">ProjectSummary</span><span class="p">(</span><span class="s2">"p2"</span><span class="p">,</span> <span class="n">genre</span><span class="o">=</span><span class="s2">"host"</span><span class="p">)]</span>
 </span><span data-line="3"><span class="gp">&gt;&gt;&gt; </span><span class="p">[(</span><span class="n">r</span><span class="o">.</span><span class="n">project_id</span><span class="p">,</span> <span class="n">r</span><span class="o">.</span><span class="n">genre</span><span class="p">)</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">drop_guest_placed_duplicates</span><span class="p">(</span>
 </span><span data-line="4"><span class="gp">... </span>    <span class="n">rows</span><span class="p">,</span> <span class="n">host</span><span class="o">=</span><span class="s2">"host"</span><span class="p">,</span> <span class="n">genre_of</span><span class="o">=</span><span class="k">lambda</span> <span class="n">i</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span> <span class="n">owner_of</span><span class="o">=</span><span class="k">lambda</span> <span class="n">g</span><span class="p">:</span> <span class="kc">None</span><span class="p">)]</span>
 </span><span data-line="5"><span class="go">[('p1', 'guest'), ('p2', 'host')]</span>
@@ -842,7 +847,7 @@ tool response a non-developer reads.</p>
     </div>
   </div>
 </footer>
-      <script src="../_static/documentation_options.js?v=4725bab1"></script>
+      <script src="../_static/documentation_options.js?v=af3f1973"></script>
       <script src="../_static/doctools.js?v=fd6eb6e6"></script>
       <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script src="../_static/clipboard.min.js?v=a7894cd8"></script>

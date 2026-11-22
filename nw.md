@@ -1,4 +1,4 @@
-> built 2026-11-22 07:38 UTC from ff12275 (main) · nw 0.0.157. Details: build_info.json
+> built 2026-11-22 07:42 UTC from 98baede (main) · nw 0.0.158. Details: build_info.json
 
 # index.html.md
 
@@ -2250,13 +2250,15 @@ requested change is refused. Deliberately NO delete: retrievability, cost
 and destruction are three separate predicates, and destruction does not
 ride a naming function — it would be a separately gated fifth function.
 
-### nw.delivery.PLACED_META_KEY *= 'placed'*
+### nw.delivery.PLACED_META_KEY *= 'nw.placed'*
 
 The `ProjectSummary.meta` key a guest genre sets on a row for a project a
 HOST placed in the caller’s bucket (muvid#334): “this row is the host’s
 placed project, listed by me too”. [`drop_guest_placed_duplicates()`](_autosummary/nw.delivery.html.md#nw.delivery.drop_guest_placed_duplicates)
-trusts it before any envelope read. A guest sets `meta[PLACED_META_KEY] =
-True`, importing this constant rather than re-spelling the key.
+reads it as a hint, never a verdict (nw#279). A guest sets
+`meta[PLACED_META_KEY] = True` (exactly `True`), importing this constant
+rather than re-spelling the key. The key is namespaced because genres
+already use a bare `"placed"` for a count in their stage stats.
 
 ### nw.delivery.ProjectLister
 
@@ -2457,11 +2459,14 @@ two rows. Every aggregator over [`ProjectLister`](_autosummary/nw.delivery.html.
 so it is here. A `host` row (`genre == host`) is dropped when a guest
 row (any other `genre`) carries the same `project_id` and either:
 
-- that guest row is marked placed (`meta[PLACED_META_KEY]`): the guest
-  says so, no read needed; or
 - `owner_of(genre_of(project_id))` is that guest’s genre: the project’s
   recorded genre belongs to it, so it is not a host project that merely
-  shares an id. `genre_of` maps a `project_id` to its genre slug, e.g.
+  shares an id; or
+- the recorded genre is unknown (`genre_of` returns nothing, e.g. an
+  envelope that predates the mirror) and that guest row is marked placed
+  (`meta[PLACED_META_KEY] is True`): the mark stands in for a missing
+  read. A mark never overrides a recorded genre that is not the guest’s:
+  a genuine host project is kept. `genre_of` maps a `project_id` to its genre slug, e.g.
   `lambda pid: (nw.project_genre(projects_dir / pid) or {}).get("genre")`
   ([`nw.project_genre()`](_autosummary/nw.html.md#nw.project_genre) returns the envelope and opens no graph);
   `owner_of` maps a slug to the genre (registry key) that lists it.
@@ -2475,7 +2480,7 @@ host stamps a blank one, per [`ProjectLister`](_autosummary/nw.delivery.html.md#
 
 ```pycon
 >>> rows = [ProjectSummary("p1", genre="host"), ProjectSummary("p1", genre="guest",
-...         meta={"placed": True}), ProjectSummary("p2", genre="host")]
+...         meta={PLACED_META_KEY: True}), ProjectSummary("p2", genre="host")]
 >>> [(r.project_id, r.genre) for r in drop_guest_placed_duplicates(
 ...     rows, host="host", genre_of=lambda i: None, owner_of=lambda g: None)]
 [('p1', 'guest'), ('p2', 'host')]
@@ -3869,7 +3874,7 @@ are recorded as linked artifacts), see
 | [`recommend_genre`](_autosummary/nw.html.md#nw.recommend_genre)(kind)                             | The slug of the genre whose `intake_kinds` contains `kind` (first in slug order), or `None` when `kind` is falsy / unmatched.                                                                                                      |
 | [`resolve_defaults`](_autosummary/nw.html.md#nw.resolve_defaults)(genre[, template])               | Resolve a genre (+ optional template) to the params for a new project.                                                                                                                                                             |
 | [`register_genre_resolver`](_autosummary/nw.html.md#nw.register_genre_resolver)(slug, resolver)           | Register a resolver for a genre slug; returns it for inline use.                                                                                                                                                                   |
-| [`project_genre`](_autosummary/nw.html.md#nw.project_genre)(project)                            | The `{genre, template, params}` envelope `project` was created as, read **without opening its graph** (nw#223); `None` when it has none.                                                                                           |
+| [`project_genre`](_autosummary/nw.html.md#nw.project_genre)(project, \*[, fallback])            | The `{genre, template, params}` envelope `project` was created as, read **without opening its graph** (nw#223); `None` when it has none.                                                                                           |
 | [`resolve_genre`](_autosummary/nw.html.md#nw.resolve_genre)(genre[, template])                  | Resolve a genre (+ optional template) to the standard creation envelope.                                                                                                                                                           |
 | [`register_genre_initializer`](_autosummary/nw.html.md#nw.register_genre_initializer)(slug, initializer)     | Register an initializer for a genre slug; returns it for inline use.                                                                                                                                                               |
 | [`initialize_genre`](_autosummary/nw.html.md#nw.initialize_genre)(genre, project, \*[, ...])       | Seed a freshly-created `project` for `genre` (+ optional `template`).                                                                                                                                                              |
@@ -7118,7 +7123,7 @@ produce different URLs. The local file paths are byte-stable.
   A [`ShotPreparation`](_autosummary/nw.html.md#nw.ShotPreparation) with local paths (and URLs if `upload`)
   ready to plan.
 
-### nw.project_genre(project)
+### nw.project_genre(project, , fallback=None)
 
 The `{genre, template, params}` envelope `project` was created as,
 read **without opening its graph** (nw#223); `None` when it has none.
@@ -7131,6 +7136,12 @@ not N graph opens (any of which can fail on a locked or corrupt graph).
 backfills the mirror for a project whose envelope predates it; until then
 such a project reads `None` here. An unreadable or malformed mirror also
 reads `None`, never raises.
+
+`fallback="graph"` (nw#280) adds a **read-only** second try for an
+envelope that predates the mirror: the graph is opened with the read-only
+opener (never creating or writing anything, and \*\*never backfilling the
+mirror\*\*, so a listing stays a pure read) and an unreadable or absent graph
+still reads `None`. The default, `None`, never opens a graph.
 
 * **Return type:**
   [`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[[`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)]
@@ -12626,20 +12637,18 @@ produce different URLs. The local file paths are byte-stable.
 
 # About this build
 
-This documentation was built on **2026-11-22 07:38 UTC** from commit <a href="https://github.com/reeleehq/nw/commit/ff12275452b78b622146cac92f39d2a86baabbf5"><code>ff12275</code></a> on branch <code>main</code>, for **nw 0.0.157** (from <code>pyproject.toml</code>).
+This documentation was built on **2026-11-22 07:42 UTC** from commit <a href="https://github.com/reeleehq/nw/commit/98baede0daafe9aa276b543ff4ad6d32ce916637"><code>98baede</code></a> on branch <code>main</code>, for **nw 0.0.158** (from <code>pyproject.toml</code>).
 
-#### WARNING
-The documentation and the package may be misaligned:
-
-- The documented version (0.0.157) is ahead of the latest release on PyPI (0.0.156): these docs describe unreleased code.
+#### NOTE
+Nothing suggests a mismatch: the tree was clean at the commit above, and the documented version is the one on PyPI.
 
 ## Source
 
 |                     |                                                                                                                                                    |
 |---------------------|----------------------------------------------------------------------------------------------------------------------------------------------------|
-| Commit              | <a href="https://github.com/reeleehq/nw/commit/ff12275452b78b622146cac92f39d2a86baabbf5"><code>ff12275452b78b622146cac92f39d2a86baabbf5</code></a> |
+| Commit              | <a href="https://github.com/reeleehq/nw/commit/98baede0daafe9aa276b543ff4ad6d32ce916637"><code>98baede0daafe9aa276b543ff4ad6d32ce916637</code></a> |
 | Branch              | <code>main</code>                                                                                                                                  |
-| Tags at this commit | <code>0.0.157</code>                                                                                                                               |
+| Tags at this commit | <code>0.0.158</code>                                                                                                                               |
 | Working tree        | clean                                                                                                                                              |
 | Remote              | <code>https://github.com/reeleehq/nw</code>                                                                                                        |
 
@@ -12648,9 +12657,9 @@ The documentation and the package may be misaligned:
 |              |                                                                                            |
 |--------------|--------------------------------------------------------------------------------------------|
 | Repository   | <code>reeleehq/nw</code>                                                                   |
-| Run          | <a href="https://github.com/reeleehq/nw/actions/runs/44998960508">44998960508</a>          |
+| Run          | <a href="https://github.com/reeleehq/nw/actions/runs/44999243344">44999243344</a>          |
 | Ref          | <code>refs/heads/main</code>                                                               |
-| Event commit | <code>6adbf3c8c6c5f26f83634e0ec1a919d1265ff499</code> (in the history of the built commit) |
+| Event commit | <code>e4953424f633c1632f89b521706aa52e1a66c667</code> (in the history of the built commit) |
 
 ## Tools
 
@@ -12675,13 +12684,13 @@ The documentation and the package may be misaligned:
 
 ## Package on PyPI
 
-Latest release: <a href="https://pypi.org/project/nw/0.0.156/">0.0.156</a>, older than the documented version (0.0.157).
+Latest release: <a href="https://pypi.org/project/nw/0.0.158/">0.0.158</a>, the same as the documented version.
 
 ## Reproduce
 
 ```bash
 git clone https://github.com/reeleehq/nw && cd nw
-git checkout ff12275452b78b622146cac92f39d2a86baabbf5
+git checkout 98baede0daafe9aa276b543ff4ad6d32ce916637
 pip install "epythet==0.2.23"
 epythet quickstart . --ignore tests/ scrap/ examples/
 ```
