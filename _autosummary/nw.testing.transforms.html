@@ -140,6 +140,7 @@ data-aria-dark="Switch to auto color mode">
 <li><a class="reference internal" href="#nw.testing.transforms.WriteRecord.written_in_call"><code class="docutils literal notranslate"><span class="pre">WriteRecord.written_in_call()</span></code></a></li>
 </ul>
 </li>
+<li><a class="reference internal" href="#nw.testing.transforms.make_truthful_writes_fixture"><code class="docutils literal notranslate"><span class="pre">make_truthful_writes_fixture()</span></code></a></li>
 <li><a class="reference internal" href="#nw.testing.transforms.recording_writes"><code class="docutils literal notranslate"><span class="pre">recording_writes()</span></code></a></li>
 </ul>
 </div><div id="ethical-ad-placement" data-ea-publisher="readthedocs"></div></div>
@@ -205,11 +206,24 @@ fresh id). What counts is fixed when the <code class="docutils literal notransla
 <a class="reference internal" href="#nw.testing.transforms.WriteRecord.check" title="nw.testing.transforms.WriteRecord.check"><code class="xref py py-meth docutils literal notranslate"><span class="pre">WriteRecord.check()</span></code></a> asserts every <code class="docutils literal notranslate"><span class="pre">result.written</span></code> row was, and every
 <code class="docutils literal notranslate"><span class="pre">result.reused_ids</span></code> row was not. Run it over a host’s registered Transforms,
 the way nw pins every <code class="docutils literal notranslate"><span class="pre">execute</span></code> signature.</p>
+<p>To check <strong>every</strong> overriding <code class="docutils literal notranslate"><span class="pre">execute</span></code> a suite runs, with no test of its own
+per Transform, put one line in <code class="docutils literal notranslate"><span class="pre">conftest.py</span></code> (nw#281):</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span data-line="1"><span class="kn">from</span><span class="w"> </span><span class="nn">nw.testing.transforms</span><span class="w"> </span><span class="kn">import</span> <span class="n">make_truthful_writes_fixture</span>
+</span><span data-line="2">
+</span><span data-line="3"><span class="n">truthful_writes</span> <span class="o">=</span> <span class="n">make_truthful_writes_fixture</span><span class="p">()</span>
+</span></pre></div>
+</div>
+<p>It wraps the <code class="docutils literal notranslate"><span class="pre">execute</span></code> of each class that owns a registered Transform’s
+<code class="docutils literal notranslate"><span class="pre">execute</span></code> and fails the test at teardown with every misreport, so a caller’s
+broad <code class="docutils literal notranslate"><span class="pre">except</span></code> cannot swallow the lie and a Transform added later is covered.</p>
 <p class="rubric">Functions</p>
 <div class="table-wrapper autosummary longtable docutils container">
 <table class="autosummary longtable docutils align-default">
 <tbody>
-<tr class="row-odd"><td><p><a class="reference internal" href="#nw.testing.transforms.recording_writes" title="nw.testing.transforms.recording_writes"><code class="xref py py-obj docutils literal notranslate"><span class="pre">recording_writes</span></code></a>(project)</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#nw.testing.transforms.make_truthful_writes_fixture" title="nw.testing.transforms.make_truthful_writes_fixture"><code class="xref py py-obj docutils literal notranslate"><span class="pre">make_truthful_writes_fixture</span></code></a>(*[, ...])</p></td>
+<td><p>A pytest fixture checking every registered Transform's <code class="docutils literal notranslate"><span class="pre">execute</span></code> (nw#281).</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#nw.testing.transforms.recording_writes" title="nw.testing.transforms.recording_writes"><code class="xref py py-obj docutils literal notranslate"><span class="pre">recording_writes</span></code></a>(project)</p></td>
 <td><p>Snapshot <code class="docutils literal notranslate"><span class="pre">project</span></code> now and, on exit, what the block wrote; <a class="reference internal" href="#nw.testing.transforms.WriteRecord.check" title="nw.testing.transforms.WriteRecord.check"><code class="xref py py-meth docutils literal notranslate"><span class="pre">WriteRecord.check()</span></code></a> a result made inside.</p></td>
 </tr>
 </tbody>
@@ -244,6 +258,11 @@ in the block: written by a raw <code class="docutils literal notranslate"><span 
 with a parent it could not resolve or digest, it reads stale forever
 (nw#271). Only rows the result reports are scanned; a derived row
 written but not reported is out of this check’s reach.</p>
+<p><code class="docutils literal notranslate"><span class="pre">require_traces=&quot;resolvable&quot;</span></code> (nw#281) asks for that trace only when
+every annotation parent of the row is in the graph: a unit scenario
+that never adds the parents cannot be traced, so unconditionally
+requiring it flags no production bug, while turning it off no longer
+catches a raw <code class="docutils literal notranslate"><span class="pre">store.add</span></code>.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><span class="highlight sphinx_autodoc_typehints-value"><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></a></span></span></p>
@@ -264,6 +283,24 @@ block exits; computed live while still inside it.</p>
 </dl>
 </dd></dl>
 
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="nw.testing.transforms.make_truthful_writes_fixture">
+<span class="sig-prename descclassname"><span class="pre">nw.testing.transforms.</span></span><span class="sig-name descname"><span class="pre">make_truthful_writes_fixture</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">owner_filter</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">&lt;function</span> <span class="pre">&lt;lambda&gt;&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">require_traces</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'resolvable'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">autouse</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/nw/testing/transforms.html#make_truthful_writes_fixture"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nw.testing.transforms.make_truthful_writes_fixture" title="Link to this definition">#</a></dt>
+<dd><p>A pytest fixture checking every registered Transform’s <code class="docutils literal notranslate"><span class="pre">execute</span></code> (nw#281).</p>
+<p>Like <code class="docutils literal notranslate"><span class="pre">falaw.testing.make_fake_assets_fixture</span></code>: call it in <code class="docutils literal notranslate"><span class="pre">conftest.py</span></code>
+and bind the result to a name. While a test runs, the <code class="docutils literal notranslate"><span class="pre">execute</span></code> of each
+class that owns a registered Transform’s <code class="docutils literal notranslate"><span class="pre">execute</span></code> is wrapped in
+<a class="reference internal" href="#nw.testing.transforms.recording_writes" title="nw.testing.transforms.recording_writes"><code class="xref py py-func docutils literal notranslate"><span class="pre">recording_writes()</span></code></a>; at teardown every misreport is raised together as
+one <code class="docutils literal notranslate"><span class="pre">AssertionError</span></code>. A nested <code class="docutils literal notranslate"><span class="pre">execute</span></code> (a <code class="docutils literal notranslate"><span class="pre">super().execute</span></code> call)
+is checked once, at the outermost call. Only results that carry
+<code class="docutils literal notranslate"><span class="pre">written</span></code> / <code class="docutils literal notranslate"><span class="pre">reused_ids</span></code> are checked.</p>
+<p><code class="docutils literal notranslate"><span class="pre">owner_filter(cls)</span> <span class="pre">-&gt;</span> <span class="pre">bool</span></code> narrows which classes are wrapped (e.g. only
+the host’s own package); <code class="docutils literal notranslate"><span class="pre">require_traces</span></code> is passed to
+<a class="reference internal" href="#nw.testing.transforms.WriteRecord.check" title="nw.testing.transforms.WriteRecord.check"><code class="xref py py-meth docutils literal notranslate"><span class="pre">WriteRecord.check()</span></code></a>, default <code class="docutils literal notranslate"><span class="pre">&quot;resolvable&quot;</span></code>.</p>
+<dl class="field-list simple">
+</dl>
 </dd></dl>
 
 <dl class="py function">
@@ -320,7 +357,7 @@ block exits; computed live while still inside it.</p>
     </div>
   </div>
 </footer>
-      <script src="../_static/documentation_options.js?v=8584dea9"></script>
+      <script src="../_static/documentation_options.js?v=b27c54c3"></script>
       <script src="../_static/doctools.js?v=fd6eb6e6"></script>
       <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script src="../_static/clipboard.min.js?v=a7894cd8"></script>

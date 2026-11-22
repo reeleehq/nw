@@ -8,6 +8,7 @@ nw.testing.transforms
 
    .. autosummary::
    
+      make_truthful_writes_fixture
       recording_writes
    
    .. rubric:: Classes

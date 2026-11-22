@@ -1,4 +1,4 @@
-> built 2026-11-22 07:53 UTC from e076819 (main) · nw 0.0.161. Details: build_info.json
+> built 2026-11-22 07:54 UTC from 65fc234 (main) · nw 0.0.162. Details: build_info.json
 
 # index.html.md
 
@@ -12025,10 +12025,24 @@ fresh id). What counts is fixed when the `with` block exits.
 `result.reused_ids` row was not. Run it over a host’s registered Transforms,
 the way nw pins every `execute` signature.
 
+To check **every** overriding `execute` a suite runs, with no test of its own
+per Transform, put one line in `conftest.py` (nw#281):
+
+```default
+from nw.testing.transforms import make_truthful_writes_fixture
+
+truthful_writes = make_truthful_writes_fixture()
+```
+
+It wraps the `execute` of each class that owns a registered Transform’s
+`execute` and fails the test at teardown with every misreport, so a caller’s
+broad `except` cannot swallow the lie and a Transform added later is covered.
+
 ### Functions
 
-| [`recording_writes`](_autosummary/nw.testing.transforms.html.md#nw.testing.transforms.recording_writes)(project)   | Snapshot `project` now and, on exit, what the block wrote; [`WriteRecord.check()`](_autosummary/nw.testing.transforms.html.md#nw.testing.transforms.WriteRecord.check) a result made inside.   |
-|------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------|
+| [`make_truthful_writes_fixture`](_autosummary/nw.testing.transforms.html.md#nw.testing.transforms.make_truthful_writes_fixture)(\*[, ...])   | A pytest fixture checking every registered Transform's `execute` (nw#281).                                                                            |
+|--------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------|
+| [`recording_writes`](_autosummary/nw.testing.transforms.html.md#nw.testing.transforms.recording_writes)(project)                 | Snapshot `project` now and, on exit, what the block wrote; [`WriteRecord.check()`](_autosummary/nw.testing.transforms.html.md#nw.testing.transforms.WriteRecord.check) a result made inside. |
 
 ### Classes
 
@@ -12054,6 +12068,12 @@ with a parent it could not resolve or digest, it reads stale forever
 (nw#271). Only rows the result reports are scanned; a derived row
 written but not reported is out of this check’s reach.
 
+`require_traces="resolvable"` (nw#281) asks for that trace only when
+every annotation parent of the row is in the graph: a unit scenario
+that never adds the parents cannot be traced, so unconditionally
+requiring it flags no production bug, while turning it off no longer
+catches a raw `store.add`.
+
 * **Return type:**
   [`None`](https://docs.python.org/3/builtins/constants.html#None)
 
@@ -12065,6 +12085,22 @@ block exits; computed live while still inside it.
 
 * **Return type:**
   [`frozenset`](https://docs.python.org/3/builtins/stdtypes.html#frozenset)[[`UUID`](https://docs.python.org/3/library/uuid.html#uuid.UUID)]
+
+### nw.testing.transforms.make_truthful_writes_fixture(\*, owner_filter=<function <lambda>>, require_traces='resolvable', autouse=True)
+
+A pytest fixture checking every registered Transform’s `execute` (nw#281).
+
+Like `falaw.testing.make_fake_assets_fixture`: call it in `conftest.py`
+and bind the result to a name. While a test runs, the `execute` of each
+class that owns a registered Transform’s `execute` is wrapped in
+[`recording_writes()`](_autosummary/nw.testing.transforms.html.md#nw.testing.transforms.recording_writes); at teardown every misreport is raised together as
+one `AssertionError`. A nested `execute` (a `super().execute` call)
+is checked once, at the outermost call. Only results that carry
+`written` / `reused_ids` are checked.
+
+`owner_filter(cls) -> bool` narrows which classes are wrapped (e.g. only
+the host’s own package); `require_traces` is passed to
+[`WriteRecord.check()`](_autosummary/nw.testing.transforms.html.md#nw.testing.transforms.WriteRecord.check), default `"resolvable"`.
 
 ### nw.testing.transforms.recording_writes(project)
 
@@ -12719,7 +12755,7 @@ produce different URLs. The local file paths are byte-stable.
 
 # About this build
 
-This documentation was built on **2026-11-22 07:53 UTC** from commit <a href="https://github.com/reeleehq/nw/commit/e0768197020e6873e71f9a8356ecf817a6b52580"><code>e076819</code></a> on branch <code>main</code>, for **nw 0.0.161** (from <code>pyproject.toml</code>).
+This documentation was built on **2026-11-22 07:54 UTC** from commit <a href="https://github.com/reeleehq/nw/commit/65fc234dd42eabc8c171a55664537797f78d460b"><code>65fc234</code></a> on branch <code>main</code>, for **nw 0.0.162** (from <code>pyproject.toml</code>).
 
 #### NOTE
 Nothing suggests a mismatch: the tree was clean at the commit above, and the documented version is the one on PyPI.
@@ -12728,9 +12764,9 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 
 |                     |                                                                                                                                                    |
 |---------------------|----------------------------------------------------------------------------------------------------------------------------------------------------|
-| Commit              | <a href="https://github.com/reeleehq/nw/commit/e0768197020e6873e71f9a8356ecf817a6b52580"><code>e0768197020e6873e71f9a8356ecf817a6b52580</code></a> |
+| Commit              | <a href="https://github.com/reeleehq/nw/commit/65fc234dd42eabc8c171a55664537797f78d460b"><code>65fc234dd42eabc8c171a55664537797f78d460b</code></a> |
 | Branch              | <code>main</code>                                                                                                                                  |
-| Tags at this commit | <code>0.0.161</code>                                                                                                                               |
+| Tags at this commit | <code>0.0.162</code>                                                                                                                               |
 | Working tree        | clean                                                                                                                                              |
 | Remote              | <code>https://github.com/reeleehq/nw</code>                                                                                                        |
 
@@ -12739,9 +12775,9 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 |              |                                                                                            |
 |--------------|--------------------------------------------------------------------------------------------|
 | Repository   | <code>reeleehq/nw</code>                                                                   |
-| Run          | <a href="https://github.com/reeleehq/nw/actions/runs/44999826838">44999826838</a>          |
+| Run          | <a href="https://github.com/reeleehq/nw/actions/runs/45000003860">45000003860</a>          |
 | Ref          | <code>refs/heads/main</code>                                                               |
-| Event commit | <code>2f15591e5a49b2caf405d6f26a2317a270fe69fb</code> (in the history of the built commit) |
+| Event commit | <code>d167f7284ce60c11713e78a1cf1a26a21c6455cb</code> (in the history of the built commit) |
 
 ## Tools
 
@@ -12766,13 +12802,13 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 
 ## Package on PyPI
 
-Latest release: <a href="https://pypi.org/project/nw/0.0.161/">0.0.161</a>, the same as the documented version.
+Latest release: <a href="https://pypi.org/project/nw/0.0.162/">0.0.162</a>, the same as the documented version.
 
 ## Reproduce
 
 ```bash
 git clone https://github.com/reeleehq/nw && cd nw
-git checkout e0768197020e6873e71f9a8356ecf817a6b52580
+git checkout 65fc234dd42eabc8c171a55664537797f78d460b
 pip install "epythet==0.2.23"
 epythet quickstart . --ignore tests/ scrap/ examples/
 ```
