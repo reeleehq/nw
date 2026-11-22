@@ -14,6 +14,11 @@ def test_unavailable_names_what_is_missing(monkeypatch):
     monkeypatch.setattr(pgt.importlib.util, "find_spec", lambda name: object())
     monkeypatch.setattr(pgt.shutil, "which", lambda name: None)
     assert "pg_ctl" in pgt.postgres_unavailable()
+    # a bare `postgres` binary without `pg_ctl` cannot start pytest-postgresql (nw#281)
+    monkeypatch.setattr(
+        pgt.shutil, "which", lambda name: "/usr/bin/postgres" if name == "postgres" else None
+    )
+    assert "pg_ctl" in pgt.postgres_unavailable()
     monkeypatch.setattr(pgt.shutil, "which", lambda name: "/usr/bin/" + name)
     assert pgt.postgres_unavailable() is None
 

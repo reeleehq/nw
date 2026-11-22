@@ -19,6 +19,17 @@ fresh id). What counts is fixed when the ``with`` block exits.
 :meth:`WriteRecord.check` asserts every ``result.written`` row was, and every
 ``result.reused_ids`` row was not. Run it over a host's registered Transforms,
 the way nw pins every ``execute`` signature.
+
+To check **every** overriding ``execute`` a suite runs, with no test of its own
+per Transform, put one line in ``conftest.py`` (nw#281)::
+
+    from nw.testing.transforms import make_truthful_writes_fixture
+
+    truthful_writes = make_truthful_writes_fixture()
+
+It wraps the ``execute`` of each class that owns a registered Transform's
+``execute`` and fails the test at teardown with every misreport, so a caller's
+broad ``except`` cannot swallow the lie and a Transform added later is covered.
 """
 
 from __future__ import annotations
@@ -30,7 +41,12 @@ from collections.abc import Mapping
 from typing import Iterator, Optional
 from uuid import UUID
 
-__all__ = ["WriteRecord", "recording_writes"]
+__all__ = ["WriteRecord", "make_truthful_writes_fixture", "recording_writes"]
+
+REQUIRE_TRACES_MODES = (True, False, "resolvable")
+"""``require_traces`` values: ``True`` (every written derived row must have a
+trace), ``False`` (never), ``"resolvable"`` (only a row whose annotation
+parents are all in the graph: one that cannot be traced is not a defect)."""
 
 
 @dataclass(frozen=True)
@@ -88,7 +104,10 @@ class WriteRecord:
         changed = {i for i, fp in now.rows.items() if self.before.rows.get(i) != fp}
         return frozenset(changed) | _new_trace_targets(self.project, self.before)
 
-    def check(self, result, *, require_traces: bool = True) -> None:
+    def _ids_now(self) -> frozenset[UUID]:
+        return frozenset(_snapshot(self.project).rows)
+
+    def check(self, result, *, require_traces: "bool | str" = True) -> None:
         """Raise ``AssertionError`` unless ``result.written`` / ``result.reused_ids``
         tell the truth (a real raise, so ``python -O`` cannot skip it).
 
@@ -97,7 +116,18 @@ class WriteRecord:
         in the block: written by a raw ``store.add``, or by ``add_annotation``
         with a parent it could not resolve or digest, it reads stale forever
         (nw#271). Only rows the result reports are scanned; a derived row
-        written but not reported is out of this check's reach."""
+        written but not reported is out of this check's reach.
+
+        ``require_traces="resolvable"`` (nw#281) asks for that trace only when
+        every annotation parent of the row is in the graph: a unit scenario
+        that never adds the parents cannot be traced, so unconditionally
+        requiring it flags no production bug, while turning it off no longer
+        catches a raw ``store.add``."""
+        if require_traces not in REQUIRE_TRACES_MODES:
+            raise ValueError(
+                f"require_traces must be one of {REQUIRE_TRACES_MODES}, "
+                f"not {require_traces!r}"
+            )
         written = self.written_in_call()
         claimed_written = {a.id for a in result.written}
         lies = (
@@ -116,17 +146,30 @@ class WriteRecord:
         )
         if require_traces:
             traced = _new_trace_targets(self.project, self.before)
+            in_graph = (
+                self._ids_now() if require_traces == "resolvable" else frozenset()
+            )
             lies += [
                 f"{a.id}: derived row has no verifying trace (a raw store.add, or "
                 "add_annotation could not resolve or digest a parent); reads stale forever"
                 for a in result.written
-                if a.provenance.was_derived_from and a.id not in traced
+                if a.provenance.was_derived_from
+                and a.id not in traced
+                and (require_traces is True or _parents_resolve(a, in_graph))
             ]
         lies.sort()
         if lies:
             raise AssertionError(
                 "TransformResult does not hold up:\n  " + "\n  ".join(lies)
             )
+
+
+def _parents_resolve(ann, ids_in_graph) -> bool:
+    """Whether every annotation parent of ``ann`` is in the graph."""
+    from lacing.model import partition_provenance_refs
+
+    parents, _assets = partition_provenance_refs(list(ann.provenance.was_derived_from))
+    return all(p in ids_in_graph for p in parents)
 
 
 @contextmanager
@@ -138,3 +181,86 @@ def recording_writes(project) -> Iterator[WriteRecord]:
         yield record
     finally:
         record._written = record.written_in_call()
+
+
+def _execute_owners(owner_filter) -> list[type]:
+    """Classes that own a registered Transform's ``execute`` (found through the MRO)."""
+    from nw.transforms import transforms
+
+    owners: dict[type, None] = {}
+    for name in list(transforms):
+        for cls in type(transforms[name]).__mro__:
+            if "execute" in vars(cls):
+                if owner_filter(cls):
+                    owners[cls] = None
+                break
+    return list(owners)
+
+
+def make_truthful_writes_fixture(
+    *,
+    owner_filter=lambda cls: True,
+    require_traces: "bool | str" = "resolvable",
+    autouse: bool = True,
+):
+    """A pytest fixture checking every registered Transform's ``execute`` (nw#281).
+
+    Like ``falaw.testing.make_fake_assets_fixture``: call it in ``conftest.py``
+    and bind the result to a name. While a test runs, the ``execute`` of each
+    class that owns a registered Transform's ``execute`` is wrapped in
+    :func:`recording_writes`; at teardown every misreport is raised together as
+    one ``AssertionError``. A nested ``execute`` (a ``super().execute`` call)
+    is checked once, at the outermost call. Only results that carry
+    ``written`` / ``reused_ids`` are checked.
+
+    ``owner_filter(cls) -> bool`` narrows which classes are wrapped (e.g. only
+    the host's own package); ``require_traces`` is passed to
+    :meth:`WriteRecord.check`, default ``"resolvable"``.
+    """
+    import functools
+    import threading
+
+    import pytest
+
+    depth = threading.local()
+
+    @pytest.fixture(autouse=autouse)
+    def truthful_writes():
+        owners = _execute_owners(owner_filter)
+        saved = {cls: vars(cls)["execute"] for cls in owners}
+        checked: list[tuple[WriteRecord, object]] = []
+
+        def wrap(orig):
+            @functools.wraps(orig)
+            def execute(self, project, *args, **kwargs):
+                if getattr(depth, "n", 0):
+                    return orig(self, project, *args, **kwargs)
+                depth.n = 1
+                try:
+                    with recording_writes(project) as record:
+                        result = orig(self, project, *args, **kwargs)
+                finally:
+                    depth.n = 0
+                if hasattr(result, "written") and hasattr(result, "reused_ids"):
+                    checked.append((record, result))
+                return result
+
+            return execute
+
+        for cls, orig in saved.items():
+            cls.execute = wrap(orig)
+        try:
+            yield
+        finally:
+            for cls, orig in saved.items():
+                cls.execute = orig
+        problems = []
+        for record, result in checked:
+            try:
+                record.check(result, require_traces=require_traces)
+            except AssertionError as e:
+                problems.append(str(e))
+        if problems:
+            raise AssertionError("\n".join(problems))
+
+    return truthful_writes
