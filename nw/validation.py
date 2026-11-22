@@ -240,7 +240,11 @@ class ValidationReport:
             "errored": [r.name for r in results if r.error],
             "reasons": {r.name: r.skipped or r.error for r in results if not r.ran},
             "remedies": [
-                f.remedy for r in results if r.ran and not r.ok for f in r.findings if f.remedy
+                f.remedy
+                for r in results
+                if r.ran and not r.ok
+                for f in r.findings
+                if f.remedy
             ],
             "summary": self.summary(),
         }
@@ -661,7 +665,8 @@ def _as_settings(raw: Any) -> "ValidationSettings":
         return ValidationSettings(**dict(raw))
     except PydanticValidationError as e:
         problems = "; ".join(
-            f"{'.'.join(str(p) for p in err['loc'])}: {err['msg']}" for err in e.errors()
+            f"{'.'.join(str(p) for p in err['loc'])}: {err['msg']}"
+            for err in e.errors()
         )
         raise ValueError(
             f"validation settings refused ({problems}); expected "
