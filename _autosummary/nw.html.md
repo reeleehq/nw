@@ -251,6 +251,24 @@ or a single primary annotation (one-to-one — the default). See the
 
 alias of [`None`](https://docs.python.org/3/builtins/constants.html#None)
 
+#### quote(skeletons)
+
+What `execute()` spends **outside** the `falaw.Plan`, in USD (nw#284).
+
+An optional hook. Default `0.0`: nothing outside the Plan, so the
+Plan’s own quote is the whole price. A Transform whose `execute` pays
+a provider itself (a sound-effect or TTS call that never becomes a
+Plan call) leaves the Plan empty, and every door that prices a stage
+from the Plan would read a known `$0`; such a Transform overrides
+this, returning `None` when the amount is unknown (`None` is
+unknown, never free). A host adds this to the Plan’s quote, and can
+test completeness: a Transform that overrides `execute` and plans an
+empty Plan must either override `quote` or be on an explicit free
+list. `skeletons` is what `plan()` returned for the same call.
+
+* **Return type:**
+  [`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[[`float`](https://docs.python.org/3/builtins/functions.html#float)]
+
 #### reuse_fresh_outputs *: [bool](https://docs.python.org/3/builtins/functions.html#bool)* *= False*
 
 Whether `execute()` reuses an output’s *fresh equivalent* instead of

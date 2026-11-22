@@ -1,4 +1,4 @@
-> built 2026-11-22 07:42 UTC from 98baede (main) · nw 0.0.158. Details: build_info.json
+> built 2026-11-22 07:45 UTC from 6c71232 (main) · nw 0.0.159. Details: build_info.json
 
 # index.html.md
 
@@ -4064,6 +4064,24 @@ or a single primary annotation (one-to-one — the default). See the
 #### params_model
 
 alias of [`None`](https://docs.python.org/3/builtins/constants.html#None)
+
+#### quote(skeletons)
+
+What `execute()` spends **outside** the `falaw.Plan`, in USD (nw#284).
+
+An optional hook. Default `0.0`: nothing outside the Plan, so the
+Plan’s own quote is the whole price. A Transform whose `execute` pays
+a provider itself (a sound-effect or TTS call that never becomes a
+Plan call) leaves the Plan empty, and every door that prices a stage
+from the Plan would read a known `$0`; such a Transform overrides
+this, returning `None` when the amount is unknown (`None` is
+unknown, never free). A host adds this to the Plan’s quote, and can
+test completeness: a Transform that overrides `execute` and plans an
+empty Plan must either override `quote` or be on an explicit free
+list. `skeletons` is what `plan()` returned for the same call.
+
+* **Return type:**
+  [`Optional`](https://docs.python.org/3/library/typing.html#typing.Optional)[[`float`](https://docs.python.org/3/builtins/functions.html#float)]
 
 #### reuse_fresh_outputs *: [bool](https://docs.python.org/3/builtins/functions.html#bool)* *= False*
 
@@ -12637,7 +12655,7 @@ produce different URLs. The local file paths are byte-stable.
 
 # About this build
 
-This documentation was built on **2026-11-22 07:42 UTC** from commit <a href="https://github.com/reeleehq/nw/commit/98baede0daafe9aa276b543ff4ad6d32ce916637"><code>98baede</code></a> on branch <code>main</code>, for **nw 0.0.158** (from <code>pyproject.toml</code>).
+This documentation was built on **2026-11-22 07:45 UTC** from commit <a href="https://github.com/reeleehq/nw/commit/6c71232c734877d2cfa99caec97849f5f3a2541a"><code>6c71232</code></a> on branch <code>main</code>, for **nw 0.0.159** (from <code>pyproject.toml</code>).
 
 #### NOTE
 Nothing suggests a mismatch: the tree was clean at the commit above, and the documented version is the one on PyPI.
@@ -12646,9 +12664,9 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 
 |                     |                                                                                                                                                    |
 |---------------------|----------------------------------------------------------------------------------------------------------------------------------------------------|
-| Commit              | <a href="https://github.com/reeleehq/nw/commit/98baede0daafe9aa276b543ff4ad6d32ce916637"><code>98baede0daafe9aa276b543ff4ad6d32ce916637</code></a> |
+| Commit              | <a href="https://github.com/reeleehq/nw/commit/6c71232c734877d2cfa99caec97849f5f3a2541a"><code>6c71232c734877d2cfa99caec97849f5f3a2541a</code></a> |
 | Branch              | <code>main</code>                                                                                                                                  |
-| Tags at this commit | <code>0.0.158</code>                                                                                                                               |
+| Tags at this commit | <code>0.0.159</code>                                                                                                                               |
 | Working tree        | clean                                                                                                                                              |
 | Remote              | <code>https://github.com/reeleehq/nw</code>                                                                                                        |
 
@@ -12657,9 +12675,9 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 |              |                                                                                            |
 |--------------|--------------------------------------------------------------------------------------------|
 | Repository   | <code>reeleehq/nw</code>                                                                   |
-| Run          | <a href="https://github.com/reeleehq/nw/actions/runs/44999243344">44999243344</a>          |
+| Run          | <a href="https://github.com/reeleehq/nw/actions/runs/44999408779">44999408779</a>          |
 | Ref          | <code>refs/heads/main</code>                                                               |
-| Event commit | <code>e4953424f633c1632f89b521706aa52e1a66c667</code> (in the history of the built commit) |
+| Event commit | <code>da19d689fc99759773d0d44a1702b080f89dd829</code> (in the history of the built commit) |
 
 ## Tools
 
@@ -12684,13 +12702,13 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 
 ## Package on PyPI
 
-Latest release: <a href="https://pypi.org/project/nw/0.0.158/">0.0.158</a>, the same as the documented version.
+Latest release: <a href="https://pypi.org/project/nw/0.0.159/">0.0.159</a>, the same as the documented version.
 
 ## Reproduce
 
 ```bash
 git clone https://github.com/reeleehq/nw && cd nw
-git checkout 98baede0daafe9aa276b543ff4ad6d32ce916637
+git checkout 6c71232c734877d2cfa99caec97849f5f3a2541a
 pip install "epythet==0.2.23"
 epythet quickstart . --ignore tests/ scrap/ examples/
 ```
