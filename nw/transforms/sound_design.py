@@ -230,6 +230,26 @@ def _spend_arguments(config: SoundDesignConfigBodyV1) -> dict:
     return arguments
 
 
+class SoundDesignMixGone(RuntimeError):
+    """A cached design's mix was pruned from falaw's content store (nw#296).
+
+    A size-bounded prune can evict the FLAC and keep the small cached sidecar.
+    A host recovers by re-running that one design with ``force=True``; catch
+    this type rather than match the message. Subclasses :class:`RuntimeError`,
+    which the refusal used to be.
+
+    >>> SoundDesignMixGone("t", "a" * 64).artifact_id == "a" * 64
+    True
+    """
+
+    def __init__(self, name: str, artifact_id: str) -> None:
+        self.name, self.artifact_id = name, artifact_id
+        super().__init__(
+            f"{name}: the cached mix {artifact_id} is gone from "
+            "falaw's content store; execute with force=True to make it again."
+        )
+
+
 @dataclass(frozen=True)
 class NarrationTrack:
     """What foley needs from one narration: its spoken text, its audio, and
@@ -433,10 +453,7 @@ class NarrationToSoundDesign(BaseTransform):
         merged = super()._complete_annotation(skeleton, artifact)
         body = SoundDesignBodyV1.model_validate(merged.body).model_dump(mode="json")
         if not default_content_store().has_blob(body["artifact_id"]):
-            raise RuntimeError(
-                f"{self.name}: the cached mix {body['artifact_id']} is gone from "
-                "falaw's content store; execute with force=True to make it again."
-            )
+            raise SoundDesignMixGone(self.name, body["artifact_id"])
         return merged.model_copy(update={"body": body})
 
 
