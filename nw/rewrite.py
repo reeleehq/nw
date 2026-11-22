@@ -40,7 +40,8 @@ from contextlib import suppress
 import logging
 import re
 from collections.abc import Callable, Mapping
-from typing import Any
+from dataclasses import dataclass
+from typing import Any, Literal
 from uuid import UUID
 
 
@@ -125,9 +126,44 @@ TRACE_UPGRADE_MARKER = "traces-on-current-digest-scheme"
 are all on today's digest scheme (bump it if the scheme moves again)."""
 
 
+@dataclass(frozen=True)
+class TraceUpgradeReport:
+    """What :func:`upgrade_superseded_traces` did (nw#282).
+
+    ``moved`` is the count it has always returned. ``left_alone`` names each
+    trace it could have re-recorded but could not (the store write raised),
+    with the ids of the parents that trace vouches for: the parents a host
+    must not fill, because their dependents would read ``upstream-changed``.
+    A trace that is already stale (or names a parent that is gone) is not
+    listed: it was never this function's to freshen.
+    """
+
+    moved: int = 0
+    left_alone: tuple["LeftTrace", ...] = ()
+
+    @property
+    def unprotected_parent_ids(self) -> frozenset:
+        return frozenset(p for t in self.left_alone for p in t.parent_ids)
+
+    def __int__(self) -> int:
+        return self.moved
+
+
+@dataclass(frozen=True)
+class LeftTrace:
+    """A trace :func:`upgrade_superseded_traces` could not re-record."""
+
+    trace_id: UUID
+    parent_ids: tuple[UUID, ...]
+
+
 def upgrade_superseded_traces(
-    project: ProjectLike, *, marker: str | None = TRACE_UPGRADE_MARKER
-) -> int:
+    project: ProjectLike,
+    *,
+    marker: str | None = TRACE_UPGRADE_MARKER,
+    report: bool = False,
+    on_failure: Literal["skip", "raise"] = "skip",
+):
     """Re-record every verifying trace that is on a superseded digest scheme, or
     whose entries are not what nw records today, **while it still vouches** for
     its parents' current values; return how many traces moved (nw#226).
@@ -148,22 +184,33 @@ def upgrade_superseded_traces(
     Idempotent; with ``marker`` (the default) it runs at most once per project,
     under the same lock and marker discipline as :func:`rewrite_values`;
     ``marker=None`` runs every time.
+
+    Returns the count of traces moved (``int``). A trace whose store write
+    raises is logged and left as it is; ``report=True`` returns a
+    :class:`TraceUpgradeReport` instead, naming each such trace and its parent
+    ids (``moved`` still reads as the count, and ``int(report)`` works), and
+    ``on_failure="raise"`` re-raises the first such error (no marker is
+    written, so a later run tries again). A run skipped by the marker reports
+    nothing left alone.
     """
+    if on_failure not in ("skip", "raise"):
+        raise ValueError(f"on_failure must be 'skip' or 'raise', not {on_failure!r}")
     key = _marker_key(marker) if marker is not None else None
     storage = as_project_storage(project)
+    result = TraceUpgradeReport()
     if key is not None and key in storage.docs:
-        return 0
+        return result if report else 0
     with project_lock(storage, LOCK_NAME):
         if key is not None and key in storage.docs:
-            return 0
+            return result if report else 0
         _freshness_pass.forget()
         try:
-            moved = _upgrade_traces(storage)
+            result = _upgrade_traces(storage, on_failure=on_failure)
         finally:
             _freshness_pass.forget()
         if key is not None:
-            storage.docs[key] = {"rewritten": moved}
-    return moved
+            storage.docs[key] = {"rewritten": result.moved}
+    return result if report else result.moved
 
 
 def _upgraded_upstream(body: Mapping, by_id: Mapping[UUID, Any], today_of=None):
@@ -197,7 +244,7 @@ def _upgraded_upstream(body: Mapping, by_id: Mapping[UUID, Any], today_of=None):
     return upstream if moved else None
 
 
-def _upgrade_traces(storage) -> int:
+def _upgrade_traces(storage, *, on_failure: str = "skip") -> TraceUpgradeReport:
     from .graph import iter_all_annotations
 
     by_id = {a.id: a for a in iter_all_annotations(storage)}
@@ -209,6 +256,7 @@ def _upgrade_traces(storage) -> int:
         return todays[parent.id]
 
     moved = 0
+    left: list[LeftTrace] = []
     with storage.open_stores() as stores:
         for store in stores:
             for ann in list(store.all()):
@@ -230,12 +278,25 @@ def _upgrade_traces(storage) -> int:
                     store.update(ann.model_copy(update={"body": body}))
                     moved += 1
                 except Exception:
+                    if on_failure == "raise":
+                        raise
                     _logger.warning(
                         "upgrade_superseded_traces: left trace %s as it is",
                         ann.id,
                         exc_info=True,
                     )
-    return moved
+                    left.append(LeftTrace(ann.id, _parent_ids(ann.body)))
+    return TraceUpgradeReport(moved, tuple(left))
+
+
+def _parent_ids(body: Mapping) -> tuple[UUID, ...]:
+    ids = []
+    for entry in body.get("upstream") or ():
+        try:
+            ids.append(UUID(str(entry["annotation_id"])))
+        except (KeyError, ValueError, TypeError):
+            continue
+    return tuple(ids)
 
 
 def is_rewritten(project: ProjectLike, marker: str) -> bool:

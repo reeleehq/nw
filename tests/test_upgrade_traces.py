@@ -121,3 +121,56 @@ def test_one_unprocessable_trace_does_not_stop_the_others(
     assert _scheme_of_trace_for(proj, c1.id) == OLD
     assert _scheme_of_trace_for(proj, c2.id) == VALUE_DIGEST_SCHEME
     assert nw.is_rewritten(proj, rewrite.TRACE_UPGRADE_MARKER)
+
+
+def _fails_to_rerecord(monkeypatch):
+    import nw.rewrite as rewrite
+
+    def boom(*a, **k):
+        raise RuntimeError("store write failed")
+
+    monkeypatch.setattr(rewrite, "_upgraded_upstream", boom)
+
+
+def test_report_names_the_traces_it_could_not_re_record_and_their_parents(
+    tmp_path, derived_field_schema, monkeypatch
+):
+    proj = nw.Project.init(tmp_path / "p")
+    parent = _parent_with_derived_field(proj)
+    child = _derived(proj, (parent.id,), body={"url": "x"})
+    _as_recorded_under(proj, child, OLD)
+    _fails_to_rerecord(monkeypatch)
+
+    assert nw.upgrade_superseded_traces(proj, marker=None) == 0  # int by default
+    rep = nw.upgrade_superseded_traces(proj, marker=None, report=True)
+    assert rep.moved == 0 and int(rep) == 0
+    (left,) = rep.left_alone
+    assert left.parent_ids == (parent.id,)
+    assert rep.unprotected_parent_ids == {parent.id}
+
+
+def test_report_is_empty_when_everything_moved(tmp_path, derived_field_schema):
+    proj = nw.Project.init(tmp_path / "p")
+    parent = _parent_with_derived_field(proj)
+    child = _derived(proj, (parent.id,), body={"url": "x"})
+    _as_recorded_under(proj, child, OLD)
+    rep = nw.upgrade_superseded_traces(proj, report=True)
+    assert rep.moved == 1 and rep.left_alone == ()
+
+
+def test_on_failure_raise_raises_and_leaves_no_marker(
+    tmp_path, derived_field_schema, monkeypatch
+):
+    import pytest
+
+    proj = nw.Project.init(tmp_path / "p")
+    parent = _parent_with_derived_field(proj)
+    child = _derived(proj, (parent.id,), body={"url": "x"})
+    _as_recorded_under(proj, child, OLD)
+    _fails_to_rerecord(monkeypatch)
+    with pytest.raises(RuntimeError):
+        nw.upgrade_superseded_traces(proj, on_failure="raise")
+    monkeypatch.undo()
+    assert nw.upgrade_superseded_traces(proj) == 1  # no marker: it tries again
+    with pytest.raises(ValueError, match="on_failure"):
+        nw.upgrade_superseded_traces(proj, on_failure="nope")

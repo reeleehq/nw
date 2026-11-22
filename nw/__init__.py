@@ -93,6 +93,7 @@ from .rewrite import (
     mark_rewritten,
     rewrite_values,
     unmark_rewritten,
+    TraceUpgradeReport,
     upgrade_superseded_traces,
 )
 from .storage import (
@@ -312,6 +313,7 @@ __all__ = [
     "NwTooOldError",
     "safe_path_segment",
     "unmark_rewritten",
+    "TraceUpgradeReport",
     "upgrade_superseded_traces",
     "ProjectGraph",
     "ProjectStorage",
