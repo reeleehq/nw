@@ -87,6 +87,7 @@ __all__ = [
     "menu_rows",
     "unreachable_row",
     "veto_message",
+    "env_var",
 ]
 
 
@@ -637,10 +638,54 @@ def expand_selection(
     return tuple(out)
 
 
+def _as_settings(raw: Any) -> "ValidationSettings":
+    """``raw`` as a :class:`ValidationSettings`, shape only (names unchecked): the
+    model itself, a mapping, or any object with ``model_dump()`` or
+    ``profiles``/``placements`` attributes (a host's own settings model)."""
+    if isinstance(raw, ValidationSettings):
+        return raw
+    if not isinstance(raw, Mapping):
+        if hasattr(raw, "model_dump"):
+            raw = raw.model_dump()
+        elif hasattr(raw, "profiles") or hasattr(raw, "placements"):
+            raw = {
+                "profiles": dict(getattr(raw, "profiles", None) or {}),
+                "placements": dict(getattr(raw, "placements", None) or {}),
+            }
+        else:
+            raise ValueError(
+                "validation settings must be an object with 'profiles' and/or "
+                f"'placements', got {type(raw).__name__}"
+            )
+    try:
+        return ValidationSettings(**dict(raw))
+    except PydanticValidationError as e:
+        problems = "; ".join(
+            f"{'.'.join(str(p) for p in err['loc'])}: {err['msg']}" for err in e.errors()
+        )
+        raise ValueError(
+            f"validation settings refused ({problems}); expected "
+            "{'profiles': {name: [checks]}, 'placements': {placement: [names]}}"
+        ) from None
+
+
+def env_var(placement: str, *, env_prefix: str = DFLT_ENV_PREFIX) -> str:
+    """The environment variable that selects checks for ``placement``: the
+    prefix, then the placement upper-cased with anything a shell cannot name
+    made ``_``.
+
+    >>> env_var("before-publish")
+    'NW_VALIDATE_BEFORE_PUBLISH'
+    """
+    import re
+
+    return env_prefix + re.sub(r"\W", "_", placement).upper()
+
+
 def select(
     placement: str,
     *,
-    checks: Iterable[str] | None = None,
+    checks: Iterable[str] | str | None = None,
     settings: Any = None,
     environ: Mapping[str, str] | None = None,
     env_prefix: str = DFLT_ENV_PREFIX,
@@ -648,11 +693,15 @@ def select(
 ) -> tuple[str, ...]:
     """The check names that run at ``placement``, profiles expanded; ``()``: none.
 
-    First match wins: an explicit ``checks=``; the environment variable
-    ``{env_prefix}{PLACEMENT}`` (comma-separated names); the ``settings``'
-    placement (a :class:`ValidationSettings` or its dict); nothing. Never
-    implicit. ``placements``, when given, are the host's known placements, and
-    another one raises ``ValueError``; so does an unknown name.
+    First match wins: an explicit ``checks=`` (a name or names; ``[]`` selects
+    nothing); the environment variable :func:`env_var` names, when it holds at
+    least one name (a blank or comma-only value counts as unset); the
+    ``settings``' placement (a :class:`ValidationSettings`, its dict, or a
+    host's own settings object); nothing. Never implicit. Only the chosen names
+    are checked, so a stale name saved for another placement, or overridden
+    here, does not stop this one; :func:`checked_settings` checks the whole
+    object on write. ``placements``, when given, are the host's known
+    placements, and another one raises ``ValueError``; so does an unknown name.
 
     >>> select("before_publish", environ={})
     ()
@@ -665,13 +714,17 @@ def select(
 
     if placements is not None and placement not in tuple(placements):
         raise ValueError(f"unknown placement {placement!r}; known: {list(placements)}")
-    settings = checked_settings(settings or {}, placements=placements)
+    settings = _as_settings(settings or {})
     env = os.environ if environ is None else environ
-    raw_env = (env.get(env_prefix + placement.upper()) or "").strip()
+    from_env = tuple(
+        n.strip()
+        for n in (env.get(env_var(placement, env_prefix=env_prefix)) or "").split(",")
+        if n.strip()
+    )
     if checks is not None:
-        names = tuple(checks)
-    elif raw_env:
-        names = tuple(n.strip() for n in raw_env.split(",") if n.strip())
+        names = (checks,) if isinstance(checks, str) else tuple(checks)
+    elif from_env:
+        names = from_env
     else:
         names = tuple(settings.placements.get(placement, ()))
     return expand_selection(names, settings.profiles)
@@ -680,34 +733,23 @@ def select(
 def checked_settings(
     raw: Any, *, placements: Iterable[str] | None = None
 ) -> "ValidationSettings":
-    """``raw`` as a :class:`ValidationSettings` whose every name is a check or a
-    profile (and every placement one of ``placements``, when given). Raises a
-    plain ``ValueError`` with a readable message otherwise, on write rather
-    than at the next run."""
-    if isinstance(raw, ValidationSettings):
-        settings = raw
-    elif isinstance(raw, Mapping):
-        try:
-            settings = ValidationSettings(**dict(raw))
-        except PydanticValidationError as e:
-            problems = "; ".join(
-                f"{'.'.join(str(p) for p in err['loc'])}: {err['msg']}" for err in e.errors()
-            )
-            raise ValueError(
-                f"validation settings refused ({problems}); expected "
-                "{'profiles': {name: [checks]}, 'placements': {placement: [names]}}"
-            ) from None
-    else:
-        raise ValueError(
-            "validation settings must be an object with 'profiles' and/or "
-            f"'placements', got {type(raw).__name__}"
-        )
+    """``raw`` (anything :func:`select` takes) as a :class:`ValidationSettings`
+    whose every name is a check or a profile, no profile named like a check (it
+    would silently win), and every placement one of ``placements``, when given.
+    Raises a plain ``ValueError`` with a readable message otherwise, on write
+    rather than at the next run."""
+    settings = _as_settings(raw)
     if placements is not None:
         unknown = sorted(set(settings.placements) - set(placements))
         if unknown:
             raise ValueError(
                 f"unknown placement(s) {unknown} in validation settings; known: {list(placements)}"
             )
+    shadowing = sorted(set(settings.profiles) & set(checks))
+    if shadowing:
+        raise ValueError(
+            f"profile name(s) {shadowing} are also check names; rename the profile(s)"
+        )
     for names in (*settings.profiles.values(), *settings.placements.values()):
         expand_selection(names, settings.profiles)
     return settings

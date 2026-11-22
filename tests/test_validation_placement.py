@@ -98,3 +98,33 @@ def test_a_report_row_never_counts_a_check_that_did_not_run_as_a_pass_and_the_ve
     assert "media.streams_present errored on cut.mp4 (boom)" in msg
     assert "on b.mp4 (not fetched)" in msg
     assert veto_message([ValidationReport("ok.mp4", (CheckResult("x"),)).row()]) is None
+
+
+def test_review_findings_stale_names_elsewhere_host_models_strings_and_env_names():
+    """nw#298 review: a stale name saved for another placement does not stop
+    this one, nor an explicit override; a host's own settings model is taken;
+    a bare string is one name; a comma-only variable is unset; a profile may
+    not be named like a check; a placement with a dash still has a variable."""
+    from pydantic import BaseModel
+
+    from nw.validation import env_var
+
+    a, b = _two_checks()
+    stale = {"placements": {"before_present": ["gone.check"], "before_publish": [a]}}
+    assert select("before_publish", settings=stale, environ={}) == (a,)
+    assert select("before_publish", checks=[b], settings=stale, environ={}) == (b,)
+    with pytest.raises(ValueError, match="gone.check"):
+        checked_settings(stale)
+
+    class HostSettings(BaseModel):
+        profiles: dict = {}
+        placements: dict = {}
+
+    host = HostSettings(placements={"before_publish": [b]})
+    assert select("before_publish", settings=host, environ={}) == (b,)
+    assert select("before_publish", checks=a, environ={}) == (a,)
+    assert select("before_publish", checks=[], settings=host, environ={}) == ()
+    assert select("before_publish", settings=host, environ={env_var("before_publish"): " , "}) == (b,)
+    with pytest.raises(ValueError, match="also check names"):
+        checked_settings({"profiles": {a: [b]}})
+    assert env_var("before-publish", env_prefix="REELEE_VALIDATE_") == "REELEE_VALIDATE_BEFORE_PUBLISH"
