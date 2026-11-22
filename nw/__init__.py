@@ -73,6 +73,12 @@ from .validation import (
     register_check,
     suggest,
     validate,
+    ValidationSettings,
+    select as select_validation,
+    checked_settings as checked_validation_settings,
+    menu_rows as validation_menu_rows,
+    unreachable_row,
+    veto_message,
 )
 from .checks import register_builtin_checks as _register_builtin_checks
 from .pricing import (
@@ -411,6 +417,13 @@ __all__ = [
     "register_check",
     "suggest",
     "validate",
+    # placing it (nw#285): profiles, precedence, rows, vetoes
+    "ValidationSettings",
+    "select_validation",
+    "checked_validation_settings",
+    "validation_menu_rows",
+    "unreachable_row",
+    "veto_message",
     "all_stale",
     "fresh_equivalents",
     "fresh_ids",

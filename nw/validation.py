@@ -60,6 +60,8 @@ from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field, replace
 from typing import Any, Callable, Iterable, Literal, Mapping, Sequence
 
+from pydantic import BaseModel, ConfigDict, Field
+from pydantic import ValidationError as PydanticValidationError
 from xdol import Registry
 
 __all__ = [
@@ -76,6 +78,16 @@ __all__ = [
     "validate",
     "suggest",
     "menu",
+    "ValidationSettings",
+    "CHEAP_COSTS",
+    "package_profiles",
+    "expand_selection",
+    "select",
+    "checked_settings",
+    "menu_rows",
+    "unreachable_row",
+    "veto_message",
+    "env_var",
 ]
 
 
@@ -205,6 +217,33 @@ class ValidationReport:
         if not self.ok:
             raise ValidationError(self)
         return self
+
+    def row(self, target: str | None = None) -> dict:
+        """This report as one row a host shows or gates on (nw#285): ``ok`` only
+        when every check RAN and passed; ``failed``, and apart from it the two
+        ways not to run, which say nothing about the media: ``could_not_run``
+        (skipped: a missing binary, an unreadable file) and ``errored`` (the
+        check raised); ``reasons`` for each, ``remedies`` from the failed
+        checks' findings, and the :meth:`summary`. ``target`` names it (default:
+        the report's own target).
+
+        >>> ValidationReport("a.mp4", (CheckResult("x", skipped="no ffprobe"),)).row()["could_not_run"]
+        ['x']
+        """
+        results = list(self.results)
+        failed = [r.name for r in results if r.ran and not r.ok]
+        return {
+            "target": str(self.target) if target is None else target,
+            "ok": self.ok,
+            "failed": failed,
+            "could_not_run": [r.name for r in results if r.skipped],
+            "errored": [r.name for r in results if r.error],
+            "reasons": {r.name: r.skipped or r.error for r in results if not r.ran},
+            "remedies": [
+                f.remedy for r in results if r.ran and not r.ok for f in r.findings if f.remedy
+            ],
+            "summary": self.summary(),
+        }
 
     def summary(self) -> str:
         """A few lines a human can read without unpacking the object."""
@@ -524,3 +563,265 @@ def _split(produced: Any) -> tuple[Iterable[Finding], Any]:
     ):
         return produced[0] or (), produced[1]
     return produced or (), None
+
+
+# ---------------------------------------------------------------------------
+# Placing it: which checks run where (nw#285)
+# ---------------------------------------------------------------------------
+#
+# A host places validation at named points of its own pipeline (reelee's
+# ``before_present`` and ``before_publish``; a placement is the host's string).
+# What every host would otherwise rewrite lives here: a settings model of named
+# profiles and placements, the selection precedence, profile expansion that
+# refuses an unknown name, the package profile derived from the menu, the menu
+# as rows a model reads, and a report's row and veto message.
+
+#: The cost classes the package profile ``cheap`` draws from: never ``paid``.
+CHEAP_COSTS: tuple[str, ...] = ("free", "cheap")
+
+#: The environment variable prefix that selects checks for a placement:
+#: ``NW_VALIDATE_BEFORE_PUBLISH=media.encode_complete,quick``. A host passes its own.
+DFLT_ENV_PREFIX: str = "NW_VALIDATE_"
+
+
+class ValidationSettings(BaseModel):
+    """What a host persists: named profiles, and which names each placement runs.
+
+    ``profiles`` maps a name to a list of check names; ``placements`` maps a
+    placement (the host's string) to names, each a profile or a check. Empty,
+    the default: nothing runs anywhere (validation is never implicit).
+
+    >>> ValidationSettings(placements={"before_publish": ["cheap"]}).placements
+    {'before_publish': ('cheap',)}
+    """
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    profiles: dict[str, tuple[str, ...]] = Field(
+        default_factory=dict,
+        description="Named check lists, e.g. {'quick': ['media.encode_complete']}.",
+    )
+    placements: dict[str, tuple[str, ...]] = Field(
+        default_factory=dict,
+        description="Placement -> names (profiles or checks), e.g. {'before_publish': ['quick']}.",
+    )
+
+
+def package_profiles() -> dict[str, tuple[str, ...]]:
+    """The profiles derived from the menu, never written by hand: ``cheap`` is
+    every check whose cost is in :data:`CHEAP_COSTS` (so never a ``paid`` one)."""
+    return {"cheap": tuple(c.name for c in menu(cost=list(CHEAP_COSTS)))}
+
+
+def expand_selection(
+    names: Iterable[str], profiles: Mapping[str, Sequence[str]] | None = None
+) -> tuple[str, ...]:
+    """``names`` (checks or profiles) as check names, profiles expanded, each once,
+    in order. Raises ``ValueError`` for a name that is neither: a typo must not
+    quietly validate nothing.
+
+    >>> expand_selection([], {})
+    ()
+    """
+    profiles = {**package_profiles(), **(profiles or {})}
+    known = set(checks)
+    out: list[str] = []
+    for name in names:
+        for member in profiles.get(name, (name,)):
+            if member not in known:
+                raise ValueError(
+                    f"{member!r} is no validation check or profile; checks: "
+                    f"{sorted(known)}, profiles: {sorted(profiles)}"
+                )
+            if member not in out:
+                out.append(member)
+    return tuple(out)
+
+
+def _as_settings(raw: Any) -> "ValidationSettings":
+    """``raw`` as a :class:`ValidationSettings`, shape only (names unchecked): the
+    model itself, a mapping, or any object with ``model_dump()`` or
+    ``profiles``/``placements`` attributes (a host's own settings model)."""
+    if isinstance(raw, ValidationSettings):
+        return raw
+    if not isinstance(raw, Mapping):
+        if hasattr(raw, "model_dump"):
+            raw = raw.model_dump()
+        elif hasattr(raw, "profiles") or hasattr(raw, "placements"):
+            raw = {
+                "profiles": dict(getattr(raw, "profiles", None) or {}),
+                "placements": dict(getattr(raw, "placements", None) or {}),
+            }
+        else:
+            raise ValueError(
+                "validation settings must be an object with 'profiles' and/or "
+                f"'placements', got {type(raw).__name__}"
+            )
+    try:
+        return ValidationSettings(**dict(raw))
+    except PydanticValidationError as e:
+        problems = "; ".join(
+            f"{'.'.join(str(p) for p in err['loc'])}: {err['msg']}" for err in e.errors()
+        )
+        raise ValueError(
+            f"validation settings refused ({problems}); expected "
+            "{'profiles': {name: [checks]}, 'placements': {placement: [names]}}"
+        ) from None
+
+
+def env_var(placement: str, *, env_prefix: str = DFLT_ENV_PREFIX) -> str:
+    """The environment variable that selects checks for ``placement``: the
+    prefix, then the placement upper-cased with anything a shell cannot name
+    made ``_``.
+
+    >>> env_var("before-publish")
+    'NW_VALIDATE_BEFORE_PUBLISH'
+    """
+    import re
+
+    return env_prefix + re.sub(r"\W", "_", placement).upper()
+
+
+def select(
+    placement: str,
+    *,
+    checks: Iterable[str] | str | None = None,
+    settings: Any = None,
+    environ: Mapping[str, str] | None = None,
+    env_prefix: str = DFLT_ENV_PREFIX,
+    placements: Iterable[str] | None = None,
+) -> tuple[str, ...]:
+    """The check names that run at ``placement``, profiles expanded; ``()``: none.
+
+    First match wins: an explicit ``checks=`` (a name or names; ``[]`` selects
+    nothing); the environment variable :func:`env_var` names, when it holds at
+    least one name (a blank or comma-only value counts as unset); the
+    ``settings``' placement (a :class:`ValidationSettings`, its dict, or a
+    host's own settings object); nothing. Never implicit. Only the chosen names
+    are checked, so a stale name saved for another placement, or overridden
+    here, does not stop this one; :func:`checked_settings` checks the whole
+    object on write. ``placements``, when given, are the host's known
+    placements, and another one raises ``ValueError``; so does an unknown name.
+
+    >>> select("before_publish", environ={})
+    ()
+    >>> select("before_publish", environ={}, placements=["before_present"])
+    Traceback (most recent call last):
+    ...
+    ValueError: unknown placement 'before_publish'; known: ['before_present']
+    """
+    import os
+
+    if placements is not None and placement not in tuple(placements):
+        raise ValueError(f"unknown placement {placement!r}; known: {list(placements)}")
+    settings = _as_settings(settings or {})
+    env = os.environ if environ is None else environ
+    from_env = tuple(
+        n.strip()
+        for n in (env.get(env_var(placement, env_prefix=env_prefix)) or "").split(",")
+        if n.strip()
+    )
+    if checks is not None:
+        names = (checks,) if isinstance(checks, str) else tuple(checks)
+    elif from_env:
+        names = from_env
+    else:
+        names = tuple(settings.placements.get(placement, ()))
+    return expand_selection(names, settings.profiles)
+
+
+def checked_settings(
+    raw: Any, *, placements: Iterable[str] | None = None
+) -> "ValidationSettings":
+    """``raw`` (anything :func:`select` takes) as a :class:`ValidationSettings`
+    whose every name is a check or a profile, no profile named like a check (it
+    would silently win), and every placement one of ``placements``, when given.
+    Raises a plain ``ValueError`` with a readable message otherwise, on write
+    rather than at the next run."""
+    settings = _as_settings(raw)
+    if placements is not None:
+        unknown = sorted(set(settings.placements) - set(placements))
+        if unknown:
+            raise ValueError(
+                f"unknown placement(s) {unknown} in validation settings; known: {list(placements)}"
+            )
+    shadowing = sorted(set(settings.profiles) & set(checks))
+    if shadowing:
+        raise ValueError(
+            f"profile name(s) {shadowing} are also check names; rename the profile(s)"
+        )
+    for names in (*settings.profiles.values(), *settings.placements.values()):
+        expand_selection(names, settings.profiles)
+    return settings
+
+
+def menu_rows() -> list[dict]:
+    """The menu as rows a model reads, derived from the registry: each check's
+    ``name``, ``summary``, ``cost`` (a ``paid`` one runs only when named),
+    ``example_requests`` and ``requires``; then each package profile as a row
+    with its ``profile`` list."""
+    rows = [
+        {
+            "name": c.name,
+            "summary": c.summary,
+            "cost": c.cost,
+            "example_requests": list(c.example_requests),
+            "requires": list(c.requires),
+        }
+        for c in menu()
+    ]
+    rows += [{"name": n, "profile": list(cs)} for n, cs in package_profiles().items()]
+    return rows
+
+
+def unreachable_row(target: str, names: Iterable[str], why: str) -> dict:
+    """The row (:meth:`ValidationReport.row`'s shape) for a target nothing could
+    look at (its bytes could not be reached): every selected check
+    ``could_not_run``, never a pass and never a fail.
+
+    >>> unreachable_row("clip.mp4", ["video.duration"], "not fetched")["ok"]
+    False
+    """
+    names = list(names)
+    return {
+        "target": target,
+        "ok": False,
+        "failed": [],
+        "could_not_run": names,
+        "errored": [],
+        "reasons": {name: why for name in names},
+        "remedies": [],
+        "summary": f"NOT RUN  {target}: {why}",
+    }
+
+
+def veto_message(rows: Iterable[Mapping], *, where: str = "validation") -> str | None:
+    """A gate's refusal for report rows (:meth:`ValidationReport.row`,
+    :func:`unreachable_row`), or ``None`` when every row is ok. Names each
+    check that failed, errored or could not run, on which target, and what to
+    do: a failed check, its own remedy (or re-render, or drop the check); one
+    that errored or could not run, fix it or drop it, since neither is a pass.
+
+    >>> veto_message([unreachable_row("a.mp4", ["video.duration"], "no bytes")])
+    'validation: video.duration could not run on a.mp4 (no bytes): fix that, or drop the check; it is not a pass'
+    """
+    lines = []
+    for row in rows:
+        if row.get("ok"):
+            continue
+        fix = "; ".join(row.get("remedies") or ()) or "re-render it, or drop the check"
+        reasons = row.get("reasons", {})
+        for check in row.get("failed", ()):
+            lines.append(f"{check} failed on {row['target']}: {fix}")
+        for check in row.get("errored", ()):
+            lines.append(
+                f"{check} errored on {row['target']} ({reasons.get(check) or 'no detail'}): "
+                "fix the check or its input, or drop it; it is not a pass"
+            )
+        for check in row.get("could_not_run", ()):
+            lines.append(
+                f"{check} could not run on {row['target']} "
+                f"({reasons.get(check) or 'a missing tool or file'}): "
+                "fix that, or drop the check; it is not a pass"
+            )
+    return f"{where}: " + "; ".join(lines) if lines else None
