@@ -54,7 +54,8 @@ from typing import TYPE_CHECKING, Any, Callable, Optional, Union
 
 from xdol import Registry
 
-from .stages import Stage, StagePrice, validate_stages
+from .pricing import Price
+from .stages import Stage, validate_stages
 
 if TYPE_CHECKING:  # runtime-free: only for the GenreInitializer type hint
     from .project import Project
@@ -1452,13 +1453,13 @@ class GenreOp:
             )
         return self.fn(project, **client, **host)
 
-    def price(self, project, params: Optional[Mapping] = None) -> StagePrice:
+    def price(self, project, params: Optional[Mapping] = None) -> Price:
         """What running the op with ``params`` would cost now (reelee#1010).
 
         ``params`` are checked as :meth:`run` checks them (a malformed body raises
         :class:`pydantic.ValidationError`, it is not priced). An op with
         ``spends=False`` is ``free`` at $0; a ``spends`` op is its :attr:`quote`'s
-        answer read by :func:`nw.stages.quoted_price`, ``unknown`` (``total_usd``
+        answer read by :func:`nw.pricing.quoted_price`, ``unknown`` (``total_usd``
         ``None``, never $0) when it has none, when the quote raises, or when the
         answer is no price. A :class:`GenreOpRefused` from the quote propagates: the
         run would be refused too.
@@ -1475,19 +1476,19 @@ class GenreOp:
         >>> quoted.price(None, {"text": "hi"}).to_dict()
         {'usd': 0.02, 'status': 'quoted'}
         """
-        from .stages import quoted_price
+        from .pricing import quoted_price
 
         client = self.validate_params(params)
         if not self.spends:
-            return StagePrice(0.0, "free")
+            return Price(0.0, "free")
         if self.quote is None:
-            return StagePrice(None, "unknown")
+            return Price(None, "unknown")
         try:
             raw = self.quote(project, **client)
         except GenreOpRefused:
             raise
         except Exception:  # noqa: BLE001 — a quote that failed is unknown, never $0
-            return StagePrice(None, "unknown")
+            return Price(None, "unknown")
         return quoted_price(raw)
 
     def _required_host_params(self) -> list:

@@ -46,6 +46,8 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any, Callable, Iterable, Optional, Sequence
 
+from .pricing import Price, quoted_price
+
 #: ``not_started`` / ``in_progress`` / ``done`` / ``unknown`` — see the module docstring.
 STAGE_STATES = ("not_started", "in_progress", "done", "unknown")
 
@@ -174,16 +176,8 @@ def stage_states(
     return out
 
 
-@dataclass(frozen=True)
-class StagePrice:
-    """A stage's price today. ``total_usd is None`` means unknown, never free."""
-
-    total_usd: Optional[float]
-    #: ``"free"`` (declared), ``"quoted"``, or ``"unknown"``.
-    status: str
-
-    def to_dict(self) -> dict:
-        return {"usd": self.total_usd, "status": self.status}
+#: A stage's price: :class:`nw.pricing.Price` (the name stages have always used).
+StagePrice = Price
 
 
 def stage_prices(
@@ -205,29 +199,6 @@ def stage_prices(
             raw = None
         out.append(quoted_price(raw))
     return out
-
-
-def quoted_price(raw: Any) -> StagePrice:
-    """A quoter's answer as a price: USD (a number), an :class:`nw.PlanQuote` (its
-    ``total_usd``), or ``None``. Anything that is not a finite, non-negative number
-    is unknown, never free: a price we could not read is not a price.
-
-    >>> quoted_price(0.25), quoted_price(None).status, quoted_price(float("nan")).status
-    (StagePrice(total_usd=0.25, status='quoted'), 'unknown', 'unknown')
-    >>> quoted_price(-1.0).status, quoted_price(True).status
-    ('unknown', 'unknown')
-    """
-    import math
-
-    usd = getattr(raw, "total_usd", raw)
-    if (
-        isinstance(usd, bool)
-        or not isinstance(usd, (int, float))
-        or not math.isfinite(usd)
-        or usd < 0
-    ):
-        return StagePrice(None, "unknown")
-    return StagePrice(float(usd), "quoted")
 
 
 def stage_overview(

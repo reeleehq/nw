@@ -44,6 +44,7 @@ Two things this module deliberately does **not** do:
 from __future__ import annotations
 
 from dataclasses import dataclass, replace
+import math
 from math import isclose
 from typing import Any, Iterable, Literal, Mapping, Optional, Sequence
 
@@ -406,3 +407,38 @@ def quote_render_decision(
             reason=DISAGREEING_TOTAL_REASON,
         )
     return replace(quote, as_of_total_usd=stored)
+
+
+@dataclass(frozen=True)
+class Price:
+    """A price today: ``total_usd`` and how it was arrived at. ``total_usd is None``
+    means unknown, never free. ``status`` is ``"free"`` (declared), ``"quoted"``, or
+    ``"unknown"``. What a stage's and a genre op's price read as
+    (:func:`nw.stages.stage_prices`, :meth:`nw.GenreOp.price`)."""
+
+    total_usd: Optional[float]
+    status: str
+
+    def to_dict(self) -> dict:
+        return {"usd": self.total_usd, "status": self.status}
+
+
+def quoted_price(raw: Any) -> Price:
+    """A quoter's answer as a price: USD (a number), an :class:`nw.PlanQuote` (its
+    ``total_usd``), or ``None``. Anything that is not a finite, non-negative number
+    is unknown, never free: a price we could not read is not a price.
+
+    >>> quoted_price(0.25), quoted_price(None).status, quoted_price(float("nan")).status
+    (Price(total_usd=0.25, status='quoted'), 'unknown', 'unknown')
+    >>> quoted_price(-1.0).status, quoted_price(True).status
+    ('unknown', 'unknown')
+    """
+    usd = getattr(raw, "total_usd", raw)
+    if (
+        isinstance(usd, bool)
+        or not isinstance(usd, (int, float))
+        or not math.isfinite(usd)
+        or usd < 0
+    ):
+        return Price(None, "unknown")
+    return Price(float(usd), "quoted")
