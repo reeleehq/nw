@@ -70,7 +70,7 @@ import json
 import logging
 from dataclasses import dataclass, field, replace
 from pathlib import Path
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from typing import Callable, Literal, Optional, Protocol, runtime_checkable
 from uuid import UUID
 
@@ -499,6 +499,22 @@ class BaseTransform:
         params: Optional[BaseModel] = None,
     ) -> tuple[Plan, tuple[Annotation, ...]]:
         raise NotImplementedError(f"{type(self).__name__} must implement plan().")
+
+    def quote(self, skeletons: Sequence[Annotation]) -> Optional[float]:
+        """What :meth:`execute` spends **outside** the ``falaw.Plan``, in USD (nw#284).
+
+        An optional hook. Default ``0.0``: nothing outside the Plan, so the
+        Plan's own quote is the whole price. A Transform whose ``execute`` pays
+        a provider itself (a sound-effect or TTS call that never becomes a
+        Plan call) leaves the Plan empty, and every door that prices a stage
+        from the Plan would read a known ``$0``; such a Transform overrides
+        this, returning ``None`` when the amount is unknown (``None`` is
+        unknown, never free). A host adds this to the Plan's quote, and can
+        test completeness: a Transform that overrides ``execute`` and plans an
+        empty Plan must either override ``quote`` or be on an explicit free
+        list. ``skeletons`` is what :meth:`plan` returned for the same call.
+        """
+        return 0.0
 
     def execute(
         self,
