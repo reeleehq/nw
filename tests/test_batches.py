@@ -331,3 +331,23 @@ def test_a_door_without_the_estimate_keyword_launches_nothing(project, parked):
     # unpriced items still go through a door that predates the keyword
     b = batches.enqueue_batch(project, _items(2), kind="x", dispatch=parked, enqueue=old_door)
     assert len(b.job_ids) == 2
+
+
+def test_batch_id_for_is_the_id_enqueue_batch_gives_and_writes_nothing(project):
+    release = threading.Event()
+    release.set()
+    items = _items(3)
+    expected = batches.batch_id_for(project, items, kind="x")
+    assert batches.get_batch(project, expected) is None  # nothing was recorded
+    b = batches.enqueue_batch(project, items, kind="x", dispatch={"x": _stub(release)})
+    assert b.batch_id == expected
+    assert batches.get_batch(project, expected) == b  # the live batch, by that id
+
+
+def test_batch_id_for_collapses_duplicates_and_validates_like_enqueue(project):
+    one = [{"params": {"n": 1}}]
+    assert batches.batch_id_for(project, one * 2, kind="x") == batches.batch_id_for(
+        project, one, kind="x"
+    )
+    with pytest.raises(ValueError):
+        batches.batch_id_for(project, [], kind="x")

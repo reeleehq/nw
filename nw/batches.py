@@ -153,6 +153,22 @@ def enqueue_batch(
     return record
 
 
+def batch_id_for(
+    project, items: Iterable[Mapping[str, Any]], *, kind: str | None = None
+) -> str:
+    """The id :func:`enqueue_batch` would give these items, without enqueueing (nw#286).
+
+    Mirrors :func:`nw.jobs.job_id_for`: items are validated exactly as
+    ``enqueue_batch`` validates them (so the same errors), then resolved to job
+    ids, with items resolving to one job collapsed, and the batch id derived
+    from those. A host that must return a live batch on a retry, before
+    re-pricing against an approved ceiling, asks this, then :func:`get_batch`.
+    Writes nothing and reads no store.
+    """
+    specs = _item_specs(items, kind)
+    return _batch_id(tuple(dict.fromkeys(_spec_job_ids(project, specs))))
+
+
 def estimate_batch(
     project,
     items: Iterable[Mapping[str, Any]],
