@@ -782,8 +782,12 @@ def test_a_cached_design_whose_mix_was_pruned_is_refused(project, monkeypatch):
     t = nw.get_transform(NAME)
     first = t.execute(project, *t.plan(project, _inputs(project)))
     default_content_store().delete_blob(first.annotations[0].body["artifact_id"])
-    with pytest.raises(RuntimeError, match="force=True"):
+    from nw.transforms.sound_design import SoundDesignMixGone
+
+    with pytest.raises(SoundDesignMixGone, match="force=True") as gone:
         t.execute(project, *t.plan(project, _inputs(project)))
+    assert gone.value.artifact_id == first.annotations[0].body["artifact_id"]
+    assert isinstance(gone.value, RuntimeError)
 
 
 def test_the_foley_backend_is_ours_or_refused(monkeypatch):
