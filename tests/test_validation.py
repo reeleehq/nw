@@ -169,6 +169,15 @@ def test_a_missing_binary_skips_with_a_reason_and_does_not_pretend_to_pass(
     assert "definitely-not-a-program" in result.skipped
 
 
+def test_a_skipped_check_is_not_a_pass(clean_registry):
+    register_check(_check("needs", requires_binaries=("definitely-not-a-program",)))
+    report = validate("x", checks=["needs"])
+    assert not report.ok
+    assert not report.complete
+    assert report.clean  # no failures among what ran
+    assert report.summary().startswith("FAIL")
+
+
 def test_raise_if_failed_is_the_hard_gate(clean_registry):
     register_check(_check("e", findings=[_finding(severity="error")]))
     with pytest.raises(ValidationError):

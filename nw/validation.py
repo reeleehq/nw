@@ -177,13 +177,24 @@ class ValidationReport:
 
     @property
     def ok(self) -> bool:
-        """No failing findings **and** nothing that failed to run.
+        """Every selected check ran and found nothing failing.
 
-        A check that errored is not a pass. Callers gating a publish on this
-        get the conservative answer without having to remember to ask for it.
+        A check that was skipped (a missing binary) or that raised is not a
+        pass, so a gate on this gets the conservative answer. Use
+        :attr:`clean` for "no failures among the checks that ran".
         """
-        return all(r.ok or r.skipped for r in self.results) and not any(
-            r.error for r in self.results
+        return all(r.ok for r in self.results)
+
+    @property
+    def complete(self) -> bool:
+        """Every selected check actually ran (none skipped, none errored)."""
+        return all(r.ran for r in self.results)
+
+    @property
+    def clean(self) -> bool:
+        """No failing finding and no error among what ran; skips are ignored."""
+        return not any(r.error for r in self.results) and all(
+            r.ok for r in self.results if r.ran
         )
 
     def by_severity(self, severity: Severity) -> tuple[Finding, ...]:
