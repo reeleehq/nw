@@ -135,6 +135,7 @@ data-aria-dark="Switch to auto color mode">
       <i class="i-lucide close"></i>
     </button>
     <div class="sy-scrollbar sy-rside-inner px-6 xl:top-16 xl:sticky xl:pl-0 pt-6 pb-4"><div class="localtoc"><h3>On this page</h3><ul>
+<li><a class="reference internal" href="#nw.validation.CHEAP_COSTS"><code class="docutils literal notranslate"><span class="pre">CHEAP_COSTS</span></code></a></li>
 <li><a class="reference internal" href="#nw.validation.Check"><code class="docutils literal notranslate"><span class="pre">Check</span></code></a><ul>
 <li><a class="reference internal" href="#nw.validation.Check.name"><code class="docutils literal notranslate"><span class="pre">Check.name</span></code></a></li>
 <li><a class="reference internal" href="#nw.validation.Check.summary"><code class="docutils literal notranslate"><span class="pre">Check.summary</span></code></a></li>
@@ -168,16 +169,29 @@ data-aria-dark="Switch to auto color mode">
 <li><a class="reference internal" href="#nw.validation.ValidationReport.complete"><code class="docutils literal notranslate"><span class="pre">ValidationReport.complete</span></code></a></li>
 <li><a class="reference internal" href="#nw.validation.ValidationReport.ok"><code class="docutils literal notranslate"><span class="pre">ValidationReport.ok</span></code></a></li>
 <li><a class="reference internal" href="#nw.validation.ValidationReport.raise_if_failed"><code class="docutils literal notranslate"><span class="pre">ValidationReport.raise_if_failed()</span></code></a></li>
+<li><a class="reference internal" href="#nw.validation.ValidationReport.row"><code class="docutils literal notranslate"><span class="pre">ValidationReport.row()</span></code></a></li>
 <li><a class="reference internal" href="#nw.validation.ValidationReport.summary"><code class="docutils literal notranslate"><span class="pre">ValidationReport.summary()</span></code></a></li>
 </ul>
 </li>
+<li><a class="reference internal" href="#nw.validation.ValidationSettings"><code class="docutils literal notranslate"><span class="pre">ValidationSettings</span></code></a><ul>
+<li><a class="reference internal" href="#nw.validation.ValidationSettings.model_config"><code class="docutils literal notranslate"><span class="pre">ValidationSettings.model_config</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#nw.validation.checked_settings"><code class="docutils literal notranslate"><span class="pre">checked_settings()</span></code></a></li>
 <li><a class="reference internal" href="#nw.validation.checks"><code class="docutils literal notranslate"><span class="pre">checks</span></code></a></li>
+<li><a class="reference internal" href="#nw.validation.env_var"><code class="docutils literal notranslate"><span class="pre">env_var()</span></code></a></li>
+<li><a class="reference internal" href="#nw.validation.expand_selection"><code class="docutils literal notranslate"><span class="pre">expand_selection()</span></code></a></li>
 <li><a class="reference internal" href="#nw.validation.menu"><code class="docutils literal notranslate"><span class="pre">menu()</span></code></a></li>
+<li><a class="reference internal" href="#nw.validation.menu_rows"><code class="docutils literal notranslate"><span class="pre">menu_rows()</span></code></a></li>
+<li><a class="reference internal" href="#nw.validation.package_profiles"><code class="docutils literal notranslate"><span class="pre">package_profiles()</span></code></a></li>
 <li><a class="reference internal" href="#nw.validation.plan_checks"><code class="docutils literal notranslate"><span class="pre">plan_checks()</span></code></a></li>
 <li><a class="reference internal" href="#nw.validation.register_check"><code class="docutils literal notranslate"><span class="pre">register_check()</span></code></a></li>
 <li><a class="reference internal" href="#nw.validation.resolve_checks"><code class="docutils literal notranslate"><span class="pre">resolve_checks()</span></code></a></li>
+<li><a class="reference internal" href="#nw.validation.select"><code class="docutils literal notranslate"><span class="pre">select()</span></code></a></li>
 <li><a class="reference internal" href="#nw.validation.suggest"><code class="docutils literal notranslate"><span class="pre">suggest()</span></code></a></li>
+<li><a class="reference internal" href="#nw.validation.unreachable_row"><code class="docutils literal notranslate"><span class="pre">unreachable_row()</span></code></a></li>
 <li><a class="reference internal" href="#nw.validation.validate"><code class="docutils literal notranslate"><span class="pre">validate()</span></code></a></li>
+<li><a class="reference internal" href="#nw.validation.veto_message"><code class="docutils literal notranslate"><span class="pre">veto_message()</span></code></a></li>
 </ul>
 </div><div id="ethical-ad-placement" data-ea-publisher="readthedocs"></div></div>
   </aside>
@@ -275,6 +289,9 @@ which is how this reaches an MCP tool surface without a forty-item enum.</p>
 <tr class="row-odd"><td><p><a class="reference internal" href="#nw.validation.checks" title="nw.validation.checks"><code class="xref py py-obj docutils literal notranslate"><span class="pre">checks</span></code></a></p></td>
 <td><p>The menu.</p></td>
 </tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#nw.validation.CHEAP_COSTS" title="nw.validation.CHEAP_COSTS"><code class="xref py py-obj docutils literal notranslate"><span class="pre">CHEAP_COSTS</span></code></a></p></td>
+<td><p>never <code class="docutils literal notranslate"><span class="pre">paid</span></code>.</p></td>
+</tr>
 </tbody>
 </table>
 </div>
@@ -300,6 +317,30 @@ which is how this reaches an MCP tool surface without a forty-item enum.</p>
 <tr class="row-even"><td><p><a class="reference internal" href="#nw.validation.menu" title="nw.validation.menu"><code class="xref py py-obj docutils literal notranslate"><span class="pre">menu</span></code></a>(*[, cost])</p></td>
 <td><p>Every registered check, name-ordered — what a user chooses from.</p></td>
 </tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#nw.validation.package_profiles" title="nw.validation.package_profiles"><code class="xref py py-obj docutils literal notranslate"><span class="pre">package_profiles</span></code></a>()</p></td>
+<td><p>The profiles derived from the menu, never written by hand: <code class="docutils literal notranslate"><span class="pre">cheap</span></code> is every check whose cost is in <a class="reference internal" href="#nw.validation.CHEAP_COSTS" title="nw.validation.CHEAP_COSTS"><code class="xref py py-data docutils literal notranslate"><span class="pre">CHEAP_COSTS</span></code></a> (so never a <code class="docutils literal notranslate"><span class="pre">paid</span></code> one).</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#nw.validation.expand_selection" title="nw.validation.expand_selection"><code class="xref py py-obj docutils literal notranslate"><span class="pre">expand_selection</span></code></a>(names[, profiles])</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">names</span></code> (checks or profiles) as check names, profiles expanded, each once, in order.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#nw.validation.select" title="nw.validation.select"><code class="xref py py-obj docutils literal notranslate"><span class="pre">select</span></code></a>(placement, *[, checks, settings, ...])</p></td>
+<td><p>The check names that run at <code class="docutils literal notranslate"><span class="pre">placement</span></code>, profiles expanded; <code class="docutils literal notranslate"><span class="pre">()</span></code>: none.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#nw.validation.checked_settings" title="nw.validation.checked_settings"><code class="xref py py-obj docutils literal notranslate"><span class="pre">checked_settings</span></code></a>(raw, *[, placements])</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">raw</span></code> (anything <a class="reference internal" href="#nw.validation.select" title="nw.validation.select"><code class="xref py py-func docutils literal notranslate"><span class="pre">select()</span></code></a> takes) as a <a class="reference internal" href="#nw.validation.ValidationSettings" title="nw.validation.ValidationSettings"><code class="xref py py-class docutils literal notranslate"><span class="pre">ValidationSettings</span></code></a> whose every name is a check or a profile, no profile named like a check (it would silently win), and every placement one of <code class="docutils literal notranslate"><span class="pre">placements</span></code>, when given.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#nw.validation.menu_rows" title="nw.validation.menu_rows"><code class="xref py py-obj docutils literal notranslate"><span class="pre">menu_rows</span></code></a>()</p></td>
+<td><p>The menu as rows a model reads, derived from the registry: each check's <code class="docutils literal notranslate"><span class="pre">name</span></code>, <code class="docutils literal notranslate"><span class="pre">summary</span></code>, <code class="docutils literal notranslate"><span class="pre">cost</span></code> (a <code class="docutils literal notranslate"><span class="pre">paid</span></code> one runs only when named), <code class="docutils literal notranslate"><span class="pre">example_requests</span></code> and <code class="docutils literal notranslate"><span class="pre">requires</span></code>; then each package profile as a row with its <code class="docutils literal notranslate"><span class="pre">profile</span></code> list.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#nw.validation.unreachable_row" title="nw.validation.unreachable_row"><code class="xref py py-obj docutils literal notranslate"><span class="pre">unreachable_row</span></code></a>(target, names, why)</p></td>
+<td><p>The row (<a class="reference internal" href="#nw.validation.ValidationReport.row" title="nw.validation.ValidationReport.row"><code class="xref py py-meth docutils literal notranslate"><span class="pre">ValidationReport.row()</span></code></a>'s shape) for a target nothing could look at (its bytes could not be reached): every selected check <code class="docutils literal notranslate"><span class="pre">could_not_run</span></code>, never a pass and never a fail.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#nw.validation.veto_message" title="nw.validation.veto_message"><code class="xref py py-obj docutils literal notranslate"><span class="pre">veto_message</span></code></a>(rows, *[, where])</p></td>
+<td><p>A gate's refusal for report rows (<a class="reference internal" href="#nw.validation.ValidationReport.row" title="nw.validation.ValidationReport.row"><code class="xref py py-meth docutils literal notranslate"><span class="pre">ValidationReport.row()</span></code></a>, <a class="reference internal" href="#nw.validation.unreachable_row" title="nw.validation.unreachable_row"><code class="xref py py-func docutils literal notranslate"><span class="pre">unreachable_row()</span></code></a>), or <code class="docutils literal notranslate"><span class="pre">None</span></code> when every row is ok.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#nw.validation.env_var" title="nw.validation.env_var"><code class="xref py py-obj docutils literal notranslate"><span class="pre">env_var</span></code></a>(placement, *[, env_prefix])</p></td>
+<td><p>The environment variable that selects checks for <code class="docutils literal notranslate"><span class="pre">placement</span></code>: the prefix, then the placement upper-cased with anything a shell cannot name made <code class="docutils literal notranslate"><span class="pre">_</span></code>.</p></td>
+</tr>
 </tbody>
 </table>
 </div>
@@ -319,6 +360,9 @@ which is how this reaches an MCP tool surface without a forty-item enum.</p>
 <tr class="row-even"><td><p><a class="reference internal" href="#nw.validation.Check" title="nw.validation.Check"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Check</span></code></a>(name, summary, run[, requires, ...])</p></td>
 <td><p>One validation, and everything a scheduler and a menu need to know.</p></td>
 </tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#nw.validation.ValidationSettings" title="nw.validation.ValidationSettings"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ValidationSettings</span></code></a>(*[, profiles, placements])</p></td>
+<td><p>What a host persists: named profiles, and which names each placement runs.</p></td>
+</tr>
 </tbody>
 </table>
 </div>
@@ -332,6 +376,17 @@ which is how this reaches an MCP tool surface without a forty-item enum.</p>
 </tbody>
 </table>
 </div>
+<dl class="py data">
+<dt class="sig sig-object py" id="nw.validation.CHEAP_COSTS">
+<span class="sig-prename descclassname"><span class="pre">nw.validation.</span></span><span class="sig-name descname"><span class="pre">CHEAP_COSTS</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#tuple" title="(in Python v3.15)"><span class="pre">tuple</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="p"><span class="pre">...</span></span><span class="p"><span class="pre">]</span></span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">('free',</span> <span class="pre">'cheap')</span></span><a class="headerlink" href="#nw.validation.CHEAP_COSTS" title="Link to this definition">#</a></dt>
+<dd><p>never <code class="docutils literal notranslate"><span class="pre">paid</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The cost classes the package profile <code class="docutils literal notranslate"><span class="pre">cheap</span></code> draws from</p>
+</dd>
+</dl>
+</dd></dl>
+
 <dl class="py class">
 <dt class="sig sig-object py" id="nw.validation.Check">
 <span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">nw.validation.</span></span><span class="sig-name descname"><span class="pre">Check</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">summary</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">run</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">requires</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">()</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">parallel_safe</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cost</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'cheap'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">example_requests</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">()</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">requires_binaries</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">()</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/nw/validation.html#Check"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nw.validation.Check" title="Link to this definition">#</a></dt>
@@ -625,6 +680,27 @@ pass, so a gate on this gets the conservative answer. Use
 </dd></dl>
 
 <dl class="py method">
+<dt class="sig sig-object py" id="nw.validation.ValidationReport.row">
+<span class="sig-name descname"><span class="pre">row</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">target</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/nw/validation.html#ValidationReport.row"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nw.validation.ValidationReport.row" title="Link to this definition">#</a></dt>
+<dd><p>This report as one row a host shows or gates on (nw#285): <code class="docutils literal notranslate"><span class="pre">ok</span></code> only
+when every check RAN and passed; <code class="docutils literal notranslate"><span class="pre">failed</span></code>, and apart from it the two
+ways not to run, which say nothing about the media: <code class="docutils literal notranslate"><span class="pre">could_not_run</span></code>
+(skipped: a missing binary, an unreadable file) and <code class="docutils literal notranslate"><span class="pre">errored</span></code> (the
+check raised); <code class="docutils literal notranslate"><span class="pre">reasons</span></code> for each, <code class="docutils literal notranslate"><span class="pre">remedies</span></code> from the failed
+checks’ findings, and the <a class="reference internal" href="#nw.validation.ValidationReport.summary" title="nw.validation.ValidationReport.summary"><code class="xref py py-meth docutils literal notranslate"><span class="pre">summary()</span></code></a>. <code class="docutils literal notranslate"><span class="pre">target</span></code> names it (default:
+the report’s own target).</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span data-line="1"><span class="gp">&gt;&gt;&gt; </span><span class="n">ValidationReport</span><span class="p">(</span><span class="s2">"a.mp4"</span><span class="p">,</span> <span class="p">(</span><span class="n">CheckResult</span><span class="p">(</span><span class="s2">"x"</span><span class="p">,</span> <span class="n">skipped</span><span class="o">=</span><span class="s2">"no ffprobe"</span><span class="p">),))</span><span class="o">.</span><span class="n">row</span><span class="p">()[</span><span class="s2">"could_not_run"</span><span class="p">]</span>
+</span><span data-line="2"><span class="go">['x']</span>
+</span></pre></div>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#dict" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></a></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
 <dt class="sig sig-object py" id="nw.validation.ValidationReport.summary">
 <span class="sig-name descname"><span class="pre">summary</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/nw/validation.html#ValidationReport.summary"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nw.validation.ValidationReport.summary" title="Link to this definition">#</a></dt>
 <dd><p>A few lines a human can read without unpacking the object.</p>
@@ -637,11 +713,82 @@ pass, so a gate on this gets the conservative answer. Use
 
 </dd></dl>
 
+<dl class="py class">
+<dt class="sig sig-object py" id="nw.validation.ValidationSettings">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">nw.validation.</span></span><span class="sig-name descname"><span class="pre">ValidationSettings</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">profiles</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">&lt;factory&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">placements</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">&lt;factory&gt;</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/nw/validation.html#ValidationSettings"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nw.validation.ValidationSettings" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">BaseModel</span></code></p>
+<p>What a host persists: named profiles, and which names each placement runs.</p>
+<p><code class="docutils literal notranslate"><span class="pre">profiles</span></code> maps a name to a list of check names; <code class="docutils literal notranslate"><span class="pre">placements</span></code> maps a
+placement (the host’s string) to names, each a profile or a check. Empty,
+the default: nothing runs anywhere (validation is never implicit).</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span data-line="1"><span class="gp">&gt;&gt;&gt; </span><span class="n">ValidationSettings</span><span class="p">(</span><span class="n">placements</span><span class="o">=</span><span class="p">{</span><span class="s2">"before_publish"</span><span class="p">:</span> <span class="p">[</span><span class="s2">"cheap"</span><span class="p">]})</span><span class="o">.</span><span class="n">placements</span>
+</span><span data-line="2"><span class="go">{'before_publish': ('cheap',)}</span>
+</span></pre></div>
+</div>
+<dl class="field-list simple">
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="nw.validation.ValidationSettings.model_config">
+<span class="sig-name descname"><span class="pre">model_config</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.ClassVar" title="(in Python v3.15)"><span class="pre">ClassVar</span></a><span class="p"><span class="pre">[</span></span><span class="pre">ConfigDict</span><span class="p"><span class="pre">]</span></span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">{'extra':</span> <span class="pre">'forbid',</span> <span class="pre">'frozen':</span> <span class="pre">True}</span></span><a class="headerlink" href="#nw.validation.ValidationSettings.model_config" title="Link to this definition">#</a></dt>
+<dd><p>Configuration for the model, should be a dictionary conforming to [<code class="code docutils literal notranslate"><span class="pre">ConfigDict</span></code>][pydantic.config.ConfigDict].</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="nw.validation.checked_settings">
+<span class="sig-prename descclassname"><span class="pre">nw.validation.</span></span><span class="sig-name descname"><span class="pre">checked_settings</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">raw</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">placements</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/nw/validation.html#checked_settings"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nw.validation.checked_settings" title="Link to this definition">#</a></dt>
+<dd><p><code class="docutils literal notranslate"><span class="pre">raw</span></code> (anything <a class="reference internal" href="#nw.validation.select" title="nw.validation.select"><code class="xref py py-func docutils literal notranslate"><span class="pre">select()</span></code></a> takes) as a <a class="reference internal" href="#nw.validation.ValidationSettings" title="nw.validation.ValidationSettings"><code class="xref py py-class docutils literal notranslate"><span class="pre">ValidationSettings</span></code></a>
+whose every name is a check or a profile, no profile named like a check (it
+would silently win), and every placement one of <code class="docutils literal notranslate"><span class="pre">placements</span></code>, when given.
+Raises a plain <code class="docutils literal notranslate"><span class="pre">ValueError</span></code> with a readable message otherwise, on write
+rather than at the next run.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="#nw.validation.ValidationSettings" title="nw.validation.ValidationSettings"><code class="xref py py-class docutils literal notranslate"><span class="pre">ValidationSettings</span></code></a></span></p>
+</dd>
+</dl>
+</dd></dl>
+
 <dl class="py data">
 <dt class="sig sig-object py" id="nw.validation.checks">
 <span class="sig-prename descclassname"><span class="pre">nw.validation.</span></span><span class="sig-name descname"><span class="pre">checks</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Registry</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">&lt;Registry</span> <span class="pre">nw.validation.checks&gt;</span></span><a class="headerlink" href="#nw.validation.checks" title="Link to this definition">#</a></dt>
 <dd><p>The menu. <code class="docutils literal notranslate"><span class="pre">on_conflict=&quot;error&quot;</span></code> so a plugin that shadows a built-in fails
 loudly rather than quietly changing what “validated” means.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="nw.validation.env_var">
+<span class="sig-prename descclassname"><span class="pre">nw.validation.</span></span><span class="sig-name descname"><span class="pre">env_var</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">placement</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">env_prefix</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'NW_VALIDATE_'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/nw/validation.html#env_var"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nw.validation.env_var" title="Link to this definition">#</a></dt>
+<dd><p>The environment variable that selects checks for <code class="docutils literal notranslate"><span class="pre">placement</span></code>: the
+prefix, then the placement upper-cased with anything a shell cannot name
+made <code class="docutils literal notranslate"><span class="pre">_</span></code>.</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span data-line="1"><span class="gp">&gt;&gt;&gt; </span><span class="n">env_var</span><span class="p">(</span><span class="s2">"before-publish"</span><span class="p">)</span>
+</span><span data-line="2"><span class="go">'NW_VALIDATE_BEFORE_PUBLISH'</span>
+</span></pre></div>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="nw.validation.expand_selection">
+<span class="sig-prename descclassname"><span class="pre">nw.validation.</span></span><span class="sig-name descname"><span class="pre">expand_selection</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">names</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">profiles</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/nw/validation.html#expand_selection"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nw.validation.expand_selection" title="Link to this definition">#</a></dt>
+<dd><p><code class="docutils literal notranslate"><span class="pre">names</span></code> (checks or profiles) as check names, profiles expanded, each once,
+in order. Raises <code class="docutils literal notranslate"><span class="pre">ValueError</span></code> for a name that is neither: a typo must not
+quietly validate nothing.</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span data-line="1"><span class="gp">&gt;&gt;&gt; </span><span class="n">expand_selection</span><span class="p">([],</span> <span class="p">{})</span>
+</span><span data-line="2"><span class="go">()</span>
+</span></pre></div>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#tuple" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">tuple</span></code></a>[<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>, <a class="reference external" href="https://docs.python.org/3/builtins/constants.html#Ellipsis" title="(in Python v3.15)"><code class="xref py py-data docutils literal notranslate"><span class="pre">...</span></code></a>]</span></p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py function">
@@ -651,6 +798,32 @@ loudly rather than quietly changing what “validated” means.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#tuple" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">tuple</span></code></a>[<a class="reference internal" href="#nw.validation.Check" title="nw.validation.Check"><code class="xref py py-class docutils literal notranslate"><span class="pre">Check</span></code></a>, <a class="reference external" href="https://docs.python.org/3/builtins/constants.html#Ellipsis" title="(in Python v3.15)"><code class="xref py py-data docutils literal notranslate"><span class="pre">...</span></code></a>]</span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="nw.validation.menu_rows">
+<span class="sig-prename descclassname"><span class="pre">nw.validation.</span></span><span class="sig-name descname"><span class="pre">menu_rows</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/nw/validation.html#menu_rows"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nw.validation.menu_rows" title="Link to this definition">#</a></dt>
+<dd><p>The menu as rows a model reads, derived from the registry: each check’s
+<code class="docutils literal notranslate"><span class="pre">name</span></code>, <code class="docutils literal notranslate"><span class="pre">summary</span></code>, <code class="docutils literal notranslate"><span class="pre">cost</span></code> (a <code class="docutils literal notranslate"><span class="pre">paid</span></code> one runs only when named),
+<code class="docutils literal notranslate"><span class="pre">example_requests</span></code> and <code class="docutils literal notranslate"><span class="pre">requires</span></code>; then each package profile as a row
+with its <code class="docutils literal notranslate"><span class="pre">profile</span></code> list.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#list" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code></a>[<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#dict" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></a>]</span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="nw.validation.package_profiles">
+<span class="sig-prename descclassname"><span class="pre">nw.validation.</span></span><span class="sig-name descname"><span class="pre">package_profiles</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/nw/validation.html#package_profiles"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nw.validation.package_profiles" title="Link to this definition">#</a></dt>
+<dd><p>The profiles derived from the menu, never written by hand: <code class="docutils literal notranslate"><span class="pre">cheap</span></code> is
+every check whose cost is in <a class="reference internal" href="#nw.validation.CHEAP_COSTS" title="nw.validation.CHEAP_COSTS"><code class="xref py py-data docutils literal notranslate"><span class="pre">CHEAP_COSTS</span></code></a> (so never a <code class="docutils literal notranslate"><span class="pre">paid</span></code> one).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#dict" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></a>[<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>, <a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#tuple" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">tuple</span></code></a>[<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>, <a class="reference external" href="https://docs.python.org/3/builtins/constants.html#Ellipsis" title="(in Python v3.15)"><code class="xref py py-data docutils literal notranslate"><span class="pre">...</span></code></a>]]</span></p>
 </dd>
 </dl>
 </dd></dl>
@@ -710,6 +883,34 @@ is the failure this whole module exists to prevent.</p>
 </dd></dl>
 
 <dl class="py function">
+<dt class="sig sig-object py" id="nw.validation.select">
+<span class="sig-prename descclassname"><span class="pre">nw.validation.</span></span><span class="sig-name descname"><span class="pre">select</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">placement</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">checks</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">settings</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">environ</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">env_prefix</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'NW_VALIDATE_'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">placements</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/nw/validation.html#select"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nw.validation.select" title="Link to this definition">#</a></dt>
+<dd><p>The check names that run at <code class="docutils literal notranslate"><span class="pre">placement</span></code>, profiles expanded; <code class="docutils literal notranslate"><span class="pre">()</span></code>: none.</p>
+<p>First match wins: an explicit <code class="docutils literal notranslate"><span class="pre">checks=</span></code> (a name or names; <code class="docutils literal notranslate"><span class="pre">[]</span></code> selects
+nothing); the environment variable <a class="reference internal" href="#nw.validation.env_var" title="nw.validation.env_var"><code class="xref py py-func docutils literal notranslate"><span class="pre">env_var()</span></code></a> names, when it holds at
+least one name (a blank or comma-only value counts as unset); the
+<code class="docutils literal notranslate"><span class="pre">settings</span></code>’ placement (a <a class="reference internal" href="#nw.validation.ValidationSettings" title="nw.validation.ValidationSettings"><code class="xref py py-class docutils literal notranslate"><span class="pre">ValidationSettings</span></code></a>, its dict, or a
+host’s own settings object); nothing. Never implicit. Only the chosen names
+are checked, so a stale name saved for another placement, or overridden
+here, does not stop this one; <a class="reference internal" href="#nw.validation.checked_settings" title="nw.validation.checked_settings"><code class="xref py py-func docutils literal notranslate"><span class="pre">checked_settings()</span></code></a> checks the whole
+object on write. <code class="docutils literal notranslate"><span class="pre">placements</span></code>, when given, are the host’s known
+placements, and another one raises <code class="docutils literal notranslate"><span class="pre">ValueError</span></code>; so does an unknown name.</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span data-line="1"><span class="gp">&gt;&gt;&gt; </span><span class="n">select</span><span class="p">(</span><span class="s2">"before_publish"</span><span class="p">,</span> <span class="n">environ</span><span class="o">=</span><span class="p">{})</span>
+</span><span data-line="2"><span class="go">()</span>
+</span><span data-line="3"><span class="gp">&gt;&gt;&gt; </span><span class="n">select</span><span class="p">(</span><span class="s2">"before_publish"</span><span class="p">,</span> <span class="n">environ</span><span class="o">=</span><span class="p">{},</span> <span class="n">placements</span><span class="o">=</span><span class="p">[</span><span class="s2">"before_present"</span><span class="p">])</span>
+</span><span data-line="4"><span class="gt">Traceback (most recent call last):</span>
+</span><span data-line="5"><span class="c">...</span>
+</span><span data-line="6"><span class="gr">ValueError</span>: <span class="n">unknown placement 'before_publish'; known: ['before_present']</span>
+</span></pre></div>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#tuple" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">tuple</span></code></a>[<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>, <a class="reference external" href="https://docs.python.org/3/builtins/constants.html#Ellipsis" title="(in Python v3.15)"><code class="xref py py-data docutils literal notranslate"><span class="pre">...</span></code></a>]</span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
 <dt class="sig sig-object py" id="nw.validation.suggest">
 <span class="sig-prename descclassname"><span class="pre">nw.validation.</span></span><span class="sig-name descname"><span class="pre">suggest</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">request</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">include_paid</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/nw/validation.html#suggest"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nw.validation.suggest" title="Link to this definition">#</a></dt>
 <dd><p>Checks whose <code class="docutils literal notranslate"><span class="pre">example_requests</span></code> look like what the user just asked for.</p>
@@ -725,6 +926,23 @@ suggested: money is asked for by name.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#tuple" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">tuple</span></code></a>[<a class="reference internal" href="#nw.validation.Check" title="nw.validation.Check"><code class="xref py py-class docutils literal notranslate"><span class="pre">Check</span></code></a>, <a class="reference external" href="https://docs.python.org/3/builtins/constants.html#Ellipsis" title="(in Python v3.15)"><code class="xref py py-data docutils literal notranslate"><span class="pre">...</span></code></a>]</span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="nw.validation.unreachable_row">
+<span class="sig-prename descclassname"><span class="pre">nw.validation.</span></span><span class="sig-name descname"><span class="pre">unreachable_row</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">target</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">names</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">why</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/nw/validation.html#unreachable_row"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nw.validation.unreachable_row" title="Link to this definition">#</a></dt>
+<dd><p>The row (<a class="reference internal" href="#nw.validation.ValidationReport.row" title="nw.validation.ValidationReport.row"><code class="xref py py-meth docutils literal notranslate"><span class="pre">ValidationReport.row()</span></code></a>’s shape) for a target nothing could
+look at (its bytes could not be reached): every selected check
+<code class="docutils literal notranslate"><span class="pre">could_not_run</span></code>, never a pass and never a fail.</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span data-line="1"><span class="gp">&gt;&gt;&gt; </span><span class="n">unreachable_row</span><span class="p">(</span><span class="s2">"clip.mp4"</span><span class="p">,</span> <span class="p">[</span><span class="s2">"video.duration"</span><span class="p">],</span> <span class="s2">"not fetched"</span><span class="p">)[</span><span class="s2">"ok"</span><span class="p">]</span>
+</span><span data-line="2"><span class="go">False</span>
+</span></pre></div>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#dict" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></a></span></p>
 </dd>
 </dl>
 </dd></dl>
@@ -763,6 +981,25 @@ has not said the work is good.</p>
 </span><span data-line="2"><span class="go">True</span>
 </span></pre></div>
 </div>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="nw.validation.veto_message">
+<span class="sig-prename descclassname"><span class="pre">nw.validation.</span></span><span class="sig-name descname"><span class="pre">veto_message</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">rows</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">where</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'validation'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/nw/validation.html#veto_message"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nw.validation.veto_message" title="Link to this definition">#</a></dt>
+<dd><p>A gate’s refusal for report rows (<a class="reference internal" href="#nw.validation.ValidationReport.row" title="nw.validation.ValidationReport.row"><code class="xref py py-meth docutils literal notranslate"><span class="pre">ValidationReport.row()</span></code></a>,
+<a class="reference internal" href="#nw.validation.unreachable_row" title="nw.validation.unreachable_row"><code class="xref py py-func docutils literal notranslate"><span class="pre">unreachable_row()</span></code></a>), or <code class="docutils literal notranslate"><span class="pre">None</span></code> when every row is ok. Names each
+check that failed, errored or could not run, on which target, and what to
+do: a failed check, its own remedy (or re-render, or drop the check); one
+that errored or could not run, fix it or drop it, since neither is a pass.</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span data-line="1"><span class="gp">&gt;&gt;&gt; </span><span class="n">veto_message</span><span class="p">([</span><span class="n">unreachable_row</span><span class="p">(</span><span class="s2">"a.mp4"</span><span class="p">,</span> <span class="p">[</span><span class="s2">"video.duration"</span><span class="p">],</span> <span class="s2">"no bytes"</span><span class="p">)])</span>
+</span><span data-line="2"><span class="go">'validation: video.duration could not run on a.mp4 (no bytes): fix that, or drop the check; it is not a pass'</span>
+</span></pre></div>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a> | <span class="highlight sphinx_autodoc_typehints-value"><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><code class="xref py py-obj docutils literal notranslate"><span class="kc"><span class="pre">None</span></span></code></a></span></span></p>
+</dd>
+</dl>
 </dd></dl>
 
 </section>
@@ -807,7 +1044,7 @@ has not said the work is good.</p>
     </div>
   </div>
 </footer>
-      <script src="../_static/documentation_options.js?v=dd8d4017"></script>
+      <script src="../_static/documentation_options.js?v=79f5c40e"></script>
       <script src="../_static/doctools.js?v=fd6eb6e6"></script>
       <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script src="../_static/clipboard.min.js?v=a7894cd8"></script>

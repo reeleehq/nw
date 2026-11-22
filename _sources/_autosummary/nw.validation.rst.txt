@@ -9,6 +9,7 @@ nw.validation
    .. autosummary::
    
       checks
+      CHEAP_COSTS
    
    .. rubric:: Functions
 
@@ -20,6 +21,14 @@ nw.validation
       validate
       suggest
       menu
+      package_profiles
+      expand_selection
+      select
+      checked_settings
+      menu_rows
+      unreachable_row
+      veto_message
+      env_var
    
    .. rubric:: Classes
 
@@ -29,6 +38,7 @@ nw.validation
       CheckResult
       ValidationReport
       Check
+      ValidationSettings
    
    .. rubric:: Exceptions
 

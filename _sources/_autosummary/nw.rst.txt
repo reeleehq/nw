@@ -91,6 +91,11 @@
       register_check
       suggest
       validate
+      select_validation
+      checked_validation_settings
+      validation_menu_rows
+      unreachable_row
+      veto_message
       all_stale
       fresh_equivalents
       fresh_ids
@@ -151,6 +156,7 @@
       CheckResult
       Finding
       ValidationReport
+      ValidationSettings
    
    .. rubric:: Exceptions
 

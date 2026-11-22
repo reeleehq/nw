@@ -61,18 +61,27 @@ which is how this reaches an MCP tool surface without a forty-item enum.
 
 ### Module Attributes
 
-| [`checks`](#nw.validation.checks)   | The menu.   |
-|-----------------------------------------------------------|-------------|
+| [`checks`](#nw.validation.checks)      | The menu.     |
+|--------------------------------------------------------------|---------------|
+| [`CHEAP_COSTS`](#nw.validation.CHEAP_COSTS) | never `paid`. |
 
 ### Functions
 
-| [`register_check`](#nw.validation.register_check)([check])                          | Add a check to the menu, as a call or as a decorator.                   |
-|---------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------|
-| [`resolve_checks`](#nw.validation.resolve_checks)(selection)                        | Selection plus everything it requires, with names resolved to Checks.   |
-| [`plan_checks`](#nw.validation.plan_checks)(selection)                           | Order the selection into waves that may each run concurrently.          |
-| [`validate`](#nw.validation.validate)(target, \*[, checks, max_workers, ...]) | Run `checks` against `target` and report.                               |
-| [`suggest`](#nw.validation.suggest)(request, \*[, include_paid])             | Checks whose `example_requests` look like what the user just asked for. |
-| [`menu`](#nw.validation.menu)(\*[, cost])                                 | Every registered check, name-ordered — what a user chooses from.        |
+| [`register_check`](#nw.validation.register_check)([check])                          | Add a check to the menu, as a call or as a decorator.                                                                                                                                                                                                                                                           |
+|---------------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| [`resolve_checks`](#nw.validation.resolve_checks)(selection)                        | Selection plus everything it requires, with names resolved to Checks.                                                                                                                                                                                                                                           |
+| [`plan_checks`](#nw.validation.plan_checks)(selection)                           | Order the selection into waves that may each run concurrently.                                                                                                                                                                                                                                                  |
+| [`validate`](#nw.validation.validate)(target, \*[, checks, max_workers, ...]) | Run `checks` against `target` and report.                                                                                                                                                                                                                                                                       |
+| [`suggest`](#nw.validation.suggest)(request, \*[, include_paid])             | Checks whose `example_requests` look like what the user just asked for.                                                                                                                                                                                                                                         |
+| [`menu`](#nw.validation.menu)(\*[, cost])                                 | Every registered check, name-ordered — what a user chooses from.                                                                                                                                                                                                                                                |
+| [`package_profiles`](#nw.validation.package_profiles)()                               | The profiles derived from the menu, never written by hand: `cheap` is every check whose cost is in [`CHEAP_COSTS`](#nw.validation.CHEAP_COSTS) (so never a `paid` one).                                                                                                                        |
+| [`expand_selection`](#nw.validation.expand_selection)(names[, profiles])              | `names` (checks or profiles) as check names, profiles expanded, each once, in order.                                                                                                                                                                                                                            |
+| [`select`](#nw.validation.select)(placement, \*[, checks, settings, ...])   | The check names that run at `placement`, profiles expanded; `()`: none.                                                                                                                                                                                                                                         |
+| [`checked_settings`](#nw.validation.checked_settings)(raw, \*[, placements])          | `raw` (anything [`select()`](#nw.validation.select) takes) as a [`ValidationSettings`](#nw.validation.ValidationSettings) whose every name is a check or a profile, no profile named like a check (it would silently win), and every placement one of `placements`, when given. |
+| [`menu_rows`](#nw.validation.menu_rows)()                                      | The menu as rows a model reads, derived from the registry: each check's `name`, `summary`, `cost` (a `paid` one runs only when named), `example_requests` and `requires`; then each package profile as a row with its `profile` list.                                                                           |
+| [`unreachable_row`](#nw.validation.unreachable_row)(target, names, why)              | The row ([`ValidationReport.row()`](#nw.validation.ValidationReport.row)'s shape) for a target nothing could look at (its bytes could not be reached): every selected check `could_not_run`, never a pass and never a fail.                                                                             |
+| [`veto_message`](#nw.validation.veto_message)(rows, \*[, where])                  | A gate's refusal for report rows ([`ValidationReport.row()`](#nw.validation.ValidationReport.row), [`unreachable_row()`](#nw.validation.unreachable_row)), or `None` when every row is ok.                                                                                                 |
+| [`env_var`](#nw.validation.env_var)(placement, \*[, env_prefix])             | The environment variable that selects checks for `placement`: the prefix, then the placement upper-cased with anything a shell cannot name made `_`.                                                                                                                                                            |
 
 ### Classes
 
@@ -81,11 +90,19 @@ which is how this reaches an MCP tool surface without a forty-item enum.
 | [`CheckResult`](#nw.validation.CheckResult)(name[, findings, skipped, ...])       | What one check produced, including the case where it could not run.                    |
 | [`ValidationReport`](#nw.validation.ValidationReport)(target[, results, elapsed_s])    | Everything a [`validate()`](#nw.validation.validate) run produced. |
 | [`Check`](#nw.validation.Check)(name, summary, run[, requires, ...])        | One validation, and everything a scheduler and a menu need to know.                    |
+| [`ValidationSettings`](#nw.validation.ValidationSettings)(\*[, profiles, placements])    | What a host persists: named profiles, and which names each placement runs.             |
 
 ### Exceptions
 
 | [`ValidationError`](#nw.validation.ValidationError)(report)   | Raised by [`ValidationReport.raise_if_failed()`](#nw.validation.ValidationReport.raise_if_failed).   |
 |----------------------------------------------------------------------------|--------------------------------------------------------------------------------------------------|
+
+### nw.validation.CHEAP_COSTS *: [tuple](https://docs.python.org/3/builtins/stdtypes.html#tuple)[[str](https://docs.python.org/3/builtins/stdtypes.html#str), ...]* *= ('free', 'cheap')*
+
+never `paid`.
+
+* **Type:**
+  The cost classes the package profile `cheap` draws from
 
 ### *class* nw.validation.Check(name, summary, run, requires=(), parallel_safe=True, cost='cheap', example_requests=(), requires_binaries=())
 
@@ -289,6 +306,24 @@ Return self, or raise [`ValidationError`](#nw.validation.ValidationError) — fo
 * **Return type:**
   [`ValidationReport`](#nw.validation.ValidationReport)
 
+#### row(target=None)
+
+This report as one row a host shows or gates on (nw#285): `ok` only
+when every check RAN and passed; `failed`, and apart from it the two
+ways not to run, which say nothing about the media: `could_not_run`
+(skipped: a missing binary, an unreadable file) and `errored` (the
+check raised); `reasons` for each, `remedies` from the failed
+checks’ findings, and the [`summary()`](#nw.validation.ValidationReport.summary). `target` names it (default:
+the report’s own target).
+
+```pycon
+>>> ValidationReport("a.mp4", (CheckResult("x", skipped="no ffprobe"),)).row()["could_not_run"]
+['x']
+```
+
+* **Return type:**
+  [`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)
+
 #### summary()
 
 A few lines a human can read without unpacking the object.
@@ -296,10 +331,68 @@ A few lines a human can read without unpacking the object.
 * **Return type:**
   [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
 
+### *class* nw.validation.ValidationSettings(\*, profiles=<factory>, placements=<factory>)
+
+Bases: `BaseModel`
+
+What a host persists: named profiles, and which names each placement runs.
+
+`profiles` maps a name to a list of check names; `placements` maps a
+placement (the host’s string) to names, each a profile or a check. Empty,
+the default: nothing runs anywhere (validation is never implicit).
+
+```pycon
+>>> ValidationSettings(placements={"before_publish": ["cheap"]}).placements
+{'before_publish': ('cheap',)}
+```
+
+#### model_config *: [ClassVar](https://docs.python.org/3/library/typing.html#typing.ClassVar)[ConfigDict]* *= {'extra': 'forbid', 'frozen': True}*
+
+Configuration for the model, should be a dictionary conforming to [`ConfigDict`][pydantic.config.ConfigDict].
+
+### nw.validation.checked_settings(raw, , placements=None)
+
+`raw` (anything [`select()`](#nw.validation.select) takes) as a [`ValidationSettings`](#nw.validation.ValidationSettings)
+whose every name is a check or a profile, no profile named like a check (it
+would silently win), and every placement one of `placements`, when given.
+Raises a plain `ValueError` with a readable message otherwise, on write
+rather than at the next run.
+
+* **Return type:**
+  [`ValidationSettings`](#nw.validation.ValidationSettings)
+
 ### nw.validation.checks *: Registry* *= <Registry nw.validation.checks>*
 
 The menu. `on_conflict="error"` so a plugin that shadows a built-in fails
 loudly rather than quietly changing what “validated” means.
+
+### nw.validation.env_var(placement, , env_prefix='NW_VALIDATE_')
+
+The environment variable that selects checks for `placement`: the
+prefix, then the placement upper-cased with anything a shell cannot name
+made `_`.
+
+```pycon
+>>> env_var("before-publish")
+'NW_VALIDATE_BEFORE_PUBLISH'
+```
+
+* **Return type:**
+  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
+
+### nw.validation.expand_selection(names, profiles=None)
+
+`names` (checks or profiles) as check names, profiles expanded, each once,
+in order. Raises `ValueError` for a name that is neither: a typo must not
+quietly validate nothing.
+
+```pycon
+>>> expand_selection([], {})
+()
+```
+
+* **Return type:**
+  [`tuple`](https://docs.python.org/3/builtins/stdtypes.html#tuple)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str), [`...`](https://docs.python.org/3/builtins/constants.html#Ellipsis)]
 
 ### nw.validation.menu(, cost=None)
 
@@ -307,6 +400,24 @@ Every registered check, name-ordered — what a user chooses from.
 
 * **Return type:**
   [`tuple`](https://docs.python.org/3/builtins/stdtypes.html#tuple)[[`Check`](#nw.validation.Check), [`...`](https://docs.python.org/3/builtins/constants.html#Ellipsis)]
+
+### nw.validation.menu_rows()
+
+The menu as rows a model reads, derived from the registry: each check’s
+`name`, `summary`, `cost` (a `paid` one runs only when named),
+`example_requests` and `requires`; then each package profile as a row
+with its `profile` list.
+
+* **Return type:**
+  [`list`](https://docs.python.org/3/builtins/stdtypes.html#list)[[`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)]
+
+### nw.validation.package_profiles()
+
+The profiles derived from the menu, never written by hand: `cheap` is
+every check whose cost is in [`CHEAP_COSTS`](#nw.validation.CHEAP_COSTS) (so never a `paid` one).
+
+* **Return type:**
+  [`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str), [`tuple`](https://docs.python.org/3/builtins/stdtypes.html#tuple)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str), [`...`](https://docs.python.org/3/builtins/constants.html#Ellipsis)]]
 
 ### nw.validation.plan_checks(selection)
 
@@ -357,6 +468,32 @@ is the failure this whole module exists to prevent.
 * **Return type:**
   [`tuple`](https://docs.python.org/3/builtins/stdtypes.html#tuple)[[`Check`](#nw.validation.Check), [`...`](https://docs.python.org/3/builtins/constants.html#Ellipsis)]
 
+### nw.validation.select(placement, , checks=None, settings=None, environ=None, env_prefix='NW_VALIDATE_', placements=None)
+
+The check names that run at `placement`, profiles expanded; `()`: none.
+
+First match wins: an explicit `checks=` (a name or names; `[]` selects
+nothing); the environment variable [`env_var()`](#nw.validation.env_var) names, when it holds at
+least one name (a blank or comma-only value counts as unset); the
+`settings`’ placement (a [`ValidationSettings`](#nw.validation.ValidationSettings), its dict, or a
+host’s own settings object); nothing. Never implicit. Only the chosen names
+are checked, so a stale name saved for another placement, or overridden
+here, does not stop this one; [`checked_settings()`](#nw.validation.checked_settings) checks the whole
+object on write. `placements`, when given, are the host’s known
+placements, and another one raises `ValueError`; so does an unknown name.
+
+```pycon
+>>> select("before_publish", environ={})
+()
+>>> select("before_publish", environ={}, placements=["before_present"])
+Traceback (most recent call last):
+...
+ValueError: unknown placement 'before_publish'; known: ['before_present']
+```
+
+* **Return type:**
+  [`tuple`](https://docs.python.org/3/builtins/stdtypes.html#tuple)[[`str`](https://docs.python.org/3/builtins/stdtypes.html#str), [`...`](https://docs.python.org/3/builtins/constants.html#Ellipsis)]
+
 ### nw.validation.suggest(request, , include_paid=False)
 
 Checks whose `example_requests` look like what the user just asked for.
@@ -375,6 +512,20 @@ suggested: money is asked for by name.
 
 * **Return type:**
   [`tuple`](https://docs.python.org/3/builtins/stdtypes.html#tuple)[[`Check`](#nw.validation.Check), [`...`](https://docs.python.org/3/builtins/constants.html#Ellipsis)]
+
+### nw.validation.unreachable_row(target, names, why)
+
+The row ([`ValidationReport.row()`](#nw.validation.ValidationReport.row)’s shape) for a target nothing could
+look at (its bytes could not be reached): every selected check
+`could_not_run`, never a pass and never a fail.
+
+```pycon
+>>> unreachable_row("clip.mp4", ["video.duration"], "not fetched")["ok"]
+False
+```
+
+* **Return type:**
+  [`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)
 
 ### nw.validation.validate(target, , checks=(), max_workers=4, on_error='report')
 
@@ -405,3 +556,19 @@ Run `checks` against `target` and report.
 >>> validate("x.mp4").ok
 True
 ```
+
+### nw.validation.veto_message(rows, , where='validation')
+
+A gate’s refusal for report rows ([`ValidationReport.row()`](#nw.validation.ValidationReport.row),
+[`unreachable_row()`](#nw.validation.unreachable_row)), or `None` when every row is ok. Names each
+check that failed, errored or could not run, on which target, and what to
+do: a failed check, its own remedy (or re-render, or drop the check); one
+that errored or could not run, fix it or drop it, since neither is a pass.
+
+```pycon
+>>> veto_message([unreachable_row("a.mp4", ["video.duration"], "no bytes")])
+'validation: video.duration could not run on a.mp4 (no bytes): fix that, or drop the check; it is not a pass'
+```
+
+* **Return type:**
+  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str) | [`None`](https://docs.python.org/3/builtins/constants.html#None)
