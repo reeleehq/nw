@@ -38,13 +38,29 @@ def test_a_guest_that_lists_no_placed_projects_collides_with_nothing():
     assert out == [("mv1", "reelee"), ("other", "muvid")] and calls == []
 
 
-def test_a_placed_marker_decides_without_a_genre_read():
+def test_a_placed_marker_stands_in_for_an_unknown_genre():
     rows = [
         ProjectSummary("mv1", genre="reelee"),
         ProjectSummary("mv1", genre="muvid", meta={PLACED_META_KEY: True}),
     ]
-    out, calls = _merge(rows, {})
-    assert out == [("mv1", "muvid")] and calls == []
+    out, _ = _merge(rows, {})
+    assert out == [("mv1", "muvid")]
+
+
+def test_a_placed_marker_never_drops_a_genuine_host_project():
+    rows = [
+        ProjectSummary("mine", genre="reelee"),
+        ProjectSummary("mine", genre="muvid", meta={PLACED_META_KEY: True}),
+    ]
+    out, _ = _merge(rows, {"mine": "reelee_story"})
+    assert out == [("mine", "reelee"), ("mine", "muvid")]
+
+
+def test_only_an_exact_true_under_the_namespaced_key_is_a_mark():
+    for meta in ({"placed": True}, {PLACED_META_KEY: 3}, {PLACED_META_KEY: "yes"}):
+        rows = [ProjectSummary("x", genre="reelee"), ProjectSummary("x", genre="muvid", meta=meta)]
+        out, _ = _merge(rows, {})
+        assert out == [("x", "reelee"), ("x", "muvid")]
 
 
 def test_only_host_rows_are_ever_dropped_and_order_is_kept():
