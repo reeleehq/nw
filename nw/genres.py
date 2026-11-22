@@ -573,7 +573,7 @@ def initialize_genre(
     _persist_genre_envelope(project, genre=genre, template=template, params=params)
 
 
-def project_genre(project) -> Optional[dict]:
+def project_genre(project, *, fallback: Optional[str] = None) -> Optional[dict]:
     """The ``{genre, template, params}`` envelope ``project`` was created as,
     read **without opening its graph** (nw#223); ``None`` when it has none.
 
@@ -585,7 +585,15 @@ def project_genre(project) -> Optional[dict]:
     backfills the mirror for a project whose envelope predates it; until then
     such a project reads ``None`` here. An unreadable or malformed mirror also
     reads ``None``, never raises.
+
+    ``fallback="graph"`` (nw#280) adds a **read-only** second try for an
+    envelope that predates the mirror: the graph is opened with the read-only
+    opener (never creating or writing anything, and **never backfilling the
+    mirror**, so a listing stays a pure read) and an unreadable or absent graph
+    still reads ``None``. The default, ``None``, never opens a graph.
     """
+    if fallback not in (None, "graph"):
+        raise ValueError(f"fallback must be None or 'graph', not {fallback!r}")
     from .bodies import GenreEnvelopeBodyV1
     from .graph import GENRE_ENVELOPE_DOC
     from .storage import as_project_storage
@@ -594,8 +602,19 @@ def project_genre(project) -> Optional[dict]:
         doc = as_project_storage(project).docs[GENRE_ENVELOPE_DOC]
         body = GenreEnvelopeBodyV1.model_validate(doc)
     except Exception:
-        return None
+        return _graph_envelope(project) if fallback == "graph" else None
     return body.as_envelope()
+
+
+def _graph_envelope(project) -> Optional[dict]:
+    """The envelope read straight from the graph, read-only; ``None`` on any failure."""
+    from .graph import ProjectGraph
+
+    try:
+        body = ProjectGraph(project).genre_envelope()
+    except Exception:
+        return None
+    return None if body is None else body.as_envelope()
 
 
 def _persist_genre_envelope(
