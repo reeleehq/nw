@@ -164,6 +164,8 @@ data-aria-dark="Switch to auto color mode">
 <li><a class="reference internal" href="#nw.validation.ValidationReport.target"><code class="docutils literal notranslate"><span class="pre">ValidationReport.target</span></code></a></li>
 <li><a class="reference internal" href="#nw.validation.ValidationReport.results"><code class="docutils literal notranslate"><span class="pre">ValidationReport.results</span></code></a></li>
 <li><a class="reference internal" href="#nw.validation.ValidationReport.elapsed_s"><code class="docutils literal notranslate"><span class="pre">ValidationReport.elapsed_s</span></code></a></li>
+<li><a class="reference internal" href="#nw.validation.ValidationReport.clean"><code class="docutils literal notranslate"><span class="pre">ValidationReport.clean</span></code></a></li>
+<li><a class="reference internal" href="#nw.validation.ValidationReport.complete"><code class="docutils literal notranslate"><span class="pre">ValidationReport.complete</span></code></a></li>
 <li><a class="reference internal" href="#nw.validation.ValidationReport.ok"><code class="docutils literal notranslate"><span class="pre">ValidationReport.ok</span></code></a></li>
 <li><a class="reference internal" href="#nw.validation.ValidationReport.raise_if_failed"><code class="docutils literal notranslate"><span class="pre">ValidationReport.raise_if_failed()</span></code></a></li>
 <li><a class="reference internal" href="#nw.validation.ValidationReport.summary"><code class="docutils literal notranslate"><span class="pre">ValidationReport.summary()</span></code></a></li>
@@ -591,11 +593,24 @@ frame’s path, the numbers behind the verdict.</p>
 </dd></dl>
 
 <dl class="py property">
+<dt class="sig sig-object py" id="nw.validation.ValidationReport.clean">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">clean</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#bool" title="(in Python v3.15)"><span class="pre">bool</span></a></span><a class="headerlink" href="#nw.validation.ValidationReport.clean" title="Link to this definition">#</a></dt>
+<dd><p>No failing finding and no error among what ran; skips are ignored.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="nw.validation.ValidationReport.complete">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">complete</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#bool" title="(in Python v3.15)"><span class="pre">bool</span></a></span><a class="headerlink" href="#nw.validation.ValidationReport.complete" title="Link to this definition">#</a></dt>
+<dd><p>Every selected check actually ran (none skipped, none errored).</p>
+</dd></dl>
+
+<dl class="py property">
 <dt class="sig sig-object py" id="nw.validation.ValidationReport.ok">
 <span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">ok</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#bool" title="(in Python v3.15)"><span class="pre">bool</span></a></span><a class="headerlink" href="#nw.validation.ValidationReport.ok" title="Link to this definition">#</a></dt>
-<dd><p>No failing findings <strong>and</strong> nothing that failed to run.</p>
-<p>A check that errored is not a pass. Callers gating a publish on this
-get the conservative answer without having to remember to ask for it.</p>
+<dd><p>Every selected check ran and found nothing failing.</p>
+<p>A check that was skipped (a missing binary) or that raised is not a
+pass, so a gate on this gets the conservative answer. Use
+<a class="reference internal" href="#nw.validation.ValidationReport.clean" title="nw.validation.ValidationReport.clean"><code class="xref py py-attr docutils literal notranslate"><span class="pre">clean</span></code></a> for “no failures among the checks that ran”.</p>
 </dd></dl>
 
 <dl class="py method">
@@ -792,7 +807,7 @@ has not said the work is good.</p>
     </div>
   </div>
 </footer>
-      <script src="../_static/documentation_options.js?v=e35d3ea8"></script>
+      <script src="../_static/documentation_options.js?v=4725bab1"></script>
       <script src="../_static/doctools.js?v=fd6eb6e6"></script>
       <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script src="../_static/clipboard.min.js?v=a7894cd8"></script>

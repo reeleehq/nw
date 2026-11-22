@@ -352,373 +352,384 @@ data-aria-dark="Switch to auto color mode">
 </span><span data-line="177">
 </span><span data-line="178">    <span class="nd">@property</span>
 </span><span data-line="179">    <span class="k">def</span><span class="w"> </span><span class="nf">ok</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
-</span><span data-line="180"><span class="w">        </span><span class="sd">"""No failing findings **and** nothing that failed to run.</span>
+</span><span data-line="180"><span class="w">        </span><span class="sd">"""Every selected check ran and found nothing failing.</span>
 </span><span data-line="181">
-</span><span data-line="182"><span class="sd">        A check that errored is not a pass. Callers gating a publish on this</span>
-</span><span data-line="183"><span class="sd">        get the conservative answer without having to remember to ask for it.</span>
-</span><span data-line="184"><span class="sd">        """</span>
-</span><span data-line="185">        <span class="k">return</span> <span class="nb">all</span><span class="p">(</span><span class="n">r</span><span class="o">.</span><span class="n">ok</span> <span class="ow">or</span> <span class="n">r</span><span class="o">.</span><span class="n">skipped</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">results</span><span class="p">)</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">any</span><span class="p">(</span>
-</span><span data-line="186">            <span class="n">r</span><span class="o">.</span><span class="n">error</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">results</span>
-</span><span data-line="187">        <span class="p">)</span>
-</span><span data-line="188">
-</span><span data-line="189">    <span class="k">def</span><span class="w"> </span><span class="nf">by_severity</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">severity</span><span class="p">:</span> <span class="n">Severity</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">Finding</span><span class="p">,</span> <span class="o">...</span><span class="p">]:</span>
-</span><span data-line="190">        <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">f</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">findings</span> <span class="k">if</span> <span class="n">f</span><span class="o">.</span><span class="n">severity</span> <span class="o">==</span> <span class="n">severity</span><span class="p">)</span>
-</span><span data-line="191">
+</span><span data-line="182"><span class="sd">        A check that was skipped (a missing binary) or that raised is not a</span>
+</span><span data-line="183"><span class="sd">        pass, so a gate on this gets the conservative answer. Use</span>
+</span><span data-line="184"><span class="sd">        :attr:`clean` for "no failures among the checks that ran".</span>
+</span><span data-line="185"><span class="sd">        """</span>
+</span><span data-line="186">        <span class="k">return</span> <span class="nb">all</span><span class="p">(</span><span class="n">r</span><span class="o">.</span><span class="n">ok</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">results</span><span class="p">)</span>
+</span><span data-line="187">
+</span><span data-line="188">    <span class="nd">@property</span>
+</span><span data-line="189">    <span class="k">def</span><span class="w"> </span><span class="nf">complete</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+</span><span data-line="190"><span class="w">        </span><span class="sd">"""Every selected check actually ran (none skipped, none errored)."""</span>
+</span><span data-line="191">        <span class="k">return</span> <span class="nb">all</span><span class="p">(</span><span class="n">r</span><span class="o">.</span><span class="n">ran</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">results</span><span class="p">)</span>
+</span><span data-line="192">
+</span><span data-line="193">    <span class="nd">@property</span>
+</span><span data-line="194">    <span class="k">def</span><span class="w"> </span><span class="nf">clean</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+</span><span data-line="195"><span class="w">        </span><span class="sd">"""No failing finding and no error among what ran; skips are ignored."""</span>
+</span><span data-line="196">        <span class="k">return</span> <span class="ow">not</span> <span class="nb">any</span><span class="p">(</span><span class="n">r</span><span class="o">.</span><span class="n">error</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">results</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">all</span><span class="p">(</span>
+</span><span data-line="197">            <span class="n">r</span><span class="o">.</span><span class="n">ok</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">results</span> <span class="k">if</span> <span class="n">r</span><span class="o">.</span><span class="n">ran</span>
+</span><span data-line="198">        <span class="p">)</span>
+</span><span data-line="199">
+</span><span data-line="200">    <span class="k">def</span><span class="w"> </span><span class="nf">by_severity</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">severity</span><span class="p">:</span> <span class="n">Severity</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">Finding</span><span class="p">,</span> <span class="o">...</span><span class="p">]:</span>
+</span><span data-line="201">        <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">f</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">findings</span> <span class="k">if</span> <span class="n">f</span><span class="o">.</span><span class="n">severity</span> <span class="o">==</span> <span class="n">severity</span><span class="p">)</span>
+</span><span data-line="202">
 <div class="viewcode-block" id="ValidationReport.raise_if_failed">
 <a class="viewcode-back" href="../../_autosummary/nw.validation.html#nw.ValidationReport.raise_if_failed">[docs]</a>
-</span><span data-line="192">    <span class="k">def</span><span class="w"> </span><span class="nf">raise_if_failed</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">"ValidationReport"</span><span class="p">:</span>
-</span><span data-line="193"><span class="w">        </span><span class="sd">"""Return self, or raise :class:`ValidationError` — for a hard gate."""</span>
-</span><span data-line="194">        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">ok</span><span class="p">:</span>
-</span><span data-line="195">            <span class="k">raise</span> <span class="n">ValidationError</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
-</span><span data-line="196">        <span class="k">return</span> <span class="bp">self</span></div>
+</span><span data-line="203">    <span class="k">def</span><span class="w"> </span><span class="nf">raise_if_failed</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">"ValidationReport"</span><span class="p">:</span>
+</span><span data-line="204"><span class="w">        </span><span class="sd">"""Return self, or raise :class:`ValidationError` — for a hard gate."""</span>
+</span><span data-line="205">        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">ok</span><span class="p">:</span>
+</span><span data-line="206">            <span class="k">raise</span> <span class="n">ValidationError</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+</span><span data-line="207">        <span class="k">return</span> <span class="bp">self</span></div>
 
-</span><span data-line="197">
+</span><span data-line="208">
 <div class="viewcode-block" id="ValidationReport.summary">
 <a class="viewcode-back" href="../../_autosummary/nw.validation.html#nw.ValidationReport.summary">[docs]</a>
-</span><span data-line="198">    <span class="k">def</span><span class="w"> </span><span class="nf">summary</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
-</span><span data-line="199"><span class="w">        </span><span class="sd">"""A few lines a human can read without unpacking the object."""</span>
-</span><span data-line="200">        <span class="n">lines</span> <span class="o">=</span> <span class="p">[</span>
-</span><span data-line="201">            <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="s1">'PASS'</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="bp">self</span><span class="o">.</span><span class="n">ok</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="s1">'FAIL'</span><span class="si">}</span><span class="s2">  </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">target</span><span class="si">}</span><span class="s2">  "</span>
-</span><span data-line="202">            <span class="sa">f</span><span class="s2">"(</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">results</span><span class="p">)</span><span class="si">}</span><span class="s2"> checks, </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">elapsed_s</span><span class="si">:</span><span class="s2">.1f</span><span class="si">}</span><span class="s2">s)"</span>
-</span><span data-line="203">        <span class="p">]</span>
-</span><span data-line="204">        <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">results</span><span class="p">:</span>
-</span><span data-line="205">            <span class="k">if</span> <span class="n">r</span><span class="o">.</span><span class="n">skipped</span><span class="p">:</span>
-</span><span data-line="206">                <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">"  - </span><span class="si">{</span><span class="n">r</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">: skipped — </span><span class="si">{</span><span class="n">r</span><span class="o">.</span><span class="n">skipped</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
-</span><span data-line="207">            <span class="k">elif</span> <span class="n">r</span><span class="o">.</span><span class="n">error</span><span class="p">:</span>
-</span><span data-line="208">                <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">"  ! </span><span class="si">{</span><span class="n">r</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">: ERROR — </span><span class="si">{</span><span class="n">r</span><span class="o">.</span><span class="n">error</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
-</span><span data-line="209">            <span class="k">else</span><span class="p">:</span>
-</span><span data-line="210">                <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">r</span><span class="o">.</span><span class="n">findings</span><span class="p">:</span>
-</span><span data-line="211">                    <span class="n">at</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">" @ </span><span class="si">{</span><span class="n">f</span><span class="o">.</span><span class="n">where</span><span class="si">}</span><span class="s2">"</span> <span class="k">if</span> <span class="n">f</span><span class="o">.</span><span class="n">where</span> <span class="k">else</span> <span class="s2">""</span>
-</span><span data-line="212">                    <span class="n">fix</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"  → </span><span class="si">{</span><span class="n">f</span><span class="o">.</span><span class="n">remedy</span><span class="si">}</span><span class="s2">"</span> <span class="k">if</span> <span class="n">f</span><span class="o">.</span><span class="n">remedy</span> <span class="k">else</span> <span class="s2">""</span>
-</span><span data-line="213">                    <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">"  </span><span class="si">{</span><span class="n">f</span><span class="o">.</span><span class="n">severity</span><span class="si">:</span><span class="s2">5</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">f</span><span class="o">.</span><span class="n">message</span><span class="si">}{</span><span class="n">at</span><span class="si">}{</span><span class="n">fix</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
-</span><span data-line="214">        <span class="k">return</span> <span class="s2">"</span><span class="se">\n</span><span class="s2">"</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">lines</span><span class="p">)</span></div>
+</span><span data-line="209">    <span class="k">def</span><span class="w"> </span><span class="nf">summary</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+</span><span data-line="210"><span class="w">        </span><span class="sd">"""A few lines a human can read without unpacking the object."""</span>
+</span><span data-line="211">        <span class="n">lines</span> <span class="o">=</span> <span class="p">[</span>
+</span><span data-line="212">            <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="s1">'PASS'</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="bp">self</span><span class="o">.</span><span class="n">ok</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="s1">'FAIL'</span><span class="si">}</span><span class="s2">  </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">target</span><span class="si">}</span><span class="s2">  "</span>
+</span><span data-line="213">            <span class="sa">f</span><span class="s2">"(</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">results</span><span class="p">)</span><span class="si">}</span><span class="s2"> checks, </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">elapsed_s</span><span class="si">:</span><span class="s2">.1f</span><span class="si">}</span><span class="s2">s)"</span>
+</span><span data-line="214">        <span class="p">]</span>
+</span><span data-line="215">        <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">results</span><span class="p">:</span>
+</span><span data-line="216">            <span class="k">if</span> <span class="n">r</span><span class="o">.</span><span class="n">skipped</span><span class="p">:</span>
+</span><span data-line="217">                <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">"  - </span><span class="si">{</span><span class="n">r</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">: skipped — </span><span class="si">{</span><span class="n">r</span><span class="o">.</span><span class="n">skipped</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+</span><span data-line="218">            <span class="k">elif</span> <span class="n">r</span><span class="o">.</span><span class="n">error</span><span class="p">:</span>
+</span><span data-line="219">                <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">"  ! </span><span class="si">{</span><span class="n">r</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">: ERROR — </span><span class="si">{</span><span class="n">r</span><span class="o">.</span><span class="n">error</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+</span><span data-line="220">            <span class="k">else</span><span class="p">:</span>
+</span><span data-line="221">                <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">r</span><span class="o">.</span><span class="n">findings</span><span class="p">:</span>
+</span><span data-line="222">                    <span class="n">at</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">" @ </span><span class="si">{</span><span class="n">f</span><span class="o">.</span><span class="n">where</span><span class="si">}</span><span class="s2">"</span> <span class="k">if</span> <span class="n">f</span><span class="o">.</span><span class="n">where</span> <span class="k">else</span> <span class="s2">""</span>
+</span><span data-line="223">                    <span class="n">fix</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"  → </span><span class="si">{</span><span class="n">f</span><span class="o">.</span><span class="n">remedy</span><span class="si">}</span><span class="s2">"</span> <span class="k">if</span> <span class="n">f</span><span class="o">.</span><span class="n">remedy</span> <span class="k">else</span> <span class="s2">""</span>
+</span><span data-line="224">                    <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">"  </span><span class="si">{</span><span class="n">f</span><span class="o">.</span><span class="n">severity</span><span class="si">:</span><span class="s2">5</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">f</span><span class="o">.</span><span class="n">message</span><span class="si">}{</span><span class="n">at</span><span class="si">}{</span><span class="n">fix</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+</span><span data-line="225">        <span class="k">return</span> <span class="s2">"</span><span class="se">\n</span><span class="s2">"</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">lines</span><span class="p">)</span></div>
 </div>
 
-</span><span data-line="215">
-</span><span data-line="216">
+</span><span data-line="226">
+</span><span data-line="227">
 <div class="viewcode-block" id="ValidationError">
 <a class="viewcode-back" href="../../_autosummary/nw.validation.html#nw.ValidationError">[docs]</a>
-</span><span data-line="217"><span class="k">class</span><span class="w"> </span><span class="nc">ValidationError</span><span class="p">(</span><span class="ne">AssertionError</span><span class="p">):</span>
-</span><span data-line="218"><span class="w">    </span><span class="sd">"""Raised by :meth:`ValidationReport.raise_if_failed`."""</span>
-</span><span data-line="219">
-</span><span data-line="220">    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">report</span><span class="p">:</span> <span class="n">ValidationReport</span><span class="p">):</span>
-</span><span data-line="221">        <span class="bp">self</span><span class="o">.</span><span class="n">report</span> <span class="o">=</span> <span class="n">report</span>
-</span><span data-line="222">        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">report</span><span class="o">.</span><span class="n">summary</span><span class="p">())</span></div>
+</span><span data-line="228"><span class="k">class</span><span class="w"> </span><span class="nc">ValidationError</span><span class="p">(</span><span class="ne">AssertionError</span><span class="p">):</span>
+</span><span data-line="229"><span class="w">    </span><span class="sd">"""Raised by :meth:`ValidationReport.raise_if_failed`."""</span>
+</span><span data-line="230">
+</span><span data-line="231">    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">report</span><span class="p">:</span> <span class="n">ValidationReport</span><span class="p">):</span>
+</span><span data-line="232">        <span class="bp">self</span><span class="o">.</span><span class="n">report</span> <span class="o">=</span> <span class="n">report</span>
+</span><span data-line="233">        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">report</span><span class="o">.</span><span class="n">summary</span><span class="p">())</span></div>
 
-</span><span data-line="223">
-</span><span data-line="224">
-</span><span data-line="225"><span class="c1"># ---------------------------------------------------------------------------</span>
-</span><span data-line="226"><span class="c1"># What a check is</span>
-</span><span data-line="227"><span class="c1"># ---------------------------------------------------------------------------</span>
-</span><span data-line="228">
-</span><span data-line="229"><span class="c1">#: A check's callable: ``(target, context) -&gt; findings``. ``context`` maps the</span>
-</span><span data-line="230"><span class="c1">#: names of the checks this one ``requires`` to their ``CheckResult.produced``,</span>
-</span><span data-line="231"><span class="c1">#: so an expensive shared computation (sampling frames, probing a container) is</span>
-</span><span data-line="232"><span class="c1">#: done once by a check that others depend on.</span>
-</span><span data-line="233"><span class="n">RunCheck</span> <span class="o">=</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">Any</span><span class="p">,</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]],</span> <span class="n">Iterable</span><span class="p">[</span><span class="n">Finding</span><span class="p">]]</span>
 </span><span data-line="234">
 </span><span data-line="235">
+</span><span data-line="236"><span class="c1"># ---------------------------------------------------------------------------</span>
+</span><span data-line="237"><span class="c1"># What a check is</span>
+</span><span data-line="238"><span class="c1"># ---------------------------------------------------------------------------</span>
+</span><span data-line="239">
+</span><span data-line="240"><span class="c1">#: A check's callable: ``(target, context) -&gt; findings``. ``context`` maps the</span>
+</span><span data-line="241"><span class="c1">#: names of the checks this one ``requires`` to their ``CheckResult.produced``,</span>
+</span><span data-line="242"><span class="c1">#: so an expensive shared computation (sampling frames, probing a container) is</span>
+</span><span data-line="243"><span class="c1">#: done once by a check that others depend on.</span>
+</span><span data-line="244"><span class="n">RunCheck</span> <span class="o">=</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">Any</span><span class="p">,</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]],</span> <span class="n">Iterable</span><span class="p">[</span><span class="n">Finding</span><span class="p">]]</span>
+</span><span data-line="245">
+</span><span data-line="246">
 <div class="viewcode-block" id="Check">
 <a class="viewcode-back" href="../../_autosummary/nw.validation.html#nw.Check">[docs]</a>
-</span><span data-line="236"><span class="nd">@dataclass</span><span class="p">(</span><span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-</span><span data-line="237"><span class="k">class</span><span class="w"> </span><span class="nc">Check</span><span class="p">:</span>
-</span><span data-line="238"><span class="w">    </span><span class="sd">"""One validation, and everything a scheduler and a menu need to know.</span>
-</span><span data-line="239">
-</span><span data-line="240"><span class="sd">    Attributes:</span>
-</span><span data-line="241"><span class="sd">        name: dotted and stable — it is what a user selects and what a</span>
-</span><span data-line="242"><span class="sd">            ``requires`` refers to.</span>
-</span><span data-line="243"><span class="sd">        summary: one line, for the menu.</span>
-</span><span data-line="244"><span class="sd">        run: ``(target, context) -&gt; findings``. May also return a</span>
-</span><span data-line="245"><span class="sd">            ``(findings, produced)`` pair when other checks depend on it.</span>
-</span><span data-line="246"><span class="sd">        requires: names of checks that must run first, whose ``produced``</span>
-</span><span data-line="247"><span class="sd">            values arrive in ``context``. Cycles raise at plan time.</span>
-</span><span data-line="248"><span class="sd">        parallel_safe: whether it may run alongside its independent peers.</span>
-</span><span data-line="249"><span class="sd">            ``False`` for anything that is not thread-safe or that saturates</span>
-</span><span data-line="250"><span class="sd">            the machine on its own (a full decode).</span>
-</span><span data-line="251"><span class="sd">        cost: rough wall-clock class — ``"free"`` (no subprocess),</span>
-</span><span data-line="252"><span class="sd">            ``"cheap"`` (seconds), ``"dear"`` (a full pass over the media), or</span>
-</span><span data-line="253"><span class="sd">            ``"paid"`` (spends money, e.g. a hosted OCR or transcription).</span>
-</span><span data-line="254"><span class="sd">            ``"paid"`` is never selected by :func:`suggest`; it must be asked</span>
-</span><span data-line="255"><span class="sd">            for by name.</span>
-</span><span data-line="256"><span class="sd">        example_requests: things a person actually says that mean they want</span>
-</span><span data-line="257"><span class="sd">            this check. What lets a menu of forty be navigated, and what an</span>
-</span><span data-line="258"><span class="sd">            MCP surface matches against instead of exposing an enum.</span>
-</span><span data-line="259"><span class="sd">        requires_binaries: external programs it shells out to. A missing one</span>
-</span><span data-line="260"><span class="sd">            makes the check *skip with a reason*, never silently pass.</span>
-</span><span data-line="261"><span class="sd">    """</span>
-</span><span data-line="262">
-</span><span data-line="263">    <span class="n">name</span><span class="p">:</span> <span class="nb">str</span>
-</span><span data-line="264">    <span class="n">summary</span><span class="p">:</span> <span class="nb">str</span>
-</span><span data-line="265">    <span class="n">run</span><span class="p">:</span> <span class="n">RunCheck</span>
-</span><span data-line="266">    <span class="n">requires</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">=</span> <span class="p">()</span>
-</span><span data-line="267">    <span class="n">parallel_safe</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span>
-</span><span data-line="268">    <span class="n">cost</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">"free"</span><span class="p">,</span> <span class="s2">"cheap"</span><span class="p">,</span> <span class="s2">"dear"</span><span class="p">,</span> <span class="s2">"paid"</span><span class="p">]</span> <span class="o">=</span> <span class="s2">"cheap"</span>
-</span><span data-line="269">    <span class="n">example_requests</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">=</span> <span class="p">()</span>
-</span><span data-line="270">    <span class="n">requires_binaries</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">=</span> <span class="p">()</span>
-</span><span data-line="271">
-</span><span data-line="272">    <span class="k">def</span><span class="w"> </span><span class="nf">__post_init__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-</span><span data-line="273">        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">:</span>
-</span><span data-line="274">            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"a check needs a name — it is what users select"</span><span class="p">)</span>
-</span><span data-line="275">        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">summary</span><span class="p">:</span>
-</span><span data-line="276">            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-</span><span data-line="277">                <span class="sa">f</span><span class="s2">"check </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">!r}</span><span class="s2"> needs a summary: an unexplained item on a "</span>
-</span><span data-line="278">                <span class="sa">f</span><span class="s2">"menu will not be chosen, and cannot be chosen *for* a user"</span>
-</span><span data-line="279">            <span class="p">)</span>
-</span><span data-line="280">        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">requires</span><span class="p">:</span>
-</span><span data-line="281">            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"check </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">!r}</span><span class="s2"> requires itself"</span><span class="p">)</span></div>
-
+</span><span data-line="247"><span class="nd">@dataclass</span><span class="p">(</span><span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</span><span data-line="248"><span class="k">class</span><span class="w"> </span><span class="nc">Check</span><span class="p">:</span>
+</span><span data-line="249"><span class="w">    </span><span class="sd">"""One validation, and everything a scheduler and a menu need to know.</span>
+</span><span data-line="250">
+</span><span data-line="251"><span class="sd">    Attributes:</span>
+</span><span data-line="252"><span class="sd">        name: dotted and stable — it is what a user selects and what a</span>
+</span><span data-line="253"><span class="sd">            ``requires`` refers to.</span>
+</span><span data-line="254"><span class="sd">        summary: one line, for the menu.</span>
+</span><span data-line="255"><span class="sd">        run: ``(target, context) -&gt; findings``. May also return a</span>
+</span><span data-line="256"><span class="sd">            ``(findings, produced)`` pair when other checks depend on it.</span>
+</span><span data-line="257"><span class="sd">        requires: names of checks that must run first, whose ``produced``</span>
+</span><span data-line="258"><span class="sd">            values arrive in ``context``. Cycles raise at plan time.</span>
+</span><span data-line="259"><span class="sd">        parallel_safe: whether it may run alongside its independent peers.</span>
+</span><span data-line="260"><span class="sd">            ``False`` for anything that is not thread-safe or that saturates</span>
+</span><span data-line="261"><span class="sd">            the machine on its own (a full decode).</span>
+</span><span data-line="262"><span class="sd">        cost: rough wall-clock class — ``"free"`` (no subprocess),</span>
+</span><span data-line="263"><span class="sd">            ``"cheap"`` (seconds), ``"dear"`` (a full pass over the media), or</span>
+</span><span data-line="264"><span class="sd">            ``"paid"`` (spends money, e.g. a hosted OCR or transcription).</span>
+</span><span data-line="265"><span class="sd">            ``"paid"`` is never selected by :func:`suggest`; it must be asked</span>
+</span><span data-line="266"><span class="sd">            for by name.</span>
+</span><span data-line="267"><span class="sd">        example_requests: things a person actually says that mean they want</span>
+</span><span data-line="268"><span class="sd">            this check. What lets a menu of forty be navigated, and what an</span>
+</span><span data-line="269"><span class="sd">            MCP surface matches against instead of exposing an enum.</span>
+</span><span data-line="270"><span class="sd">        requires_binaries: external programs it shells out to. A missing one</span>
+</span><span data-line="271"><span class="sd">            makes the check *skip with a reason*, never silently pass.</span>
+</span><span data-line="272"><span class="sd">    """</span>
+</span><span data-line="273">
+</span><span data-line="274">    <span class="n">name</span><span class="p">:</span> <span class="nb">str</span>
+</span><span data-line="275">    <span class="n">summary</span><span class="p">:</span> <span class="nb">str</span>
+</span><span data-line="276">    <span class="n">run</span><span class="p">:</span> <span class="n">RunCheck</span>
+</span><span data-line="277">    <span class="n">requires</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">=</span> <span class="p">()</span>
+</span><span data-line="278">    <span class="n">parallel_safe</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span>
+</span><span data-line="279">    <span class="n">cost</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">"free"</span><span class="p">,</span> <span class="s2">"cheap"</span><span class="p">,</span> <span class="s2">"dear"</span><span class="p">,</span> <span class="s2">"paid"</span><span class="p">]</span> <span class="o">=</span> <span class="s2">"cheap"</span>
+</span><span data-line="280">    <span class="n">example_requests</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">=</span> <span class="p">()</span>
+</span><span data-line="281">    <span class="n">requires_binaries</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">=</span> <span class="p">()</span>
 </span><span data-line="282">
-</span><span data-line="283">
-</span><span data-line="284"><span class="c1">#: The menu. ``on_conflict="error"`` so a plugin that shadows a built-in fails</span>
-</span><span data-line="285"><span class="c1">#: loudly rather than quietly changing what "validated" means.</span>
-</span><span data-line="286"><span class="n">checks</span><span class="p">:</span> <span class="n">Registry</span> <span class="o">=</span> <span class="n">Registry</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">"nw.validation.checks"</span><span class="p">,</span> <span class="n">on_conflict</span><span class="o">=</span><span class="s2">"error"</span><span class="p">)</span>
-</span><span data-line="287">
-</span><span data-line="288">
+</span><span data-line="283">    <span class="k">def</span><span class="w"> </span><span class="nf">__post_init__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+</span><span data-line="284">        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">:</span>
+</span><span data-line="285">            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"a check needs a name — it is what users select"</span><span class="p">)</span>
+</span><span data-line="286">        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">summary</span><span class="p">:</span>
+</span><span data-line="287">            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+</span><span data-line="288">                <span class="sa">f</span><span class="s2">"check </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">!r}</span><span class="s2"> needs a summary: an unexplained item on a "</span>
+</span><span data-line="289">                <span class="sa">f</span><span class="s2">"menu will not be chosen, and cannot be chosen *for* a user"</span>
+</span><span data-line="290">            <span class="p">)</span>
+</span><span data-line="291">        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">requires</span><span class="p">:</span>
+</span><span data-line="292">            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"check </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">!r}</span><span class="s2"> requires itself"</span><span class="p">)</span></div>
+
+</span><span data-line="293">
+</span><span data-line="294">
+</span><span data-line="295"><span class="c1">#: The menu. ``on_conflict="error"`` so a plugin that shadows a built-in fails</span>
+</span><span data-line="296"><span class="c1">#: loudly rather than quietly changing what "validated" means.</span>
+</span><span data-line="297"><span class="n">checks</span><span class="p">:</span> <span class="n">Registry</span> <span class="o">=</span> <span class="n">Registry</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">"nw.validation.checks"</span><span class="p">,</span> <span class="n">on_conflict</span><span class="o">=</span><span class="s2">"error"</span><span class="p">)</span>
+</span><span data-line="298">
+</span><span data-line="299">
 <div class="viewcode-block" id="register_check">
 <a class="viewcode-back" href="../../_autosummary/nw.validation.html#nw.register_check">[docs]</a>
-</span><span data-line="289"><span class="k">def</span><span class="w"> </span><span class="nf">register_check</span><span class="p">(</span><span class="n">check</span><span class="p">:</span> <span class="n">Check</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">):</span>
-</span><span data-line="290"><span class="w">    </span><span class="sd">"""Add a check to the menu, as a call or as a decorator.</span>
-</span><span data-line="291">
-</span><span data-line="292"><span class="sd">    As a call::</span>
-</span><span data-line="293">
-</span><span data-line="294"><span class="sd">        register_check(Check(name="video.duration", summary="...", run=...))</span>
-</span><span data-line="295">
-</span><span data-line="296"><span class="sd">    As a decorator on the run function, with the rest as keywords::</span>
-</span><span data-line="297">
-</span><span data-line="298"><span class="sd">        @register_check(name="video.duration", summary="...", cost="cheap")</span>
-</span><span data-line="299"><span class="sd">        def _duration(target, ctx): ...</span>
-</span><span data-line="300"><span class="sd">    """</span>
-</span><span data-line="301">    <span class="k">if</span> <span class="n">check</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-</span><span data-line="302">        <span class="k">if</span> <span class="n">kwargs</span><span class="p">:</span>
-</span><span data-line="303">            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">"pass a Check, or keywords — not both"</span><span class="p">)</span>
-</span><span data-line="304">        <span class="n">checks</span><span class="o">.</span><span class="n">register</span><span class="p">(</span><span class="n">check</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">check</span><span class="p">)</span>
-</span><span data-line="305">        <span class="k">return</span> <span class="n">check</span>
+</span><span data-line="300"><span class="k">def</span><span class="w"> </span><span class="nf">register_check</span><span class="p">(</span><span class="n">check</span><span class="p">:</span> <span class="n">Check</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">):</span>
+</span><span data-line="301"><span class="w">    </span><span class="sd">"""Add a check to the menu, as a call or as a decorator.</span>
+</span><span data-line="302">
+</span><span data-line="303"><span class="sd">    As a call::</span>
+</span><span data-line="304">
+</span><span data-line="305"><span class="sd">        register_check(Check(name="video.duration", summary="...", run=...))</span>
 </span><span data-line="306">
-</span><span data-line="307">    <span class="k">def</span><span class="w"> </span><span class="nf">deco</span><span class="p">(</span><span class="n">fn</span><span class="p">:</span> <span class="n">RunCheck</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">RunCheck</span><span class="p">:</span>
-</span><span data-line="308">        <span class="n">checks</span><span class="o">.</span><span class="n">register</span><span class="p">(</span><span class="n">kwargs</span><span class="p">[</span><span class="s2">"name"</span><span class="p">],</span> <span class="n">Check</span><span class="p">(</span><span class="n">run</span><span class="o">=</span><span class="n">fn</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">))</span>
-</span><span data-line="309">        <span class="k">return</span> <span class="n">fn</span>
-</span><span data-line="310">
-</span><span data-line="311">    <span class="k">return</span> <span class="n">deco</span></div>
-
-</span><span data-line="312">
-</span><span data-line="313">
-</span><span data-line="314"><span class="c1"># ---------------------------------------------------------------------------</span>
-</span><span data-line="315"><span class="c1"># Selecting, ordering, running</span>
-</span><span data-line="316"><span class="c1"># ---------------------------------------------------------------------------</span>
+</span><span data-line="307"><span class="sd">    As a decorator on the run function, with the rest as keywords::</span>
+</span><span data-line="308">
+</span><span data-line="309"><span class="sd">        @register_check(name="video.duration", summary="...", cost="cheap")</span>
+</span><span data-line="310"><span class="sd">        def _duration(target, ctx): ...</span>
+</span><span data-line="311"><span class="sd">    """</span>
+</span><span data-line="312">    <span class="k">if</span> <span class="n">check</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+</span><span data-line="313">        <span class="k">if</span> <span class="n">kwargs</span><span class="p">:</span>
+</span><span data-line="314">            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">"pass a Check, or keywords — not both"</span><span class="p">)</span>
+</span><span data-line="315">        <span class="n">checks</span><span class="o">.</span><span class="n">register</span><span class="p">(</span><span class="n">check</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">check</span><span class="p">)</span>
+</span><span data-line="316">        <span class="k">return</span> <span class="n">check</span>
 </span><span data-line="317">
-</span><span data-line="318">
-<div class="viewcode-block" id="menu">
-<a class="viewcode-back" href="../../_autosummary/nw.validation.html#nw.menu">[docs]</a>
-</span><span data-line="319"><span class="k">def</span><span class="w"> </span><span class="nf">menu</span><span class="p">(</span><span class="o">*</span><span class="p">,</span> <span class="n">cost</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">Check</span><span class="p">,</span> <span class="o">...</span><span class="p">]:</span>
-</span><span data-line="320"><span class="w">    </span><span class="sd">"""Every registered check, name-ordered — what a user chooses from."""</span>
-</span><span data-line="321">    <span class="n">out</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">checks</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">checks</span><span class="p">))</span>
-</span><span data-line="322">    <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">c</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">out</span> <span class="k">if</span> <span class="n">c</span><span class="o">.</span><span class="n">cost</span> <span class="ow">in</span> <span class="n">cost</span><span class="p">)</span> <span class="k">if</span> <span class="n">cost</span> <span class="k">else</span> <span class="n">out</span></div>
+</span><span data-line="318">    <span class="k">def</span><span class="w"> </span><span class="nf">deco</span><span class="p">(</span><span class="n">fn</span><span class="p">:</span> <span class="n">RunCheck</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">RunCheck</span><span class="p">:</span>
+</span><span data-line="319">        <span class="n">checks</span><span class="o">.</span><span class="n">register</span><span class="p">(</span><span class="n">kwargs</span><span class="p">[</span><span class="s2">"name"</span><span class="p">],</span> <span class="n">Check</span><span class="p">(</span><span class="n">run</span><span class="o">=</span><span class="n">fn</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">))</span>
+</span><span data-line="320">        <span class="k">return</span> <span class="n">fn</span>
+</span><span data-line="321">
+</span><span data-line="322">    <span class="k">return</span> <span class="n">deco</span></div>
 
 </span><span data-line="323">
 </span><span data-line="324">
+</span><span data-line="325"><span class="c1"># ---------------------------------------------------------------------------</span>
+</span><span data-line="326"><span class="c1"># Selecting, ordering, running</span>
+</span><span data-line="327"><span class="c1"># ---------------------------------------------------------------------------</span>
+</span><span data-line="328">
+</span><span data-line="329">
+<div class="viewcode-block" id="menu">
+<a class="viewcode-back" href="../../_autosummary/nw.validation.html#nw.menu">[docs]</a>
+</span><span data-line="330"><span class="k">def</span><span class="w"> </span><span class="nf">menu</span><span class="p">(</span><span class="o">*</span><span class="p">,</span> <span class="n">cost</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">Check</span><span class="p">,</span> <span class="o">...</span><span class="p">]:</span>
+</span><span data-line="331"><span class="w">    </span><span class="sd">"""Every registered check, name-ordered — what a user chooses from."""</span>
+</span><span data-line="332">    <span class="n">out</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">checks</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">checks</span><span class="p">))</span>
+</span><span data-line="333">    <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">c</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">out</span> <span class="k">if</span> <span class="n">c</span><span class="o">.</span><span class="n">cost</span> <span class="ow">in</span> <span class="n">cost</span><span class="p">)</span> <span class="k">if</span> <span class="n">cost</span> <span class="k">else</span> <span class="n">out</span></div>
+
+</span><span data-line="334">
+</span><span data-line="335">
 <div class="viewcode-block" id="suggest">
 <a class="viewcode-back" href="../../_autosummary/nw.validation.html#nw.suggest">[docs]</a>
-</span><span data-line="325"><span class="k">def</span><span class="w"> </span><span class="nf">suggest</span><span class="p">(</span><span class="n">request</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">include_paid</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">Check</span><span class="p">,</span> <span class="o">...</span><span class="p">]:</span>
-</span><span data-line="326"><span class="w">    </span><span class="sd">"""Checks whose ``example_requests`` look like what the user just asked for.</span>
-</span><span data-line="327">
-</span><span data-line="328"><span class="sd">    Deliberately crude — a word-overlap score, not a model call — because this</span>
-</span><span data-line="329"><span class="sd">    runs on every request and its job is to narrow forty items to a handful</span>
-</span><span data-line="330"><span class="sd">    that a human or a model then confirms. ``"paid"`` checks are never</span>
-</span><span data-line="331"><span class="sd">    suggested: money is asked for by name.</span>
-</span><span data-line="332">
-</span><span data-line="333"><span class="sd">    Examples:</span>
-</span><span data-line="334"><span class="sd">        &gt;&gt;&gt; suggest("")</span>
-</span><span data-line="335"><span class="sd">        ()</span>
-</span><span data-line="336"><span class="sd">    """</span>
-</span><span data-line="337">    <span class="n">words</span> <span class="o">=</span> <span class="p">{</span><span class="n">w</span> <span class="k">for</span> <span class="n">w</span> <span class="ow">in</span> <span class="n">_words</span><span class="p">(</span><span class="n">request</span><span class="p">)</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">w</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">3</span><span class="p">}</span>
-</span><span data-line="338">    <span class="k">if</span> <span class="ow">not</span> <span class="n">words</span><span class="p">:</span>
-</span><span data-line="339">        <span class="k">return</span> <span class="p">()</span>
-</span><span data-line="340">    <span class="n">scored</span> <span class="o">=</span> <span class="p">[]</span>
-</span><span data-line="341">    <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">menu</span><span class="p">():</span>
-</span><span data-line="342">        <span class="k">if</span> <span class="n">c</span><span class="o">.</span><span class="n">cost</span> <span class="o">==</span> <span class="s2">"paid"</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">include_paid</span><span class="p">:</span>
-</span><span data-line="343">            <span class="k">continue</span>
-</span><span data-line="344">        <span class="n">hay</span> <span class="o">=</span> <span class="n">_words</span><span class="p">(</span><span class="s2">" "</span><span class="o">.</span><span class="n">join</span><span class="p">((</span><span class="o">*</span><span class="n">c</span><span class="o">.</span><span class="n">example_requests</span><span class="p">,</span> <span class="n">c</span><span class="o">.</span><span class="n">summary</span><span class="p">,</span> <span class="n">c</span><span class="o">.</span><span class="n">name</span><span class="p">)))</span>
-</span><span data-line="345">        <span class="n">overlap</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">words</span> <span class="o">&amp;</span> <span class="n">hay</span><span class="p">)</span>
-</span><span data-line="346">        <span class="k">if</span> <span class="n">overlap</span><span class="p">:</span>
-</span><span data-line="347">            <span class="n">scored</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="o">-</span><span class="n">overlap</span><span class="p">,</span> <span class="n">c</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">c</span><span class="p">))</span>
-</span><span data-line="348">    <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">c</span> <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">c</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">scored</span><span class="p">))</span></div>
+</span><span data-line="336"><span class="k">def</span><span class="w"> </span><span class="nf">suggest</span><span class="p">(</span><span class="n">request</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">include_paid</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">Check</span><span class="p">,</span> <span class="o">...</span><span class="p">]:</span>
+</span><span data-line="337"><span class="w">    </span><span class="sd">"""Checks whose ``example_requests`` look like what the user just asked for.</span>
+</span><span data-line="338">
+</span><span data-line="339"><span class="sd">    Deliberately crude — a word-overlap score, not a model call — because this</span>
+</span><span data-line="340"><span class="sd">    runs on every request and its job is to narrow forty items to a handful</span>
+</span><span data-line="341"><span class="sd">    that a human or a model then confirms. ``"paid"`` checks are never</span>
+</span><span data-line="342"><span class="sd">    suggested: money is asked for by name.</span>
+</span><span data-line="343">
+</span><span data-line="344"><span class="sd">    Examples:</span>
+</span><span data-line="345"><span class="sd">        &gt;&gt;&gt; suggest("")</span>
+</span><span data-line="346"><span class="sd">        ()</span>
+</span><span data-line="347"><span class="sd">    """</span>
+</span><span data-line="348">    <span class="n">words</span> <span class="o">=</span> <span class="p">{</span><span class="n">w</span> <span class="k">for</span> <span class="n">w</span> <span class="ow">in</span> <span class="n">_words</span><span class="p">(</span><span class="n">request</span><span class="p">)</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">w</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">3</span><span class="p">}</span>
+</span><span data-line="349">    <span class="k">if</span> <span class="ow">not</span> <span class="n">words</span><span class="p">:</span>
+</span><span data-line="350">        <span class="k">return</span> <span class="p">()</span>
+</span><span data-line="351">    <span class="n">scored</span> <span class="o">=</span> <span class="p">[]</span>
+</span><span data-line="352">    <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">menu</span><span class="p">():</span>
+</span><span data-line="353">        <span class="k">if</span> <span class="n">c</span><span class="o">.</span><span class="n">cost</span> <span class="o">==</span> <span class="s2">"paid"</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">include_paid</span><span class="p">:</span>
+</span><span data-line="354">            <span class="k">continue</span>
+</span><span data-line="355">        <span class="n">hay</span> <span class="o">=</span> <span class="n">_words</span><span class="p">(</span><span class="s2">" "</span><span class="o">.</span><span class="n">join</span><span class="p">((</span><span class="o">*</span><span class="n">c</span><span class="o">.</span><span class="n">example_requests</span><span class="p">,</span> <span class="n">c</span><span class="o">.</span><span class="n">summary</span><span class="p">,</span> <span class="n">c</span><span class="o">.</span><span class="n">name</span><span class="p">)))</span>
+</span><span data-line="356">        <span class="n">overlap</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">words</span> <span class="o">&amp;</span> <span class="n">hay</span><span class="p">)</span>
+</span><span data-line="357">        <span class="k">if</span> <span class="n">overlap</span><span class="p">:</span>
+</span><span data-line="358">            <span class="n">scored</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="o">-</span><span class="n">overlap</span><span class="p">,</span> <span class="n">c</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">c</span><span class="p">))</span>
+</span><span data-line="359">    <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">c</span> <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">c</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">scored</span><span class="p">))</span></div>
 
-</span><span data-line="349">
-</span><span data-line="350">
-</span><span data-line="351"><span class="k">def</span><span class="w"> </span><span class="nf">_words</span><span class="p">(</span><span class="n">text</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">set</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
-</span><span data-line="352">    <span class="k">return</span> <span class="p">{</span>
-</span><span data-line="353">        <span class="n">w</span>
-</span><span data-line="354">        <span class="k">for</span> <span class="n">w</span> <span class="ow">in</span> <span class="s2">""</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">ch</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="k">if</span> <span class="n">ch</span><span class="o">.</span><span class="n">isalnum</span><span class="p">()</span> <span class="k">else</span> <span class="s2">" "</span> <span class="k">for</span> <span class="n">ch</span> <span class="ow">in</span> <span class="n">text</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
-</span><span data-line="355">        <span class="k">if</span> <span class="n">w</span>
-</span><span data-line="356">    <span class="p">}</span>
-</span><span data-line="357">
-</span><span data-line="358">
+</span><span data-line="360">
+</span><span data-line="361">
+</span><span data-line="362"><span class="k">def</span><span class="w"> </span><span class="nf">_words</span><span class="p">(</span><span class="n">text</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">set</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+</span><span data-line="363">    <span class="k">return</span> <span class="p">{</span>
+</span><span data-line="364">        <span class="n">w</span>
+</span><span data-line="365">        <span class="k">for</span> <span class="n">w</span> <span class="ow">in</span> <span class="s2">""</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">ch</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="k">if</span> <span class="n">ch</span><span class="o">.</span><span class="n">isalnum</span><span class="p">()</span> <span class="k">else</span> <span class="s2">" "</span> <span class="k">for</span> <span class="n">ch</span> <span class="ow">in</span> <span class="n">text</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+</span><span data-line="366">        <span class="k">if</span> <span class="n">w</span>
+</span><span data-line="367">    <span class="p">}</span>
+</span><span data-line="368">
+</span><span data-line="369">
 <div class="viewcode-block" id="resolve_checks">
 <a class="viewcode-back" href="../../_autosummary/nw.validation.html#nw.resolve_checks">[docs]</a>
-</span><span data-line="359"><span class="k">def</span><span class="w"> </span><span class="nf">resolve_checks</span><span class="p">(</span><span class="n">selection</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="nb">str</span> <span class="o">|</span> <span class="n">Check</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">Check</span><span class="p">,</span> <span class="o">...</span><span class="p">]:</span>
-</span><span data-line="360"><span class="w">    </span><span class="sd">"""Selection plus everything it requires, with names resolved to Checks.</span>
-</span><span data-line="361">
-</span><span data-line="362"><span class="sd">    A user picks what they care about; what those checks *need* is not their</span>
-</span><span data-line="363"><span class="sd">    problem. Raises ``KeyError`` for an unknown name — a silently dropped check</span>
-</span><span data-line="364"><span class="sd">    is the failure this whole module exists to prevent.</span>
-</span><span data-line="365"><span class="sd">    """</span>
-</span><span data-line="366">    <span class="n">out</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Check</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
-</span><span data-line="367">    <span class="n">pending</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">selection</span><span class="p">)</span>
-</span><span data-line="368">    <span class="k">while</span> <span class="n">pending</span><span class="p">:</span>
-</span><span data-line="369">        <span class="n">item</span> <span class="o">=</span> <span class="n">pending</span><span class="o">.</span><span class="n">pop</span><span class="p">()</span>
-</span><span data-line="370">        <span class="n">check</span> <span class="o">=</span> <span class="n">item</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">item</span><span class="p">,</span> <span class="n">Check</span><span class="p">)</span> <span class="k">else</span> <span class="n">checks</span><span class="p">[</span><span class="n">item</span><span class="p">]</span>
-</span><span data-line="371">        <span class="k">if</span> <span class="n">check</span><span class="o">.</span><span class="n">name</span> <span class="ow">in</span> <span class="n">out</span><span class="p">:</span>
-</span><span data-line="372">            <span class="k">continue</span>
-</span><span data-line="373">        <span class="n">out</span><span class="p">[</span><span class="n">check</span><span class="o">.</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">check</span>
-</span><span data-line="374">        <span class="n">pending</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">n</span> <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="n">check</span><span class="o">.</span><span class="n">requires</span> <span class="k">if</span> <span class="n">n</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">out</span><span class="p">)</span>
-</span><span data-line="375">    <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">out</span><span class="o">.</span><span class="n">values</span><span class="p">())</span></div>
+</span><span data-line="370"><span class="k">def</span><span class="w"> </span><span class="nf">resolve_checks</span><span class="p">(</span><span class="n">selection</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="nb">str</span> <span class="o">|</span> <span class="n">Check</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">Check</span><span class="p">,</span> <span class="o">...</span><span class="p">]:</span>
+</span><span data-line="371"><span class="w">    </span><span class="sd">"""Selection plus everything it requires, with names resolved to Checks.</span>
+</span><span data-line="372">
+</span><span data-line="373"><span class="sd">    A user picks what they care about; what those checks *need* is not their</span>
+</span><span data-line="374"><span class="sd">    problem. Raises ``KeyError`` for an unknown name — a silently dropped check</span>
+</span><span data-line="375"><span class="sd">    is the failure this whole module exists to prevent.</span>
+</span><span data-line="376"><span class="sd">    """</span>
+</span><span data-line="377">    <span class="n">out</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Check</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+</span><span data-line="378">    <span class="n">pending</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">selection</span><span class="p">)</span>
+</span><span data-line="379">    <span class="k">while</span> <span class="n">pending</span><span class="p">:</span>
+</span><span data-line="380">        <span class="n">item</span> <span class="o">=</span> <span class="n">pending</span><span class="o">.</span><span class="n">pop</span><span class="p">()</span>
+</span><span data-line="381">        <span class="n">check</span> <span class="o">=</span> <span class="n">item</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">item</span><span class="p">,</span> <span class="n">Check</span><span class="p">)</span> <span class="k">else</span> <span class="n">checks</span><span class="p">[</span><span class="n">item</span><span class="p">]</span>
+</span><span data-line="382">        <span class="k">if</span> <span class="n">check</span><span class="o">.</span><span class="n">name</span> <span class="ow">in</span> <span class="n">out</span><span class="p">:</span>
+</span><span data-line="383">            <span class="k">continue</span>
+</span><span data-line="384">        <span class="n">out</span><span class="p">[</span><span class="n">check</span><span class="o">.</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">check</span>
+</span><span data-line="385">        <span class="n">pending</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">n</span> <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="n">check</span><span class="o">.</span><span class="n">requires</span> <span class="k">if</span> <span class="n">n</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">out</span><span class="p">)</span>
+</span><span data-line="386">    <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">out</span><span class="o">.</span><span class="n">values</span><span class="p">())</span></div>
 
-</span><span data-line="376">
-</span><span data-line="377">
+</span><span data-line="387">
+</span><span data-line="388">
 <div class="viewcode-block" id="plan_checks">
 <a class="viewcode-back" href="../../_autosummary/nw.validation.html#nw.plan_checks">[docs]</a>
-</span><span data-line="378"><span class="k">def</span><span class="w"> </span><span class="nf">plan_checks</span><span class="p">(</span><span class="n">selection</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="nb">str</span> <span class="o">|</span> <span class="n">Check</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">Check</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="o">...</span><span class="p">]:</span>
-</span><span data-line="379"><span class="w">    </span><span class="sd">"""Order the selection into waves that may each run concurrently.</span>
-</span><span data-line="380">
-</span><span data-line="381"><span class="sd">    Every check in a wave has all its requirements satisfied by earlier waves,</span>
-</span><span data-line="382"><span class="sd">    so the waves are the schedule: run each in turn, in parallel within it.</span>
-</span><span data-line="383"><span class="sd">    A check that is not ``parallel_safe`` gets a wave to itself.</span>
-</span><span data-line="384">
-</span><span data-line="385"><span class="sd">    Raises:</span>
-</span><span data-line="386"><span class="sd">        ValueError: on a dependency cycle, or a requirement that is not</span>
-</span><span data-line="387"><span class="sd">            registered — both at plan time, before anything has been spent.</span>
-</span><span data-line="388">
-</span><span data-line="389"><span class="sd">    Examples:</span>
-</span><span data-line="390"><span class="sd">        &gt;&gt;&gt; plan_checks(())</span>
-</span><span data-line="391"><span class="sd">        ()</span>
-</span><span data-line="392"><span class="sd">    """</span>
-</span><span data-line="393">    <span class="n">selected</span> <span class="o">=</span> <span class="p">{</span><span class="n">c</span><span class="o">.</span><span class="n">name</span><span class="p">:</span> <span class="n">c</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">resolve_checks</span><span class="p">(</span><span class="n">selection</span><span class="p">)}</span>
-</span><span data-line="394">    <span class="n">done</span><span class="p">:</span> <span class="nb">set</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
-</span><span data-line="395">    <span class="n">waves</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">Check</span><span class="p">,</span> <span class="o">...</span><span class="p">]]</span> <span class="o">=</span> <span class="p">[]</span>
-</span><span data-line="396">    <span class="k">while</span> <span class="nb">len</span><span class="p">(</span><span class="n">done</span><span class="p">)</span> <span class="o">&lt;</span> <span class="nb">len</span><span class="p">(</span><span class="n">selected</span><span class="p">):</span>
-</span><span data-line="397">        <span class="n">ready</span> <span class="o">=</span> <span class="p">[</span>
-</span><span data-line="398">            <span class="n">c</span>
-</span><span data-line="399">            <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">c</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">selected</span><span class="o">.</span><span class="n">items</span><span class="p">())</span>
-</span><span data-line="400">            <span class="k">if</span> <span class="n">name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">done</span> <span class="ow">and</span> <span class="nb">set</span><span class="p">(</span><span class="n">c</span><span class="o">.</span><span class="n">requires</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="n">done</span>
-</span><span data-line="401">        <span class="p">]</span>
-</span><span data-line="402">        <span class="k">if</span> <span class="ow">not</span> <span class="n">ready</span><span class="p">:</span>
-</span><span data-line="403">            <span class="n">stuck</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">selected</span><span class="p">)</span> <span class="o">-</span> <span class="n">done</span><span class="p">)</span>
-</span><span data-line="404">            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-</span><span data-line="405">                <span class="sa">f</span><span class="s2">"cannot order checks </span><span class="si">{</span><span class="n">stuck</span><span class="si">}</span><span class="s2">: a dependency cycle, or a "</span>
-</span><span data-line="406">                <span class="sa">f</span><span class="s2">"requirement outside the selection"</span>
-</span><span data-line="407">            <span class="p">)</span>
-</span><span data-line="408">        <span class="n">solo</span> <span class="o">=</span> <span class="p">[</span><span class="n">c</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">ready</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">c</span><span class="o">.</span><span class="n">parallel_safe</span><span class="p">]</span>
-</span><span data-line="409">        <span class="k">if</span> <span class="n">solo</span><span class="p">:</span>
-</span><span data-line="410">            <span class="n">waves</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">solo</span><span class="p">[</span><span class="mi">0</span><span class="p">],))</span>
-</span><span data-line="411">            <span class="n">done</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">solo</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
-</span><span data-line="412">            <span class="k">continue</span>
-</span><span data-line="413">        <span class="n">waves</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">tuple</span><span class="p">(</span><span class="n">ready</span><span class="p">))</span>
-</span><span data-line="414">        <span class="n">done</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">c</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">ready</span><span class="p">)</span>
-</span><span data-line="415">    <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">waves</span><span class="p">)</span></div>
+</span><span data-line="389"><span class="k">def</span><span class="w"> </span><span class="nf">plan_checks</span><span class="p">(</span><span class="n">selection</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="nb">str</span> <span class="o">|</span> <span class="n">Check</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">Check</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="o">...</span><span class="p">]:</span>
+</span><span data-line="390"><span class="w">    </span><span class="sd">"""Order the selection into waves that may each run concurrently.</span>
+</span><span data-line="391">
+</span><span data-line="392"><span class="sd">    Every check in a wave has all its requirements satisfied by earlier waves,</span>
+</span><span data-line="393"><span class="sd">    so the waves are the schedule: run each in turn, in parallel within it.</span>
+</span><span data-line="394"><span class="sd">    A check that is not ``parallel_safe`` gets a wave to itself.</span>
+</span><span data-line="395">
+</span><span data-line="396"><span class="sd">    Raises:</span>
+</span><span data-line="397"><span class="sd">        ValueError: on a dependency cycle, or a requirement that is not</span>
+</span><span data-line="398"><span class="sd">            registered — both at plan time, before anything has been spent.</span>
+</span><span data-line="399">
+</span><span data-line="400"><span class="sd">    Examples:</span>
+</span><span data-line="401"><span class="sd">        &gt;&gt;&gt; plan_checks(())</span>
+</span><span data-line="402"><span class="sd">        ()</span>
+</span><span data-line="403"><span class="sd">    """</span>
+</span><span data-line="404">    <span class="n">selected</span> <span class="o">=</span> <span class="p">{</span><span class="n">c</span><span class="o">.</span><span class="n">name</span><span class="p">:</span> <span class="n">c</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">resolve_checks</span><span class="p">(</span><span class="n">selection</span><span class="p">)}</span>
+</span><span data-line="405">    <span class="n">done</span><span class="p">:</span> <span class="nb">set</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+</span><span data-line="406">    <span class="n">waves</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">Check</span><span class="p">,</span> <span class="o">...</span><span class="p">]]</span> <span class="o">=</span> <span class="p">[]</span>
+</span><span data-line="407">    <span class="k">while</span> <span class="nb">len</span><span class="p">(</span><span class="n">done</span><span class="p">)</span> <span class="o">&lt;</span> <span class="nb">len</span><span class="p">(</span><span class="n">selected</span><span class="p">):</span>
+</span><span data-line="408">        <span class="n">ready</span> <span class="o">=</span> <span class="p">[</span>
+</span><span data-line="409">            <span class="n">c</span>
+</span><span data-line="410">            <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">c</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">selected</span><span class="o">.</span><span class="n">items</span><span class="p">())</span>
+</span><span data-line="411">            <span class="k">if</span> <span class="n">name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">done</span> <span class="ow">and</span> <span class="nb">set</span><span class="p">(</span><span class="n">c</span><span class="o">.</span><span class="n">requires</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="n">done</span>
+</span><span data-line="412">        <span class="p">]</span>
+</span><span data-line="413">        <span class="k">if</span> <span class="ow">not</span> <span class="n">ready</span><span class="p">:</span>
+</span><span data-line="414">            <span class="n">stuck</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">selected</span><span class="p">)</span> <span class="o">-</span> <span class="n">done</span><span class="p">)</span>
+</span><span data-line="415">            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+</span><span data-line="416">                <span class="sa">f</span><span class="s2">"cannot order checks </span><span class="si">{</span><span class="n">stuck</span><span class="si">}</span><span class="s2">: a dependency cycle, or a "</span>
+</span><span data-line="417">                <span class="sa">f</span><span class="s2">"requirement outside the selection"</span>
+</span><span data-line="418">            <span class="p">)</span>
+</span><span data-line="419">        <span class="n">solo</span> <span class="o">=</span> <span class="p">[</span><span class="n">c</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">ready</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">c</span><span class="o">.</span><span class="n">parallel_safe</span><span class="p">]</span>
+</span><span data-line="420">        <span class="k">if</span> <span class="n">solo</span><span class="p">:</span>
+</span><span data-line="421">            <span class="n">waves</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">solo</span><span class="p">[</span><span class="mi">0</span><span class="p">],))</span>
+</span><span data-line="422">            <span class="n">done</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">solo</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+</span><span data-line="423">            <span class="k">continue</span>
+</span><span data-line="424">        <span class="n">waves</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">tuple</span><span class="p">(</span><span class="n">ready</span><span class="p">))</span>
+</span><span data-line="425">        <span class="n">done</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">c</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">ready</span><span class="p">)</span>
+</span><span data-line="426">    <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">waves</span><span class="p">)</span></div>
 
-</span><span data-line="416">
-</span><span data-line="417">
+</span><span data-line="427">
+</span><span data-line="428">
 <div class="viewcode-block" id="validate">
 <a class="viewcode-back" href="../../_autosummary/nw.validation.html#nw.validate">[docs]</a>
-</span><span data-line="418"><span class="k">def</span><span class="w"> </span><span class="nf">validate</span><span class="p">(</span>
-</span><span data-line="419">    <span class="n">target</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
-</span><span data-line="420">    <span class="o">*</span><span class="p">,</span>
-</span><span data-line="421">    <span class="n">checks</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="nb">str</span> <span class="o">|</span> <span class="n">Check</span><span class="p">]</span> <span class="o">=</span> <span class="p">(),</span>  <span class="c1"># noqa: A002 — shadows the registry on purpose</span>
-</span><span data-line="422">    <span class="n">max_workers</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">4</span><span class="p">,</span>
-</span><span data-line="423">    <span class="n">on_error</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">"report"</span><span class="p">,</span> <span class="s2">"raise"</span><span class="p">]</span> <span class="o">=</span> <span class="s2">"report"</span><span class="p">,</span>
-</span><span data-line="424"><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ValidationReport</span><span class="p">:</span>
-</span><span data-line="425"><span class="w">    </span><span class="sd">"""Run ``checks`` against ``target`` and report.</span>
-</span><span data-line="426">
-</span><span data-line="427"><span class="sd">    Args:</span>
-</span><span data-line="428"><span class="sd">        target: whatever the checks understand — a path to a rendered file, a</span>
-</span><span data-line="429"><span class="sd">            ``Project``, a ``(video, annotations)`` pair. This module does not</span>
-</span><span data-line="430"><span class="sd">            care; it is the checks that agree with their caller.</span>
-</span><span data-line="431"><span class="sd">        checks: names or :class:`Check` objects. Requirements are pulled in</span>
-</span><span data-line="432"><span class="sd">            automatically. Empty means empty: validation is placed, never</span>
-</span><span data-line="433"><span class="sd">            assumed.</span>
-</span><span data-line="434"><span class="sd">        max_workers: concurrency within a wave.</span>
-</span><span data-line="435"><span class="sd">        on_error: ``"report"`` records a raising check as an errored</span>
-</span><span data-line="436"><span class="sd">            :class:`CheckResult` and carries on, so one broken plugin cannot</span>
-</span><span data-line="437"><span class="sd">            hide the findings of the other nine. ``"raise"`` is for developing</span>
-</span><span data-line="438"><span class="sd">            a check.</span>
-</span><span data-line="439">
-</span><span data-line="440"><span class="sd">    Returns:</span>
-</span><span data-line="441"><span class="sd">        A :class:`ValidationReport`. Note that ``report.ok`` is ``False`` when</span>
-</span><span data-line="442"><span class="sd">        a check *errored*, not only when one failed: a suite that could not run</span>
-</span><span data-line="443"><span class="sd">        has not said the work is good.</span>
-</span><span data-line="444">
-</span><span data-line="445"><span class="sd">    Examples:</span>
-</span><span data-line="446"><span class="sd">        &gt;&gt;&gt; validate("x.mp4").ok</span>
-</span><span data-line="447"><span class="sd">        True</span>
-</span><span data-line="448"><span class="sd">    """</span>
-</span><span data-line="449">    <span class="n">started</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">monotonic</span><span class="p">()</span>
-</span><span data-line="450">    <span class="n">waves</span> <span class="o">=</span> <span class="n">plan_checks</span><span class="p">(</span><span class="n">checks</span><span class="p">)</span>
-</span><span data-line="451">    <span class="n">context</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
-</span><span data-line="452">    <span class="n">results</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">CheckResult</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
-</span><span data-line="453">
-</span><span data-line="454">    <span class="k">for</span> <span class="n">wave</span> <span class="ow">in</span> <span class="n">waves</span><span class="p">:</span>
-</span><span data-line="455">        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">wave</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
-</span><span data-line="456">            <span class="n">wave_results</span> <span class="o">=</span> <span class="p">[</span><span class="n">_run_one</span><span class="p">(</span><span class="n">wave</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">target</span><span class="p">,</span> <span class="n">context</span><span class="p">,</span> <span class="n">on_error</span><span class="p">)]</span>
-</span><span data-line="457">        <span class="k">else</span><span class="p">:</span>
-</span><span data-line="458">            <span class="k">with</span> <span class="n">ThreadPoolExecutor</span><span class="p">(</span><span class="n">max_workers</span><span class="o">=</span><span class="nb">max</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">max_workers</span><span class="p">))</span> <span class="k">as</span> <span class="n">pool</span><span class="p">:</span>
-</span><span data-line="459">                <span class="n">wave_results</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span>
-</span><span data-line="460">                    <span class="n">pool</span><span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="k">lambda</span> <span class="n">c</span><span class="p">:</span> <span class="n">_run_one</span><span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="n">target</span><span class="p">,</span> <span class="n">context</span><span class="p">,</span> <span class="n">on_error</span><span class="p">),</span> <span class="n">wave</span><span class="p">)</span>
-</span><span data-line="461">                <span class="p">)</span>
-</span><span data-line="462">        <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">wave_results</span><span class="p">:</span>
-</span><span data-line="463">            <span class="n">context</span><span class="p">[</span><span class="n">r</span><span class="o">.</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">r</span><span class="o">.</span><span class="n">produced</span>
-</span><span data-line="464">        <span class="n">results</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">wave_results</span><span class="p">)</span>
-</span><span data-line="465">
-</span><span data-line="466">    <span class="k">return</span> <span class="n">ValidationReport</span><span class="p">(</span>
-</span><span data-line="467">        <span class="n">target</span><span class="o">=</span><span class="n">target</span><span class="p">,</span>
-</span><span data-line="468">        <span class="n">results</span><span class="o">=</span><span class="nb">tuple</span><span class="p">(</span><span class="n">results</span><span class="p">),</span>
-</span><span data-line="469">        <span class="n">elapsed_s</span><span class="o">=</span><span class="n">time</span><span class="o">.</span><span class="n">monotonic</span><span class="p">()</span> <span class="o">-</span> <span class="n">started</span><span class="p">,</span>
-</span><span data-line="470">    <span class="p">)</span></div>
+</span><span data-line="429"><span class="k">def</span><span class="w"> </span><span class="nf">validate</span><span class="p">(</span>
+</span><span data-line="430">    <span class="n">target</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
+</span><span data-line="431">    <span class="o">*</span><span class="p">,</span>
+</span><span data-line="432">    <span class="n">checks</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="nb">str</span> <span class="o">|</span> <span class="n">Check</span><span class="p">]</span> <span class="o">=</span> <span class="p">(),</span>  <span class="c1"># noqa: A002 — shadows the registry on purpose</span>
+</span><span data-line="433">    <span class="n">max_workers</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">4</span><span class="p">,</span>
+</span><span data-line="434">    <span class="n">on_error</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">"report"</span><span class="p">,</span> <span class="s2">"raise"</span><span class="p">]</span> <span class="o">=</span> <span class="s2">"report"</span><span class="p">,</span>
+</span><span data-line="435"><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ValidationReport</span><span class="p">:</span>
+</span><span data-line="436"><span class="w">    </span><span class="sd">"""Run ``checks`` against ``target`` and report.</span>
+</span><span data-line="437">
+</span><span data-line="438"><span class="sd">    Args:</span>
+</span><span data-line="439"><span class="sd">        target: whatever the checks understand — a path to a rendered file, a</span>
+</span><span data-line="440"><span class="sd">            ``Project``, a ``(video, annotations)`` pair. This module does not</span>
+</span><span data-line="441"><span class="sd">            care; it is the checks that agree with their caller.</span>
+</span><span data-line="442"><span class="sd">        checks: names or :class:`Check` objects. Requirements are pulled in</span>
+</span><span data-line="443"><span class="sd">            automatically. Empty means empty: validation is placed, never</span>
+</span><span data-line="444"><span class="sd">            assumed.</span>
+</span><span data-line="445"><span class="sd">        max_workers: concurrency within a wave.</span>
+</span><span data-line="446"><span class="sd">        on_error: ``"report"`` records a raising check as an errored</span>
+</span><span data-line="447"><span class="sd">            :class:`CheckResult` and carries on, so one broken plugin cannot</span>
+</span><span data-line="448"><span class="sd">            hide the findings of the other nine. ``"raise"`` is for developing</span>
+</span><span data-line="449"><span class="sd">            a check.</span>
+</span><span data-line="450">
+</span><span data-line="451"><span class="sd">    Returns:</span>
+</span><span data-line="452"><span class="sd">        A :class:`ValidationReport`. Note that ``report.ok`` is ``False`` when</span>
+</span><span data-line="453"><span class="sd">        a check *errored*, not only when one failed: a suite that could not run</span>
+</span><span data-line="454"><span class="sd">        has not said the work is good.</span>
+</span><span data-line="455">
+</span><span data-line="456"><span class="sd">    Examples:</span>
+</span><span data-line="457"><span class="sd">        &gt;&gt;&gt; validate("x.mp4").ok</span>
+</span><span data-line="458"><span class="sd">        True</span>
+</span><span data-line="459"><span class="sd">    """</span>
+</span><span data-line="460">    <span class="n">started</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">monotonic</span><span class="p">()</span>
+</span><span data-line="461">    <span class="n">waves</span> <span class="o">=</span> <span class="n">plan_checks</span><span class="p">(</span><span class="n">checks</span><span class="p">)</span>
+</span><span data-line="462">    <span class="n">context</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+</span><span data-line="463">    <span class="n">results</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">CheckResult</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+</span><span data-line="464">
+</span><span data-line="465">    <span class="k">for</span> <span class="n">wave</span> <span class="ow">in</span> <span class="n">waves</span><span class="p">:</span>
+</span><span data-line="466">        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">wave</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+</span><span data-line="467">            <span class="n">wave_results</span> <span class="o">=</span> <span class="p">[</span><span class="n">_run_one</span><span class="p">(</span><span class="n">wave</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">target</span><span class="p">,</span> <span class="n">context</span><span class="p">,</span> <span class="n">on_error</span><span class="p">)]</span>
+</span><span data-line="468">        <span class="k">else</span><span class="p">:</span>
+</span><span data-line="469">            <span class="k">with</span> <span class="n">ThreadPoolExecutor</span><span class="p">(</span><span class="n">max_workers</span><span class="o">=</span><span class="nb">max</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">max_workers</span><span class="p">))</span> <span class="k">as</span> <span class="n">pool</span><span class="p">:</span>
+</span><span data-line="470">                <span class="n">wave_results</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span>
+</span><span data-line="471">                    <span class="n">pool</span><span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="k">lambda</span> <span class="n">c</span><span class="p">:</span> <span class="n">_run_one</span><span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="n">target</span><span class="p">,</span> <span class="n">context</span><span class="p">,</span> <span class="n">on_error</span><span class="p">),</span> <span class="n">wave</span><span class="p">)</span>
+</span><span data-line="472">                <span class="p">)</span>
+</span><span data-line="473">        <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">wave_results</span><span class="p">:</span>
+</span><span data-line="474">            <span class="n">context</span><span class="p">[</span><span class="n">r</span><span class="o">.</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">r</span><span class="o">.</span><span class="n">produced</span>
+</span><span data-line="475">        <span class="n">results</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">wave_results</span><span class="p">)</span>
+</span><span data-line="476">
+</span><span data-line="477">    <span class="k">return</span> <span class="n">ValidationReport</span><span class="p">(</span>
+</span><span data-line="478">        <span class="n">target</span><span class="o">=</span><span class="n">target</span><span class="p">,</span>
+</span><span data-line="479">        <span class="n">results</span><span class="o">=</span><span class="nb">tuple</span><span class="p">(</span><span class="n">results</span><span class="p">),</span>
+</span><span data-line="480">        <span class="n">elapsed_s</span><span class="o">=</span><span class="n">time</span><span class="o">.</span><span class="n">monotonic</span><span class="p">()</span> <span class="o">-</span> <span class="n">started</span><span class="p">,</span>
+</span><span data-line="481">    <span class="p">)</span></div>
 
-</span><span data-line="471">
-</span><span data-line="472">
-</span><span data-line="473"><span class="k">def</span><span class="w"> </span><span class="nf">_run_one</span><span class="p">(</span>
-</span><span data-line="474">    <span class="n">check</span><span class="p">:</span> <span class="n">Check</span><span class="p">,</span>
-</span><span data-line="475">    <span class="n">target</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
-</span><span data-line="476">    <span class="n">context</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
-</span><span data-line="477">    <span class="n">on_error</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
-</span><span data-line="478"><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">CheckResult</span><span class="p">:</span>
-</span><span data-line="479">    <span class="kn">import</span><span class="w"> </span><span class="nn">shutil</span>
-</span><span data-line="480">
-</span><span data-line="481">    <span class="n">missing</span> <span class="o">=</span> <span class="p">[</span><span class="n">b</span> <span class="k">for</span> <span class="n">b</span> <span class="ow">in</span> <span class="n">check</span><span class="o">.</span><span class="n">requires_binaries</span> <span class="k">if</span> <span class="n">shutil</span><span class="o">.</span><span class="n">which</span><span class="p">(</span><span class="n">b</span><span class="p">)</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">]</span>
-</span><span data-line="482">    <span class="k">if</span> <span class="n">missing</span><span class="p">:</span>
-</span><span data-line="483">        <span class="k">return</span> <span class="n">CheckResult</span><span class="p">(</span>
-</span><span data-line="484">            <span class="n">name</span><span class="o">=</span><span class="n">check</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
-</span><span data-line="485">            <span class="n">skipped</span><span class="o">=</span><span class="sa">f</span><span class="s2">"needs </span><span class="si">{</span><span class="s1">', '</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">missing</span><span class="p">)</span><span class="si">}</span><span class="s2"> on PATH"</span><span class="p">,</span>
-</span><span data-line="486">        <span class="p">)</span>
-</span><span data-line="487">    <span class="n">started</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">monotonic</span><span class="p">()</span>
-</span><span data-line="488">    <span class="k">try</span><span class="p">:</span>
-</span><span data-line="489">        <span class="n">produced</span> <span class="o">=</span> <span class="n">check</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">target</span><span class="p">,</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="n">context</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">k</span><span class="p">)</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">check</span><span class="o">.</span><span class="n">requires</span><span class="p">})</span>
-</span><span data-line="490">    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">exc</span><span class="p">:</span>  <span class="c1"># one bad plugin must not hide nine good ones</span>
-</span><span data-line="491">        <span class="k">if</span> <span class="n">on_error</span> <span class="o">==</span> <span class="s2">"raise"</span><span class="p">:</span>
-</span><span data-line="492">            <span class="k">raise</span>
-</span><span data-line="493">        <span class="k">return</span> <span class="n">CheckResult</span><span class="p">(</span>
-</span><span data-line="494">            <span class="n">name</span><span class="o">=</span><span class="n">check</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
-</span><span data-line="495">            <span class="n">error</span><span class="o">=</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">exc</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">exc</span><span class="si">}</span><span class="s2">"</span><span class="p">,</span>
-</span><span data-line="496">            <span class="n">elapsed_s</span><span class="o">=</span><span class="n">time</span><span class="o">.</span><span class="n">monotonic</span><span class="p">()</span> <span class="o">-</span> <span class="n">started</span><span class="p">,</span>
+</span><span data-line="482">
+</span><span data-line="483">
+</span><span data-line="484"><span class="k">def</span><span class="w"> </span><span class="nf">_run_one</span><span class="p">(</span>
+</span><span data-line="485">    <span class="n">check</span><span class="p">:</span> <span class="n">Check</span><span class="p">,</span>
+</span><span data-line="486">    <span class="n">target</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
+</span><span data-line="487">    <span class="n">context</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
+</span><span data-line="488">    <span class="n">on_error</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+</span><span data-line="489"><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">CheckResult</span><span class="p">:</span>
+</span><span data-line="490">    <span class="kn">import</span><span class="w"> </span><span class="nn">shutil</span>
+</span><span data-line="491">
+</span><span data-line="492">    <span class="n">missing</span> <span class="o">=</span> <span class="p">[</span><span class="n">b</span> <span class="k">for</span> <span class="n">b</span> <span class="ow">in</span> <span class="n">check</span><span class="o">.</span><span class="n">requires_binaries</span> <span class="k">if</span> <span class="n">shutil</span><span class="o">.</span><span class="n">which</span><span class="p">(</span><span class="n">b</span><span class="p">)</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">]</span>
+</span><span data-line="493">    <span class="k">if</span> <span class="n">missing</span><span class="p">:</span>
+</span><span data-line="494">        <span class="k">return</span> <span class="n">CheckResult</span><span class="p">(</span>
+</span><span data-line="495">            <span class="n">name</span><span class="o">=</span><span class="n">check</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+</span><span data-line="496">            <span class="n">skipped</span><span class="o">=</span><span class="sa">f</span><span class="s2">"needs </span><span class="si">{</span><span class="s1">', '</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">missing</span><span class="p">)</span><span class="si">}</span><span class="s2"> on PATH"</span><span class="p">,</span>
 </span><span data-line="497">        <span class="p">)</span>
-</span><span data-line="498">    <span class="n">findings</span><span class="p">,</span> <span class="n">extra</span> <span class="o">=</span> <span class="n">_split</span><span class="p">(</span><span class="n">produced</span><span class="p">)</span>
-</span><span data-line="499">    <span class="k">return</span> <span class="n">CheckResult</span><span class="p">(</span>
-</span><span data-line="500">        <span class="n">name</span><span class="o">=</span><span class="n">check</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
-</span><span data-line="501">        <span class="n">findings</span><span class="o">=</span><span class="nb">tuple</span><span class="p">(</span><span class="n">findings</span><span class="p">),</span>
-</span><span data-line="502">        <span class="n">produced</span><span class="o">=</span><span class="n">extra</span><span class="p">,</span>
-</span><span data-line="503">        <span class="n">elapsed_s</span><span class="o">=</span><span class="n">time</span><span class="o">.</span><span class="n">monotonic</span><span class="p">()</span> <span class="o">-</span> <span class="n">started</span><span class="p">,</span>
-</span><span data-line="504">    <span class="p">)</span>
-</span><span data-line="505">
-</span><span data-line="506">
-</span><span data-line="507"><span class="k">def</span><span class="w"> </span><span class="nf">_split</span><span class="p">(</span><span class="n">produced</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">Iterable</span><span class="p">[</span><span class="n">Finding</span><span class="p">],</span> <span class="n">Any</span><span class="p">]:</span>
-</span><span data-line="508"><span class="w">    </span><span class="sd">"""A check returns findings, or ``(findings, produced)`` for dependents."""</span>
-</span><span data-line="509">    <span class="k">if</span> <span class="p">(</span>
-</span><span data-line="510">        <span class="nb">isinstance</span><span class="p">(</span><span class="n">produced</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)</span>
-</span><span data-line="511">        <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">produced</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span>
-</span><span data-line="512">        <span class="ow">and</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">produced</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">Finding</span><span class="p">)</span>
-</span><span data-line="513">    <span class="p">):</span>
-</span><span data-line="514">        <span class="k">return</span> <span class="n">produced</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="ow">or</span> <span class="p">(),</span> <span class="n">produced</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
-</span><span data-line="515">    <span class="k">return</span> <span class="n">produced</span> <span class="ow">or</span> <span class="p">(),</span> <span class="kc">None</span>
+</span><span data-line="498">    <span class="n">started</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">monotonic</span><span class="p">()</span>
+</span><span data-line="499">    <span class="k">try</span><span class="p">:</span>
+</span><span data-line="500">        <span class="n">produced</span> <span class="o">=</span> <span class="n">check</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">target</span><span class="p">,</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="n">context</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">k</span><span class="p">)</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">check</span><span class="o">.</span><span class="n">requires</span><span class="p">})</span>
+</span><span data-line="501">    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">exc</span><span class="p">:</span>  <span class="c1"># one bad plugin must not hide nine good ones</span>
+</span><span data-line="502">        <span class="k">if</span> <span class="n">on_error</span> <span class="o">==</span> <span class="s2">"raise"</span><span class="p">:</span>
+</span><span data-line="503">            <span class="k">raise</span>
+</span><span data-line="504">        <span class="k">return</span> <span class="n">CheckResult</span><span class="p">(</span>
+</span><span data-line="505">            <span class="n">name</span><span class="o">=</span><span class="n">check</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+</span><span data-line="506">            <span class="n">error</span><span class="o">=</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">exc</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">exc</span><span class="si">}</span><span class="s2">"</span><span class="p">,</span>
+</span><span data-line="507">            <span class="n">elapsed_s</span><span class="o">=</span><span class="n">time</span><span class="o">.</span><span class="n">monotonic</span><span class="p">()</span> <span class="o">-</span> <span class="n">started</span><span class="p">,</span>
+</span><span data-line="508">        <span class="p">)</span>
+</span><span data-line="509">    <span class="n">findings</span><span class="p">,</span> <span class="n">extra</span> <span class="o">=</span> <span class="n">_split</span><span class="p">(</span><span class="n">produced</span><span class="p">)</span>
+</span><span data-line="510">    <span class="k">return</span> <span class="n">CheckResult</span><span class="p">(</span>
+</span><span data-line="511">        <span class="n">name</span><span class="o">=</span><span class="n">check</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+</span><span data-line="512">        <span class="n">findings</span><span class="o">=</span><span class="nb">tuple</span><span class="p">(</span><span class="n">findings</span><span class="p">),</span>
+</span><span data-line="513">        <span class="n">produced</span><span class="o">=</span><span class="n">extra</span><span class="p">,</span>
+</span><span data-line="514">        <span class="n">elapsed_s</span><span class="o">=</span><span class="n">time</span><span class="o">.</span><span class="n">monotonic</span><span class="p">()</span> <span class="o">-</span> <span class="n">started</span><span class="p">,</span>
+</span><span data-line="515">    <span class="p">)</span>
+</span><span data-line="516">
+</span><span data-line="517">
+</span><span data-line="518"><span class="k">def</span><span class="w"> </span><span class="nf">_split</span><span class="p">(</span><span class="n">produced</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">Iterable</span><span class="p">[</span><span class="n">Finding</span><span class="p">],</span> <span class="n">Any</span><span class="p">]:</span>
+</span><span data-line="519"><span class="w">    </span><span class="sd">"""A check returns findings, or ``(findings, produced)`` for dependents."""</span>
+</span><span data-line="520">    <span class="k">if</span> <span class="p">(</span>
+</span><span data-line="521">        <span class="nb">isinstance</span><span class="p">(</span><span class="n">produced</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)</span>
+</span><span data-line="522">        <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">produced</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span>
+</span><span data-line="523">        <span class="ow">and</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">produced</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">Finding</span><span class="p">)</span>
+</span><span data-line="524">    <span class="p">):</span>
+</span><span data-line="525">        <span class="k">return</span> <span class="n">produced</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="ow">or</span> <span class="p">(),</span> <span class="n">produced</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+</span><span data-line="526">    <span class="k">return</span> <span class="n">produced</span> <span class="ow">or</span> <span class="p">(),</span> <span class="kc">None</span>
 </span></pre></div>
         </article><button class="back-to-top" type="button">
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
@@ -746,7 +757,7 @@ data-aria-dark="Switch to auto color mode">
     </div>
   </div>
 </footer>
-      <script src="../../_static/documentation_options.js?v=e35d3ea8"></script>
+      <script src="../../_static/documentation_options.js?v=4725bab1"></script>
       <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
       <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>

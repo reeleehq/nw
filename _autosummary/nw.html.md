@@ -2238,12 +2238,21 @@ wall-clock for the whole run.
 * **Type:**
   [`float`](https://docs.python.org/3/builtins/functions.html#float)
 
+#### *property* clean *: [bool](https://docs.python.org/3/builtins/functions.html#bool)*
+
+No failing finding and no error among what ran; skips are ignored.
+
+#### *property* complete *: [bool](https://docs.python.org/3/builtins/functions.html#bool)*
+
+Every selected check actually ran (none skipped, none errored).
+
 #### *property* ok *: [bool](https://docs.python.org/3/builtins/functions.html#bool)*
 
-No failing findings **and** nothing that failed to run.
+Every selected check ran and found nothing failing.
 
-A check that errored is not a pass. Callers gating a publish on this
-get the conservative answer without having to remember to ask for it.
+A check that was skipped (a missing binary) or that raised is not a
+pass, so a gate on this gets the conservative answer. Use
+[`clean`](#nw.ValidationReport.clean) for “no failures among the checks that ran”.
 
 #### raise_if_failed()
 
