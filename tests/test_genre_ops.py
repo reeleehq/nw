@@ -245,6 +245,65 @@ def test_spends_is_declared_and_exported():
         nw.GenreOp("status", _status, title="Show", spends="yes")
 
 
+def _speak(project, *, text: str, takes: int = 1) -> dict:
+    return {"said": text * takes}
+
+
+def test_a_spending_op_prices_itself_through_its_quote():
+    """reelee#1010: a host quotes a ``spends`` op before running it."""
+    seen = []
+
+    def quote(project, *, text: str, takes: int = 1):
+        seen.append((project, text, takes))
+        return 0.01 * len(text) * takes
+
+    op = nw.GenreOp("speak", _speak, title="Speak", spends=True, quote=quote)
+    price = op.price("P", {"text": "abc", "takes": 2})
+    assert price.status == "quoted" and price.total_usd == pytest.approx(0.06)
+    assert seen == [("P", "abc", 2)]  # the run's own client params, validated
+    # the op's own defaults stay the op's: an unsent param is not passed
+    assert op.price("P", {"text": "abc"}).total_usd == pytest.approx(0.03)
+    assert "quote" not in op.to_dict()  # the catalogue row is unchanged
+
+
+def test_a_price_that_cannot_be_read_is_unknown_never_free():
+    def raises(project, **kw):
+        raise RuntimeError("rate table unreachable")
+
+    for quote in (raises, lambda p, **kw: None, lambda p, **kw: float("nan"),
+                  lambda p, **kw: -1.0, lambda p, **kw: "1.00", lambda p, **kw: True):
+        op = nw.GenreOp("speak", _speak, title="Speak", spends=True, quote=quote)
+        assert op.price("P", {"text": "a"}).to_dict() == {"usd": None, "status": "unknown"}
+    unquoted = nw.GenreOp("speak", _speak, title="Speak", spends=True)
+    assert unquoted.price("P", {"text": "a"}).to_dict() == {"usd": None, "status": "unknown"}
+    free = nw.GenreOp("speak", _speak, title="Speak")
+    assert free.price("P", {"text": "a"}).to_dict() == {"usd": 0.0, "status": "free"}
+
+
+def test_a_quote_reads_a_plan_quote_and_passes_a_refusal_on():
+    class _Quote:  # nw.PlanQuote's reader is its total_usd
+        total_usd = 1.5
+
+    op = nw.GenreOp("speak", _speak, title="Speak", spends=True, quote=lambda p, **kw: _Quote())
+    assert op.price("P", {"text": "a"}).total_usd == 1.5
+
+    def refuse(project, **kw):
+        raise nw.GenreOpRefused("no scene to render")
+
+    op = nw.GenreOp("speak", _speak, title="Speak", spends=True, quote=refuse)
+    with pytest.raises(nw.GenreOpRefused, match="no scene"):
+        op.price("P", {"text": "a"})
+    with pytest.raises(ValidationError):  # a malformed body is refused, not priced
+        op.price("P", {"txt": "a"})
+
+
+def test_only_a_spending_op_takes_a_quote():
+    with pytest.raises(ValueError, match="spends=False"):
+        nw.GenreOp("speak", _speak, title="Speak", quote=lambda p, **kw: 0.0)
+    with pytest.raises(TypeError, match="quote must be callable"):
+        nw.GenreOp("speak", _speak, title="Speak", spends=True, quote=1.0)
+
+
 def test_genre_limits_register_once_and_read_as_a_copy():
     import pytest
 
