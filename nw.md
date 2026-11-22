@@ -1,4 +1,4 @@
-> built 2026-11-22 07:45 UTC from 6c71232 (main) · nw 0.0.159. Details: build_info.json
+> built 2026-11-22 07:50 UTC from 7fc664d (main) · nw 0.0.160. Details: build_info.json
 
 # index.html.md
 
@@ -3897,7 +3897,7 @@ are recorded as linked artifacts), see
 | [`require_fields`](_autosummary/nw.html.md#nw.require_fields)(cls, fields, \*[, remedy])         | Raise [`NwTooOldError`](_autosummary/nw.html.md#nw.NwTooOldError) unless `cls` accepts every keyword in `fields` (names, or a mapping whose keys are the names).                                                                |
 | [`safe_path_segment`](_autosummary/nw.html.md#nw.safe_path_segment)(value, \*[, suffix, max_bytes]) | A single file name for `value` (plus `suffix`) that is always a direct child of the directory it is joined to.                                                                                                                     |
 | [`unmark_rewritten`](_autosummary/nw.html.md#nw.unmark_rewritten)(project, marker)                 | Forget that `marker` ran, so the next [`rewrite_values()`](_autosummary/nw.html.md#nw.rewrite_values) with it scans again (a test simulating a project made before the rename).                                                  |
-| [`upgrade_superseded_traces`](_autosummary/nw.html.md#nw.upgrade_superseded_traces)(project, \*[, marker])  | Re-record every verifying trace that is on a superseded digest scheme, or whose entries are not what nw records today, **while it still vouches** for its parents' current values; return how many traces moved (nw#226).          |
+| [`upgrade_superseded_traces`](_autosummary/nw.html.md#nw.upgrade_superseded_traces)(project, \*[, ...])     | Re-record every verifying trace that is on a superseded digest scheme, or whose entries are not what nw records today, **while it still vouches** for its parents' current values; return how many traces moved (nw#226).          |
 | [`adopt_tenant_id`](_autosummary/nw.html.md#nw.adopt_tenant_id)(project, \*[, dry_run])           | Pin a legacy project's historical tenant into `project.json` (nw#112).                                                                                                                                                             |
 | [`as_project_storage`](_autosummary/nw.html.md#nw.as_project_storage)(project)                       | The [`ProjectStorage`](_autosummary/nw.html.md#nw.ProjectStorage) for a path, a storage, or an `nw.Project`.                                                                                                                     |
 | [`is_project`](_autosummary/nw.html.md#nw.is_project)(project)                               | Whether `project` (a path, a storage, or an `nw.Project`) holds an nw project, without naming nw's marker document (nw#217).                                                                                                       |
@@ -3975,6 +3975,7 @@ are recorded as linked artifacts), see
 | [`Stage`](_autosummary/nw.html.md#nw.Stage)(slug, name[, free, transform_names, ...])    | One plain-English step of a genre.                                                                                          |
 | [`GenreOp`](_autosummary/nw.html.md#nw.GenreOp)(name, fn, title[, description, ...])       | One operation a genre offers on its projects — a row a host builds surfaces from.                                           |
 | [`Project`](_autosummary/nw.html.md#nw.Project)(root, \*[, storage, auto_migrate])         | A folder-backed nw project.                                                                                                 |
+| [`TraceUpgradeReport`](_autosummary/nw.html.md#nw.TraceUpgradeReport)([moved, left_alone])            | What [`upgrade_superseded_traces()`](_autosummary/nw.html.md#nw.upgrade_superseded_traces) did (nw#282).                             |
 | [`ProjectGraph`](_autosummary/nw.html.md#nw.ProjectGraph)(project)                              | Typed read/write facade over the project's lacing graph store.                                                              |
 | [`ProjectStorage`](_autosummary/nw.html.md#nw.ProjectStorage)(\*args, \*\*kwargs)                 | Where one project's documents and annotation stores live.                                                                   |
 | [`FolderStorage`](_autosummary/nw.html.md#nw.FolderStorage)(root, \*[, init_folders])            | nw's historical layout: everything under `root`.                                                                            |
@@ -5760,6 +5761,19 @@ A JSON-able catalog entry: `{slug, title, description, params}`.
 
 * **Return type:**
   [`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)
+
+### *class* nw.TraceUpgradeReport(moved=0, left_alone=())
+
+Bases: [`object`](https://docs.python.org/3/builtins/functions.html#object)
+
+What [`upgrade_superseded_traces()`](_autosummary/nw.html.md#nw.upgrade_superseded_traces) did (nw#282).
+
+`moved` is the count it has always returned. `left_alone` names each
+trace it could have re-recorded but could not (the store write raised),
+with the ids of the parents that trace vouches for: the parents a host
+must not fill, because their dependents would read `upstream-changed`.
+A trace that is already stale (or names a parent that is gone) is not
+listed: it was never this function’s to freshen.
 
 ### *class* nw.Transform(\*args, \*\*kwargs)
 
@@ -7837,7 +7851,7 @@ were no calls to diff. Read [`PlanQuote.reason`](_autosummary/nw.html.md#nw.Plan
 * **Return type:**
   [`PlanQuote`](_autosummary/nw.pricing.html.md#nw.pricing.PlanQuote)
 
-### nw.upgrade_superseded_traces(project, , marker='traces-on-current-digest-scheme')
+### nw.upgrade_superseded_traces(project, , marker='traces-on-current-digest-scheme', report=False, on_failure='skip')
 
 Re-record every verifying trace that is on a superseded digest scheme, or
 whose entries are not what nw records today, **while it still vouches** for
@@ -7860,8 +7874,13 @@ Idempotent; with `marker` (the default) it runs at most once per project,
 under the same lock and marker discipline as [`rewrite_values()`](_autosummary/nw.html.md#nw.rewrite_values);
 `marker=None` runs every time.
 
-* **Return type:**
-  [`int`](https://docs.python.org/3/builtins/functions.html#int)
+Returns the count of traces moved (`int`). A trace whose store write
+raises is logged and left as it is; `report=True` returns a
+[`TraceUpgradeReport`](_autosummary/nw.html.md#nw.TraceUpgradeReport) instead, naming each such trace and its parent
+ids (`moved` still reads as the count, and `int(report)` works), and
+`on_failure="raise"` re-raises the first such error (no marker is
+written, so a later run tries again). A run skipped by the marker reports
+nothing left alone.
 
 ### nw.using_secrets(secrets)
 
@@ -10846,13 +10865,25 @@ kept, because a rename is not a change of look.
 | [`mark_rewritten`](_autosummary/nw.rewrite.html.md#nw.rewrite.mark_rewritten)(project, marker)                  | Record `marker` as done without scanning: for a project created already in today's vocabulary, so opening it never pays for the scan.                                                                                     |
 | [`rewrite_values`](_autosummary/nw.rewrite.html.md#nw.rewrite.rewrite_values)(project, fn, \*[, marker, where]) | Apply `fn(body) -> body` to every stored annotation body; return how many changed.                                                                                                                                        |
 | [`unmark_rewritten`](_autosummary/nw.rewrite.html.md#nw.rewrite.unmark_rewritten)(project, marker)                | Forget that `marker` ran, so the next [`rewrite_values()`](_autosummary/nw.rewrite.html.md#nw.rewrite.rewrite_values) with it scans again (a test simulating a project made before the rename).                                         |
-| [`upgrade_superseded_traces`](_autosummary/nw.rewrite.html.md#nw.rewrite.upgrade_superseded_traces)(project, \*[, marker]) | Re-record every verifying trace that is on a superseded digest scheme, or whose entries are not what nw records today, **while it still vouches** for its parents' current values; return how many traces moved (nw#226). |
+| [`upgrade_superseded_traces`](_autosummary/nw.rewrite.html.md#nw.rewrite.upgrade_superseded_traces)(project, \*[, ...])    | Re-record every verifying trace that is on a superseded digest scheme, or whose entries are not what nw records today, **while it still vouches** for its parents' current values; return how many traces moved (nw#226). |
+
+### Classes
+
+| [`LeftTrace`](_autosummary/nw.rewrite.html.md#nw.rewrite.LeftTrace)(trace_id, parent_ids)         | A trace [`upgrade_superseded_traces()`](_autosummary/nw.rewrite.html.md#nw.rewrite.upgrade_superseded_traces) could not re-record.   |
+|------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------|
+| [`TraceUpgradeReport`](_autosummary/nw.rewrite.html.md#nw.rewrite.TraceUpgradeReport)([moved, left_alone]) | What [`upgrade_superseded_traces()`](_autosummary/nw.rewrite.html.md#nw.rewrite.upgrade_superseded_traces) did (nw#282).             |
 
 ### nw.rewrite.LOCK_NAME *= 'rewrite-values'*
 
 The one `project_lock()` every rewrite takes. Not per marker:
 two different rewrites planning from the same original bodies would each
 invalidate the other’s digests.
+
+### *class* nw.rewrite.LeftTrace(trace_id, parent_ids)
+
+Bases: [`object`](https://docs.python.org/3/builtins/functions.html#object)
+
+A trace [`upgrade_superseded_traces()`](_autosummary/nw.rewrite.html.md#nw.rewrite.upgrade_superseded_traces) could not re-record.
 
 ### nw.rewrite.MARKER_PATTERN *= re.compile('[A-Za-z0-9][A-Za-z0-9_-]\*')*
 
@@ -10869,6 +10900,19 @@ Key prefix, in `storage.docs`, of the success markers (`<prefix><name>.json`).
 
 The marker [`upgrade_superseded_traces()`](_autosummary/nw.rewrite.html.md#nw.rewrite.upgrade_superseded_traces) records once a project’s traces
 are all on today’s digest scheme (bump it if the scheme moves again).
+
+### *class* nw.rewrite.TraceUpgradeReport(moved=0, left_alone=())
+
+Bases: [`object`](https://docs.python.org/3/builtins/functions.html#object)
+
+What [`upgrade_superseded_traces()`](_autosummary/nw.rewrite.html.md#nw.rewrite.upgrade_superseded_traces) did (nw#282).
+
+`moved` is the count it has always returned. `left_alone` names each
+trace it could have re-recorded but could not (the store write raised),
+with the ids of the parents that trace vouches for: the parents a host
+must not fill, because their dependents would read `upstream-changed`.
+A trace that is already stale (or names a parent that is gone) is not
+listed: it was never this function’s to freshen.
 
 ### nw.rewrite.is_rewritten(project, marker)
 
@@ -10933,7 +10977,7 @@ removal; its value is never read, so a corrupt marker can be cleared too.
 * **Return type:**
   [`None`](https://docs.python.org/3/builtins/constants.html#None)
 
-### nw.rewrite.upgrade_superseded_traces(project, , marker='traces-on-current-digest-scheme')
+### nw.rewrite.upgrade_superseded_traces(project, , marker='traces-on-current-digest-scheme', report=False, on_failure='skip')
 
 Re-record every verifying trace that is on a superseded digest scheme, or
 whose entries are not what nw records today, **while it still vouches** for
@@ -10956,8 +11000,13 @@ Idempotent; with `marker` (the default) it runs at most once per project,
 under the same lock and marker discipline as [`rewrite_values()`](_autosummary/nw.rewrite.html.md#nw.rewrite.rewrite_values);
 `marker=None` runs every time.
 
-* **Return type:**
-  [`int`](https://docs.python.org/3/builtins/functions.html#int)
+Returns the count of traces moved (`int`). A trace whose store write
+raises is logged and left as it is; `report=True` returns a
+[`TraceUpgradeReport`](_autosummary/nw.rewrite.html.md#nw.rewrite.TraceUpgradeReport) instead, naming each such trace and its parent
+ids (`moved` still reads as the count, and `int(report)` works), and
+`on_failure="raise"` re-raises the first such error (no marker is
+written, so a later run tries again). A run skipped by the marker reports
+nothing left alone.
 
 
 # _autosummary/nw.schema.html.md
@@ -12655,7 +12704,7 @@ produce different URLs. The local file paths are byte-stable.
 
 # About this build
 
-This documentation was built on **2026-11-22 07:45 UTC** from commit <a href="https://github.com/reeleehq/nw/commit/6c71232c734877d2cfa99caec97849f5f3a2541a"><code>6c71232</code></a> on branch <code>main</code>, for **nw 0.0.159** (from <code>pyproject.toml</code>).
+This documentation was built on **2026-11-22 07:50 UTC** from commit <a href="https://github.com/reeleehq/nw/commit/7fc664d6eb0b25d1b34b21f3889038d6b09e28b6"><code>7fc664d</code></a> on branch <code>main</code>, for **nw 0.0.160** (from <code>pyproject.toml</code>).
 
 #### NOTE
 Nothing suggests a mismatch: the tree was clean at the commit above, and the documented version is the one on PyPI.
@@ -12664,9 +12713,9 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 
 |                     |                                                                                                                                                    |
 |---------------------|----------------------------------------------------------------------------------------------------------------------------------------------------|
-| Commit              | <a href="https://github.com/reeleehq/nw/commit/6c71232c734877d2cfa99caec97849f5f3a2541a"><code>6c71232c734877d2cfa99caec97849f5f3a2541a</code></a> |
+| Commit              | <a href="https://github.com/reeleehq/nw/commit/7fc664d6eb0b25d1b34b21f3889038d6b09e28b6"><code>7fc664d6eb0b25d1b34b21f3889038d6b09e28b6</code></a> |
 | Branch              | <code>main</code>                                                                                                                                  |
-| Tags at this commit | <code>0.0.159</code>                                                                                                                               |
+| Tags at this commit | <code>0.0.160</code>                                                                                                                               |
 | Working tree        | clean                                                                                                                                              |
 | Remote              | <code>https://github.com/reeleehq/nw</code>                                                                                                        |
 
@@ -12675,9 +12724,9 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 |              |                                                                                            |
 |--------------|--------------------------------------------------------------------------------------------|
 | Repository   | <code>reeleehq/nw</code>                                                                   |
-| Run          | <a href="https://github.com/reeleehq/nw/actions/runs/44999408779">44999408779</a>          |
+| Run          | <a href="https://github.com/reeleehq/nw/actions/runs/44999580168">44999580168</a>          |
 | Ref          | <code>refs/heads/main</code>                                                               |
-| Event commit | <code>da19d689fc99759773d0d44a1702b080f89dd829</code> (in the history of the built commit) |
+| Event commit | <code>dba16c7b72e517c5dbd84a3cb886a72a7431ceb4</code> (in the history of the built commit) |
 
 ## Tools
 
@@ -12702,13 +12751,13 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 
 ## Package on PyPI
 
-Latest release: <a href="https://pypi.org/project/nw/0.0.159/">0.0.159</a>, the same as the documented version.
+Latest release: <a href="https://pypi.org/project/nw/0.0.160/">0.0.160</a>, the same as the documented version.
 
 ## Reproduce
 
 ```bash
 git clone https://github.com/reeleehq/nw && cd nw
-git checkout 6c71232c734877d2cfa99caec97849f5f3a2541a
+git checkout 7fc664d6eb0b25d1b34b21f3889038d6b09e28b6
 pip install "epythet==0.2.23"
 epythet quickstart . --ignore tests/ scrap/ examples/
 ```

@@ -24,3 +24,10 @@ nw.rewrite
       unmark_rewritten
       upgrade_superseded_traces
    
+   .. rubric:: Classes
+
+   .. autosummary::
+   
+      LeftTrace
+      TraceUpgradeReport
+   

@@ -136,9 +136,11 @@ data-aria-dark="Switch to auto color mode">
     </button>
     <div class="sy-scrollbar sy-rside-inner px-6 xl:top-16 xl:sticky xl:pl-0 pt-6 pb-4"><div class="localtoc"><h3>On this page</h3><ul>
 <li><a class="reference internal" href="#nw.rewrite.LOCK_NAME"><code class="docutils literal notranslate"><span class="pre">LOCK_NAME</span></code></a></li>
+<li><a class="reference internal" href="#nw.rewrite.LeftTrace"><code class="docutils literal notranslate"><span class="pre">LeftTrace</span></code></a></li>
 <li><a class="reference internal" href="#nw.rewrite.MARKER_PATTERN"><code class="docutils literal notranslate"><span class="pre">MARKER_PATTERN</span></code></a></li>
 <li><a class="reference internal" href="#nw.rewrite.MARKER_PREFIX"><code class="docutils literal notranslate"><span class="pre">MARKER_PREFIX</span></code></a></li>
 <li><a class="reference internal" href="#nw.rewrite.TRACE_UPGRADE_MARKER"><code class="docutils literal notranslate"><span class="pre">TRACE_UPGRADE_MARKER</span></code></a></li>
+<li><a class="reference internal" href="#nw.rewrite.TraceUpgradeReport"><code class="docutils literal notranslate"><span class="pre">TraceUpgradeReport</span></code></a></li>
 <li><a class="reference internal" href="#nw.rewrite.is_rewritten"><code class="docutils literal notranslate"><span class="pre">is_rewritten()</span></code></a></li>
 <li><a class="reference internal" href="#nw.rewrite.is_value_row"><code class="docutils literal notranslate"><span class="pre">is_value_row()</span></code></a></li>
 <li><a class="reference internal" href="#nw.rewrite.mark_rewritten"><code class="docutils literal notranslate"><span class="pre">mark_rewritten()</span></code></a></li>
@@ -253,8 +255,21 @@ kept, because a rename is not a change of look.</p>
 <tr class="row-odd"><td><p><a class="reference internal" href="#nw.rewrite.unmark_rewritten" title="nw.rewrite.unmark_rewritten"><code class="xref py py-obj docutils literal notranslate"><span class="pre">unmark_rewritten</span></code></a>(project, marker)</p></td>
 <td><p>Forget that <code class="docutils literal notranslate"><span class="pre">marker</span></code> ran, so the next <a class="reference internal" href="#nw.rewrite.rewrite_values" title="nw.rewrite.rewrite_values"><code class="xref py py-func docutils literal notranslate"><span class="pre">rewrite_values()</span></code></a> with it scans again (a test simulating a project made before the rename).</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#nw.rewrite.upgrade_superseded_traces" title="nw.rewrite.upgrade_superseded_traces"><code class="xref py py-obj docutils literal notranslate"><span class="pre">upgrade_superseded_traces</span></code></a>(project, *[, marker])</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#nw.rewrite.upgrade_superseded_traces" title="nw.rewrite.upgrade_superseded_traces"><code class="xref py py-obj docutils literal notranslate"><span class="pre">upgrade_superseded_traces</span></code></a>(project, *[, ...])</p></td>
 <td><p>Re-record every verifying trace that is on a superseded digest scheme, or whose entries are not what nw records today, <strong>while it still vouches</strong> for its parents' current values; return how many traces moved (nw#226).</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p class="rubric">Classes</p>
+<div class="table-wrapper autosummary longtable docutils container">
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#nw.rewrite.LeftTrace" title="nw.rewrite.LeftTrace"><code class="xref py py-obj docutils literal notranslate"><span class="pre">LeftTrace</span></code></a>(trace_id, parent_ids)</p></td>
+<td><p>A trace <a class="reference internal" href="#nw.rewrite.upgrade_superseded_traces" title="nw.rewrite.upgrade_superseded_traces"><code class="xref py py-func docutils literal notranslate"><span class="pre">upgrade_superseded_traces()</span></code></a> could not re-record.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#nw.rewrite.TraceUpgradeReport" title="nw.rewrite.TraceUpgradeReport"><code class="xref py py-obj docutils literal notranslate"><span class="pre">TraceUpgradeReport</span></code></a>([moved, left_alone])</p></td>
+<td><p>What <a class="reference internal" href="#nw.rewrite.upgrade_superseded_traces" title="nw.rewrite.upgrade_superseded_traces"><code class="xref py py-func docutils literal notranslate"><span class="pre">upgrade_superseded_traces()</span></code></a> did (nw#282).</p></td>
 </tr>
 </tbody>
 </table>
@@ -265,6 +280,15 @@ kept, because a rename is not a change of look.</p>
 <dd><p>The one <code class="xref py py-func docutils literal notranslate"><span class="pre">project_lock()</span></code> every rewrite takes. Not per marker:
 two different rewrites planning from the same original bodies would each
 invalidate the other’s digests.</p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="nw.rewrite.LeftTrace">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">nw.rewrite.</span></span><span class="sig-name descname"><span class="pre">LeftTrace</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">trace_id</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">parent_ids</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/nw/rewrite.html#LeftTrace"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nw.rewrite.LeftTrace" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/builtins/functions.html#object" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>A trace <a class="reference internal" href="#nw.rewrite.upgrade_superseded_traces" title="nw.rewrite.upgrade_superseded_traces"><code class="xref py py-func docutils literal notranslate"><span class="pre">upgrade_superseded_traces()</span></code></a> could not re-record.</p>
+<dl class="field-list simple">
+</dl>
 </dd></dl>
 
 <dl class="py data">
@@ -289,6 +313,21 @@ invalidate the other’s digests.</p>
 <span class="sig-prename descclassname"><span class="pre">nw.rewrite.</span></span><span class="sig-name descname"><span class="pre">TRACE_UPGRADE_MARKER</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'traces-on-current-digest-scheme'</span></span><a class="headerlink" href="#nw.rewrite.TRACE_UPGRADE_MARKER" title="Link to this definition">#</a></dt>
 <dd><p>The marker <a class="reference internal" href="#nw.rewrite.upgrade_superseded_traces" title="nw.rewrite.upgrade_superseded_traces"><code class="xref py py-func docutils literal notranslate"><span class="pre">upgrade_superseded_traces()</span></code></a> records once a project’s traces
 are all on today’s digest scheme (bump it if the scheme moves again).</p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="nw.rewrite.TraceUpgradeReport">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">nw.rewrite.</span></span><span class="sig-name descname"><span class="pre">TraceUpgradeReport</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">moved</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">left_alone</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">()</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/nw/rewrite.html#TraceUpgradeReport"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nw.rewrite.TraceUpgradeReport" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/builtins/functions.html#object" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>What <a class="reference internal" href="#nw.rewrite.upgrade_superseded_traces" title="nw.rewrite.upgrade_superseded_traces"><code class="xref py py-func docutils literal notranslate"><span class="pre">upgrade_superseded_traces()</span></code></a> did (nw#282).</p>
+<p><code class="docutils literal notranslate"><span class="pre">moved</span></code> is the count it has always returned. <code class="docutils literal notranslate"><span class="pre">left_alone</span></code> names each
+trace it could have re-recorded but could not (the store write raised),
+with the ids of the parents that trace vouches for: the parents a host
+must not fill, because their dependents would read <code class="docutils literal notranslate"><span class="pre">upstream-changed</span></code>.
+A trace that is already stale (or names a parent that is gone) is not
+listed: it was never this function’s to freshen.</p>
+<dl class="field-list simple">
+</dl>
 </dd></dl>
 
 <dl class="py function">
@@ -371,7 +410,7 @@ removal; its value is never read, so a corrupt marker can be cleared too.</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="nw.rewrite.upgrade_superseded_traces">
-<span class="sig-prename descclassname"><span class="pre">nw.rewrite.</span></span><span class="sig-name descname"><span class="pre">upgrade_superseded_traces</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">project</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">marker</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'traces-on-current-digest-scheme'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/nw/rewrite.html#upgrade_superseded_traces"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nw.rewrite.upgrade_superseded_traces" title="Link to this definition">#</a></dt>
+<span class="sig-prename descclassname"><span class="pre">nw.rewrite.</span></span><span class="sig-name descname"><span class="pre">upgrade_superseded_traces</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">project</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">marker</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'traces-on-current-digest-scheme'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">report</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">on_failure</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'skip'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/nw/rewrite.html#upgrade_superseded_traces"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nw.rewrite.upgrade_superseded_traces" title="Link to this definition">#</a></dt>
 <dd><p>Re-record every verifying trace that is on a superseded digest scheme, or
 whose entries are not what nw records today, <strong>while it still vouches</strong> for
 its parents’ current values; return how many traces moved (nw#226).</p>
@@ -389,10 +428,14 @@ upstream change, and each host repaired that per write (reelee’s
 <p>Idempotent; with <code class="docutils literal notranslate"><span class="pre">marker</span></code> (the default) it runs at most once per project,
 under the same lock and marker discipline as <a class="reference internal" href="#nw.rewrite.rewrite_values" title="nw.rewrite.rewrite_values"><code class="xref py py-func docutils literal notranslate"><span class="pre">rewrite_values()</span></code></a>;
 <code class="docutils literal notranslate"><span class="pre">marker=None</span></code> runs every time.</p>
+<p>Returns the count of traces moved (<code class="docutils literal notranslate"><span class="pre">int</span></code>). A trace whose store write
+raises is logged and left as it is; <code class="docutils literal notranslate"><span class="pre">report=True</span></code> returns a
+<a class="reference internal" href="#nw.rewrite.TraceUpgradeReport" title="nw.rewrite.TraceUpgradeReport"><code class="xref py py-class docutils literal notranslate"><span class="pre">TraceUpgradeReport</span></code></a> instead, naming each such trace and its parent
+ids (<code class="docutils literal notranslate"><span class="pre">moved</span></code> still reads as the count, and <code class="docutils literal notranslate"><span class="pre">int(report)</span></code> works), and
+<code class="docutils literal notranslate"><span class="pre">on_failure=&quot;raise&quot;</span></code> re-raises the first such error (no marker is
+written, so a later run tries again). A run skipped by the marker reports
+nothing left alone.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></a></span></p>
-</dd>
 </dl>
 </dd></dl>
 
@@ -438,7 +481,7 @@ under the same lock and marker discipline as <a class="reference internal" href=
     </div>
   </div>
 </footer>
-      <script src="../_static/documentation_options.js?v=0b479d6a"></script>
+      <script src="../_static/documentation_options.js?v=21fc5ab0"></script>
       <script src="../_static/doctools.js?v=fd6eb6e6"></script>
       <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script src="../_static/clipboard.min.js?v=a7894cd8"></script>

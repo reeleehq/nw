@@ -120,6 +120,7 @@
       Stage
       GenreOp
       Project
+      TraceUpgradeReport
       ProjectGraph
       ProjectStorage
       FolderStorage

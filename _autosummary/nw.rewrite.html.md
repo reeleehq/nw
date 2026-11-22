@@ -56,13 +56,25 @@ kept, because a rename is not a change of look.
 | [`mark_rewritten`](#nw.rewrite.mark_rewritten)(project, marker)                  | Record `marker` as done without scanning: for a project created already in today's vocabulary, so opening it never pays for the scan.                                                                                     |
 | [`rewrite_values`](#nw.rewrite.rewrite_values)(project, fn, \*[, marker, where]) | Apply `fn(body) -> body` to every stored annotation body; return how many changed.                                                                                                                                        |
 | [`unmark_rewritten`](#nw.rewrite.unmark_rewritten)(project, marker)                | Forget that `marker` ran, so the next [`rewrite_values()`](#nw.rewrite.rewrite_values) with it scans again (a test simulating a project made before the rename).                                         |
-| [`upgrade_superseded_traces`](#nw.rewrite.upgrade_superseded_traces)(project, \*[, marker]) | Re-record every verifying trace that is on a superseded digest scheme, or whose entries are not what nw records today, **while it still vouches** for its parents' current values; return how many traces moved (nw#226). |
+| [`upgrade_superseded_traces`](#nw.rewrite.upgrade_superseded_traces)(project, \*[, ...])    | Re-record every verifying trace that is on a superseded digest scheme, or whose entries are not what nw records today, **while it still vouches** for its parents' current values; return how many traces moved (nw#226). |
+
+### Classes
+
+| [`LeftTrace`](#nw.rewrite.LeftTrace)(trace_id, parent_ids)         | A trace [`upgrade_superseded_traces()`](#nw.rewrite.upgrade_superseded_traces) could not re-record.   |
+|------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------|
+| [`TraceUpgradeReport`](#nw.rewrite.TraceUpgradeReport)([moved, left_alone]) | What [`upgrade_superseded_traces()`](#nw.rewrite.upgrade_superseded_traces) did (nw#282).             |
 
 ### nw.rewrite.LOCK_NAME *= 'rewrite-values'*
 
 The one `project_lock()` every rewrite takes. Not per marker:
 two different rewrites planning from the same original bodies would each
 invalidate the other’s digests.
+
+### *class* nw.rewrite.LeftTrace(trace_id, parent_ids)
+
+Bases: [`object`](https://docs.python.org/3/builtins/functions.html#object)
+
+A trace [`upgrade_superseded_traces()`](#nw.rewrite.upgrade_superseded_traces) could not re-record.
 
 ### nw.rewrite.MARKER_PATTERN *= re.compile('[A-Za-z0-9][A-Za-z0-9_-]\*')*
 
@@ -79,6 +91,19 @@ Key prefix, in `storage.docs`, of the success markers (`<prefix><name>.json`).
 
 The marker [`upgrade_superseded_traces()`](#nw.rewrite.upgrade_superseded_traces) records once a project’s traces
 are all on today’s digest scheme (bump it if the scheme moves again).
+
+### *class* nw.rewrite.TraceUpgradeReport(moved=0, left_alone=())
+
+Bases: [`object`](https://docs.python.org/3/builtins/functions.html#object)
+
+What [`upgrade_superseded_traces()`](#nw.rewrite.upgrade_superseded_traces) did (nw#282).
+
+`moved` is the count it has always returned. `left_alone` names each
+trace it could have re-recorded but could not (the store write raised),
+with the ids of the parents that trace vouches for: the parents a host
+must not fill, because their dependents would read `upstream-changed`.
+A trace that is already stale (or names a parent that is gone) is not
+listed: it was never this function’s to freshen.
 
 ### nw.rewrite.is_rewritten(project, marker)
 
@@ -143,7 +168,7 @@ removal; its value is never read, so a corrupt marker can be cleared too.
 * **Return type:**
   [`None`](https://docs.python.org/3/builtins/constants.html#None)
 
-### nw.rewrite.upgrade_superseded_traces(project, , marker='traces-on-current-digest-scheme')
+### nw.rewrite.upgrade_superseded_traces(project, , marker='traces-on-current-digest-scheme', report=False, on_failure='skip')
 
 Re-record every verifying trace that is on a superseded digest scheme, or
 whose entries are not what nw records today, **while it still vouches** for
@@ -166,5 +191,10 @@ Idempotent; with `marker` (the default) it runs at most once per project,
 under the same lock and marker discipline as [`rewrite_values()`](#nw.rewrite.rewrite_values);
 `marker=None` runs every time.
 
-* **Return type:**
-  [`int`](https://docs.python.org/3/builtins/functions.html#int)
+Returns the count of traces moved (`int`). A trace whose store write
+raises is logged and left as it is; `report=True` returns a
+[`TraceUpgradeReport`](#nw.rewrite.TraceUpgradeReport) instead, naming each such trace and its parent
+ids (`moved` still reads as the count, and `int(report)` works), and
+`on_failure="raise"` re-raises the first such error (no marker is
+written, so a later run tries again). A run skipped by the marker reports
+nothing left alone.

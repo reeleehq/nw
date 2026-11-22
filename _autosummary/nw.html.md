@@ -83,7 +83,7 @@ are recorded as linked artifacts), see
 | [`require_fields`](#nw.require_fields)(cls, fields, \*[, remedy])         | Raise [`NwTooOldError`](#nw.NwTooOldError) unless `cls` accepts every keyword in `fields` (names, or a mapping whose keys are the names).                                                                |
 | [`safe_path_segment`](#nw.safe_path_segment)(value, \*[, suffix, max_bytes]) | A single file name for `value` (plus `suffix`) that is always a direct child of the directory it is joined to.                                                                                                                     |
 | [`unmark_rewritten`](#nw.unmark_rewritten)(project, marker)                 | Forget that `marker` ran, so the next [`rewrite_values()`](#nw.rewrite_values) with it scans again (a test simulating a project made before the rename).                                                  |
-| [`upgrade_superseded_traces`](#nw.upgrade_superseded_traces)(project, \*[, marker])  | Re-record every verifying trace that is on a superseded digest scheme, or whose entries are not what nw records today, **while it still vouches** for its parents' current values; return how many traces moved (nw#226).          |
+| [`upgrade_superseded_traces`](#nw.upgrade_superseded_traces)(project, \*[, ...])     | Re-record every verifying trace that is on a superseded digest scheme, or whose entries are not what nw records today, **while it still vouches** for its parents' current values; return how many traces moved (nw#226).          |
 | [`adopt_tenant_id`](#nw.adopt_tenant_id)(project, \*[, dry_run])           | Pin a legacy project's historical tenant into `project.json` (nw#112).                                                                                                                                                             |
 | [`as_project_storage`](#nw.as_project_storage)(project)                       | The [`ProjectStorage`](#nw.ProjectStorage) for a path, a storage, or an `nw.Project`.                                                                                                                     |
 | [`is_project`](#nw.is_project)(project)                               | Whether `project` (a path, a storage, or an `nw.Project`) holds an nw project, without naming nw's marker document (nw#217).                                                                                                       |
@@ -161,6 +161,7 @@ are recorded as linked artifacts), see
 | [`Stage`](#nw.Stage)(slug, name[, free, transform_names, ...])    | One plain-English step of a genre.                                                                                          |
 | [`GenreOp`](#nw.GenreOp)(name, fn, title[, description, ...])       | One operation a genre offers on its projects — a row a host builds surfaces from.                                           |
 | [`Project`](#nw.Project)(root, \*[, storage, auto_migrate])         | A folder-backed nw project.                                                                                                 |
+| [`TraceUpgradeReport`](#nw.TraceUpgradeReport)([moved, left_alone])            | What [`upgrade_superseded_traces()`](#nw.upgrade_superseded_traces) did (nw#282).                             |
 | [`ProjectGraph`](#nw.ProjectGraph)(project)                              | Typed read/write facade over the project's lacing graph store.                                                              |
 | [`ProjectStorage`](#nw.ProjectStorage)(\*args, \*\*kwargs)                 | Where one project's documents and annotation stores live.                                                                   |
 | [`FolderStorage`](#nw.FolderStorage)(root, \*[, init_folders])            | nw's historical layout: everything under `root`.                                                                            |
@@ -1946,6 +1947,19 @@ A JSON-able catalog entry: `{slug, title, description, params}`.
 
 * **Return type:**
   [`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)
+
+### *class* nw.TraceUpgradeReport(moved=0, left_alone=())
+
+Bases: [`object`](https://docs.python.org/3/builtins/functions.html#object)
+
+What [`upgrade_superseded_traces()`](#nw.upgrade_superseded_traces) did (nw#282).
+
+`moved` is the count it has always returned. `left_alone` names each
+trace it could have re-recorded but could not (the store write raised),
+with the ids of the parents that trace vouches for: the parents a host
+must not fill, because their dependents would read `upstream-changed`.
+A trace that is already stale (or names a parent that is gone) is not
+listed: it was never this function’s to freshen.
 
 ### *class* nw.Transform(\*args, \*\*kwargs)
 
@@ -4023,7 +4037,7 @@ were no calls to diff. Read [`PlanQuote.reason`](#nw.PlanQuote.reason) for what 
 * **Return type:**
   [`PlanQuote`](nw.pricing.html.md#nw.pricing.PlanQuote)
 
-### nw.upgrade_superseded_traces(project, , marker='traces-on-current-digest-scheme')
+### nw.upgrade_superseded_traces(project, , marker='traces-on-current-digest-scheme', report=False, on_failure='skip')
 
 Re-record every verifying trace that is on a superseded digest scheme, or
 whose entries are not what nw records today, **while it still vouches** for
@@ -4046,8 +4060,13 @@ Idempotent; with `marker` (the default) it runs at most once per project,
 under the same lock and marker discipline as [`rewrite_values()`](#nw.rewrite_values);
 `marker=None` runs every time.
 
-* **Return type:**
-  [`int`](https://docs.python.org/3/builtins/functions.html#int)
+Returns the count of traces moved (`int`). A trace whose store write
+raises is logged and left as it is; `report=True` returns a
+[`TraceUpgradeReport`](#nw.TraceUpgradeReport) instead, naming each such trace and its parent
+ids (`moved` still reads as the count, and `int(report)` works), and
+`on_failure="raise"` re-raises the first such error (no marker is
+written, so a later run tries again). A run skipped by the marker reports
+nothing left alone.
 
 ### nw.using_secrets(secrets)
 

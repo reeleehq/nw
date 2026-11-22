@@ -372,6 +372,7 @@ data-aria-dark="Switch to auto color mode">
 <li><a class="reference internal" href="#nw.Template.to_dict"><code class="docutils literal notranslate"><span class="pre">Template.to_dict()</span></code></a></li>
 </ul>
 </li>
+<li><a class="reference internal" href="#nw.TraceUpgradeReport"><code class="docutils literal notranslate"><span class="pre">TraceUpgradeReport</span></code></a></li>
 <li><a class="reference internal" href="#nw.Transform"><code class="docutils literal notranslate"><span class="pre">Transform</span></code></a><ul>
 <li><a class="reference internal" href="#nw.Transform.execute"><code class="docutils literal notranslate"><span class="pre">Transform.execute()</span></code></a></li>
 <li><a class="reference internal" href="#nw.Transform.generate_when"><code class="docutils literal notranslate"><span class="pre">Transform.generate_when</span></code></a></li>
@@ -685,7 +686,7 @@ are recorded as linked artifacts), see
 <tr class="row-odd"><td><p><a class="reference internal" href="#nw.unmark_rewritten" title="nw.unmark_rewritten"><code class="xref py py-obj docutils literal notranslate"><span class="pre">unmark_rewritten</span></code></a>(project, marker)</p></td>
 <td><p>Forget that <code class="docutils literal notranslate"><span class="pre">marker</span></code> ran, so the next <a class="reference internal" href="#nw.rewrite_values" title="nw.rewrite_values"><code class="xref py py-func docutils literal notranslate"><span class="pre">rewrite_values()</span></code></a> with it scans again (a test simulating a project made before the rename).</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#nw.upgrade_superseded_traces" title="nw.upgrade_superseded_traces"><code class="xref py py-obj docutils literal notranslate"><span class="pre">upgrade_superseded_traces</span></code></a>(project, *[, marker])</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#nw.upgrade_superseded_traces" title="nw.upgrade_superseded_traces"><code class="xref py py-obj docutils literal notranslate"><span class="pre">upgrade_superseded_traces</span></code></a>(project, *[, ...])</p></td>
 <td><p>Re-record every verifying trace that is on a superseded digest scheme, or whose entries are not what nw records today, <strong>while it still vouches</strong> for its parents' current values; return how many traces moved (nw#226).</p></td>
 </tr>
 <tr class="row-odd"><td><p><a class="reference internal" href="#nw.adopt_tenant_id" title="nw.adopt_tenant_id"><code class="xref py py-obj docutils literal notranslate"><span class="pre">adopt_tenant_id</span></code></a>(project, *[, dry_run])</p></td>
@@ -914,94 +915,97 @@ are recorded as linked artifacts), see
 <tr class="row-even"><td><p><a class="reference internal" href="#nw.Project" title="nw.Project"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Project</span></code></a>(root, *[, storage, auto_migrate])</p></td>
 <td><p>A folder-backed nw project.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#nw.ProjectGraph" title="nw.ProjectGraph"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ProjectGraph</span></code></a>(project)</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#nw.TraceUpgradeReport" title="nw.TraceUpgradeReport"><code class="xref py py-obj docutils literal notranslate"><span class="pre">TraceUpgradeReport</span></code></a>([moved, left_alone])</p></td>
+<td><p>What <a class="reference internal" href="#nw.upgrade_superseded_traces" title="nw.upgrade_superseded_traces"><code class="xref py py-func docutils literal notranslate"><span class="pre">upgrade_superseded_traces()</span></code></a> did (nw#282).</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#nw.ProjectGraph" title="nw.ProjectGraph"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ProjectGraph</span></code></a>(project)</p></td>
 <td><p>Typed read/write facade over the project's lacing graph store.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#nw.ProjectStorage" title="nw.ProjectStorage"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ProjectStorage</span></code></a>(*args, **kwargs)</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#nw.ProjectStorage" title="nw.ProjectStorage"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ProjectStorage</span></code></a>(*args, **kwargs)</p></td>
 <td><p>Where one project's documents and annotation stores live.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#nw.FolderStorage" title="nw.FolderStorage"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FolderStorage</span></code></a>(root, *[, init_folders])</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#nw.FolderStorage" title="nw.FolderStorage"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FolderStorage</span></code></a>(root, *[, init_folders])</p></td>
 <td><p>nw's historical layout: everything under <code class="docutils literal notranslate"><span class="pre">root</span></code>.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#nw.MappingStorage" title="nw.MappingStorage"><code class="xref py py-obj docutils literal notranslate"><span class="pre">MappingStorage</span></code></a>(*, root, graph, docs[, ...])</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#nw.MappingStorage" title="nw.MappingStorage"><code class="xref py py-obj docutils literal notranslate"><span class="pre">MappingStorage</span></code></a>(*, root, graph, docs[, ...])</p></td>
 <td><p>A project whose graph and documents live in mappings the caller owns.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#nw.StoredUnproducedOutput" title="nw.StoredUnproducedOutput"><code class="xref py py-obj docutils literal notranslate"><span class="pre">StoredUnproducedOutput</span></code></a>(annotation_id, body)</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#nw.StoredUnproducedOutput" title="nw.StoredUnproducedOutput"><code class="xref py py-obj docutils literal notranslate"><span class="pre">StoredUnproducedOutput</span></code></a>(annotation_id, body)</p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#nw.UnproducedOutputBodyV1" title="nw.UnproducedOutputBodyV1"><code class="xref py py-obj docutils literal notranslate"><span class="pre">UnproducedOutputBodyV1</span></code></a>(*, transform_name[, ...])</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#nw.UnproducedOutputBodyV1" title="nw.UnproducedOutputBodyV1"><code class="xref py py-obj docutils literal notranslate"><span class="pre">UnproducedOutputBodyV1</span></code></a>(*, transform_name[, ...])</p></td>
 <td><p>Body of an unproduced-output record.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#nw.ProjectSpec" title="nw.ProjectSpec"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ProjectSpec</span></code></a>(*[, schema_version, title, ...])</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#nw.ProjectSpec" title="nw.ProjectSpec"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ProjectSpec</span></code></a>(*[, schema_version, title, ...])</p></td>
 <td><p>The top-level project SSOT, persisted as <code class="docutils literal notranslate"><span class="pre">project.json</span></code>.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#nw.ProjectSummary" title="nw.ProjectSummary"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ProjectSummary</span></code></a>(*, title, root, ...)</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#nw.ProjectSummary" title="nw.ProjectSummary"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ProjectSummary</span></code></a>(*, title, root, ...)</p></td>
 <td><p>Typed read view of a project — what <code class="docutils literal notranslate"><span class="pre">muvid</span> <span class="pre">status</span></code> printed, but typed.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#nw.ResumptionBrief" title="nw.ResumptionBrief"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ResumptionBrief</span></code></a>(*, title, root[, ...])</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#nw.ResumptionBrief" title="nw.ResumptionBrief"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ResumptionBrief</span></code></a>(*, title, root[, ...])</p></td>
 <td><p>A &quot;where we left off&quot; snapshot, returned by <a class="reference internal" href="#nw.Project.resumption_brief" title="nw.Project.resumption_brief"><code class="xref py py-meth docutils literal notranslate"><span class="pre">nw.Project.resumption_brief()</span></code></a>.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#nw.SectionSpec" title="nw.SectionSpec"><code class="xref py py-obj docutils literal notranslate"><span class="pre">SectionSpec</span></code></a>(*, id, start_s, end_s[, label, ...])</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#nw.SectionSpec" title="nw.SectionSpec"><code class="xref py py-obj docutils literal notranslate"><span class="pre">SectionSpec</span></code></a>(*, id, start_s, end_s[, label, ...])</p></td>
 <td><p>A non-overlapping span of the project's master timeline.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#nw.ShotPreparation" title="nw.ShotPreparation"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ShotPreparation</span></code></a>(project_root, shot, ...[, ...])</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#nw.ShotPreparation" title="nw.ShotPreparation"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ShotPreparation</span></code></a>(project_root, shot, ...[, ...])</p></td>
 <td><p>Local-only inputs for rendering a single shot.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#nw.ShotReport" title="nw.ShotReport"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ShotReport</span></code></a>(*, shot_id, output_path, ...[, ...])</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#nw.ShotReport" title="nw.ShotReport"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ShotReport</span></code></a>(*, shot_id, output_path, ...[, ...])</p></td>
 <td><p>Inspection of one rendered shot.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#nw.ShotSpec" title="nw.ShotSpec"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ShotSpec</span></code></a>(*, id, start_s, end_s[, ...])</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#nw.ShotSpec" title="nw.ShotSpec"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ShotSpec</span></code></a>(*, id, start_s, end_s[, ...])</p></td>
 <td><p>A timeline-locked visual unit.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#nw.SongInfo" title="nw.SongInfo"><code class="xref py py-obj docutils literal notranslate"><span class="pre">SongInfo</span></code></a>(*, audio_path, duration_s[, ...])</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#nw.SongInfo" title="nw.SongInfo"><code class="xref py py-obj docutils literal notranslate"><span class="pre">SongInfo</span></code></a>(*, audio_path, duration_s[, ...])</p></td>
 <td><p>Metadata for the master audio file.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#nw.Strategy" title="nw.Strategy"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Strategy</span></code></a>(*args, **kwargs)</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#nw.Strategy" title="nw.Strategy"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Strategy</span></code></a>(*args, **kwargs)</p></td>
 <td><p>Render-strategy contract.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#nw.Transform" title="nw.Transform"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Transform</span></code></a>(*args, **kwargs)</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#nw.Transform" title="nw.Transform"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Transform</span></code></a>(*args, **kwargs)</p></td>
 <td><p>A swappable, costed function from A-annotations to B-annotations.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#nw.TransformInputs" title="nw.TransformInputs"><code class="xref py py-obj docutils literal notranslate"><span class="pre">TransformInputs</span></code></a>(primary[, context])</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#nw.TransformInputs" title="nw.TransformInputs"><code class="xref py py-obj docutils literal notranslate"><span class="pre">TransformInputs</span></code></a>(primary[, context])</p></td>
 <td><p>The annotations a Transform consumes.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#nw.TransformResult" title="nw.TransformResult"><code class="xref py py-obj docutils literal notranslate"><span class="pre">TransformResult</span></code></a>(annotations[, artifacts, ...])</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#nw.TransformResult" title="nw.TransformResult"><code class="xref py py-obj docutils literal notranslate"><span class="pre">TransformResult</span></code></a>(annotations[, artifacts, ...])</p></td>
 <td><p>The outputs of a Transform's <a class="reference internal" href="#nw.Transform.execute" title="nw.Transform.execute"><code class="xref py py-meth docutils literal notranslate"><span class="pre">execute()</span></code></a>.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#nw.FailedOutput" title="nw.FailedOutput"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FailedOutput</span></code></a>(skeleton, status[, reason, ...])</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#nw.FailedOutput" title="nw.FailedOutput"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FailedOutput</span></code></a>(skeleton, status[, reason, ...])</p></td>
 <td><p>An output annotation that was planned but never produced.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#nw.PlanQuote" title="nw.PlanQuote"><code class="xref py py-obj docutils literal notranslate"><span class="pre">PlanQuote</span></code></a>(*, total_usd, status, ...[, reason])</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#nw.PlanQuote" title="nw.PlanQuote"><code class="xref py py-obj docutils literal notranslate"><span class="pre">PlanQuote</span></code></a>(*, total_usd, status, ...[, reason])</p></td>
 <td><p>Today's price for a persisted plan, with the stale figure alongside.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#nw.WorkItem" title="nw.WorkItem"><code class="xref py py-obj docutils literal notranslate"><span class="pre">WorkItem</span></code></a>(*, mapping_key[, parent_key, ...])</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#nw.WorkItem" title="nw.WorkItem"><code class="xref py py-obj docutils literal notranslate"><span class="pre">WorkItem</span></code></a>(*, mapping_key[, parent_key, ...])</p></td>
 <td><p>One unit of a fan-out — the PDG-shaped work item (nw#26).</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#nw.FanOutUnit" title="nw.FanOutUnit"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FanOutUnit</span></code></a>(item, instance_id, plan, skeleton)</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#nw.FanOutUnit" title="nw.FanOutUnit"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FanOutUnit</span></code></a>(item, instance_id, plan, skeleton)</p></td>
 <td><p>One planned unit: a work item plus its ordinary Transform plan.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#nw.FanOutPlan" title="nw.FanOutPlan"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FanOutPlan</span></code></a>(transform_name, units)</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#nw.FanOutPlan" title="nw.FanOutPlan"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FanOutPlan</span></code></a>(transform_name, units)</p></td>
 <td><p>The planned fan-out — pure data, like every plan in this federation.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#nw.FanOutItemResult" title="nw.FanOutItemResult"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FanOutItemResult</span></code></a>(item, instance_id, status)</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#nw.FanOutItemResult" title="nw.FanOutItemResult"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FanOutItemResult</span></code></a>(item, instance_id, status)</p></td>
 <td><p>One unit's outcome, aligned 1:1 with the plan's units.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#nw.FanOutResult" title="nw.FanOutResult"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FanOutResult</span></code></a>(transform_name, items)</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#nw.FanOutResult" title="nw.FanOutResult"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FanOutResult</span></code></a>(transform_name, items)</p></td>
 <td><p>A fan-out run: one <a class="reference internal" href="#nw.FanOutItemResult" title="nw.FanOutItemResult"><code class="xref py py-class docutils literal notranslate"><span class="pre">FanOutItemResult</span></code></a> per planned unit, in order.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#nw.Secrets" title="nw.Secrets"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Secrets</span></code></a>([mapping])</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#nw.Secrets" title="nw.Secrets"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Secrets</span></code></a>([mapping])</p></td>
 <td><p>A read-only <code class="docutils literal notranslate"><span class="pre">{provider_name:</span> <span class="pre">key}</span></code> mapping that never prints or persists.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#nw.Check" title="nw.Check"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Check</span></code></a>(name, summary, run[, requires, ...])</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#nw.Check" title="nw.Check"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Check</span></code></a>(name, summary, run[, requires, ...])</p></td>
 <td><p>One validation, and everything a scheduler and a menu need to know.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#nw.CheckResult" title="nw.CheckResult"><code class="xref py py-obj docutils literal notranslate"><span class="pre">CheckResult</span></code></a>(name[, findings, skipped, ...])</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#nw.CheckResult" title="nw.CheckResult"><code class="xref py py-obj docutils literal notranslate"><span class="pre">CheckResult</span></code></a>(name[, findings, skipped, ...])</p></td>
 <td><p>What one check produced, including the case where it could not run.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#nw.Finding" title="nw.Finding"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Finding</span></code></a>(check, severity, message[, where, ...])</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#nw.Finding" title="nw.Finding"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Finding</span></code></a>(check, severity, message[, where, ...])</p></td>
 <td><p>One thing a check noticed.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#nw.ValidationReport" title="nw.ValidationReport"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ValidationReport</span></code></a>(target[, results, elapsed_s])</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#nw.ValidationReport" title="nw.ValidationReport"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ValidationReport</span></code></a>(target[, results, elapsed_s])</p></td>
 <td><p>Everything a <a class="reference internal" href="#nw.validate" title="nw.validate"><code class="xref py py-func docutils literal notranslate"><span class="pre">validate()</span></code></a> run produced.</p></td>
 </tr>
 </tbody>
@@ -3182,6 +3186,21 @@ identity and normalized to an immutable mapping), so a Template can live in a
 </dl>
 </dd></dl>
 
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="nw.TraceUpgradeReport">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">nw.</span></span><span class="sig-name descname"><span class="pre">TraceUpgradeReport</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">moved</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">left_alone</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">()</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/nw/rewrite.html#TraceUpgradeReport"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nw.TraceUpgradeReport" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/builtins/functions.html#object" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>What <a class="reference internal" href="#nw.upgrade_superseded_traces" title="nw.upgrade_superseded_traces"><code class="xref py py-func docutils literal notranslate"><span class="pre">upgrade_superseded_traces()</span></code></a> did (nw#282).</p>
+<p><code class="docutils literal notranslate"><span class="pre">moved</span></code> is the count it has always returned. <code class="docutils literal notranslate"><span class="pre">left_alone</span></code> names each
+trace it could have re-recorded but could not (the store write raised),
+with the ids of the parents that trace vouches for: the parents a host
+must not fill, because their dependents would read <code class="docutils literal notranslate"><span class="pre">upstream-changed</span></code>.
+A trace that is already stale (or names a parent that is gone) is not
+listed: it was never this function’s to freshen.</p>
+<dl class="field-list simple">
+</dl>
 </dd></dl>
 
 <dl class="py class">
@@ -5570,7 +5589,7 @@ were no calls to diff. Read <a class="reference internal" href="#nw.PlanQuote.re
 
 <dl class="py function">
 <dt class="sig sig-object py" id="nw.upgrade_superseded_traces">
-<span class="sig-prename descclassname"><span class="pre">nw.</span></span><span class="sig-name descname"><span class="pre">upgrade_superseded_traces</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">project</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">marker</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'traces-on-current-digest-scheme'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/nw/rewrite.html#upgrade_superseded_traces"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nw.upgrade_superseded_traces" title="Link to this definition">#</a></dt>
+<span class="sig-prename descclassname"><span class="pre">nw.</span></span><span class="sig-name descname"><span class="pre">upgrade_superseded_traces</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">project</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">marker</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'traces-on-current-digest-scheme'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">report</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">on_failure</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'skip'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/nw/rewrite.html#upgrade_superseded_traces"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nw.upgrade_superseded_traces" title="Link to this definition">#</a></dt>
 <dd><p>Re-record every verifying trace that is on a superseded digest scheme, or
 whose entries are not what nw records today, <strong>while it still vouches</strong> for
 its parents’ current values; return how many traces moved (nw#226).</p>
@@ -5588,10 +5607,14 @@ upstream change, and each host repaired that per write (reelee’s
 <p>Idempotent; with <code class="docutils literal notranslate"><span class="pre">marker</span></code> (the default) it runs at most once per project,
 under the same lock and marker discipline as <a class="reference internal" href="#nw.rewrite_values" title="nw.rewrite_values"><code class="xref py py-func docutils literal notranslate"><span class="pre">rewrite_values()</span></code></a>;
 <code class="docutils literal notranslate"><span class="pre">marker=None</span></code> runs every time.</p>
+<p>Returns the count of traces moved (<code class="docutils literal notranslate"><span class="pre">int</span></code>). A trace whose store write
+raises is logged and left as it is; <code class="docutils literal notranslate"><span class="pre">report=True</span></code> returns a
+<a class="reference internal" href="#nw.TraceUpgradeReport" title="nw.TraceUpgradeReport"><code class="xref py py-class docutils literal notranslate"><span class="pre">TraceUpgradeReport</span></code></a> instead, naming each such trace and its parent
+ids (<code class="docutils literal notranslate"><span class="pre">moved</span></code> still reads as the count, and <code class="docutils literal notranslate"><span class="pre">int(report)</span></code> works), and
+<code class="docutils literal notranslate"><span class="pre">on_failure=&quot;raise&quot;</span></code> re-raises the first such error (no marker is
+written, so a later run tries again). A run skipped by the marker reports
+nothing left alone.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></a></span></p>
-</dd>
 </dl>
 </dd></dl>
 
@@ -5812,7 +5835,7 @@ addressable across runs.</p>
     </div>
   </div>
 </footer>
-      <script src="../_static/documentation_options.js?v=0b479d6a"></script>
+      <script src="../_static/documentation_options.js?v=21fc5ab0"></script>
       <script src="../_static/doctools.js?v=fd6eb6e6"></script>
       <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
