@@ -45,14 +45,15 @@ Cost gating of the *spender* (a per-caller cap) belongs to the host’s
 
 ### Functions
 
-| [`cancel_batch`](#nw.batches.cancel_batch)(project, batch_id, \*[, config])      | Cancel every non-terminal member, then return [`status()`](#nw.batches.status).   |
-|-----------------------------------------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------|
-| [`enqueue_batch`](#nw.batches.enqueue_batch)(project, items, \*[, kind, ...])     | Enqueue every item as a job and record the batch.                                                          |
-| [`estimate_batch`](#nw.batches.estimate_batch)(project, items, \*[, kind, config]) | Dry-run gate for a whole batch, without enqueueing anything.                                               |
-| [`get_batch`](#nw.batches.get_batch)(project, batch_id, \*[, config])         | The stored batch record, or `None` if unknown.                                                             |
-| [`output`](#nw.batches.output)(project, batch_id, \*[, config])            | Per-outcome results, in batch order within each bucket.                                                    |
-| [`status`](#nw.batches.status)(project, batch_id, \*[, config])            | Aggregate of the member jobs, computed now.                                                                |
-| [`wait`](#nw.batches.wait)(project, batch_id, timeout, \*[, ...])        | Block until the batch is done or `timeout` seconds pass (a hard cap).                                      |
+| [`batch_id_for`](#nw.batches.batch_id_for)(project, items, \*[, kind])           | The id [`enqueue_batch()`](#nw.batches.enqueue_batch) would give these items, without enqueueing (nw#286).   |
+|-----------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------|
+| [`cancel_batch`](#nw.batches.cancel_batch)(project, batch_id, \*[, config])      | Cancel every non-terminal member, then return [`status()`](#nw.batches.status).                       |
+| [`enqueue_batch`](#nw.batches.enqueue_batch)(project, items, \*[, kind, ...])     | Enqueue every item as a job and record the batch.                                                                              |
+| [`estimate_batch`](#nw.batches.estimate_batch)(project, items, \*[, kind, config]) | Dry-run gate for a whole batch, without enqueueing anything.                                                                   |
+| [`get_batch`](#nw.batches.get_batch)(project, batch_id, \*[, config])         | The stored batch record, or `None` if unknown.                                                                                 |
+| [`output`](#nw.batches.output)(project, batch_id, \*[, config])            | Per-outcome results, in batch order within each bucket.                                                                        |
+| [`status`](#nw.batches.status)(project, batch_id, \*[, config])            | Aggregate of the member jobs, computed now.                                                                                    |
+| [`wait`](#nw.batches.wait)(project, batch_id, timeout, \*[, ...])        | Block until the batch is done or `timeout` seconds pass (a hard cap).                                                          |
 
 ### Classes
 
@@ -83,6 +84,20 @@ How often [`wait()`](#nw.batches.wait) re-reads the members when nothing notifie
 ### nw.batches.MISSING *= 'missing'*
 
 Status key for a member whose job record is gone (it will never finish).
+
+### nw.batches.batch_id_for(project, items, , kind=None)
+
+The id [`enqueue_batch()`](#nw.batches.enqueue_batch) would give these items, without enqueueing (nw#286).
+
+Mirrors [`nw.jobs.job_id_for()`](nw.jobs.html.md#nw.jobs.job_id_for): items are validated exactly as
+`enqueue_batch` validates them (so the same errors), then resolved to job
+ids, with items resolving to one job collapsed, and the batch id derived
+from those. A host that must return a live batch on a retry, before
+re-pricing against an approved ceiling, asks this, then [`get_batch()`](#nw.batches.get_batch).
+Writes nothing and reads no store.
+
+* **Return type:**
+  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
 
 ### nw.batches.cancel_batch(project, batch_id, , config=JobsConfig(n_min=3, sample_window_k=20, pct_ceil=99, overrun_factor=1.5, cache_hit_floor_s=0.5, dur_buckets_s=(4.0, 8.0, 12.0), prior_total_s={'image': 12.0, 'video': 90.0, 'audio': 15.0}, default_prior_total_s=30.0, stale_running_s=900.0, heartbeat_interval_s=20.0, heartbeat_stale_s=120.0, terminal_hook_attempts=3, terminal_hook_lease_s=300.0, approval_threshold_usd=1.0, index_retention_s=2592000.0, never_started_after_s=None, index_sweep_interval_s=3600.0, jobs_dirname='.nw/jobs'))
 

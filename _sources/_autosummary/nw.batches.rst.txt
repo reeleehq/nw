@@ -17,6 +17,7 @@ nw.batches
 
    .. autosummary::
    
+      batch_id_for
       cancel_batch
       enqueue_batch
       estimate_batch

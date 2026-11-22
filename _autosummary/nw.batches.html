@@ -140,6 +140,7 @@ data-aria-dark="Switch to auto color mode">
 <li><a class="reference internal" href="#nw.batches.DEFAULT_POLL_S"><code class="docutils literal notranslate"><span class="pre">DEFAULT_POLL_S</span></code></a></li>
 <li><a class="reference internal" href="#nw.batches.ITEM_KEYS"><code class="docutils literal notranslate"><span class="pre">ITEM_KEYS</span></code></a></li>
 <li><a class="reference internal" href="#nw.batches.MISSING"><code class="docutils literal notranslate"><span class="pre">MISSING</span></code></a></li>
+<li><a class="reference internal" href="#nw.batches.batch_id_for"><code class="docutils literal notranslate"><span class="pre">batch_id_for()</span></code></a></li>
 <li><a class="reference internal" href="#nw.batches.cancel_batch"><code class="docutils literal notranslate"><span class="pre">cancel_batch()</span></code></a></li>
 <li><a class="reference internal" href="#nw.batches.enqueue_batch"><code class="docutils literal notranslate"><span class="pre">enqueue_batch()</span></code></a></li>
 <li><a class="reference internal" href="#nw.batches.estimate_batch"><code class="docutils literal notranslate"><span class="pre">estimate_batch()</span></code></a></li>
@@ -248,25 +249,28 @@ one. Item identity should be semantic (see <code class="xref py py-mod docutils 
 <div class="table-wrapper autosummary longtable docutils container">
 <table class="autosummary longtable docutils align-default">
 <tbody>
-<tr class="row-odd"><td><p><a class="reference internal" href="#nw.batches.cancel_batch" title="nw.batches.cancel_batch"><code class="xref py py-obj docutils literal notranslate"><span class="pre">cancel_batch</span></code></a>(project, batch_id, *[, config])</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#nw.batches.batch_id_for" title="nw.batches.batch_id_for"><code class="xref py py-obj docutils literal notranslate"><span class="pre">batch_id_for</span></code></a>(project, items, *[, kind])</p></td>
+<td><p>The id <a class="reference internal" href="#nw.batches.enqueue_batch" title="nw.batches.enqueue_batch"><code class="xref py py-func docutils literal notranslate"><span class="pre">enqueue_batch()</span></code></a> would give these items, without enqueueing (nw#286).</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#nw.batches.cancel_batch" title="nw.batches.cancel_batch"><code class="xref py py-obj docutils literal notranslate"><span class="pre">cancel_batch</span></code></a>(project, batch_id, *[, config])</p></td>
 <td><p>Cancel every non-terminal member, then return <a class="reference internal" href="#nw.batches.status" title="nw.batches.status"><code class="xref py py-func docutils literal notranslate"><span class="pre">status()</span></code></a>.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#nw.batches.enqueue_batch" title="nw.batches.enqueue_batch"><code class="xref py py-obj docutils literal notranslate"><span class="pre">enqueue_batch</span></code></a>(project, items, *[, kind, ...])</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#nw.batches.enqueue_batch" title="nw.batches.enqueue_batch"><code class="xref py py-obj docutils literal notranslate"><span class="pre">enqueue_batch</span></code></a>(project, items, *[, kind, ...])</p></td>
 <td><p>Enqueue every item as a job and record the batch.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#nw.batches.estimate_batch" title="nw.batches.estimate_batch"><code class="xref py py-obj docutils literal notranslate"><span class="pre">estimate_batch</span></code></a>(project, items, *[, kind, config])</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#nw.batches.estimate_batch" title="nw.batches.estimate_batch"><code class="xref py py-obj docutils literal notranslate"><span class="pre">estimate_batch</span></code></a>(project, items, *[, kind, config])</p></td>
 <td><p>Dry-run gate for a whole batch, without enqueueing anything.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#nw.batches.get_batch" title="nw.batches.get_batch"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_batch</span></code></a>(project, batch_id, *[, config])</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#nw.batches.get_batch" title="nw.batches.get_batch"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_batch</span></code></a>(project, batch_id, *[, config])</p></td>
 <td><p>The stored batch record, or <code class="docutils literal notranslate"><span class="pre">None</span></code> if unknown.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#nw.batches.output" title="nw.batches.output"><code class="xref py py-obj docutils literal notranslate"><span class="pre">output</span></code></a>(project, batch_id, *[, config])</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#nw.batches.output" title="nw.batches.output"><code class="xref py py-obj docutils literal notranslate"><span class="pre">output</span></code></a>(project, batch_id, *[, config])</p></td>
 <td><p>Per-outcome results, in batch order within each bucket.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#nw.batches.status" title="nw.batches.status"><code class="xref py py-obj docutils literal notranslate"><span class="pre">status</span></code></a>(project, batch_id, *[, config])</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#nw.batches.status" title="nw.batches.status"><code class="xref py py-obj docutils literal notranslate"><span class="pre">status</span></code></a>(project, batch_id, *[, config])</p></td>
 <td><p>Aggregate of the member jobs, computed now.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#nw.batches.wait" title="nw.batches.wait"><code class="xref py py-obj docutils literal notranslate"><span class="pre">wait</span></code></a>(project, batch_id, timeout, *[, ...])</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#nw.batches.wait" title="nw.batches.wait"><code class="xref py py-obj docutils literal notranslate"><span class="pre">wait</span></code></a>(project, batch_id, timeout, *[, ...])</p></td>
 <td><p>Block until the batch is done or <code class="docutils literal notranslate"><span class="pre">timeout</span></code> seconds pass (a hard cap).</p></td>
 </tr>
 </tbody>
@@ -318,6 +322,23 @@ one. Item identity should be semantic (see <code class="xref py py-mod docutils 
 <dt class="sig sig-object py" id="nw.batches.MISSING">
 <span class="sig-prename descclassname"><span class="pre">nw.batches.</span></span><span class="sig-name descname"><span class="pre">MISSING</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'missing'</span></span><a class="headerlink" href="#nw.batches.MISSING" title="Link to this definition">#</a></dt>
 <dd><p>Status key for a member whose job record is gone (it will never finish).</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="nw.batches.batch_id_for">
+<span class="sig-prename descclassname"><span class="pre">nw.batches.</span></span><span class="sig-name descname"><span class="pre">batch_id_for</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">project</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">items</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">kind</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/nw/batches.html#batch_id_for"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nw.batches.batch_id_for" title="Link to this definition">#</a></dt>
+<dd><p>The id <a class="reference internal" href="#nw.batches.enqueue_batch" title="nw.batches.enqueue_batch"><code class="xref py py-func docutils literal notranslate"><span class="pre">enqueue_batch()</span></code></a> would give these items, without enqueueing (nw#286).</p>
+<p>Mirrors <a class="reference internal" href="nw.jobs.html#nw.jobs.job_id_for" title="nw.jobs.job_id_for"><code class="xref py py-func docutils literal notranslate"><span class="pre">nw.jobs.job_id_for()</span></code></a>: items are validated exactly as
+<code class="docutils literal notranslate"><span class="pre">enqueue_batch</span></code> validates them (so the same errors), then resolved to job
+ids, with items resolving to one job collapsed, and the batch id derived
+from those. A host that must return a live batch on a retry, before
+re-pricing against an approved ceiling, asks this, then <a class="reference internal" href="#nw.batches.get_batch" title="nw.batches.get_batch"><code class="xref py py-func docutils literal notranslate"><span class="pre">get_batch()</span></code></a>.
+Writes nothing and reads no store.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a></span></p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py function">
@@ -478,7 +499,7 @@ first, so a caller can loop on it. <code class="docutils literal notranslate"><s
     </div>
   </div>
 </footer>
-      <script src="../_static/documentation_options.js?v=21fc5ab0"></script>
+      <script src="../_static/documentation_options.js?v=8584dea9"></script>
       <script src="../_static/doctools.js?v=fd6eb6e6"></script>
       <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script src="../_static/clipboard.min.js?v=a7894cd8"></script>

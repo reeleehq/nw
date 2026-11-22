@@ -1,4 +1,4 @@
-> built 2026-11-22 07:50 UTC from 7fc664d (main) · nw 0.0.160. Details: build_info.json
+> built 2026-11-22 07:53 UTC from e076819 (main) · nw 0.0.161. Details: build_info.json
 
 # index.html.md
 
@@ -803,14 +803,15 @@ Cost gating of the *spender* (a per-caller cap) belongs to the host’s
 
 ### Functions
 
-| [`cancel_batch`](_autosummary/nw.batches.html.md#nw.batches.cancel_batch)(project, batch_id, \*[, config])      | Cancel every non-terminal member, then return [`status()`](_autosummary/nw.batches.html.md#nw.batches.status).   |
-|-----------------------------------------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------|
-| [`enqueue_batch`](_autosummary/nw.batches.html.md#nw.batches.enqueue_batch)(project, items, \*[, kind, ...])     | Enqueue every item as a job and record the batch.                                                          |
-| [`estimate_batch`](_autosummary/nw.batches.html.md#nw.batches.estimate_batch)(project, items, \*[, kind, config]) | Dry-run gate for a whole batch, without enqueueing anything.                                               |
-| [`get_batch`](_autosummary/nw.batches.html.md#nw.batches.get_batch)(project, batch_id, \*[, config])         | The stored batch record, or `None` if unknown.                                                             |
-| [`output`](_autosummary/nw.batches.html.md#nw.batches.output)(project, batch_id, \*[, config])            | Per-outcome results, in batch order within each bucket.                                                    |
-| [`status`](_autosummary/nw.batches.html.md#nw.batches.status)(project, batch_id, \*[, config])            | Aggregate of the member jobs, computed now.                                                                |
-| [`wait`](_autosummary/nw.batches.html.md#nw.batches.wait)(project, batch_id, timeout, \*[, ...])        | Block until the batch is done or `timeout` seconds pass (a hard cap).                                      |
+| [`batch_id_for`](_autosummary/nw.batches.html.md#nw.batches.batch_id_for)(project, items, \*[, kind])           | The id [`enqueue_batch()`](_autosummary/nw.batches.html.md#nw.batches.enqueue_batch) would give these items, without enqueueing (nw#286).   |
+|-----------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------|
+| [`cancel_batch`](_autosummary/nw.batches.html.md#nw.batches.cancel_batch)(project, batch_id, \*[, config])      | Cancel every non-terminal member, then return [`status()`](_autosummary/nw.batches.html.md#nw.batches.status).                       |
+| [`enqueue_batch`](_autosummary/nw.batches.html.md#nw.batches.enqueue_batch)(project, items, \*[, kind, ...])     | Enqueue every item as a job and record the batch.                                                                              |
+| [`estimate_batch`](_autosummary/nw.batches.html.md#nw.batches.estimate_batch)(project, items, \*[, kind, config]) | Dry-run gate for a whole batch, without enqueueing anything.                                                                   |
+| [`get_batch`](_autosummary/nw.batches.html.md#nw.batches.get_batch)(project, batch_id, \*[, config])         | The stored batch record, or `None` if unknown.                                                                                 |
+| [`output`](_autosummary/nw.batches.html.md#nw.batches.output)(project, batch_id, \*[, config])            | Per-outcome results, in batch order within each bucket.                                                                        |
+| [`status`](_autosummary/nw.batches.html.md#nw.batches.status)(project, batch_id, \*[, config])            | Aggregate of the member jobs, computed now.                                                                                    |
+| [`wait`](_autosummary/nw.batches.html.md#nw.batches.wait)(project, batch_id, timeout, \*[, ...])        | Block until the batch is done or `timeout` seconds pass (a hard cap).                                                          |
 
 ### Classes
 
@@ -841,6 +842,20 @@ How often [`wait()`](_autosummary/nw.batches.html.md#nw.batches.wait) re-reads t
 ### nw.batches.MISSING *= 'missing'*
 
 Status key for a member whose job record is gone (it will never finish).
+
+### nw.batches.batch_id_for(project, items, , kind=None)
+
+The id [`enqueue_batch()`](_autosummary/nw.batches.html.md#nw.batches.enqueue_batch) would give these items, without enqueueing (nw#286).
+
+Mirrors [`nw.jobs.job_id_for()`](_autosummary/nw.jobs.html.md#nw.jobs.job_id_for): items are validated exactly as
+`enqueue_batch` validates them (so the same errors), then resolved to job
+ids, with items resolving to one job collapsed, and the batch id derived
+from those. A host that must return a live batch on a retry, before
+re-pricing against an approved ceiling, asks this, then [`get_batch()`](_autosummary/nw.batches.html.md#nw.batches.get_batch).
+Writes nothing and reads no store.
+
+* **Return type:**
+  [`str`](https://docs.python.org/3/builtins/stdtypes.html#str)
 
 ### nw.batches.cancel_batch(project, batch_id, , config=JobsConfig(n_min=3, sample_window_k=20, pct_ceil=99, overrun_factor=1.5, cache_hit_floor_s=0.5, dur_buckets_s=(4.0, 8.0, 12.0), prior_total_s={'image': 12.0, 'video': 90.0, 'audio': 15.0}, default_prior_total_s=30.0, stale_running_s=900.0, heartbeat_interval_s=20.0, heartbeat_stale_s=120.0, terminal_hook_attempts=3, terminal_hook_lease_s=300.0, approval_threshold_usd=1.0, index_retention_s=2592000.0, never_started_after_s=None, index_sweep_interval_s=3600.0, jobs_dirname='.nw/jobs'))
 
@@ -12704,7 +12719,7 @@ produce different URLs. The local file paths are byte-stable.
 
 # About this build
 
-This documentation was built on **2026-11-22 07:50 UTC** from commit <a href="https://github.com/reeleehq/nw/commit/7fc664d6eb0b25d1b34b21f3889038d6b09e28b6"><code>7fc664d</code></a> on branch <code>main</code>, for **nw 0.0.160** (from <code>pyproject.toml</code>).
+This documentation was built on **2026-11-22 07:53 UTC** from commit <a href="https://github.com/reeleehq/nw/commit/e0768197020e6873e71f9a8356ecf817a6b52580"><code>e076819</code></a> on branch <code>main</code>, for **nw 0.0.161** (from <code>pyproject.toml</code>).
 
 #### NOTE
 Nothing suggests a mismatch: the tree was clean at the commit above, and the documented version is the one on PyPI.
@@ -12713,9 +12728,9 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 
 |                     |                                                                                                                                                    |
 |---------------------|----------------------------------------------------------------------------------------------------------------------------------------------------|
-| Commit              | <a href="https://github.com/reeleehq/nw/commit/7fc664d6eb0b25d1b34b21f3889038d6b09e28b6"><code>7fc664d6eb0b25d1b34b21f3889038d6b09e28b6</code></a> |
+| Commit              | <a href="https://github.com/reeleehq/nw/commit/e0768197020e6873e71f9a8356ecf817a6b52580"><code>e0768197020e6873e71f9a8356ecf817a6b52580</code></a> |
 | Branch              | <code>main</code>                                                                                                                                  |
-| Tags at this commit | <code>0.0.160</code>                                                                                                                               |
+| Tags at this commit | <code>0.0.161</code>                                                                                                                               |
 | Working tree        | clean                                                                                                                                              |
 | Remote              | <code>https://github.com/reeleehq/nw</code>                                                                                                        |
 
@@ -12724,9 +12739,9 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 |              |                                                                                            |
 |--------------|--------------------------------------------------------------------------------------------|
 | Repository   | <code>reeleehq/nw</code>                                                                   |
-| Run          | <a href="https://github.com/reeleehq/nw/actions/runs/44999580168">44999580168</a>          |
+| Run          | <a href="https://github.com/reeleehq/nw/actions/runs/44999826838">44999826838</a>          |
 | Ref          | <code>refs/heads/main</code>                                                               |
-| Event commit | <code>dba16c7b72e517c5dbd84a3cb886a72a7431ceb4</code> (in the history of the built commit) |
+| Event commit | <code>2f15591e5a49b2caf405d6f26a2317a270fe69fb</code> (in the history of the built commit) |
 
 ## Tools
 
@@ -12751,13 +12766,13 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 
 ## Package on PyPI
 
-Latest release: <a href="https://pypi.org/project/nw/0.0.160/">0.0.160</a>, the same as the documented version.
+Latest release: <a href="https://pypi.org/project/nw/0.0.161/">0.0.161</a>, the same as the documented version.
 
 ## Reproduce
 
 ```bash
 git clone https://github.com/reeleehq/nw && cd nw
-git checkout 7fc664d6eb0b25d1b34b21f3889038d6b09e28b6
+git checkout e0768197020e6873e71f9a8356ecf817a6b52580
 pip install "epythet==0.2.23"
 epythet quickstart . --ignore tests/ scrap/ examples/
 ```
