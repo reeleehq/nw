@@ -430,15 +430,16 @@ def quoted_price(raw: Any) -> Price:
 
     >>> quoted_price(0.25), quoted_price(None).status, quoted_price(float("nan")).status
     (Price(total_usd=0.25, status='quoted'), 'unknown', 'unknown')
-    >>> quoted_price(-1.0).status, quoted_price(True).status
-    ('unknown', 'unknown')
+    >>> quoted_price(-1.0).status, quoted_price(True).status, quoted_price(10**400).status
+    ('unknown', 'unknown', 'unknown')
     """
     usd = getattr(raw, "total_usd", raw)
-    if (
-        isinstance(usd, bool)
-        or not isinstance(usd, (int, float))
-        or not math.isfinite(usd)
-        or usd < 0
-    ):
+    if isinstance(usd, bool) or not isinstance(usd, (int, float)):
         return Price(None, "unknown")
-    return Price(float(usd), "quoted")
+    try:
+        usd = float(usd)  # an int too large for a float is no price either
+    except OverflowError:
+        return Price(None, "unknown")
+    if not math.isfinite(usd) or usd < 0:
+        return Price(None, "unknown")
+    return Price(usd, "quoted")
