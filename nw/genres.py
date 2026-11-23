@@ -54,6 +54,7 @@ from typing import TYPE_CHECKING, Any, Callable, Optional, Union
 
 from xdol import Registry
 
+from .pricing import Price
 from .stages import Stage, validate_stages
 
 if TYPE_CHECKING:  # runtime-free: only for the GenreInitializer type hint
@@ -1276,6 +1277,14 @@ class GenreOp:
     through its money approval — or not offer it. ``False`` (the default) is a claim the
     genre makes: nothing this op calls bills anyone.
 
+    ``quote`` prices a ``spends`` op before it runs: ``quote(project, **params)``
+    with the same client parameters :meth:`run` takes, returning USD, an
+    :class:`nw.PlanQuote`, or ``None`` (unknown). :meth:`price` is the one reader:
+    a ``spends`` op with no ``quote``, or whose quote raises or answers anything but
+    a non-negative number, is unknown, never free; a quote that raises
+    :class:`GenreOpRefused` is the op's refusal, passed on. Only a ``spends`` op
+    takes one (an op that spends nothing is free by its own declaration).
+
     ``invalidates`` names the genre's ``read`` ops whose answer this op can make stale,
     so a client holding several reads knows which to refresh after it (reelee#750); for
     a ``runs="job"`` op, once the job has ended. Stale is not "re-run now": a read that
@@ -1317,6 +1326,7 @@ class GenreOp:
     max_upload_bytes: Optional[int] = None
     spends: bool = False
     invalidates: Optional[tuple[str, ...]] = None
+    quote: Optional[Callable[..., Any]] = None
 
     def __post_init__(self):
         if not isinstance(self.name, str) or not _OP_NAME_PATTERN.match(self.name):
@@ -1366,6 +1376,14 @@ class GenreOp:
                 raise ValueError(
                     f"genre op {self.name!r}: a read op changes nothing, so it "
                     f"invalidates nothing (got {list(self.invalidates)})"
+                )
+        if self.quote is not None:
+            if not callable(self.quote):
+                raise TypeError(f"genre op {self.name!r}: quote must be callable")
+            if not self.spends:
+                raise ValueError(
+                    f"genre op {self.name!r}: quote is for an op that spends; this one "
+                    "declares spends=False, so it is free by declaration"
                 )
         if self.max_upload_bytes is not None and (
             not isinstance(self.max_upload_bytes, int)
@@ -1434,6 +1452,44 @@ class GenreOp:
                 "(the host supplies these — an upload's path, say)"
             )
         return self.fn(project, **client, **host)
+
+    def price(self, project, params: Optional[Mapping] = None) -> Price:
+        """What running the op with ``params`` would cost now (reelee#1010).
+
+        ``params`` are checked as :meth:`run` checks them (a malformed body raises
+        :class:`pydantic.ValidationError`, it is not priced). An op with
+        ``spends=False`` is ``free`` at $0; a ``spends`` op is its :attr:`quote`'s
+        answer read by :func:`nw.pricing.quoted_price`, ``unknown`` (``total_usd``
+        ``None``, never $0) when it has none, when the quote raises, or when the
+        answer is no price. A :class:`GenreOpRefused` from the quote propagates: the
+        run would be refused too.
+
+        >>> def _say(project, *, text: str) -> dict:
+        ...     return {"said": text}
+        >>> GenreOp("say", _say, title="Say it").price(None, {"text": "hi"}).to_dict()
+        {'usd': 0.0, 'status': 'free'}
+        >>> paid = GenreOp("say", _say, title="Say it", spends=True)
+        >>> paid.price(None, {"text": "hi"}).to_dict()
+        {'usd': None, 'status': 'unknown'}
+        >>> quoted = GenreOp("say", _say, title="Say it", spends=True,
+        ...                  quote=lambda project, *, text: 0.01 * len(text))
+        >>> quoted.price(None, {"text": "hi"}).to_dict()
+        {'usd': 0.02, 'status': 'quoted'}
+        """
+        from .pricing import quoted_price
+
+        client = self.validate_params(params)
+        if not self.spends:
+            return Price(0.0, "free")
+        if self.quote is None:
+            return Price(None, "unknown")
+        try:
+            raw = self.quote(project, **client)
+        except GenreOpRefused:
+            raise
+        except Exception:  # noqa: BLE001 — a quote that failed is unknown, never $0
+            return Price(None, "unknown")
+        return quoted_price(raw)
 
     def _required_host_params(self) -> list:
         sig = inspect.signature(self.fn)

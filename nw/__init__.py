@@ -83,12 +83,14 @@ from .validation import (
 from .checks import register_builtin_checks as _register_builtin_checks
 from .pricing import (
     PlanQuote,
+    Price,
     QuoteStatus,
     cost_records,
     current_quote,
     plan_from_cost_records,
     quote_from_cost_records,
     quote_render_decision,
+    quoted_price,
     unquotable,
 )
 from .project import CharacterImage, Project, genre_status_of
@@ -183,7 +185,13 @@ from .transforms import (
 )
 from . import delivery  # noqa: F401  — `nw.delivery.Deliverable` (the genre->host seam)
 from .delivery import Deliverable, Lister, Resolver, format_ref, parse_ref
-from .stages import Stage, stage_overview, stage_prices, stage_states
+from .stages import (
+    Stage,
+    StagePrice,
+    stage_overview,
+    stage_prices,
+    stage_states,
+)
 from .genres import (
     GENRE_STATUSES,
     Genre,
@@ -272,6 +280,9 @@ __all__ = [
     "Stage",
     "stage_overview",
     "stage_prices",
+    "StagePrice",
+    "Price",
+    "quoted_price",
     "stage_states",
     "GenreResolver",
     "genre_catalog",
