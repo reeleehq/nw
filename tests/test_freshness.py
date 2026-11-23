@@ -588,7 +588,7 @@ def test_a_schema_gaining_a_second_marker_keeps_the_child_fresh(
     proj = nw.Project.init(tmp_path / "p")
     parent = _marked_parent(proj)
     child = _derived(proj, (parent.id,), body={"url": "x"})
-    one_marker_schema.register_body_schema(TWO_MARKERS_URI, _TwoMarkers)
+    one_marker_schema.register_body_schema(TWO_MARKERS_URI, _TwoMarkers, force=True)
 
     assert nw.all_stale(proj.root) == []
     _rewrite_in_place(proj, parent, body={"artifact_id": "b", "asset_id": "h", "thumb": "t"})
@@ -609,7 +609,7 @@ def test_a_marker_removed_since_is_never_trusted(tmp_path, one_marker_schema):
         asset_id: str = ""
         thumb: str = ""
 
-    lacing_schema.register_body_schema(TWO_MARKERS_URI, _NoMarker)
+    lacing_schema.register_body_schema(TWO_MARKERS_URI, _NoMarker, force=True)
     _rewrite_in_place(proj, parent, body={"artifact_id": "a", "asset_id": "other", "thumb": "t"})
     assert _ids(nw.all_stale(proj.root)) == {child.id}
 
@@ -622,7 +622,7 @@ def test_rewriting_re_records_the_exclusions_with_the_new_digest(
     proj = nw.Project.init(tmp_path / "p")
     parent = _marked_parent(proj)
     child = _derived(proj, (parent.id,), body={"url": "x"})
-    one_marker_schema.register_body_schema(TWO_MARKERS_URI, _TwoMarkers)
+    one_marker_schema.register_body_schema(TWO_MARKERS_URI, _TwoMarkers, force=True)
 
     def rename(body):
         if isinstance(body, dict) and body.get("artifact_id") == "a":
