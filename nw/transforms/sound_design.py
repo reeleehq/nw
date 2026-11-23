@@ -260,11 +260,18 @@ class NarrationTrack:
     file, else one start per segment. Checked at construction, as the stored
     narration body is, so a host's mistake surfaces at plan time rather than
     inside foley at execute time.
+
+    ``artifact_id`` is the content id of the bytes ``audio_path`` names, when the
+    host knows it. :meth:`NarrationToSoundDesign.plan` checks the file against it
+    instead of the narration body's ``artifact_id``. A host whose track is not the
+    body's own audio (a bed-free voice stem beside a bedded episode mix,
+    braidio#227) names the stem's id here; ``None`` keeps the body's check.
     """
 
     segments: list[str]
     audio_path: PurePath
     segment_starts: Optional[list[float]] = None
+    artifact_id: Optional[str] = None
 
     def __post_init__(self):
         if not self.segments:
@@ -354,14 +361,17 @@ class NarrationToSoundDesign(BaseTransform):
         track = self.narration_track(project, narration)
         audio = track.audio_path
         sha = hash_file(Path(project.root) / audio)
-        declared = (
+        # The track's own id when the host gives one (its audio is not the body's,
+        # e.g. a bed-free stem), else the narration body's.
+        declared = track.artifact_id or (
             narration.body.get("artifact_id")
             if isinstance(narration.body, Mapping)
             else None
         )
         if declared and declared != sha:
+            named_by = "track" if track.artifact_id else "narration"
             raise ValueError(
-                f"{self.name}: the narration names artifact {declared} but its "
+                f"{self.name}: the {named_by} names artifact {declared} but its "
                 f"audio file {audio} holds {sha}; provenance would name bytes "
                 "that were never used."
             )

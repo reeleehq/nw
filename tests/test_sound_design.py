@@ -105,6 +105,8 @@ def _fake_foley(*, raises: Exception | None = None) -> ModuleType:
         weave=None,
         llm=None,
         budget=None,
+        max_usd=None,
+        layers=None,
         **weave_kwargs,
     ):
         mod.calls.append(
@@ -860,3 +862,41 @@ def test_a_spend_cap_is_a_finite_non_negative_figure(bad):
 
     with pytest.raises(ValidationError):
         SoundDesignConfigBodyV1(max_usd=bad)
+
+
+def test_a_track_naming_its_own_artifact_is_checked_against_it_not_the_body(project):
+    """braidio#227: a host hands foley a bed-free voice stem, while the narration
+    (episode) body's ``artifact_id`` names the bedded mix. The track's own
+    ``artifact_id`` is what the stem is checked against; the body's no longer
+    refuses it, and a track naming other bytes than its file still is."""
+    from nw.transforms.sound_design import NarrationTrack, hash_file
+
+    (project.root / "voice.wav").write_bytes(b"RIFF-voice-only")
+    stem_id = hash_file(project.root / "voice.wav")
+
+    def _stem_host(artifact_id):
+        class _Stem(NarrationToSoundDesign):
+            name = "test.stem_sound_design"
+
+            def narration_track(self, project, narration):
+                return NarrationTrack(
+                    segments=list(SEGMENTS),
+                    audio_path="voice.wav",
+                    artifact_id=artifact_id,
+                )
+
+        return _Stem()
+
+    inputs = _inputs(project)  # the body names NARRATION_ASSET, the bedded file
+    assert inputs.primary[0].body["artifact_id"] != stem_id
+    plan, (skel,) = _stem_host(stem_id).plan(project, inputs)
+    audio = plan.calls[0].arguments["audio"]
+    assert (audio["path"], audio["sha256"]) == ("voice.wav", stem_id)
+    assert stem_id in skel.provenance.was_derived_from
+
+    with pytest.raises(ValueError, match="the track names artifact .* never used"):
+        _stem_host("b" * 64).plan(project, _inputs(project))
+
+    # No track id: the body's check stands (the stem is not the body's audio).
+    with pytest.raises(ValueError, match="the narration names artifact"):
+        _stem_host(None).plan(project, _inputs(project))
