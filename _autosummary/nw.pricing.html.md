@@ -53,18 +53,20 @@ Two things this module deliberately does **not** do:
 
 ### Functions
 
-| [`cost_records`](#nw.pricing.cost_records)(plan)                              | The JSON-able per-call cost rows nw persists in a decision payload.                                           |
-|--------------------------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------|
-| [`current_quote`](#nw.pricing.current_quote)(plan, \*[, pricers])              | Re-quote `plan` at today's rates and report the result honestly.                                              |
-| [`plan_from_cost_records`](#nw.pricing.plan_from_cost_records)(records)                 | Rebuild a re-quotable `falaw.Plan` from [`cost_records()`](#nw.pricing.cost_records) rows. |
-| [`quote_from_cost_records`](#nw.pricing.quote_from_cost_records)(records, \*[, pricers]) | Today's price for the calls stored in a decision payload.                                                     |
-| [`quote_render_decision`](#nw.pricing.quote_render_decision)(payload, \*[, pricers])   | Today's price for a `render_shot` decision payload.                                                           |
-| [`unquotable`](#nw.pricing.unquotable)(reason)                              | A quote for something that could not be re-quoted at all.                                                     |
+| [`cost_records`](#nw.pricing.cost_records)(plan)                              | The JSON-able per-call cost rows nw persists in a decision payload.                                                                                       |
+|--------------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------|
+| [`current_quote`](#nw.pricing.current_quote)(plan, \*[, pricers])              | Re-quote `plan` at today's rates and report the result honestly.                                                                                          |
+| [`plan_from_cost_records`](#nw.pricing.plan_from_cost_records)(records)                 | Rebuild a re-quotable `falaw.Plan` from [`cost_records()`](#nw.pricing.cost_records) rows.                                             |
+| [`quote_from_cost_records`](#nw.pricing.quote_from_cost_records)(records, \*[, pricers]) | Today's price for the calls stored in a decision payload.                                                                                                 |
+| [`quote_render_decision`](#nw.pricing.quote_render_decision)(payload, \*[, pricers])   | Today's price for a `render_shot` decision payload.                                                                                                       |
+| [`quoted_price`](#nw.pricing.quoted_price)(raw)                               | A quoter's answer as a price: USD (a number), an [`nw.PlanQuote`](nw.html.md#nw.PlanQuote) (its `total_usd`), or `None`. |
+| [`unquotable`](#nw.pricing.unquotable)(reason)                              | A quote for something that could not be re-quoted at all.                                                                                                 |
 
 ### Classes
 
 | [`PlanQuote`](#nw.pricing.PlanQuote)(\*, total_usd, status, ...[, reason])   | Today's price for a persisted plan, with the stale figure alongside.   |
 |----------------------------------------------------------------------------------------------------|------------------------------------------------------------------------|
+| [`Price`](#nw.pricing.Price)(total_usd, status)                          | A price today: `total_usd` and how it was arrived at.                  |
 
 ### nw.pricing.DISAGREEING_TOTAL_REASON *= "the payload's total_estimated_cost_usd does not match the sum of its calls, so neither figure can be trusted as this render's price"*
 
@@ -145,6 +147,15 @@ number, whether it is knowable, and whether it moved. Reach into
 
 Today’s billable total, or `None` when any billable call is
 unpriceable today. `None` means unknown, never free (nw invariant #2).
+
+### *class* nw.pricing.Price(total_usd, status)
+
+Bases: [`object`](https://docs.python.org/3/builtins/functions.html#object)
+
+A price today: `total_usd` and how it was arrived at. `total_usd is None`
+means unknown, never free. `status` is `"free"` (declared), `"quoted"`, or
+`"unknown"`. What a stage’s and a genre op’s price read as
+([`nw.stages.stage_prices()`](nw.stages.html.md#nw.stages.stage_prices), [`nw.GenreOp.price()`](nw.html.md#nw.GenreOp.price)).
 
 ### nw.pricing.QuoteStatus
 
@@ -280,6 +291,22 @@ unknown is the only honest reading of it.
 
 * **Return type:**
   [`PlanQuote`](#nw.pricing.PlanQuote)
+
+### nw.pricing.quoted_price(raw)
+
+A quoter’s answer as a price: USD (a number), an [`nw.PlanQuote`](nw.html.md#nw.PlanQuote) (its
+`total_usd`), or `None`. Anything that is not a finite, non-negative number
+is unknown, never free: a price we could not read is not a price.
+
+```pycon
+>>> quoted_price(0.25), quoted_price(None).status, quoted_price(float("nan")).status
+(Price(total_usd=0.25, status='quoted'), 'unknown', 'unknown')
+>>> quoted_price(-1.0).status, quoted_price(True).status, quoted_price(10**400).status
+('unknown', 'unknown', 'unknown')
+```
+
+* **Return type:**
+  [`Price`](#nw.pricing.Price)
 
 ### nw.pricing.unquotable(reason)
 

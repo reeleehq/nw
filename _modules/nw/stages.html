@@ -213,245 +213,232 @@ data-aria-dark="Switch to auto color mode">
 </span><span data-line="46"><span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">dataclass</span><span class="p">,</span> <span class="n">field</span>
 </span><span data-line="47"><span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Iterable</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Sequence</span>
 </span><span data-line="48">
-</span><span data-line="49"><span class="c1">#: ``not_started`` / ``in_progress`` / ``done`` / ``unknown`` — see the module docstring.</span>
-</span><span data-line="50"><span class="n">STAGE_STATES</span> <span class="o">=</span> <span class="p">(</span><span class="s2">"not_started"</span><span class="p">,</span> <span class="s2">"in_progress"</span><span class="p">,</span> <span class="s2">"done"</span><span class="p">,</span> <span class="s2">"unknown"</span><span class="p">)</span>
-</span><span data-line="51">
-</span><span data-line="52">
+</span><span data-line="49"><span class="kn">from</span><span class="w"> </span><span class="nn">.pricing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Price</span><span class="p">,</span> <span class="n">quoted_price</span>
+</span><span data-line="50">
+</span><span data-line="51"><span class="c1">#: ``not_started`` / ``in_progress`` / ``done`` / ``unknown`` — see the module docstring.</span>
+</span><span data-line="52"><span class="n">STAGE_STATES</span> <span class="o">=</span> <span class="p">(</span><span class="s2">"not_started"</span><span class="p">,</span> <span class="s2">"in_progress"</span><span class="p">,</span> <span class="s2">"done"</span><span class="p">,</span> <span class="s2">"unknown"</span><span class="p">)</span>
+</span><span data-line="53">
+</span><span data-line="54">
 <div class="viewcode-block" id="Stage">
 <a class="viewcode-back" href="../../_autosummary/nw.stages.html#nw.Stage">[docs]</a>
-</span><span data-line="53"><span class="nd">@dataclass</span><span class="p">(</span><span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-</span><span data-line="54"><span class="k">class</span><span class="w"> </span><span class="nc">Stage</span><span class="p">:</span>
-</span><span data-line="55"><span class="w">    </span><span class="sd">"""One plain-English step of a genre. Pure data; see the module docstring."""</span>
-</span><span data-line="56">
-</span><span data-line="57">    <span class="n">slug</span><span class="p">:</span> <span class="nb">str</span>
-</span><span data-line="58">    <span class="n">name</span><span class="p">:</span> <span class="nb">str</span>
-</span><span data-line="59">    <span class="c1">#: Declared free: it never spends, so its price is ``0.0`` without asking anyone.</span>
-</span><span data-line="60">    <span class="n">free</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
-</span><span data-line="61">    <span class="c1">#: Transforms that carry the stage out; an output is theirs when its</span>
-</span><span data-line="62">    <span class="c1">#: ``was_generated_by`` is ``transform:&lt;name&gt;@...``.</span>
-</span><span data-line="63">    <span class="n">transform_names</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">=</span> <span class="p">()</span>
-</span><span data-line="64">    <span class="c1">#: Body schemas that evidence the stage when no transform makes it (an idea the</span>
-</span><span data-line="65">    <span class="c1">#: person typed in). Matched on the annotation's ``body_schema_uri``.</span>
-</span><span data-line="66">    <span class="n">body_schema_uris</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">=</span> <span class="p">()</span>
-</span><span data-line="67">    <span class="n">description</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">""</span>
-</span><span data-line="68">
-</span><span data-line="69">    <span class="k">def</span><span class="w"> </span><span class="nf">__post_init__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-</span><span data-line="70">        <span class="k">for</span> <span class="n">_name</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">"transform_names"</span><span class="p">,</span> <span class="s2">"body_schema_uris"</span><span class="p">):</span>
-</span><span data-line="71">            <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">_name</span><span class="p">),</span> <span class="nb">tuple</span><span class="p">):</span>
-</span><span data-line="72">                <span class="nb">object</span><span class="o">.</span><span class="fm">__setattr__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">_name</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">_name</span><span class="p">)))</span>
-</span><span data-line="73">        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">slug</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="ow">or</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">slug</span><span class="o">.</span><span class="n">strip</span><span class="p">():</span>
-</span><span data-line="74">            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"Stage slug must be a non-empty string"</span><span class="p">)</span>
-</span><span data-line="75">        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="ow">or</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="o">.</span><span class="n">strip</span><span class="p">():</span>
-</span><span data-line="76">            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Stage </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">slug</span><span class="si">!r}</span><span class="s2">: name must be a non-empty string"</span><span class="p">)</span>
-</span><span data-line="77">
-</span><span data-line="78">    <span class="nd">@property</span>
-</span><span data-line="79">    <span class="k">def</span><span class="w"> </span><span class="nf">is_derivable</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
-</span><span data-line="80"><span class="w">        </span><span class="sd">"""Whether the graph can show this stage at all."""</span>
-</span><span data-line="81">        <span class="k">return</span> <span class="nb">bool</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">transform_names</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">body_schema_uris</span><span class="p">)</span>
-</span><span data-line="82">
-</span><span data-line="83">    <span class="k">def</span><span class="w"> </span><span class="nf">to_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
-</span><span data-line="84">        <span class="k">return</span> <span class="p">{</span>
-</span><span data-line="85">            <span class="s2">"slug"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">slug</span><span class="p">,</span>
-</span><span data-line="86">            <span class="s2">"name"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
-</span><span data-line="87">            <span class="s2">"free"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">free</span><span class="p">,</span>
-</span><span data-line="88">            <span class="s2">"transform_names"</span><span class="p">:</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">transform_names</span><span class="p">),</span>
-</span><span data-line="89">            <span class="s2">"body_schema_uris"</span><span class="p">:</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">body_schema_uris</span><span class="p">),</span>
-</span><span data-line="90">            <span class="s2">"description"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">description</span><span class="p">,</span>
-</span><span data-line="91">        <span class="p">}</span></div>
+</span><span data-line="55"><span class="nd">@dataclass</span><span class="p">(</span><span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</span><span data-line="56"><span class="k">class</span><span class="w"> </span><span class="nc">Stage</span><span class="p">:</span>
+</span><span data-line="57"><span class="w">    </span><span class="sd">"""One plain-English step of a genre. Pure data; see the module docstring."""</span>
+</span><span data-line="58">
+</span><span data-line="59">    <span class="n">slug</span><span class="p">:</span> <span class="nb">str</span>
+</span><span data-line="60">    <span class="n">name</span><span class="p">:</span> <span class="nb">str</span>
+</span><span data-line="61">    <span class="c1">#: Declared free: it never spends, so its price is ``0.0`` without asking anyone.</span>
+</span><span data-line="62">    <span class="n">free</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
+</span><span data-line="63">    <span class="c1">#: Transforms that carry the stage out; an output is theirs when its</span>
+</span><span data-line="64">    <span class="c1">#: ``was_generated_by`` is ``transform:&lt;name&gt;@...``.</span>
+</span><span data-line="65">    <span class="n">transform_names</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">=</span> <span class="p">()</span>
+</span><span data-line="66">    <span class="c1">#: Body schemas that evidence the stage when no transform makes it (an idea the</span>
+</span><span data-line="67">    <span class="c1">#: person typed in). Matched on the annotation's ``body_schema_uri``.</span>
+</span><span data-line="68">    <span class="n">body_schema_uris</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">=</span> <span class="p">()</span>
+</span><span data-line="69">    <span class="n">description</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">""</span>
+</span><span data-line="70">
+</span><span data-line="71">    <span class="k">def</span><span class="w"> </span><span class="nf">__post_init__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+</span><span data-line="72">        <span class="k">for</span> <span class="n">_name</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">"transform_names"</span><span class="p">,</span> <span class="s2">"body_schema_uris"</span><span class="p">):</span>
+</span><span data-line="73">            <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">_name</span><span class="p">),</span> <span class="nb">tuple</span><span class="p">):</span>
+</span><span data-line="74">                <span class="nb">object</span><span class="o">.</span><span class="fm">__setattr__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">_name</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">_name</span><span class="p">)))</span>
+</span><span data-line="75">        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">slug</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="ow">or</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">slug</span><span class="o">.</span><span class="n">strip</span><span class="p">():</span>
+</span><span data-line="76">            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"Stage slug must be a non-empty string"</span><span class="p">)</span>
+</span><span data-line="77">        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="ow">or</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="o">.</span><span class="n">strip</span><span class="p">():</span>
+</span><span data-line="78">            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Stage </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">slug</span><span class="si">!r}</span><span class="s2">: name must be a non-empty string"</span><span class="p">)</span>
+</span><span data-line="79">
+</span><span data-line="80">    <span class="nd">@property</span>
+</span><span data-line="81">    <span class="k">def</span><span class="w"> </span><span class="nf">is_derivable</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+</span><span data-line="82"><span class="w">        </span><span class="sd">"""Whether the graph can show this stage at all."""</span>
+</span><span data-line="83">        <span class="k">return</span> <span class="nb">bool</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">transform_names</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">body_schema_uris</span><span class="p">)</span>
+</span><span data-line="84">
+</span><span data-line="85">    <span class="k">def</span><span class="w"> </span><span class="nf">to_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+</span><span data-line="86">        <span class="k">return</span> <span class="p">{</span>
+</span><span data-line="87">            <span class="s2">"slug"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">slug</span><span class="p">,</span>
+</span><span data-line="88">            <span class="s2">"name"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+</span><span data-line="89">            <span class="s2">"free"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">free</span><span class="p">,</span>
+</span><span data-line="90">            <span class="s2">"transform_names"</span><span class="p">:</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">transform_names</span><span class="p">),</span>
+</span><span data-line="91">            <span class="s2">"body_schema_uris"</span><span class="p">:</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">body_schema_uris</span><span class="p">),</span>
+</span><span data-line="92">            <span class="s2">"description"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">description</span><span class="p">,</span>
+</span><span data-line="93">        <span class="p">}</span></div>
 
-</span><span data-line="92">
-</span><span data-line="93">
+</span><span data-line="94">
+</span><span data-line="95">
 <div class="viewcode-block" id="validate_stages">
 <a class="viewcode-back" href="../../_autosummary/nw.stages.html#nw.validate_stages">[docs]</a>
-</span><span data-line="94"><span class="k">def</span><span class="w"> </span><span class="nf">validate_stages</span><span class="p">(</span>
-</span><span data-line="95">    <span class="n">genre_slug</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">stages</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">Stage</span><span class="p">],</span> <span class="n">known</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>
-</span><span data-line="96"><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-</span><span data-line="97"><span class="w">    </span><span class="sd">"""Raise ``ValueError`` unless ``stages`` are well-formed against the genre's own</span>
-</span><span data-line="98"><span class="sd">    ``known`` transforms/strategies. Called by :class:`nw.Genre`."""</span>
-</span><span data-line="99">    <span class="k">if</span> <span class="ow">not</span> <span class="nb">all</span><span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="n">Stage</span><span class="p">)</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">stages</span><span class="p">):</span>
-</span><span data-line="100">        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Genre </span><span class="si">{</span><span class="n">genre_slug</span><span class="si">!r}</span><span class="s2">: stages must all be nw.Stage"</span><span class="p">)</span>
-</span><span data-line="101">    <span class="n">slugs</span> <span class="o">=</span> <span class="p">[</span><span class="n">s</span><span class="o">.</span><span class="n">slug</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">stages</span><span class="p">]</span>
-</span><span data-line="102">    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">slugs</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">slugs</span><span class="p">)):</span>
-</span><span data-line="103">        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-</span><span data-line="104">            <span class="sa">f</span><span class="s2">"Genre </span><span class="si">{</span><span class="n">genre_slug</span><span class="si">!r}</span><span class="s2">: stage slugs must be unique, got </span><span class="si">{</span><span class="n">slugs</span><span class="si">}</span><span class="s2">"</span>
-</span><span data-line="105">        <span class="p">)</span>
-</span><span data-line="106">    <span class="n">known</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">known</span><span class="p">)</span>
-</span><span data-line="107">    <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">stages</span><span class="p">:</span>
-</span><span data-line="108">        <span class="n">stray</span> <span class="o">=</span> <span class="p">[</span><span class="n">t</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">s</span><span class="o">.</span><span class="n">transform_names</span> <span class="k">if</span> <span class="n">t</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">known</span><span class="p">]</span>
-</span><span data-line="109">        <span class="k">if</span> <span class="n">stray</span><span class="p">:</span>
-</span><span data-line="110">            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-</span><span data-line="111">                <span class="sa">f</span><span class="s2">"Genre </span><span class="si">{</span><span class="n">genre_slug</span><span class="si">!r}</span><span class="s2">: stage </span><span class="si">{</span><span class="n">s</span><span class="o">.</span><span class="n">slug</span><span class="si">!r}</span><span class="s2"> names transforms </span><span class="si">{</span><span class="n">stray</span><span class="si">}</span><span class="s2"> "</span>
-</span><span data-line="112">                <span class="s2">"that are not among the genre's transform_names or strategy_names"</span>
-</span><span data-line="113">            <span class="p">)</span></div>
+</span><span data-line="96"><span class="k">def</span><span class="w"> </span><span class="nf">validate_stages</span><span class="p">(</span>
+</span><span data-line="97">    <span class="n">genre_slug</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">stages</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">Stage</span><span class="p">],</span> <span class="n">known</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>
+</span><span data-line="98"><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+</span><span data-line="99"><span class="w">    </span><span class="sd">"""Raise ``ValueError`` unless ``stages`` are well-formed against the genre's own</span>
+</span><span data-line="100"><span class="sd">    ``known`` transforms/strategies. Called by :class:`nw.Genre`."""</span>
+</span><span data-line="101">    <span class="k">if</span> <span class="ow">not</span> <span class="nb">all</span><span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="n">Stage</span><span class="p">)</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">stages</span><span class="p">):</span>
+</span><span data-line="102">        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Genre </span><span class="si">{</span><span class="n">genre_slug</span><span class="si">!r}</span><span class="s2">: stages must all be nw.Stage"</span><span class="p">)</span>
+</span><span data-line="103">    <span class="n">slugs</span> <span class="o">=</span> <span class="p">[</span><span class="n">s</span><span class="o">.</span><span class="n">slug</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">stages</span><span class="p">]</span>
+</span><span data-line="104">    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">slugs</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">slugs</span><span class="p">)):</span>
+</span><span data-line="105">        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+</span><span data-line="106">            <span class="sa">f</span><span class="s2">"Genre </span><span class="si">{</span><span class="n">genre_slug</span><span class="si">!r}</span><span class="s2">: stage slugs must be unique, got </span><span class="si">{</span><span class="n">slugs</span><span class="si">}</span><span class="s2">"</span>
+</span><span data-line="107">        <span class="p">)</span>
+</span><span data-line="108">    <span class="n">known</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">known</span><span class="p">)</span>
+</span><span data-line="109">    <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">stages</span><span class="p">:</span>
+</span><span data-line="110">        <span class="n">stray</span> <span class="o">=</span> <span class="p">[</span><span class="n">t</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">s</span><span class="o">.</span><span class="n">transform_names</span> <span class="k">if</span> <span class="n">t</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">known</span><span class="p">]</span>
+</span><span data-line="111">        <span class="k">if</span> <span class="n">stray</span><span class="p">:</span>
+</span><span data-line="112">            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+</span><span data-line="113">                <span class="sa">f</span><span class="s2">"Genre </span><span class="si">{</span><span class="n">genre_slug</span><span class="si">!r}</span><span class="s2">: stage </span><span class="si">{</span><span class="n">s</span><span class="o">.</span><span class="n">slug</span><span class="si">!r}</span><span class="s2"> names transforms </span><span class="si">{</span><span class="n">stray</span><span class="si">}</span><span class="s2"> "</span>
+</span><span data-line="114">                <span class="s2">"that are not among the genre's transform_names or strategy_names"</span>
+</span><span data-line="115">            <span class="p">)</span></div>
 
-</span><span data-line="114">
-</span><span data-line="115">
+</span><span data-line="116">
+</span><span data-line="117">
 <div class="viewcode-block" id="StageState">
 <a class="viewcode-back" href="../../_autosummary/nw.stages.html#nw.StageState">[docs]</a>
-</span><span data-line="116"><span class="nd">@dataclass</span><span class="p">(</span><span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-</span><span data-line="117"><span class="k">class</span><span class="w"> </span><span class="nc">StageState</span><span class="p">:</span>
-</span><span data-line="118">    <span class="n">stage</span><span class="p">:</span> <span class="n">Stage</span>
-</span><span data-line="119">    <span class="n">state</span><span class="p">:</span> <span class="nb">str</span>
-</span><span data-line="120">    <span class="n">produced</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span>
-</span><span data-line="121">    <span class="n">stale</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span>
-</span><span data-line="122">
-</span><span data-line="123">    <span class="k">def</span><span class="w"> </span><span class="nf">to_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
-</span><span data-line="124">        <span class="k">return</span> <span class="p">{</span><span class="s2">"state"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">state</span><span class="p">,</span> <span class="s2">"produced"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">produced</span><span class="p">,</span> <span class="s2">"stale"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">stale</span><span class="p">}</span></div>
+</span><span data-line="118"><span class="nd">@dataclass</span><span class="p">(</span><span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</span><span data-line="119"><span class="k">class</span><span class="w"> </span><span class="nc">StageState</span><span class="p">:</span>
+</span><span data-line="120">    <span class="n">stage</span><span class="p">:</span> <span class="n">Stage</span>
+</span><span data-line="121">    <span class="n">state</span><span class="p">:</span> <span class="nb">str</span>
+</span><span data-line="122">    <span class="n">produced</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span>
+</span><span data-line="123">    <span class="n">stale</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span>
+</span><span data-line="124">
+</span><span data-line="125">    <span class="k">def</span><span class="w"> </span><span class="nf">to_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+</span><span data-line="126">        <span class="k">return</span> <span class="p">{</span><span class="s2">"state"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">state</span><span class="p">,</span> <span class="s2">"produced"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">produced</span><span class="p">,</span> <span class="s2">"stale"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">stale</span><span class="p">}</span></div>
 
-</span><span data-line="125">
-</span><span data-line="126">
-</span><span data-line="127"><span class="k">def</span><span class="w"> </span><span class="nf">_transform_of</span><span class="p">(</span><span class="n">generated_by</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
-</span><span data-line="128">    <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">generated_by</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">generated_by</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">"transform:"</span><span class="p">):</span>
-</span><span data-line="129">        <span class="k">return</span> <span class="kc">None</span>
-</span><span data-line="130">    <span class="k">return</span> <span class="n">generated_by</span><span class="p">[</span><span class="nb">len</span><span class="p">(</span><span class="s2">"transform:"</span><span class="p">)</span> <span class="p">:]</span><span class="o">.</span><span class="n">partition</span><span class="p">(</span><span class="s2">"@"</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span> <span class="ow">or</span> <span class="kc">None</span>
-</span><span data-line="131">
-</span><span data-line="132">
+</span><span data-line="127">
+</span><span data-line="128">
+</span><span data-line="129"><span class="k">def</span><span class="w"> </span><span class="nf">_transform_of</span><span class="p">(</span><span class="n">generated_by</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+</span><span data-line="130">    <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">generated_by</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">generated_by</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">"transform:"</span><span class="p">):</span>
+</span><span data-line="131">        <span class="k">return</span> <span class="kc">None</span>
+</span><span data-line="132">    <span class="k">return</span> <span class="n">generated_by</span><span class="p">[</span><span class="nb">len</span><span class="p">(</span><span class="s2">"transform:"</span><span class="p">)</span> <span class="p">:]</span><span class="o">.</span><span class="n">partition</span><span class="p">(</span><span class="s2">"@"</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span> <span class="ow">or</span> <span class="kc">None</span>
+</span><span data-line="133">
+</span><span data-line="134">
 <div class="viewcode-block" id="stage_states">
 <a class="viewcode-back" href="../../_autosummary/nw.stages.html#nw.stage_states">[docs]</a>
-</span><span data-line="133"><span class="k">def</span><span class="w"> </span><span class="nf">stage_states</span><span class="p">(</span>
-</span><span data-line="134">    <span class="n">stages</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">Stage</span><span class="p">],</span>
-</span><span data-line="135">    <span class="n">project</span><span class="p">,</span>
-</span><span data-line="136">    <span class="o">*</span><span class="p">,</span>
-</span><span data-line="137">    <span class="n">active_transforms</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">(),</span>
-</span><span data-line="138"><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="n">StageState</span><span class="p">]:</span>
-</span><span data-line="139"><span class="w">    </span><span class="sd">"""Where ``project`` stands in each of ``stages``, read from its graph.</span>
-</span><span data-line="140">
-</span><span data-line="141"><span class="sd">    ``project`` is anything the graph surfaces accept (a path, a storage, a</span>
-</span><span data-line="142"><span class="sd">    ``nw.Project``). ``active_transforms`` are transform names with a job running</span>
-</span><span data-line="143"><span class="sd">    now, which the graph cannot know; a stage that owns one is ``in_progress``.</span>
-</span><span data-line="144"><span class="sd">    """</span>
-</span><span data-line="145">    <span class="kn">from</span><span class="w"> </span><span class="nn">.freshness</span><span class="w"> </span><span class="kn">import</span> <span class="n">stale_verdicts_all</span>
-</span><span data-line="146">    <span class="kn">from</span><span class="w"> </span><span class="nn">.graph</span><span class="w"> </span><span class="kn">import</span> <span class="n">iter_all_annotations</span>
-</span><span data-line="147">
-</span><span data-line="148">    <span class="n">stages</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">stages</span><span class="p">)</span>
-</span><span data-line="149">    <span class="k">if</span> <span class="ow">not</span> <span class="nb">any</span><span class="p">(</span><span class="n">s</span><span class="o">.</span><span class="n">is_derivable</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">stages</span><span class="p">):</span>
-</span><span data-line="150">        <span class="k">return</span> <span class="p">[</span><span class="n">StageState</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="s2">"unknown"</span><span class="p">)</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">stages</span><span class="p">]</span>
-</span><span data-line="151">    <span class="n">stale_ids</span> <span class="o">=</span> <span class="p">{</span><span class="n">v</span><span class="o">.</span><span class="n">annotation</span><span class="o">.</span><span class="n">id</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">stale_verdicts_all</span><span class="p">(</span><span class="n">project</span><span class="p">)</span> <span class="k">if</span> <span class="n">v</span><span class="o">.</span><span class="n">is_stale</span><span class="p">}</span>
-</span><span data-line="152">    <span class="n">produced</span> <span class="o">=</span> <span class="p">{</span><span class="n">s</span><span class="o">.</span><span class="n">slug</span><span class="p">:</span> <span class="mi">0</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">stages</span><span class="p">}</span>
-</span><span data-line="153">    <span class="n">stale</span> <span class="o">=</span> <span class="p">{</span><span class="n">s</span><span class="o">.</span><span class="n">slug</span><span class="p">:</span> <span class="mi">0</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">stages</span><span class="p">}</span>
-</span><span data-line="154">    <span class="k">for</span> <span class="n">ann</span> <span class="ow">in</span> <span class="n">iter_all_annotations</span><span class="p">(</span><span class="n">project</span><span class="p">):</span>
-</span><span data-line="155">        <span class="n">name</span> <span class="o">=</span> <span class="n">_transform_of</span><span class="p">(</span><span class="n">ann</span><span class="o">.</span><span class="n">provenance</span><span class="o">.</span><span class="n">was_generated_by</span><span class="p">)</span>
-</span><span data-line="156">        <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">stages</span><span class="p">:</span>
-</span><span data-line="157">            <span class="k">if</span> <span class="p">(</span><span class="n">name</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">s</span><span class="o">.</span><span class="n">transform_names</span><span class="p">)</span> <span class="ow">or</span> <span class="p">(</span>
-</span><span data-line="158">                <span class="n">ann</span><span class="o">.</span><span class="n">body_schema_uri</span> <span class="ow">in</span> <span class="n">s</span><span class="o">.</span><span class="n">body_schema_uris</span>
-</span><span data-line="159">            <span class="p">):</span>
-</span><span data-line="160">                <span class="n">produced</span><span class="p">[</span><span class="n">s</span><span class="o">.</span><span class="n">slug</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
-</span><span data-line="161">                <span class="n">stale</span><span class="p">[</span><span class="n">s</span><span class="o">.</span><span class="n">slug</span><span class="p">]</span> <span class="o">+=</span> <span class="n">ann</span><span class="o">.</span><span class="n">id</span> <span class="ow">in</span> <span class="n">stale_ids</span>
-</span><span data-line="162">    <span class="n">active</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">active_transforms</span><span class="p">)</span>
-</span><span data-line="163">    <span class="n">out</span> <span class="o">=</span> <span class="p">[]</span>
-</span><span data-line="164">    <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">stages</span><span class="p">:</span>
-</span><span data-line="165">        <span class="k">if</span> <span class="ow">not</span> <span class="n">s</span><span class="o">.</span><span class="n">is_derivable</span><span class="p">:</span>
-</span><span data-line="166">            <span class="n">state</span> <span class="o">=</span> <span class="s2">"unknown"</span>
-</span><span data-line="167">        <span class="k">elif</span> <span class="n">stale</span><span class="p">[</span><span class="n">s</span><span class="o">.</span><span class="n">slug</span><span class="p">]</span> <span class="ow">or</span> <span class="p">(</span><span class="n">active</span> <span class="o">&amp;</span> <span class="nb">set</span><span class="p">(</span><span class="n">s</span><span class="o">.</span><span class="n">transform_names</span><span class="p">)):</span>
-</span><span data-line="168">            <span class="n">state</span> <span class="o">=</span> <span class="s2">"in_progress"</span>
-</span><span data-line="169">        <span class="k">elif</span> <span class="n">produced</span><span class="p">[</span><span class="n">s</span><span class="o">.</span><span class="n">slug</span><span class="p">]:</span>
-</span><span data-line="170">            <span class="n">state</span> <span class="o">=</span> <span class="s2">"done"</span>
-</span><span data-line="171">        <span class="k">else</span><span class="p">:</span>
-</span><span data-line="172">            <span class="n">state</span> <span class="o">=</span> <span class="s2">"not_started"</span>
-</span><span data-line="173">        <span class="n">out</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">StageState</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="n">state</span><span class="p">,</span> <span class="n">produced</span><span class="p">[</span><span class="n">s</span><span class="o">.</span><span class="n">slug</span><span class="p">],</span> <span class="n">stale</span><span class="p">[</span><span class="n">s</span><span class="o">.</span><span class="n">slug</span><span class="p">]))</span>
-</span><span data-line="174">    <span class="k">return</span> <span class="n">out</span></div>
+</span><span data-line="135"><span class="k">def</span><span class="w"> </span><span class="nf">stage_states</span><span class="p">(</span>
+</span><span data-line="136">    <span class="n">stages</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">Stage</span><span class="p">],</span>
+</span><span data-line="137">    <span class="n">project</span><span class="p">,</span>
+</span><span data-line="138">    <span class="o">*</span><span class="p">,</span>
+</span><span data-line="139">    <span class="n">active_transforms</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">(),</span>
+</span><span data-line="140"><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="n">StageState</span><span class="p">]:</span>
+</span><span data-line="141"><span class="w">    </span><span class="sd">"""Where ``project`` stands in each of ``stages``, read from its graph.</span>
+</span><span data-line="142">
+</span><span data-line="143"><span class="sd">    ``project`` is anything the graph surfaces accept (a path, a storage, a</span>
+</span><span data-line="144"><span class="sd">    ``nw.Project``). ``active_transforms`` are transform names with a job running</span>
+</span><span data-line="145"><span class="sd">    now, which the graph cannot know; a stage that owns one is ``in_progress``.</span>
+</span><span data-line="146"><span class="sd">    """</span>
+</span><span data-line="147">    <span class="kn">from</span><span class="w"> </span><span class="nn">.freshness</span><span class="w"> </span><span class="kn">import</span> <span class="n">stale_verdicts_all</span>
+</span><span data-line="148">    <span class="kn">from</span><span class="w"> </span><span class="nn">.graph</span><span class="w"> </span><span class="kn">import</span> <span class="n">iter_all_annotations</span>
+</span><span data-line="149">
+</span><span data-line="150">    <span class="n">stages</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">stages</span><span class="p">)</span>
+</span><span data-line="151">    <span class="k">if</span> <span class="ow">not</span> <span class="nb">any</span><span class="p">(</span><span class="n">s</span><span class="o">.</span><span class="n">is_derivable</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">stages</span><span class="p">):</span>
+</span><span data-line="152">        <span class="k">return</span> <span class="p">[</span><span class="n">StageState</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="s2">"unknown"</span><span class="p">)</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">stages</span><span class="p">]</span>
+</span><span data-line="153">    <span class="n">stale_ids</span> <span class="o">=</span> <span class="p">{</span><span class="n">v</span><span class="o">.</span><span class="n">annotation</span><span class="o">.</span><span class="n">id</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">stale_verdicts_all</span><span class="p">(</span><span class="n">project</span><span class="p">)</span> <span class="k">if</span> <span class="n">v</span><span class="o">.</span><span class="n">is_stale</span><span class="p">}</span>
+</span><span data-line="154">    <span class="n">produced</span> <span class="o">=</span> <span class="p">{</span><span class="n">s</span><span class="o">.</span><span class="n">slug</span><span class="p">:</span> <span class="mi">0</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">stages</span><span class="p">}</span>
+</span><span data-line="155">    <span class="n">stale</span> <span class="o">=</span> <span class="p">{</span><span class="n">s</span><span class="o">.</span><span class="n">slug</span><span class="p">:</span> <span class="mi">0</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">stages</span><span class="p">}</span>
+</span><span data-line="156">    <span class="k">for</span> <span class="n">ann</span> <span class="ow">in</span> <span class="n">iter_all_annotations</span><span class="p">(</span><span class="n">project</span><span class="p">):</span>
+</span><span data-line="157">        <span class="n">name</span> <span class="o">=</span> <span class="n">_transform_of</span><span class="p">(</span><span class="n">ann</span><span class="o">.</span><span class="n">provenance</span><span class="o">.</span><span class="n">was_generated_by</span><span class="p">)</span>
+</span><span data-line="158">        <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">stages</span><span class="p">:</span>
+</span><span data-line="159">            <span class="k">if</span> <span class="p">(</span><span class="n">name</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">s</span><span class="o">.</span><span class="n">transform_names</span><span class="p">)</span> <span class="ow">or</span> <span class="p">(</span>
+</span><span data-line="160">                <span class="n">ann</span><span class="o">.</span><span class="n">body_schema_uri</span> <span class="ow">in</span> <span class="n">s</span><span class="o">.</span><span class="n">body_schema_uris</span>
+</span><span data-line="161">            <span class="p">):</span>
+</span><span data-line="162">                <span class="n">produced</span><span class="p">[</span><span class="n">s</span><span class="o">.</span><span class="n">slug</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
+</span><span data-line="163">                <span class="n">stale</span><span class="p">[</span><span class="n">s</span><span class="o">.</span><span class="n">slug</span><span class="p">]</span> <span class="o">+=</span> <span class="n">ann</span><span class="o">.</span><span class="n">id</span> <span class="ow">in</span> <span class="n">stale_ids</span>
+</span><span data-line="164">    <span class="n">active</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">active_transforms</span><span class="p">)</span>
+</span><span data-line="165">    <span class="n">out</span> <span class="o">=</span> <span class="p">[]</span>
+</span><span data-line="166">    <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">stages</span><span class="p">:</span>
+</span><span data-line="167">        <span class="k">if</span> <span class="ow">not</span> <span class="n">s</span><span class="o">.</span><span class="n">is_derivable</span><span class="p">:</span>
+</span><span data-line="168">            <span class="n">state</span> <span class="o">=</span> <span class="s2">"unknown"</span>
+</span><span data-line="169">        <span class="k">elif</span> <span class="n">stale</span><span class="p">[</span><span class="n">s</span><span class="o">.</span><span class="n">slug</span><span class="p">]</span> <span class="ow">or</span> <span class="p">(</span><span class="n">active</span> <span class="o">&amp;</span> <span class="nb">set</span><span class="p">(</span><span class="n">s</span><span class="o">.</span><span class="n">transform_names</span><span class="p">)):</span>
+</span><span data-line="170">            <span class="n">state</span> <span class="o">=</span> <span class="s2">"in_progress"</span>
+</span><span data-line="171">        <span class="k">elif</span> <span class="n">produced</span><span class="p">[</span><span class="n">s</span><span class="o">.</span><span class="n">slug</span><span class="p">]:</span>
+</span><span data-line="172">            <span class="n">state</span> <span class="o">=</span> <span class="s2">"done"</span>
+</span><span data-line="173">        <span class="k">else</span><span class="p">:</span>
+</span><span data-line="174">            <span class="n">state</span> <span class="o">=</span> <span class="s2">"not_started"</span>
+</span><span data-line="175">        <span class="n">out</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">StageState</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="n">state</span><span class="p">,</span> <span class="n">produced</span><span class="p">[</span><span class="n">s</span><span class="o">.</span><span class="n">slug</span><span class="p">],</span> <span class="n">stale</span><span class="p">[</span><span class="n">s</span><span class="o">.</span><span class="n">slug</span><span class="p">]))</span>
+</span><span data-line="176">    <span class="k">return</span> <span class="n">out</span></div>
 
-</span><span data-line="175">
-</span><span data-line="176">
-<div class="viewcode-block" id="StagePrice">
-<a class="viewcode-back" href="../../_autosummary/nw.stages.html#nw.StagePrice">[docs]</a>
-</span><span data-line="177"><span class="nd">@dataclass</span><span class="p">(</span><span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-</span><span data-line="178"><span class="k">class</span><span class="w"> </span><span class="nc">StagePrice</span><span class="p">:</span>
-</span><span data-line="179"><span class="w">    </span><span class="sd">"""A stage's price today. ``total_usd is None`` means unknown, never free."""</span>
-</span><span data-line="180">
-</span><span data-line="181">    <span class="n">total_usd</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span>
-</span><span data-line="182">    <span class="c1">#: ``"free"`` (declared), ``"quoted"``, or ``"unknown"``.</span>
-</span><span data-line="183">    <span class="n">status</span><span class="p">:</span> <span class="nb">str</span>
-</span><span data-line="184">
-</span><span data-line="185">    <span class="k">def</span><span class="w"> </span><span class="nf">to_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
-</span><span data-line="186">        <span class="k">return</span> <span class="p">{</span><span class="s2">"usd"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">total_usd</span><span class="p">,</span> <span class="s2">"status"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">status</span><span class="p">}</span></div>
-
-</span><span data-line="187">
-</span><span data-line="188">
+</span><span data-line="177">
+</span><span data-line="178">
+</span><span data-line="179"><span class="c1">#: A stage's price: :class:`nw.pricing.Price` (the name stages have always used).</span>
+</span><span data-line="180"><span class="n">StagePrice</span> <span class="o">=</span> <span class="n">Price</span>
+</span><span data-line="181">
+</span><span data-line="182">
 <div class="viewcode-block" id="stage_prices">
 <a class="viewcode-back" href="../../_autosummary/nw.stages.html#nw.stage_prices">[docs]</a>
-</span><span data-line="189"><span class="k">def</span><span class="w"> </span><span class="nf">stage_prices</span><span class="p">(</span>
-</span><span data-line="190">    <span class="n">stages</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">Stage</span><span class="p">],</span>
-</span><span data-line="191">    <span class="n">quote</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Callable</span><span class="p">[[</span><span class="n">Stage</span><span class="p">],</span> <span class="n">Any</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-</span><span data-line="192"><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="n">StagePrice</span><span class="p">]:</span>
-</span><span data-line="193"><span class="w">    </span><span class="sd">"""Compose each stage's price now. ``quote(stage)`` returns USD, an</span>
-</span><span data-line="194"><span class="sd">    :class:`nw.PlanQuote` (its ``total_usd``), or ``None``; no ``quote`` means every</span>
-</span><span data-line="195"><span class="sd">    paid stage is unknown. A raising quoter is unknown too: a price we could not</span>
-</span><span data-line="196"><span class="sd">    work out is not a price."""</span>
-</span><span data-line="197">    <span class="n">out</span> <span class="o">=</span> <span class="p">[]</span>
-</span><span data-line="198">    <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">stages</span><span class="p">:</span>
-</span><span data-line="199">        <span class="k">if</span> <span class="n">s</span><span class="o">.</span><span class="n">free</span><span class="p">:</span>
-</span><span data-line="200">            <span class="n">out</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">StagePrice</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="s2">"free"</span><span class="p">))</span>
-</span><span data-line="201">            <span class="k">continue</span>
-</span><span data-line="202">        <span class="k">try</span><span class="p">:</span>
-</span><span data-line="203">            <span class="n">raw</span> <span class="o">=</span> <span class="n">quote</span><span class="p">(</span><span class="n">s</span><span class="p">)</span> <span class="k">if</span> <span class="n">quote</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="kc">None</span>
-</span><span data-line="204">        <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
-</span><span data-line="205">            <span class="n">raw</span> <span class="o">=</span> <span class="kc">None</span>
-</span><span data-line="206">        <span class="n">usd</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">raw</span><span class="p">,</span> <span class="s2">"total_usd"</span><span class="p">,</span> <span class="n">raw</span><span class="p">)</span>
-</span><span data-line="207">        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">usd</span><span class="p">,</span> <span class="nb">bool</span><span class="p">)</span> <span class="ow">or</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">usd</span><span class="p">,</span> <span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">))</span> <span class="ow">or</span> <span class="n">usd</span> <span class="o">!=</span> <span class="n">usd</span><span class="p">:</span>
-</span><span data-line="208">            <span class="n">out</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">StagePrice</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="s2">"unknown"</span><span class="p">))</span>
-</span><span data-line="209">        <span class="k">else</span><span class="p">:</span>
-</span><span data-line="210">            <span class="n">out</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">StagePrice</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">usd</span><span class="p">),</span> <span class="s2">"quoted"</span><span class="p">))</span>
-</span><span data-line="211">    <span class="k">return</span> <span class="n">out</span></div>
+</span><span data-line="183"><span class="k">def</span><span class="w"> </span><span class="nf">stage_prices</span><span class="p">(</span>
+</span><span data-line="184">    <span class="n">stages</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">Stage</span><span class="p">],</span>
+</span><span data-line="185">    <span class="n">quote</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Callable</span><span class="p">[[</span><span class="n">Stage</span><span class="p">],</span> <span class="n">Any</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span data-line="186"><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="n">StagePrice</span><span class="p">]:</span>
+</span><span data-line="187"><span class="w">    </span><span class="sd">"""Compose each stage's price now. ``quote(stage)`` returns USD, an</span>
+</span><span data-line="188"><span class="sd">    :class:`nw.PlanQuote` (its ``total_usd``), or ``None``; no ``quote`` means every</span>
+</span><span data-line="189"><span class="sd">    paid stage is unknown. A raising quoter is unknown too: a price we could not</span>
+</span><span data-line="190"><span class="sd">    work out is not a price."""</span>
+</span><span data-line="191">    <span class="n">out</span> <span class="o">=</span> <span class="p">[]</span>
+</span><span data-line="192">    <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">stages</span><span class="p">:</span>
+</span><span data-line="193">        <span class="k">if</span> <span class="n">s</span><span class="o">.</span><span class="n">free</span><span class="p">:</span>
+</span><span data-line="194">            <span class="n">out</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">StagePrice</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="s2">"free"</span><span class="p">))</span>
+</span><span data-line="195">            <span class="k">continue</span>
+</span><span data-line="196">        <span class="k">try</span><span class="p">:</span>
+</span><span data-line="197">            <span class="n">raw</span> <span class="o">=</span> <span class="n">quote</span><span class="p">(</span><span class="n">s</span><span class="p">)</span> <span class="k">if</span> <span class="n">quote</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="kc">None</span>
+</span><span data-line="198">        <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+</span><span data-line="199">            <span class="n">raw</span> <span class="o">=</span> <span class="kc">None</span>
+</span><span data-line="200">        <span class="n">out</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">quoted_price</span><span class="p">(</span><span class="n">raw</span><span class="p">))</span>
+</span><span data-line="201">    <span class="k">return</span> <span class="n">out</span></div>
 
-</span><span data-line="212">
-</span><span data-line="213">
+</span><span data-line="202">
+</span><span data-line="203">
 <div class="viewcode-block" id="stage_overview">
 <a class="viewcode-back" href="../../_autosummary/nw.stages.html#nw.stage_overview">[docs]</a>
-</span><span data-line="214"><span class="k">def</span><span class="w"> </span><span class="nf">stage_overview</span><span class="p">(</span>
-</span><span data-line="215">    <span class="n">genre</span><span class="p">,</span>
-</span><span data-line="216">    <span class="n">project</span><span class="p">,</span>
-</span><span data-line="217">    <span class="o">*</span><span class="p">,</span>
-</span><span data-line="218">    <span class="n">quote</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Callable</span><span class="p">[[</span><span class="n">Stage</span><span class="p">],</span> <span class="n">Any</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-</span><span data-line="219">    <span class="n">active_transforms</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">(),</span>
-</span><span data-line="220"><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
-</span><span data-line="221"><span class="w">    </span><span class="sd">"""The one JSON-able answer: stages with state and price, "Step N of M", and the</span>
-</span><span data-line="222"><span class="sd">    total still to spend. ``genre`` is an :class:`nw.Genre` or its slug.</span>
-</span><span data-line="223">
-</span><span data-line="224"><span class="sd">    ``step`` is the 1-based position of the first stage not ``done`` (``of`` when all</span>
-</span><span data-line="225"><span class="sd">    are). ``remaining_total_usd`` sums the price of every stage not ``done`` and is</span>
-</span><span data-line="226"><span class="sd">    ``None`` when any of them is unknown.</span>
-</span><span data-line="227"><span class="sd">    """</span>
-</span><span data-line="228">    <span class="kn">from</span><span class="w"> </span><span class="nn">.genres</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_genre</span>
-</span><span data-line="229">
-</span><span data-line="230">    <span class="n">g</span> <span class="o">=</span> <span class="n">get_genre</span><span class="p">(</span><span class="n">genre</span><span class="p">)</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">genre</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="k">else</span> <span class="n">genre</span>
-</span><span data-line="231">    <span class="n">states</span> <span class="o">=</span> <span class="n">stage_states</span><span class="p">(</span><span class="n">g</span><span class="o">.</span><span class="n">stages</span><span class="p">,</span> <span class="n">project</span><span class="p">,</span> <span class="n">active_transforms</span><span class="o">=</span><span class="n">active_transforms</span><span class="p">)</span>
-</span><span data-line="232">    <span class="n">prices</span> <span class="o">=</span> <span class="n">stage_prices</span><span class="p">(</span><span class="n">g</span><span class="o">.</span><span class="n">stages</span><span class="p">,</span> <span class="n">quote</span><span class="p">)</span>
-</span><span data-line="233">    <span class="n">rows</span> <span class="o">=</span> <span class="p">[]</span>
-</span><span data-line="234">    <span class="k">for</span> <span class="n">st</span><span class="p">,</span> <span class="n">pr</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">states</span><span class="p">,</span> <span class="n">prices</span><span class="p">):</span>
-</span><span data-line="235">        <span class="n">rows</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
-</span><span data-line="236">            <span class="p">{</span><span class="s2">"slug"</span><span class="p">:</span> <span class="n">st</span><span class="o">.</span><span class="n">stage</span><span class="o">.</span><span class="n">slug</span><span class="p">,</span> <span class="s2">"name"</span><span class="p">:</span> <span class="n">st</span><span class="o">.</span><span class="n">stage</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="s2">"free"</span><span class="p">:</span> <span class="n">st</span><span class="o">.</span><span class="n">stage</span><span class="o">.</span><span class="n">free</span><span class="p">}</span>
-</span><span data-line="237">            <span class="o">|</span> <span class="n">st</span><span class="o">.</span><span class="n">to_dict</span><span class="p">()</span>
-</span><span data-line="238">            <span class="o">|</span> <span class="p">{</span><span class="s2">"price"</span><span class="p">:</span> <span class="n">pr</span><span class="o">.</span><span class="n">to_dict</span><span class="p">()}</span>
-</span><span data-line="239">        <span class="p">)</span>
-</span><span data-line="240">    <span class="n">total</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">rows</span><span class="p">)</span>
-</span><span data-line="241">    <span class="n">step</span> <span class="o">=</span> <span class="nb">next</span><span class="p">((</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">r</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">rows</span><span class="p">)</span> <span class="k">if</span> <span class="n">r</span><span class="p">[</span><span class="s2">"state"</span><span class="p">]</span> <span class="o">!=</span> <span class="s2">"done"</span><span class="p">),</span> <span class="n">total</span><span class="p">)</span>
-</span><span data-line="242">    <span class="n">todo</span> <span class="o">=</span> <span class="p">[</span><span class="n">r</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">rows</span> <span class="k">if</span> <span class="n">r</span><span class="p">[</span><span class="s2">"state"</span><span class="p">]</span> <span class="o">!=</span> <span class="s2">"done"</span><span class="p">]</span>
-</span><span data-line="243">    <span class="n">unknown</span> <span class="o">=</span> <span class="nb">any</span><span class="p">(</span><span class="n">r</span><span class="p">[</span><span class="s2">"price"</span><span class="p">][</span><span class="s2">"usd"</span><span class="p">]</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">todo</span><span class="p">)</span>
-</span><span data-line="244">    <span class="k">return</span> <span class="p">{</span>
-</span><span data-line="245">        <span class="s2">"genre"</span><span class="p">:</span> <span class="n">g</span><span class="o">.</span><span class="n">slug</span><span class="p">,</span>
-</span><span data-line="246">        <span class="s2">"step"</span><span class="p">:</span> <span class="n">step</span><span class="p">,</span>
-</span><span data-line="247">        <span class="s2">"of"</span><span class="p">:</span> <span class="n">total</span><span class="p">,</span>
-</span><span data-line="248">        <span class="s2">"complete"</span><span class="p">:</span> <span class="nb">bool</span><span class="p">(</span><span class="n">rows</span><span class="p">)</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">todo</span><span class="p">,</span>
-</span><span data-line="249">        <span class="s2">"stages"</span><span class="p">:</span> <span class="n">rows</span><span class="p">,</span>
-</span><span data-line="250">        <span class="s2">"remaining_total_usd"</span><span class="p">:</span> <span class="kc">None</span>
-</span><span data-line="251">        <span class="k">if</span> <span class="n">unknown</span>
-</span><span data-line="252">        <span class="k">else</span> <span class="nb">sum</span><span class="p">(</span><span class="n">r</span><span class="p">[</span><span class="s2">"price"</span><span class="p">][</span><span class="s2">"usd"</span><span class="p">]</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">todo</span><span class="p">),</span>
-</span><span data-line="253">        <span class="s2">"remaining_status"</span><span class="p">:</span> <span class="s2">"unknown"</span> <span class="k">if</span> <span class="n">unknown</span> <span class="k">else</span> <span class="s2">"quoted"</span><span class="p">,</span>
-</span><span data-line="254">    <span class="p">}</span></div>
+</span><span data-line="204"><span class="k">def</span><span class="w"> </span><span class="nf">stage_overview</span><span class="p">(</span>
+</span><span data-line="205">    <span class="n">genre</span><span class="p">,</span>
+</span><span data-line="206">    <span class="n">project</span><span class="p">,</span>
+</span><span data-line="207">    <span class="o">*</span><span class="p">,</span>
+</span><span data-line="208">    <span class="n">quote</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Callable</span><span class="p">[[</span><span class="n">Stage</span><span class="p">],</span> <span class="n">Any</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span data-line="209">    <span class="n">active_transforms</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">(),</span>
+</span><span data-line="210"><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+</span><span data-line="211"><span class="w">    </span><span class="sd">"""The one JSON-able answer: stages with state and price, "Step N of M", and the</span>
+</span><span data-line="212"><span class="sd">    total still to spend. ``genre`` is an :class:`nw.Genre` or its slug.</span>
+</span><span data-line="213">
+</span><span data-line="214"><span class="sd">    ``step`` is the 1-based position of the first stage not ``done`` (``of`` when all</span>
+</span><span data-line="215"><span class="sd">    are). ``remaining_total_usd`` sums the price of every stage not ``done`` and is</span>
+</span><span data-line="216"><span class="sd">    ``None`` when any of them is unknown.</span>
+</span><span data-line="217"><span class="sd">    """</span>
+</span><span data-line="218">    <span class="kn">from</span><span class="w"> </span><span class="nn">.genres</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_genre</span>
+</span><span data-line="219">
+</span><span data-line="220">    <span class="n">g</span> <span class="o">=</span> <span class="n">get_genre</span><span class="p">(</span><span class="n">genre</span><span class="p">)</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">genre</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="k">else</span> <span class="n">genre</span>
+</span><span data-line="221">    <span class="n">states</span> <span class="o">=</span> <span class="n">stage_states</span><span class="p">(</span><span class="n">g</span><span class="o">.</span><span class="n">stages</span><span class="p">,</span> <span class="n">project</span><span class="p">,</span> <span class="n">active_transforms</span><span class="o">=</span><span class="n">active_transforms</span><span class="p">)</span>
+</span><span data-line="222">    <span class="n">prices</span> <span class="o">=</span> <span class="n">stage_prices</span><span class="p">(</span><span class="n">g</span><span class="o">.</span><span class="n">stages</span><span class="p">,</span> <span class="n">quote</span><span class="p">)</span>
+</span><span data-line="223">    <span class="n">rows</span> <span class="o">=</span> <span class="p">[]</span>
+</span><span data-line="224">    <span class="k">for</span> <span class="n">st</span><span class="p">,</span> <span class="n">pr</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">states</span><span class="p">,</span> <span class="n">prices</span><span class="p">):</span>
+</span><span data-line="225">        <span class="n">rows</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+</span><span data-line="226">            <span class="p">{</span><span class="s2">"slug"</span><span class="p">:</span> <span class="n">st</span><span class="o">.</span><span class="n">stage</span><span class="o">.</span><span class="n">slug</span><span class="p">,</span> <span class="s2">"name"</span><span class="p">:</span> <span class="n">st</span><span class="o">.</span><span class="n">stage</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="s2">"free"</span><span class="p">:</span> <span class="n">st</span><span class="o">.</span><span class="n">stage</span><span class="o">.</span><span class="n">free</span><span class="p">}</span>
+</span><span data-line="227">            <span class="o">|</span> <span class="n">st</span><span class="o">.</span><span class="n">to_dict</span><span class="p">()</span>
+</span><span data-line="228">            <span class="o">|</span> <span class="p">{</span><span class="s2">"price"</span><span class="p">:</span> <span class="n">pr</span><span class="o">.</span><span class="n">to_dict</span><span class="p">()}</span>
+</span><span data-line="229">        <span class="p">)</span>
+</span><span data-line="230">    <span class="n">total</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">rows</span><span class="p">)</span>
+</span><span data-line="231">    <span class="n">step</span> <span class="o">=</span> <span class="nb">next</span><span class="p">((</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">r</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">rows</span><span class="p">)</span> <span class="k">if</span> <span class="n">r</span><span class="p">[</span><span class="s2">"state"</span><span class="p">]</span> <span class="o">!=</span> <span class="s2">"done"</span><span class="p">),</span> <span class="n">total</span><span class="p">)</span>
+</span><span data-line="232">    <span class="n">todo</span> <span class="o">=</span> <span class="p">[</span><span class="n">r</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">rows</span> <span class="k">if</span> <span class="n">r</span><span class="p">[</span><span class="s2">"state"</span><span class="p">]</span> <span class="o">!=</span> <span class="s2">"done"</span><span class="p">]</span>
+</span><span data-line="233">    <span class="n">unknown</span> <span class="o">=</span> <span class="nb">any</span><span class="p">(</span><span class="n">r</span><span class="p">[</span><span class="s2">"price"</span><span class="p">][</span><span class="s2">"usd"</span><span class="p">]</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">todo</span><span class="p">)</span>
+</span><span data-line="234">    <span class="k">return</span> <span class="p">{</span>
+</span><span data-line="235">        <span class="s2">"genre"</span><span class="p">:</span> <span class="n">g</span><span class="o">.</span><span class="n">slug</span><span class="p">,</span>
+</span><span data-line="236">        <span class="s2">"step"</span><span class="p">:</span> <span class="n">step</span><span class="p">,</span>
+</span><span data-line="237">        <span class="s2">"of"</span><span class="p">:</span> <span class="n">total</span><span class="p">,</span>
+</span><span data-line="238">        <span class="s2">"complete"</span><span class="p">:</span> <span class="nb">bool</span><span class="p">(</span><span class="n">rows</span><span class="p">)</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">todo</span><span class="p">,</span>
+</span><span data-line="239">        <span class="s2">"stages"</span><span class="p">:</span> <span class="n">rows</span><span class="p">,</span>
+</span><span data-line="240">        <span class="s2">"remaining_total_usd"</span><span class="p">:</span> <span class="kc">None</span>
+</span><span data-line="241">        <span class="k">if</span> <span class="n">unknown</span>
+</span><span data-line="242">        <span class="k">else</span> <span class="nb">sum</span><span class="p">(</span><span class="n">r</span><span class="p">[</span><span class="s2">"price"</span><span class="p">][</span><span class="s2">"usd"</span><span class="p">]</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">todo</span><span class="p">),</span>
+</span><span data-line="243">        <span class="s2">"remaining_status"</span><span class="p">:</span> <span class="s2">"unknown"</span> <span class="k">if</span> <span class="n">unknown</span> <span class="k">else</span> <span class="s2">"quoted"</span><span class="p">,</span>
+</span><span data-line="244">    <span class="p">}</span></div>
 
-</span><span data-line="255">
-</span><span data-line="256">
-</span><span data-line="257"><span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span>
-</span><span data-line="258">    <span class="s2">"STAGE_STATES"</span><span class="p">,</span>
-</span><span data-line="259">    <span class="s2">"Stage"</span><span class="p">,</span>
-</span><span data-line="260">    <span class="s2">"StagePrice"</span><span class="p">,</span>
-</span><span data-line="261">    <span class="s2">"StageState"</span><span class="p">,</span>
-</span><span data-line="262">    <span class="s2">"stage_overview"</span><span class="p">,</span>
-</span><span data-line="263">    <span class="s2">"stage_prices"</span><span class="p">,</span>
-</span><span data-line="264">    <span class="s2">"stage_states"</span><span class="p">,</span>
-</span><span data-line="265">    <span class="s2">"validate_stages"</span><span class="p">,</span>
-</span><span data-line="266"><span class="p">]</span>
+</span><span data-line="245">
+</span><span data-line="246">
+</span><span data-line="247"><span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span>
+</span><span data-line="248">    <span class="s2">"STAGE_STATES"</span><span class="p">,</span>
+</span><span data-line="249">    <span class="s2">"Stage"</span><span class="p">,</span>
+</span><span data-line="250">    <span class="s2">"StagePrice"</span><span class="p">,</span>
+</span><span data-line="251">    <span class="s2">"StageState"</span><span class="p">,</span>
+</span><span data-line="252">    <span class="s2">"stage_overview"</span><span class="p">,</span>
+</span><span data-line="253">    <span class="s2">"stage_prices"</span><span class="p">,</span>
+</span><span data-line="254">    <span class="s2">"stage_states"</span><span class="p">,</span>
+</span><span data-line="255">    <span class="s2">"validate_stages"</span><span class="p">,</span>
+</span><span data-line="256"><span class="p">]</span>
 </span></pre></div>
         </article><button class="back-to-top" type="button">
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
@@ -479,7 +466,7 @@ data-aria-dark="Switch to auto color mode">
     </div>
   </div>
 </footer>
-      <script src="../../_static/documentation_options.js?v=79f5c40e"></script>
+      <script src="../../_static/documentation_options.js?v=4e0d4e64"></script>
       <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
       <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>

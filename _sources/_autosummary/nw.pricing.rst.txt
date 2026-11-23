@@ -21,6 +21,7 @@ nw.pricing
       plan_from_cost_records
       quote_from_cost_records
       quote_render_decision
+      quoted_price
       unquotable
    
    .. rubric:: Classes
@@ -28,4 +29,5 @@ nw.pricing
    .. autosummary::
    
       PlanQuote
+      Price
    

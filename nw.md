@@ -1,4 +1,4 @@
-> built 2026-11-22 21:53 UTC from 6708009 (main) · nw 0.0.165. Details: build_info.json
+> built 2026-11-23 07:41 UTC from ca81cc3 (main) · nw 0.0.166. Details: build_info.json
 
 # index.html.md
 
@@ -3883,6 +3883,7 @@ are recorded as linked artifacts), see
 | [`format_ref`](_autosummary/nw.html.md#nw.format_ref)(n)                                      | The one spelling we print.                                                                                                                                                                                                                                       |
 | [`stage_overview`](_autosummary/nw.html.md#nw.stage_overview)(genre, project, \*[, quote, ...])   | The one JSON-able answer: stages with state and price, "Step N of M", and the total still to spend.                                                                                                                                                              |
 | [`stage_prices`](_autosummary/nw.html.md#nw.stage_prices)(stages[, quote])                      | Compose each stage's price now.                                                                                                                                                                                                                                  |
+| [`quoted_price`](_autosummary/nw.html.md#nw.quoted_price)(raw)                                  | A quoter's answer as a price: USD (a number), an [`nw.PlanQuote`](_autosummary/nw.html.md#nw.PlanQuote) (its `total_usd`), or `None`.                                                                                                                     |
 | [`stage_states`](_autosummary/nw.html.md#nw.stage_states)(stages, project, \*[, ...])           | Where `project` stands in each of `stages`, read from its graph.                                                                                                                                                                                                 |
 | [`genre_catalog`](_autosummary/nw.html.md#nw.genre_catalog)()                                    | Every registered genre as a JSON-able catalog entry (sorted by slug).                                                                                                                                                                                            |
 | [`describe_genre`](_autosummary/nw.html.md#nw.describe_genre)(slug)                               | One genre's catalog entry (raises [`KeyError`](https://docs.python.org/3/builtins/exceptions.html#KeyError) if the slug is unknown).                                                                                                                             |
@@ -3993,6 +3994,8 @@ are recorded as linked artifacts), see
 | [`Genre`](_autosummary/nw.html.md#nw.Genre)(slug, title[, description, ...])             | A reusable definition of a *production kind* over the nw substrate.                                                         |
 | [`Template`](_autosummary/nw.html.md#nw.Template)(slug, title[, description, params])       | A named preset ("subgenre") *within* a genre — a filled-in default config.                                                  |
 | [`Stage`](_autosummary/nw.html.md#nw.Stage)(slug, name[, free, transform_names, ...])    | One plain-English step of a genre.                                                                                          |
+| [`StagePrice`](_autosummary/nw.html.md#nw.StagePrice)                                         |                                                                                                                             |
+| [`Price`](_autosummary/nw.html.md#nw.Price)(total_usd, status)                           | A price today: `total_usd` and how it was arrived at.                                                                       |
 | [`GenreOp`](_autosummary/nw.html.md#nw.GenreOp)(name, fn, title[, description, ...])       | One operation a genre offers on its projects — a row a host builds surfaces from.                                           |
 | [`Project`](_autosummary/nw.html.md#nw.Project)(root, \*[, storage, auto_migrate])         | A folder-backed nw project.                                                                                                 |
 | [`TraceUpgradeReport`](_autosummary/nw.html.md#nw.TraceUpgradeReport)([moved, left_alone])            | What [`upgrade_superseded_traces()`](_autosummary/nw.html.md#nw.upgrade_superseded_traces) did (nw#282).                             |
@@ -4707,7 +4710,7 @@ consumer needs no app-specific knowledge to render the catalog.
 * **Return type:**
   [`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)
 
-### *class* nw.GenreOp(name, fn, title, description='', effect='write', runs='now', host_params=(), max_upload_bytes=None, spends=False, invalidates=None)
+### *class* nw.GenreOp(name, fn, title, description='', effect='write', runs='now', host_params=(), max_upload_bytes=None, spends=False, invalidates=None, quote=None)
 
 Bases: [`object`](https://docs.python.org/3/builtins/functions.html#object)
 
@@ -4742,6 +4745,14 @@ raising [`GenreOpCancelled`](_autosummary/nw.html.md#nw.GenreOpCancelled)). A de
 rule is that an unknown cost forces approval, so a host must route a `spends` op
 through its money approval — or not offer it. `False` (the default) is a claim the
 genre makes: nothing this op calls bills anyone.
+
+`quote` prices a `spends` op before it runs: `quote(project, **params)`
+with the same client parameters [`run()`](_autosummary/nw.html.md#nw.GenreOp.run) takes, returning USD, an
+[`nw.PlanQuote`](_autosummary/nw.html.md#nw.PlanQuote), or `None` (unknown). [`price()`](_autosummary/nw.html.md#nw.GenreOp.price) is the one reader:
+a `spends` op with no `quote`, or whose quote raises or answers anything but
+a non-negative number, is unknown, never free; a quote that raises
+[`GenreOpRefused`](_autosummary/nw.html.md#nw.GenreOpRefused) is the op’s refusal, passed on. Only a `spends` op
+takes one (an op that spends nothing is free by its own declaration).
 
 `invalidates` names the genre’s `read` ops whose answer this op can make stale,
 so a client holding several reads knows which to refresh after it (reelee#750); for
@@ -4784,6 +4795,35 @@ The pydantic model of the op’s parameters (`extra="forbid"`).
 #### *property* params_schema *: [dict](https://docs.python.org/3/builtins/stdtypes.html#dict)*
 
 JSON Schema (an object, `additionalProperties: false`) of the parameters.
+
+#### price(project, params=None)
+
+What running the op with `params` would cost now (reelee#1010).
+
+`params` are checked as [`run()`](_autosummary/nw.html.md#nw.GenreOp.run) checks them (a malformed body raises
+`pydantic.ValidationError`, it is not priced). An op with
+`spends=False` is `free` at $0; a `spends` op is its `quote`’s
+answer read by [`nw.pricing.quoted_price()`](_autosummary/nw.pricing.html.md#nw.pricing.quoted_price), `unknown` (`total_usd`
+`None`, never $0) when it has none, when the quote raises, or when the
+answer is no price. A [`GenreOpRefused`](_autosummary/nw.html.md#nw.GenreOpRefused) from the quote propagates: the
+run would be refused too.
+
+```pycon
+>>> def _say(project, *, text: str) -> dict:
+...     return {"said": text}
+>>> GenreOp("say", _say, title="Say it").price(None, {"text": "hi"}).to_dict()
+{'usd': 0.0, 'status': 'free'}
+>>> paid = GenreOp("say", _say, title="Say it", spends=True)
+>>> paid.price(None, {"text": "hi"}).to_dict()
+{'usd': None, 'status': 'unknown'}
+>>> quoted = GenreOp("say", _say, title="Say it", spends=True,
+...                  quote=lambda project, *, text: 0.01 * len(text))
+>>> quoted.price(None, {"text": "hi"}).to_dict()
+{'usd': 0.02, 'status': 'quoted'}
+```
+
+* **Return type:**
+  [`Price`](_autosummary/nw.pricing.html.md#nw.pricing.Price)
 
 #### run(project, params=None, , host=None)
 
@@ -4956,6 +4996,15 @@ number, whether it is knowable, and whether it moved. Reach into
 
 Today’s billable total, or `None` when any billable call is
 unpriceable today. `None` means unknown, never free (nw invariant #2).
+
+### *class* nw.Price(total_usd, status)
+
+Bases: [`object`](https://docs.python.org/3/builtins/functions.html#object)
+
+A price today: `total_usd` and how it was arrived at. `total_usd is None`
+means unknown, never free. `status` is `"free"` (declared), `"quoted"`, or
+`"unknown"`. What a stage’s and a genre op’s price read as
+([`nw.stages.stage_prices()`](_autosummary/nw.stages.html.md#nw.stages.stage_prices), [`nw.GenreOp.price()`](_autosummary/nw.html.md#nw.GenreOp.price)).
 
 ### *class* nw.Project(root, , storage=None, auto_migrate=True)
 
@@ -5727,6 +5776,10 @@ Whether the graph can show this stage at all.
 
 Transforms that carry the stage out; an output is theirs when its
 `was_generated_by` is `transform:<name>@...`.
+
+### nw.StagePrice
+
+alias of [`Price`](_autosummary/nw.pricing.html.md#nw.pricing.Price)
 
 ### *class* nw.StoredUnproducedOutput(annotation_id, body)
 
@@ -7296,6 +7349,22 @@ unknown is the only honest reading of it.
 * **Return type:**
   [`PlanQuote`](_autosummary/nw.pricing.html.md#nw.pricing.PlanQuote)
 
+### nw.quoted_price(raw)
+
+A quoter’s answer as a price: USD (a number), an [`nw.PlanQuote`](_autosummary/nw.html.md#nw.PlanQuote) (its
+`total_usd`), or `None`. Anything that is not a finite, non-negative number
+is unknown, never free: a price we could not read is not a price.
+
+```pycon
+>>> quoted_price(0.25), quoted_price(None).status, quoted_price(float("nan")).status
+(Price(total_usd=0.25, status='quoted'), 'unknown', 'unknown')
+>>> quoted_price(-1.0).status, quoted_price(True).status, quoted_price(10**400).status
+('unknown', 'unknown', 'unknown')
+```
+
+* **Return type:**
+  [`Price`](_autosummary/nw.pricing.html.md#nw.pricing.Price)
+
 ### nw.recommend_genre(kind)
 
 The slug of the genre whose `intake_kinds` contains `kind` (first in slug
@@ -7753,7 +7822,7 @@ paid stage is unknown. A raising quoter is unknown too: a price we could not
 work out is not a price.
 
 * **Return type:**
-  [`list`](https://docs.python.org/3/builtins/stdtypes.html#list)[[`StagePrice`](_autosummary/nw.stages.html.md#nw.stages.StagePrice)]
+  [`list`](https://docs.python.org/3/builtins/stdtypes.html#list)[[`Price`](_autosummary/nw.pricing.html.md#nw.pricing.Price)]
 
 ### nw.stage_states(stages, project, , active_transforms=())
 
@@ -10047,18 +10116,20 @@ Two things this module deliberately does **not** do:
 
 ### Functions
 
-| [`cost_records`](_autosummary/nw.pricing.html.md#nw.pricing.cost_records)(plan)                              | The JSON-able per-call cost rows nw persists in a decision payload.                                           |
-|--------------------------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------|
-| [`current_quote`](_autosummary/nw.pricing.html.md#nw.pricing.current_quote)(plan, \*[, pricers])              | Re-quote `plan` at today's rates and report the result honestly.                                              |
-| [`plan_from_cost_records`](_autosummary/nw.pricing.html.md#nw.pricing.plan_from_cost_records)(records)                 | Rebuild a re-quotable `falaw.Plan` from [`cost_records()`](_autosummary/nw.pricing.html.md#nw.pricing.cost_records) rows. |
-| [`quote_from_cost_records`](_autosummary/nw.pricing.html.md#nw.pricing.quote_from_cost_records)(records, \*[, pricers]) | Today's price for the calls stored in a decision payload.                                                     |
-| [`quote_render_decision`](_autosummary/nw.pricing.html.md#nw.pricing.quote_render_decision)(payload, \*[, pricers])   | Today's price for a `render_shot` decision payload.                                                           |
-| [`unquotable`](_autosummary/nw.pricing.html.md#nw.pricing.unquotable)(reason)                              | A quote for something that could not be re-quoted at all.                                                     |
+| [`cost_records`](_autosummary/nw.pricing.html.md#nw.pricing.cost_records)(plan)                              | The JSON-able per-call cost rows nw persists in a decision payload.                                                                                       |
+|--------------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------|
+| [`current_quote`](_autosummary/nw.pricing.html.md#nw.pricing.current_quote)(plan, \*[, pricers])              | Re-quote `plan` at today's rates and report the result honestly.                                                                                          |
+| [`plan_from_cost_records`](_autosummary/nw.pricing.html.md#nw.pricing.plan_from_cost_records)(records)                 | Rebuild a re-quotable `falaw.Plan` from [`cost_records()`](_autosummary/nw.pricing.html.md#nw.pricing.cost_records) rows.                                             |
+| [`quote_from_cost_records`](_autosummary/nw.pricing.html.md#nw.pricing.quote_from_cost_records)(records, \*[, pricers]) | Today's price for the calls stored in a decision payload.                                                                                                 |
+| [`quote_render_decision`](_autosummary/nw.pricing.html.md#nw.pricing.quote_render_decision)(payload, \*[, pricers])   | Today's price for a `render_shot` decision payload.                                                                                                       |
+| [`quoted_price`](_autosummary/nw.pricing.html.md#nw.pricing.quoted_price)(raw)                               | A quoter's answer as a price: USD (a number), an [`nw.PlanQuote`](_autosummary/nw.html.md#nw.PlanQuote) (its `total_usd`), or `None`. |
+| [`unquotable`](_autosummary/nw.pricing.html.md#nw.pricing.unquotable)(reason)                              | A quote for something that could not be re-quoted at all.                                                                                                 |
 
 ### Classes
 
 | [`PlanQuote`](_autosummary/nw.pricing.html.md#nw.pricing.PlanQuote)(\*, total_usd, status, ...[, reason])   | Today's price for a persisted plan, with the stale figure alongside.   |
 |----------------------------------------------------------------------------------------------------|------------------------------------------------------------------------|
+| [`Price`](_autosummary/nw.pricing.html.md#nw.pricing.Price)(total_usd, status)                          | A price today: `total_usd` and how it was arrived at.                  |
 
 ### nw.pricing.DISAGREEING_TOTAL_REASON *= "the payload's total_estimated_cost_usd does not match the sum of its calls, so neither figure can be trusted as this render's price"*
 
@@ -10139,6 +10210,15 @@ number, whether it is knowable, and whether it moved. Reach into
 
 Today’s billable total, or `None` when any billable call is
 unpriceable today. `None` means unknown, never free (nw invariant #2).
+
+### *class* nw.pricing.Price(total_usd, status)
+
+Bases: [`object`](https://docs.python.org/3/builtins/functions.html#object)
+
+A price today: `total_usd` and how it was arrived at. `total_usd is None`
+means unknown, never free. `status` is `"free"` (declared), `"quoted"`, or
+`"unknown"`. What a stage’s and a genre op’s price read as
+([`nw.stages.stage_prices()`](_autosummary/nw.stages.html.md#nw.stages.stage_prices), [`nw.GenreOp.price()`](_autosummary/nw.html.md#nw.GenreOp.price)).
 
 ### nw.pricing.QuoteStatus
 
@@ -10274,6 +10354,22 @@ unknown is the only honest reading of it.
 
 * **Return type:**
   [`PlanQuote`](_autosummary/nw.pricing.html.md#nw.pricing.PlanQuote)
+
+### nw.pricing.quoted_price(raw)
+
+A quoter’s answer as a price: USD (a number), an [`nw.PlanQuote`](_autosummary/nw.html.md#nw.PlanQuote) (its
+`total_usd`), or `None`. Anything that is not a finite, non-negative number
+is unknown, never free: a price we could not read is not a price.
+
+```pycon
+>>> quoted_price(0.25), quoted_price(None).status, quoted_price(float("nan")).status
+(Price(total_usd=0.25, status='quoted'), 'unknown', 'unknown')
+>>> quoted_price(-1.0).status, quoted_price(True).status, quoted_price(10**400).status
+('unknown', 'unknown', 'unknown')
+```
+
+* **Return type:**
+  [`Price`](_autosummary/nw.pricing.html.md#nw.pricing.Price)
 
 ### nw.pricing.unquotable(reason)
 
@@ -11701,8 +11797,9 @@ one (reelee-web#305).
 
 ### Module Attributes
 
-| [`STAGE_STATES`](_autosummary/nw.stages.html.md#nw.stages.STAGE_STATES)   | `not_started` / `in_progress` / `done` / `unknown` — see the module docstring.   |
-|-----------------------------------------------------------------|----------------------------------------------------------------------------------|
+| [`STAGE_STATES`](_autosummary/nw.stages.html.md#nw.stages.STAGE_STATES)   | `not_started` / `in_progress` / `done` / `unknown` — see the module docstring.                                                          |
+|-----------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------|
+| [`StagePrice`](_autosummary/nw.stages.html.md#nw.stages.StagePrice)     | A stage's price: [`nw.pricing.Price`](_autosummary/nw.pricing.html.md#nw.pricing.Price) (the name stages have always used). |
 
 ### Functions
 
@@ -11714,10 +11811,10 @@ one (reelee-web#305).
 
 ### Classes
 
-| [`Stage`](_autosummary/nw.stages.html.md#nw.stages.Stage)(slug, name[, free, transform_names, ...])   | One plain-English step of a genre.   |
-|----------------------------------------------------------------------------------------------------|--------------------------------------|
-| [`StagePrice`](_autosummary/nw.stages.html.md#nw.stages.StagePrice)(total_usd, status)                     | A stage's price today.               |
-| [`StageState`](_autosummary/nw.stages.html.md#nw.stages.StageState)(stage, state[, produced, stale])       |                                      |
+| [`Stage`](_autosummary/nw.stages.html.md#nw.stages.Stage)(slug, name[, free, transform_names, ...])   | One plain-English step of a genre.                                                                                                      |
+|----------------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------|
+| [`StagePrice`](_autosummary/nw.stages.html.md#nw.stages.StagePrice)                                        | A stage's price: [`nw.pricing.Price`](_autosummary/nw.pricing.html.md#nw.pricing.Price) (the name stages have always used). |
+| [`StageState`](_autosummary/nw.stages.html.md#nw.stages.StageState)(stage, state[, produced, stale])       |                                                                                                                                         |
 
 ### nw.stages.STAGE_STATES *= ('not_started', 'in_progress', 'done', 'unknown')*
 
@@ -11750,15 +11847,9 @@ Whether the graph can show this stage at all.
 Transforms that carry the stage out; an output is theirs when its
 `was_generated_by` is `transform:<name>@...`.
 
-### *class* nw.stages.StagePrice(total_usd, status)
+### nw.stages.StagePrice
 
-Bases: [`object`](https://docs.python.org/3/builtins/functions.html#object)
-
-A stage’s price today. `total_usd is None` means unknown, never free.
-
-#### status *: [str](https://docs.python.org/3/builtins/stdtypes.html#str)*
-
-`"free"` (declared), `"quoted"`, or `"unknown"`.
+A stage’s price: [`nw.pricing.Price`](_autosummary/nw.pricing.html.md#nw.pricing.Price) (the name stages have always used).
 
 ### *class* nw.stages.StageState(stage, state, produced=0, stale=0)
 
@@ -11784,7 +11875,7 @@ paid stage is unknown. A raising quoter is unknown too: a price we could not
 work out is not a price.
 
 * **Return type:**
-  [`list`](https://docs.python.org/3/builtins/stdtypes.html#list)[[`StagePrice`](_autosummary/nw.stages.html.md#nw.stages.StagePrice)]
+  [`list`](https://docs.python.org/3/builtins/stdtypes.html#list)[[`Price`](_autosummary/nw.pricing.html.md#nw.pricing.Price)]
 
 ### nw.stages.stage_states(stages, project, , active_transforms=())
 
@@ -13042,7 +13133,7 @@ produce different URLs. The local file paths are byte-stable.
 
 # About this build
 
-This documentation was built on **2026-11-22 21:53 UTC** from commit <a href="https://github.com/reeleehq/nw/commit/6708009cb141a6efb9cdc0add93b065f7e994da3"><code>6708009</code></a> on branch <code>main</code>, for **nw 0.0.165** (from <code>pyproject.toml</code>).
+This documentation was built on **2026-11-23 07:41 UTC** from commit <a href="https://github.com/reeleehq/nw/commit/ca81cc39e07643b9ed8dfc023d05d3ccc2db818a"><code>ca81cc3</code></a> on branch <code>main</code>, for **nw 0.0.166** (from <code>pyproject.toml</code>).
 
 #### NOTE
 Nothing suggests a mismatch: the tree was clean at the commit above, and the documented version is the one on PyPI.
@@ -13051,9 +13142,9 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 
 |                     |                                                                                                                                                    |
 |---------------------|----------------------------------------------------------------------------------------------------------------------------------------------------|
-| Commit              | <a href="https://github.com/reeleehq/nw/commit/6708009cb141a6efb9cdc0add93b065f7e994da3"><code>6708009cb141a6efb9cdc0add93b065f7e994da3</code></a> |
+| Commit              | <a href="https://github.com/reeleehq/nw/commit/ca81cc39e07643b9ed8dfc023d05d3ccc2db818a"><code>ca81cc39e07643b9ed8dfc023d05d3ccc2db818a</code></a> |
 | Branch              | <code>main</code>                                                                                                                                  |
-| Tags at this commit | <code>0.0.165</code>                                                                                                                               |
+| Tags at this commit | <code>0.0.166</code>                                                                                                                               |
 | Working tree        | clean                                                                                                                                              |
 | Remote              | <code>https://github.com/reeleehq/nw</code>                                                                                                        |
 
@@ -13062,15 +13153,15 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 |              |                                                                                            |
 |--------------|--------------------------------------------------------------------------------------------|
 | Repository   | <code>reeleehq/nw</code>                                                                   |
-| Run          | <a href="https://github.com/reeleehq/nw/actions/runs/45074373754">45074373754</a>          |
+| Run          | <a href="https://github.com/reeleehq/nw/actions/runs/45132656289">45132656289</a>          |
 | Ref          | <code>refs/heads/main</code>                                                               |
-| Event commit | <code>fa974feec1f389b0a89073e6ee303f9186fccafa</code> (in the history of the built commit) |
+| Event commit | <code>2f1d6d42ba8a18c454e657a80bf5bcccd3577206</code> (in the history of the built commit) |
 
 ## Tools
 
 |          |         |
 |----------|---------|
-| epythet  | 0.2.23  |
+| epythet  | 0.2.24  |
 | Sphinx   | 9.1.1   |
 | docutils | 0.22.4  |
 | Python   | 3.12.16 |
@@ -13089,14 +13180,14 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 
 ## Package on PyPI
 
-Latest release: <a href="https://pypi.org/project/nw/0.0.165/">0.0.165</a>, the same as the documented version.
+Latest release: <a href="https://pypi.org/project/nw/0.0.166/">0.0.166</a>, the same as the documented version.
 
 ## Reproduce
 
 ```bash
 git clone https://github.com/reeleehq/nw && cd nw
-git checkout 6708009cb141a6efb9cdc0add93b065f7e994da3
-pip install "epythet==0.2.23"
+git checkout ca81cc39e07643b9ed8dfc023d05d3ccc2db818a
+pip install "epythet==0.2.24"
 epythet quickstart . --ignore tests/ scrap/ examples/
 ```
 

@@ -9,6 +9,7 @@ nw.stages
    .. autosummary::
    
       STAGE_STATES
+      StagePrice
    
    .. rubric:: Functions
 

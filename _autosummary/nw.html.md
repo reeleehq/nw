@@ -54,6 +54,7 @@ are recorded as linked artifacts), see
 | [`format_ref`](#nw.format_ref)(n)                                      | The one spelling we print.                                                                                                                                                                                                                                       |
 | [`stage_overview`](#nw.stage_overview)(genre, project, \*[, quote, ...])   | The one JSON-able answer: stages with state and price, "Step N of M", and the total still to spend.                                                                                                                                                              |
 | [`stage_prices`](#nw.stage_prices)(stages[, quote])                      | Compose each stage's price now.                                                                                                                                                                                                                                  |
+| [`quoted_price`](#nw.quoted_price)(raw)                                  | A quoter's answer as a price: USD (a number), an [`nw.PlanQuote`](#nw.PlanQuote) (its `total_usd`), or `None`.                                                                                                                     |
 | [`stage_states`](#nw.stage_states)(stages, project, \*[, ...])           | Where `project` stands in each of `stages`, read from its graph.                                                                                                                                                                                                 |
 | [`genre_catalog`](#nw.genre_catalog)()                                    | Every registered genre as a JSON-able catalog entry (sorted by slug).                                                                                                                                                                                            |
 | [`describe_genre`](#nw.describe_genre)(slug)                               | One genre's catalog entry (raises [`KeyError`](https://docs.python.org/3/builtins/exceptions.html#KeyError) if the slug is unknown).                                                                                                                             |
@@ -164,6 +165,8 @@ are recorded as linked artifacts), see
 | [`Genre`](#nw.Genre)(slug, title[, description, ...])             | A reusable definition of a *production kind* over the nw substrate.                                                         |
 | [`Template`](#nw.Template)(slug, title[, description, params])       | A named preset ("subgenre") *within* a genre — a filled-in default config.                                                  |
 | [`Stage`](#nw.Stage)(slug, name[, free, transform_names, ...])    | One plain-English step of a genre.                                                                                          |
+| [`StagePrice`](#nw.StagePrice)                                         |                                                                                                                             |
+| [`Price`](#nw.Price)(total_usd, status)                           | A price today: `total_usd` and how it was arrived at.                                                                       |
 | [`GenreOp`](#nw.GenreOp)(name, fn, title[, description, ...])       | One operation a genre offers on its projects — a row a host builds surfaces from.                                           |
 | [`Project`](#nw.Project)(root, \*[, storage, auto_migrate])         | A folder-backed nw project.                                                                                                 |
 | [`TraceUpgradeReport`](#nw.TraceUpgradeReport)([moved, left_alone])            | What [`upgrade_superseded_traces()`](#nw.upgrade_superseded_traces) did (nw#282).                             |
@@ -878,7 +881,7 @@ consumer needs no app-specific knowledge to render the catalog.
 * **Return type:**
   [`dict`](https://docs.python.org/3/builtins/stdtypes.html#dict)
 
-### *class* nw.GenreOp(name, fn, title, description='', effect='write', runs='now', host_params=(), max_upload_bytes=None, spends=False, invalidates=None)
+### *class* nw.GenreOp(name, fn, title, description='', effect='write', runs='now', host_params=(), max_upload_bytes=None, spends=False, invalidates=None, quote=None)
 
 Bases: [`object`](https://docs.python.org/3/builtins/functions.html#object)
 
@@ -913,6 +916,14 @@ raising [`GenreOpCancelled`](#nw.GenreOpCancelled)). A deliberate refusal is a
 rule is that an unknown cost forces approval, so a host must route a `spends` op
 through its money approval — or not offer it. `False` (the default) is a claim the
 genre makes: nothing this op calls bills anyone.
+
+`quote` prices a `spends` op before it runs: `quote(project, **params)`
+with the same client parameters [`run()`](#nw.GenreOp.run) takes, returning USD, an
+[`nw.PlanQuote`](#nw.PlanQuote), or `None` (unknown). [`price()`](#nw.GenreOp.price) is the one reader:
+a `spends` op with no `quote`, or whose quote raises or answers anything but
+a non-negative number, is unknown, never free; a quote that raises
+[`GenreOpRefused`](#nw.GenreOpRefused) is the op’s refusal, passed on. Only a `spends` op
+takes one (an op that spends nothing is free by its own declaration).
 
 `invalidates` names the genre’s `read` ops whose answer this op can make stale,
 so a client holding several reads knows which to refresh after it (reelee#750); for
@@ -955,6 +966,35 @@ The pydantic model of the op’s parameters (`extra="forbid"`).
 #### *property* params_schema *: [dict](https://docs.python.org/3/builtins/stdtypes.html#dict)*
 
 JSON Schema (an object, `additionalProperties: false`) of the parameters.
+
+#### price(project, params=None)
+
+What running the op with `params` would cost now (reelee#1010).
+
+`params` are checked as [`run()`](#nw.GenreOp.run) checks them (a malformed body raises
+`pydantic.ValidationError`, it is not priced). An op with
+`spends=False` is `free` at $0; a `spends` op is its `quote`’s
+answer read by [`nw.pricing.quoted_price()`](nw.pricing.html.md#nw.pricing.quoted_price), `unknown` (`total_usd`
+`None`, never $0) when it has none, when the quote raises, or when the
+answer is no price. A [`GenreOpRefused`](#nw.GenreOpRefused) from the quote propagates: the
+run would be refused too.
+
+```pycon
+>>> def _say(project, *, text: str) -> dict:
+...     return {"said": text}
+>>> GenreOp("say", _say, title="Say it").price(None, {"text": "hi"}).to_dict()
+{'usd': 0.0, 'status': 'free'}
+>>> paid = GenreOp("say", _say, title="Say it", spends=True)
+>>> paid.price(None, {"text": "hi"}).to_dict()
+{'usd': None, 'status': 'unknown'}
+>>> quoted = GenreOp("say", _say, title="Say it", spends=True,
+...                  quote=lambda project, *, text: 0.01 * len(text))
+>>> quoted.price(None, {"text": "hi"}).to_dict()
+{'usd': 0.02, 'status': 'quoted'}
+```
+
+* **Return type:**
+  [`Price`](nw.pricing.html.md#nw.pricing.Price)
 
 #### run(project, params=None, , host=None)
 
@@ -1127,6 +1167,15 @@ number, whether it is knowable, and whether it moved. Reach into
 
 Today’s billable total, or `None` when any billable call is
 unpriceable today. `None` means unknown, never free (nw invariant #2).
+
+### *class* nw.Price(total_usd, status)
+
+Bases: [`object`](https://docs.python.org/3/builtins/functions.html#object)
+
+A price today: `total_usd` and how it was arrived at. `total_usd is None`
+means unknown, never free. `status` is `"free"` (declared), `"quoted"`, or
+`"unknown"`. What a stage’s and a genre op’s price read as
+([`nw.stages.stage_prices()`](nw.stages.html.md#nw.stages.stage_prices), [`nw.GenreOp.price()`](#nw.GenreOp.price)).
 
 ### *class* nw.Project(root, , storage=None, auto_migrate=True)
 
@@ -1898,6 +1947,10 @@ Whether the graph can show this stage at all.
 
 Transforms that carry the stage out; an output is theirs when its
 `was_generated_by` is `transform:<name>@...`.
+
+### nw.StagePrice
+
+alias of [`Price`](nw.pricing.html.md#nw.pricing.Price)
 
 ### *class* nw.StoredUnproducedOutput(annotation_id, body)
 
@@ -3467,6 +3520,22 @@ unknown is the only honest reading of it.
 * **Return type:**
   [`PlanQuote`](nw.pricing.html.md#nw.pricing.PlanQuote)
 
+### nw.quoted_price(raw)
+
+A quoter’s answer as a price: USD (a number), an [`nw.PlanQuote`](#nw.PlanQuote) (its
+`total_usd`), or `None`. Anything that is not a finite, non-negative number
+is unknown, never free: a price we could not read is not a price.
+
+```pycon
+>>> quoted_price(0.25), quoted_price(None).status, quoted_price(float("nan")).status
+(Price(total_usd=0.25, status='quoted'), 'unknown', 'unknown')
+>>> quoted_price(-1.0).status, quoted_price(True).status, quoted_price(10**400).status
+('unknown', 'unknown', 'unknown')
+```
+
+* **Return type:**
+  [`Price`](nw.pricing.html.md#nw.pricing.Price)
+
 ### nw.recommend_genre(kind)
 
 The slug of the genre whose `intake_kinds` contains `kind` (first in slug
@@ -3924,7 +3993,7 @@ paid stage is unknown. A raising quoter is unknown too: a price we could not
 work out is not a price.
 
 * **Return type:**
-  [`list`](https://docs.python.org/3/builtins/stdtypes.html#list)[[`StagePrice`](nw.stages.html.md#nw.stages.StagePrice)]
+  [`list`](https://docs.python.org/3/builtins/stdtypes.html#list)[[`Price`](nw.pricing.html.md#nw.pricing.Price)]
 
 ### nw.stage_states(stages, project, , active_transforms=())
 

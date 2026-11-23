@@ -148,6 +148,7 @@ data-aria-dark="Switch to auto color mode">
 <li><a class="reference internal" href="#nw.pricing.PlanQuote.total_usd"><code class="docutils literal notranslate"><span class="pre">PlanQuote.total_usd</span></code></a></li>
 </ul>
 </li>
+<li><a class="reference internal" href="#nw.pricing.Price"><code class="docutils literal notranslate"><span class="pre">Price</span></code></a></li>
 <li><a class="reference internal" href="#nw.pricing.QuoteStatus"><code class="docutils literal notranslate"><span class="pre">QuoteStatus</span></code></a></li>
 <li><a class="reference internal" href="#nw.pricing.TOTAL_AGREEMENT_ABS_TOL_USD"><code class="docutils literal notranslate"><span class="pre">TOTAL_AGREEMENT_ABS_TOL_USD</span></code></a></li>
 <li><a class="reference internal" href="#nw.pricing.cost_records"><code class="docutils literal notranslate"><span class="pre">cost_records()</span></code></a></li>
@@ -155,6 +156,7 @@ data-aria-dark="Switch to auto color mode">
 <li><a class="reference internal" href="#nw.pricing.plan_from_cost_records"><code class="docutils literal notranslate"><span class="pre">plan_from_cost_records()</span></code></a></li>
 <li><a class="reference internal" href="#nw.pricing.quote_from_cost_records"><code class="docutils literal notranslate"><span class="pre">quote_from_cost_records()</span></code></a></li>
 <li><a class="reference internal" href="#nw.pricing.quote_render_decision"><code class="docutils literal notranslate"><span class="pre">quote_render_decision()</span></code></a></li>
+<li><a class="reference internal" href="#nw.pricing.quoted_price"><code class="docutils literal notranslate"><span class="pre">quoted_price()</span></code></a></li>
 <li><a class="reference internal" href="#nw.pricing.unquotable"><code class="docutils literal notranslate"><span class="pre">unquotable()</span></code></a></li>
 </ul>
 </div><div id="ethical-ad-placement" data-ea-publisher="readthedocs"></div></div>
@@ -273,7 +275,10 @@ estimate-based fallback is an as-of figure and says so.</p>
 <tr class="row-odd"><td><p><a class="reference internal" href="#nw.pricing.quote_render_decision" title="nw.pricing.quote_render_decision"><code class="xref py py-obj docutils literal notranslate"><span class="pre">quote_render_decision</span></code></a>(payload, *[, pricers])</p></td>
 <td><p>Today's price for a <code class="docutils literal notranslate"><span class="pre">render_shot</span></code> decision payload.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#nw.pricing.unquotable" title="nw.pricing.unquotable"><code class="xref py py-obj docutils literal notranslate"><span class="pre">unquotable</span></code></a>(reason)</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#nw.pricing.quoted_price" title="nw.pricing.quoted_price"><code class="xref py py-obj docutils literal notranslate"><span class="pre">quoted_price</span></code></a>(raw)</p></td>
+<td><p>A quoter's answer as a price: USD (a number), an <a class="reference internal" href="nw.html#nw.PlanQuote" title="nw.PlanQuote"><code class="xref py py-class docutils literal notranslate"><span class="pre">nw.PlanQuote</span></code></a> (its <code class="docutils literal notranslate"><span class="pre">total_usd</span></code>), or <code class="docutils literal notranslate"><span class="pre">None</span></code>.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#nw.pricing.unquotable" title="nw.pricing.unquotable"><code class="xref py py-obj docutils literal notranslate"><span class="pre">unquotable</span></code></a>(reason)</p></td>
 <td><p>A quote for something that could not be re-quoted at all.</p></td>
 </tr>
 </tbody>
@@ -285,6 +290,9 @@ estimate-based fallback is an as-of figure and says so.</p>
 <tbody>
 <tr class="row-odd"><td><p><a class="reference internal" href="#nw.pricing.PlanQuote" title="nw.pricing.PlanQuote"><code class="xref py py-obj docutils literal notranslate"><span class="pre">PlanQuote</span></code></a>(*, total_usd, status, ...[, reason])</p></td>
 <td><p>Today's price for a persisted plan, with the stale figure alongside.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#nw.pricing.Price" title="nw.pricing.Price"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Price</span></code></a>(total_usd, status)</p></td>
+<td><p>A price today: <code class="docutils literal notranslate"><span class="pre">total_usd</span></code> and how it was arrived at.</p></td>
 </tr>
 </tbody>
 </table>
@@ -385,6 +393,18 @@ number, whether it is knowable, and whether it moved. Reach into
 unpriceable today. <code class="docutils literal notranslate"><span class="pre">None</span></code> means unknown, never free (nw invariant #2).</p>
 </dd></dl>
 
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="nw.pricing.Price">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">nw.pricing.</span></span><span class="sig-name descname"><span class="pre">Price</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">total_usd</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">status</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/nw/pricing.html#Price"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nw.pricing.Price" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/builtins/functions.html#object" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>A price today: <code class="docutils literal notranslate"><span class="pre">total_usd</span></code> and how it was arrived at. <code class="docutils literal notranslate"><span class="pre">total_usd</span> <span class="pre">is</span> <span class="pre">None</span></code>
+means unknown, never free. <code class="docutils literal notranslate"><span class="pre">status</span></code> is <code class="docutils literal notranslate"><span class="pre">&quot;free&quot;</span></code> (declared), <code class="docutils literal notranslate"><span class="pre">&quot;quoted&quot;</span></code>, or
+<code class="docutils literal notranslate"><span class="pre">&quot;unknown&quot;</span></code>. What a stage’s and a genre op’s price read as
+(<a class="reference internal" href="nw.stages.html#nw.stages.stage_prices" title="nw.stages.stage_prices"><code class="xref py py-func docutils literal notranslate"><span class="pre">nw.stages.stage_prices()</span></code></a>, <a class="reference internal" href="nw.html#nw.GenreOp.price" title="nw.GenreOp.price"><code class="xref py py-meth docutils literal notranslate"><span class="pre">nw.GenreOp.price()</span></code></a>).</p>
+<dl class="field-list simple">
+</dl>
 </dd></dl>
 
 <dl class="py data">
@@ -537,6 +557,25 @@ unknown is the only honest reading of it.</p>
 </dd></dl>
 
 <dl class="py function">
+<dt class="sig sig-object py" id="nw.pricing.quoted_price">
+<span class="sig-prename descclassname"><span class="pre">nw.pricing.</span></span><span class="sig-name descname"><span class="pre">quoted_price</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">raw</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/nw/pricing.html#quoted_price"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nw.pricing.quoted_price" title="Link to this definition">#</a></dt>
+<dd><p>A quoter’s answer as a price: USD (a number), an <a class="reference internal" href="nw.html#nw.PlanQuote" title="nw.PlanQuote"><code class="xref py py-class docutils literal notranslate"><span class="pre">nw.PlanQuote</span></code></a> (its
+<code class="docutils literal notranslate"><span class="pre">total_usd</span></code>), or <code class="docutils literal notranslate"><span class="pre">None</span></code>. Anything that is not a finite, non-negative number
+is unknown, never free: a price we could not read is not a price.</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span data-line="1"><span class="gp">&gt;&gt;&gt; </span><span class="n">quoted_price</span><span class="p">(</span><span class="mf">0.25</span><span class="p">),</span> <span class="n">quoted_price</span><span class="p">(</span><span class="kc">None</span><span class="p">)</span><span class="o">.</span><span class="n">status</span><span class="p">,</span> <span class="n">quoted_price</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="s2">"nan"</span><span class="p">))</span><span class="o">.</span><span class="n">status</span>
+</span><span data-line="2"><span class="go">(Price(total_usd=0.25, status='quoted'), 'unknown', 'unknown')</span>
+</span><span data-line="3"><span class="gp">&gt;&gt;&gt; </span><span class="n">quoted_price</span><span class="p">(</span><span class="o">-</span><span class="mf">1.0</span><span class="p">)</span><span class="o">.</span><span class="n">status</span><span class="p">,</span> <span class="n">quoted_price</span><span class="p">(</span><span class="kc">True</span><span class="p">)</span><span class="o">.</span><span class="n">status</span><span class="p">,</span> <span class="n">quoted_price</span><span class="p">(</span><span class="mi">10</span><span class="o">**</span><span class="mi">400</span><span class="p">)</span><span class="o">.</span><span class="n">status</span>
+</span><span data-line="4"><span class="go">('unknown', 'unknown', 'unknown')</span>
+</span></pre></div>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="#nw.pricing.Price" title="nw.pricing.Price"><code class="xref py py-class docutils literal notranslate"><span class="pre">Price</span></code></a></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
 <dt class="sig sig-object py" id="nw.pricing.unquotable">
 <span class="sig-prename descclassname"><span class="pre">nw.pricing.</span></span><span class="sig-name descname"><span class="pre">unquotable</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">reason</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/nw/pricing.html#unquotable"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nw.pricing.unquotable" title="Link to this definition">#</a></dt>
 <dd><p>A quote for something that could not be re-quoted at all.</p>
@@ -600,7 +639,7 @@ were no calls to diff. Read <a class="reference internal" href="#nw.pricing.Plan
     </div>
   </div>
 </footer>
-      <script src="../_static/documentation_options.js?v=79f5c40e"></script>
+      <script src="../_static/documentation_options.js?v=4e0d4e64"></script>
       <script src="../_static/doctools.js?v=fd6eb6e6"></script>
       <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script src="../_static/clipboard.min.js?v=a7894cd8"></script>

@@ -12,6 +12,7 @@
       format_ref
       stage_overview
       stage_prices
+      quoted_price
       stage_states
       genre_catalog
       describe_genre
@@ -123,6 +124,8 @@
       Genre
       Template
       Stage
+      StagePrice
+      Price
       GenreOp
       Project
       TraceUpgradeReport

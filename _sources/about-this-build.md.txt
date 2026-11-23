@@ -5,7 +5,7 @@ orphan: true
 
 # About this build
 
-This documentation was built on **2026-11-22 21:53 UTC** from commit <a href="https://github.com/reeleehq/nw/commit/6708009cb141a6efb9cdc0add93b065f7e994da3"><code>6708009</code></a> on branch <code>main</code>, for **nw 0.0.165** (from <code>pyproject.toml</code>).
+This documentation was built on **2026-11-23 07:41 UTC** from commit <a href="https://github.com/reeleehq/nw/commit/ca81cc39e07643b9ed8dfc023d05d3ccc2db818a"><code>ca81cc3</code></a> on branch <code>main</code>, for **nw 0.0.166** (from <code>pyproject.toml</code>).
 
 :::{note}
 Nothing suggests a mismatch: the tree was clean at the commit above, and the documented version is the one on PyPI.
@@ -15,9 +15,9 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 
 | | |
 |---|---|
-| Commit | <a href="https://github.com/reeleehq/nw/commit/6708009cb141a6efb9cdc0add93b065f7e994da3"><code>6708009cb141a6efb9cdc0add93b065f7e994da3</code></a> |
+| Commit | <a href="https://github.com/reeleehq/nw/commit/ca81cc39e07643b9ed8dfc023d05d3ccc2db818a"><code>ca81cc39e07643b9ed8dfc023d05d3ccc2db818a</code></a> |
 | Branch | <code>main</code> |
-| Tags at this commit | <code>0.0.165</code> |
+| Tags at this commit | <code>0.0.166</code> |
 | Working tree | clean |
 | Remote | <code>https://github.com/reeleehq/nw</code> |
 
@@ -26,15 +26,15 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 | | |
 |---|---|
 | Repository | <code>reeleehq/nw</code> |
-| Run | <a href="https://github.com/reeleehq/nw/actions/runs/45074373754">45074373754</a> |
+| Run | <a href="https://github.com/reeleehq/nw/actions/runs/45132656289">45132656289</a> |
 | Ref | <code>refs/heads/main</code> |
-| Event commit | <code>fa974feec1f389b0a89073e6ee303f9186fccafa</code> (in the history of the built commit) |
+| Event commit | <code>2f1d6d42ba8a18c454e657a80bf5bcccd3577206</code> (in the history of the built commit) |
 
 ## Tools
 
 | | |
 |---|---|
-| epythet | 0.2.23 |
+| epythet | 0.2.24 |
 | Sphinx | 9.1.1 |
 | docutils | 0.22.4 |
 | Python | 3.12.16 |
@@ -53,14 +53,14 @@ Nothing suggests a mismatch: the tree was clean at the commit above, and the doc
 
 ## Package on PyPI
 
-Latest release: <a href="https://pypi.org/project/nw/0.0.165/">0.0.165</a>, the same as the documented version.
+Latest release: <a href="https://pypi.org/project/nw/0.0.166/">0.0.166</a>, the same as the documented version.
 
 ## Reproduce
 
 ```bash
 git clone https://github.com/reeleehq/nw && cd nw
-git checkout 6708009cb141a6efb9cdc0add93b065f7e994da3
-pip install "epythet==0.2.23"
+git checkout ca81cc39e07643b9ed8dfc023d05d3ccc2db818a
+pip install "epythet==0.2.24"
 epythet quickstart . --ignore tests/ scrap/ examples/
 ```
 

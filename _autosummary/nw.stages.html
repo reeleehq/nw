@@ -143,10 +143,7 @@ data-aria-dark="Switch to auto color mode">
 <li><a class="reference internal" href="#nw.stages.Stage.transform_names"><code class="docutils literal notranslate"><span class="pre">Stage.transform_names</span></code></a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#nw.stages.StagePrice"><code class="docutils literal notranslate"><span class="pre">StagePrice</span></code></a><ul>
-<li><a class="reference internal" href="#nw.stages.StagePrice.status"><code class="docutils literal notranslate"><span class="pre">StagePrice.status</span></code></a></li>
-</ul>
-</li>
+<li><a class="reference internal" href="#nw.stages.StagePrice"><code class="docutils literal notranslate"><span class="pre">StagePrice</span></code></a></li>
 <li><a class="reference internal" href="#nw.stages.StageState"><code class="docutils literal notranslate"><span class="pre">StageState</span></code></a></li>
 <li><a class="reference internal" href="#nw.stages.stage_overview"><code class="docutils literal notranslate"><span class="pre">stage_overview()</span></code></a></li>
 <li><a class="reference internal" href="#nw.stages.stage_prices"><code class="docutils literal notranslate"><span class="pre">stage_prices()</span></code></a></li>
@@ -239,6 +236,9 @@ one (reelee-web#305).</p>
 <tr class="row-odd"><td><p><a class="reference internal" href="#nw.stages.STAGE_STATES" title="nw.stages.STAGE_STATES"><code class="xref py py-obj docutils literal notranslate"><span class="pre">STAGE_STATES</span></code></a></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">not_started</span></code> / <code class="docutils literal notranslate"><span class="pre">in_progress</span></code> / <code class="docutils literal notranslate"><span class="pre">done</span></code> / <code class="docutils literal notranslate"><span class="pre">unknown</span></code> — see the module docstring.</p></td>
 </tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#nw.stages.StagePrice" title="nw.stages.StagePrice"><code class="xref py py-obj docutils literal notranslate"><span class="pre">StagePrice</span></code></a></p></td>
+<td><p>A stage's price: <a class="reference internal" href="nw.pricing.html#nw.pricing.Price" title="nw.pricing.Price"><code class="xref py py-class docutils literal notranslate"><span class="pre">nw.pricing.Price</span></code></a> (the name stages have always used).</p></td>
+</tr>
 </tbody>
 </table>
 </div>
@@ -268,8 +268,8 @@ one (reelee-web#305).</p>
 <tr class="row-odd"><td><p><a class="reference internal" href="#nw.stages.Stage" title="nw.stages.Stage"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Stage</span></code></a>(slug, name[, free, transform_names, ...])</p></td>
 <td><p>One plain-English step of a genre.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#nw.stages.StagePrice" title="nw.stages.StagePrice"><code class="xref py py-obj docutils literal notranslate"><span class="pre">StagePrice</span></code></a>(total_usd, status)</p></td>
-<td><p>A stage's price today.</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#nw.stages.StagePrice" title="nw.stages.StagePrice"><code class="xref py py-obj docutils literal notranslate"><span class="pre">StagePrice</span></code></a></p></td>
+<td><p>A stage's price: <a class="reference internal" href="nw.pricing.html#nw.pricing.Price" title="nw.pricing.Price"><code class="xref py py-class docutils literal notranslate"><span class="pre">nw.pricing.Price</span></code></a> (the name stages have always used).</p></td>
 </tr>
 <tr class="row-odd"><td><p><a class="reference internal" href="#nw.stages.StageState" title="nw.stages.StageState"><code class="xref py py-obj docutils literal notranslate"><span class="pre">StageState</span></code></a>(stage, state[, produced, stale])</p></td>
 <td><p></p></td>
@@ -323,19 +323,10 @@ person typed in). Matched on the annotation’s <code class="docutils literal no
 
 </dd></dl>
 
-<dl class="py class">
-<dt class="sig sig-object py" id="nw.stages.StagePrice">
-<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">nw.stages.</span></span><span class="sig-name descname"><span class="pre">StagePrice</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">total_usd</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">status</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/nw/stages.html#StagePrice"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#nw.stages.StagePrice" title="Link to this definition">#</a></dt>
-<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/builtins/functions.html#object" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
-<p>A stage’s price today. <code class="docutils literal notranslate"><span class="pre">total_usd</span> <span class="pre">is</span> <span class="pre">None</span></code> means unknown, never free.</p>
-<dl class="field-list simple">
-</dl>
 <dl class="py attribute">
-<dt class="sig sig-object py" id="nw.stages.StagePrice.status">
-<span class="sig-name descname"><span class="pre">status</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><span class="pre">str</span></a></span><a class="headerlink" href="#nw.stages.StagePrice.status" title="Link to this definition">#</a></dt>
-<dd><p><code class="docutils literal notranslate"><span class="pre">&quot;free&quot;</span></code> (declared), <code class="docutils literal notranslate"><span class="pre">&quot;quoted&quot;</span></code>, or <code class="docutils literal notranslate"><span class="pre">&quot;unknown&quot;</span></code>.</p>
-</dd></dl>
-
+<dt class="sig sig-object py" id="nw.stages.StagePrice">
+<span class="sig-prename descclassname"><span class="pre">nw.stages.</span></span><span class="sig-name descname"><span class="pre">StagePrice</span></span><a class="headerlink" href="#nw.stages.StagePrice" title="Link to this definition">#</a></dt>
+<dd><p>A stage’s price: <a class="reference internal" href="nw.pricing.html#nw.pricing.Price" title="nw.pricing.Price"><code class="xref py py-class docutils literal notranslate"><span class="pre">nw.pricing.Price</span></code></a> (the name stages have always used).</p>
 </dd></dl>
 
 <dl class="py class">
@@ -370,7 +361,7 @@ paid stage is unknown. A raising quoter is unknown too: a price we could not
 work out is not a price.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#list" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code></a>[<a class="reference internal" href="#nw.stages.StagePrice" title="nw.stages.StagePrice"><code class="xref py py-class docutils literal notranslate"><span class="pre">StagePrice</span></code></a>]</span></p>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#list" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code></a>[<a class="reference internal" href="nw.pricing.html#nw.pricing.Price" title="nw.pricing.Price"><code class="xref py py-class docutils literal notranslate"><span class="pre">Price</span></code></a>]</span></p>
 </dd>
 </dl>
 </dd></dl>
@@ -443,7 +434,7 @@ now, which the graph cannot know; a stage that owns one is <code class="docutils
     </div>
   </div>
 </footer>
-      <script src="../_static/documentation_options.js?v=79f5c40e"></script>
+      <script src="../_static/documentation_options.js?v=4e0d4e64"></script>
       <script src="../_static/doctools.js?v=fd6eb6e6"></script>
       <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script src="../_static/clipboard.min.js?v=a7894cd8"></script>

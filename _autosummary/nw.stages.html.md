@@ -46,8 +46,9 @@ one (reelee-web#305).
 
 ### Module Attributes
 
-| [`STAGE_STATES`](#nw.stages.STAGE_STATES)   | `not_started` / `in_progress` / `done` / `unknown` — see the module docstring.   |
-|-----------------------------------------------------------------|----------------------------------------------------------------------------------|
+| [`STAGE_STATES`](#nw.stages.STAGE_STATES)   | `not_started` / `in_progress` / `done` / `unknown` — see the module docstring.                                                          |
+|-----------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------|
+| [`StagePrice`](#nw.stages.StagePrice)     | A stage's price: [`nw.pricing.Price`](nw.pricing.html.md#nw.pricing.Price) (the name stages have always used). |
 
 ### Functions
 
@@ -59,10 +60,10 @@ one (reelee-web#305).
 
 ### Classes
 
-| [`Stage`](#nw.stages.Stage)(slug, name[, free, transform_names, ...])   | One plain-English step of a genre.   |
-|----------------------------------------------------------------------------------------------------|--------------------------------------|
-| [`StagePrice`](#nw.stages.StagePrice)(total_usd, status)                     | A stage's price today.               |
-| [`StageState`](#nw.stages.StageState)(stage, state[, produced, stale])       |                                      |
+| [`Stage`](#nw.stages.Stage)(slug, name[, free, transform_names, ...])   | One plain-English step of a genre.                                                                                                      |
+|----------------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------|
+| [`StagePrice`](#nw.stages.StagePrice)                                        | A stage's price: [`nw.pricing.Price`](nw.pricing.html.md#nw.pricing.Price) (the name stages have always used). |
+| [`StageState`](#nw.stages.StageState)(stage, state[, produced, stale])       |                                                                                                                                         |
 
 ### nw.stages.STAGE_STATES *= ('not_started', 'in_progress', 'done', 'unknown')*
 
@@ -95,15 +96,9 @@ Whether the graph can show this stage at all.
 Transforms that carry the stage out; an output is theirs when its
 `was_generated_by` is `transform:<name>@...`.
 
-### *class* nw.stages.StagePrice(total_usd, status)
+### nw.stages.StagePrice
 
-Bases: [`object`](https://docs.python.org/3/builtins/functions.html#object)
-
-A stage’s price today. `total_usd is None` means unknown, never free.
-
-#### status *: [str](https://docs.python.org/3/builtins/stdtypes.html#str)*
-
-`"free"` (declared), `"quoted"`, or `"unknown"`.
+A stage’s price: [`nw.pricing.Price`](nw.pricing.html.md#nw.pricing.Price) (the name stages have always used).
 
 ### *class* nw.stages.StageState(stage, state, produced=0, stale=0)
 
@@ -129,7 +124,7 @@ paid stage is unknown. A raising quoter is unknown too: a price we could not
 work out is not a price.
 
 * **Return type:**
-  [`list`](https://docs.python.org/3/builtins/stdtypes.html#list)[[`StagePrice`](#nw.stages.StagePrice)]
+  [`list`](https://docs.python.org/3/builtins/stdtypes.html#list)[[`Price`](nw.pricing.html.md#nw.pricing.Price)]
 
 ### nw.stages.stage_states(stages, project, , active_transforms=())
 
