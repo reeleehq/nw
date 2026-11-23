@@ -48,6 +48,8 @@ from dataclasses import KW_ONLY, dataclass, field
 from pathlib import Path
 from typing import Optional
 
+from lacing.id_slug import check_id_slug
+
 from nw.atomic_io import copy_file_atomic, read_text_retrying, write_text_atomic
 from nw.paths import check_path_segment
 
@@ -63,8 +65,6 @@ DEFAULT_GRACE_S = 7 * 24 * 3600.0
 #: matches before a trailing newline.
 _IS_DIGEST = re.compile(r"[0-9a-f]{64}")
 _HASH_CHUNK = 1 << 20
-#: Tenant / class names are path segments: no separators, no dots-only, no reserved.
-_SEGMENT = re.compile(r"[A-Za-z0-9][A-Za-z0-9_.-]*")
 _SENTINEL = ".nw-store-catalog"
 _META_DIR = "_nw"  # per-tenant bookkeeping, beside the lifecycle-class dirs
 _LINK_REFUSALS = (errno.EXDEV, errno.EMLINK, errno.EPERM)
@@ -76,9 +76,12 @@ class StoreCatalogUnreadable(RuntimeError):
 
 def _segment(name: str, what: str) -> str:
     """``name`` as a tenant / class folder: :func:`nw.paths.check_path_segment`
-    with this store's stricter slug policy (which already refuses ``_nw``, the
-    meta folder, by requiring an alphanumeric first character), and no ``..``."""
-    check_path_segment(name, what=what, pattern=_SEGMENT)
+    with this store's stricter slug policy, the federation id-slug rule
+    (:func:`lacing.id_slug.check_id_slug`, lacing#165, which already refuses
+    ``_nw``, the meta folder, by requiring an alphanumeric first character), and
+    no ``..``."""
+    check_path_segment(name, what=what)
+    check_id_slug(name, label=what)
     if ".." in name:
         raise ValueError(f"invalid {what}: {name!r} contains '..'")
     return name

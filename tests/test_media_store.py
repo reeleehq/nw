@@ -31,7 +31,7 @@ def test_layout_is_tenant_class_sha(tmp_path):
     assert store.blob_path(aid) == tmp_path / "s" / "t1" / "project" / aid
 
 
-@pytest.mark.parametrize("bad", ["", "..", "a/b", "_nw", ".x"])
+@pytest.mark.parametrize("bad", ["", "..", "a/b", "_nw", ".x", "t1\n", "a..b", "x" * 256])
 def test_unsafe_segments_refused(tmp_path, bad):
     with pytest.raises(ValueError):
         SharedMediaStore(tmp_path, tenant=bad)
